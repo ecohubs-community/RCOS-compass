@@ -1,0 +1,63 @@
+schema: spec-driven
+
+context: |
+  RCOS Compass — a tool that turns the 213 numbered clauses of the RCOS
+  governance standard into a short ordered list of things a community still has
+  to decide, and keeps what they decided findable and attributable. Multi-tenant
+  SvelteKit web app. Specification stage; no implementation yet.
+
+  Tech stack: SvelteKit 2 · Svelte 5 runes · Tailwind 4 (@theme, no config file)
+  · Bits UI · better-auth · Drizzle + SQLite (Postgres post-MVP) · Valibot ·
+  Vitest + Playwright · Node 24 / pnpm. AI behind a provider interface with a
+  Google AI Studio adapter and a `null` provider used in CI.
+
+  Design docs are the reasoning behind these specs and are the place to look for
+  WHY; read them before proposing anything non-trivial:
+    AGENT.md                                the short version, read this first
+    docs/00-architecture.md                 stack, layout, tenancy, AI, jobs, config
+    docs/01-server-client-contract.md       load / actions / when an endpoint is allowed
+    docs/02-component-guidelines.md         component tiers, Tailwind-only, mobile, help
+    docs/03-data-model.md                   schema, state machines, readiness arithmetic
+    docs/04-security.md                     permission matrix, isolation, untrusted input
+    docs/05-admin-console.md                platform admin (metadata only)
+    docs/06-testing-strategy.md             environments and the nothing-ships-untested rule
+    docs/07-spec-review-log.md              every finding and its resolution, 8 passes
+    docs/08-roadmap-mvp.md                  P0..P8
+    docs/09-standards-versions-modules.md   core vs modules, versions, migration
+    docs/10-legal-and-operations.md         licence, hosting, plans
+    docs/11-definition-linter.md            the linter rule set
+    "UI Spec — v0.1 (draft).md"             the product spec
+    "RCOS Core Specification — v0.1.md"     the standard being implemented
+
+  Invariants that outrank convenience:
+  - Nothing ships untested. Behaviour change and its tests land in one commit.
+  - All logic in src/lib/server/services; routes parse, call, shape. Nothing else.
+  - The tenant comes from the URL, never from a session claim. Every service
+    filters on ctx.communityId. Cross-tenant access returns 404, not 403.
+  - Every server load and action calls requirePermission. Two roles: steward and
+    member; owner is a flag on one membership.
+  - AI drafts, structures, questions and maps. It never adopts. There is no code
+    path from a model response to an adopted definition, a confirmed mapping or a
+    decision — only to a suggestion row a human confirms. Everything must work
+    with AI_PROVIDER=null.
+  - "Adopted" means a named person froze one specific version through a recorded
+    decision. Nothing else adopts.
+  - Readiness counts only MUST clauses with disposition defined_by_section.
+    Provisional definitions count toward readiness and block compliance. Local
+    definitions move no number. No percentage on any public page, ever.
+  - Freeze is one transaction, idempotent, with gapless per-community decision
+    refs. The register is append-only; corrections are new entries.
+  - Every screen works on a phone down to 375px.
+  - Tailwind utilities only; no hex colours in components; no <style> blocks.
+
+rules:
+  proposal:
+    - State what a community loses if this is not built, not just what we gain.
+    - Name the docs/ sections the change relies on, so the reasoning stays findable.
+  specs:
+    - Requirements are behaviour a test can pin down, not implementation notes.
+    - Every requirement that touches tenancy, permissions, or a computed number
+      carries a negative scenario as well as a positive one.
+  tasks:
+    - Each task group ends with the tests that prove it, never a separate
+      "write tests" group at the end.

@@ -35,7 +35,24 @@ Studio adapter. Tauri post-MVP.
 ## Workflow
 
 Non-trivial changes start as an OpenSpec proposal under `openspec/changes/`, not
-as code. `openspec list`, `openspec validate`, `openspec archive` when shipped.
+as code.
+
+```bash
+openspec new change "<kebab-name>"     # scaffold
+openspec status --change "<name>"      # what artifacts are still needed
+openspec validate <name>               # requirements need normative text (MUST/SHALL)
+                                       # in their first paragraph, plus a scenario each
+openspec list                          # open changes and task progress
+openspec archive <name>                # on ship: folds deltas into openspec/specs/
+```
+
+**`docs/` and `openspec/specs/` do different jobs.** `docs/` is the reasoning —
+why the model is shaped this way, what was considered and rejected, the eight
+review passes. `openspec/specs/` is behaviour a test can pin down. A proposal
+cites the docs; it does not restate them. When the two disagree, the spec wins for
+behaviour and the doc gets corrected.
+
+Current change: `scaffold-project` (P0). Nothing is implemented yet.
 
 ```bash
 pnpm dev          # dev server
