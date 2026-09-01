@@ -30,19 +30,21 @@
       <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.25"><path d="M4 2.5h5l3 3v8h-8z"></path><path d="M9 2.5v3h3"></path></svg>Documents</div>
     <div style="display:flex;align-items:center;gap:9px;padding:6px 10px;border-radius:6px;font-size:13px;color:{{ c_definitions }};background:{{ b_definitions }}">
       <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.25"><circle cx="8" cy="8" r="5.5"></circle><path d="M8 5.5v5"></path></svg>Definitions</div>
+
+    <div style="padding:14px 10px 6px;font-size:10.5px;color:#4E5756;letter-spacing:.08em;text-transform:uppercase">What we’ve agreed</div>
     <div style="display:flex;align-items:center;gap:9px;padding:6px 10px;border-radius:6px;font-size:13px;color:{{ c_decisions }};background:{{ b_decisions }}">
       <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.25"><circle cx="8" cy="8" r="5.5"></circle><path d="m5.75 8 1.6 1.6 3-3.2"></path></svg>Decisions</div>
+    <div style="display:flex;align-items:center;gap:9px;padding:6px 10px;border-radius:6px;font-size:13px;color:{{ c_artifacts }};background:{{ b_artifacts }}">
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.25"><rect x="8" y="1.9" width="8.6" height="8.6" rx="1.4" transform="rotate(45 8 1.9)"></rect></svg>Artifacts</div>
 
     <div style="padding:14px 10px 6px;font-size:10.5px;color:#4E5756;letter-spacing:.08em;text-transform:uppercase">Reference</div>
     <div style="display:flex;align-items:center;gap:9px;padding:6px 10px;border-radius:6px;font-size:13px;color:{{ c_standard }};background:{{ b_standard }}">
       <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.25"><rect x="2.5" y="2.5" width="11" height="11" rx="1.5"></rect><path d="M5.5 6h5M5.5 9h3"></path></svg>Standard</div>
-    <div style="display:flex;align-items:center;gap:9px;padding:6px 10px;border-radius:6px;font-size:13px;color:{{ c_artifacts }};background:{{ b_artifacts }}">
-      <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.25"><rect x="8" y="1.9" width="8.6" height="8.6" rx="1.4" transform="rotate(45 8 1.9)"></rect></svg>Artifacts</div>
+    <div style="display:flex;align-items:center;gap:9px;padding:6px 10px;border-radius:6px;font-size:13px;color:{{ c_glossary }};background:{{ b_glossary }}">
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.25"><path d="M3 3.5h10M3 8h10M3 12.5h6"></path></svg>Glossary</div>
   </div>
 
   <div style="flex:none;padding:6px 8px 10px;display:flex;flex-direction:column;gap:1px">
-    <div style="display:flex;align-items:center;gap:9px;padding:5px 10px;border-radius:6px;font-size:12.5px;color:{{ c_glossary }};background:{{ b_glossary }}">
-      <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.25"><path d="M3 3.5h10M3 8h10M3 12.5h6"></path></svg>Glossary</div>
     <div style="display:flex;align-items:center;gap:9px;padding:5px 10px;border-radius:6px;font-size:12.5px;color:{{ c_settings }};background:{{ b_settings }}">
       <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.25"><circle cx="8" cy="8" r="2"></circle><circle cx="8" cy="8" r="5.5"></circle></svg>Settings</div>
   </div>
@@ -65,10 +67,10 @@
   </div>
 </div>
 </x-dc>
-<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:240,&quot;height&quot;:848},&quot;active&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;dashboard&quot;,&quot;path&quot;,&quot;discussions&quot;,&quot;documents&quot;,&quot;definitions&quot;,&quot;decisions&quot;,&quot;standard&quot;,&quot;artifacts&quot;,&quot;glossary&quot;,&quot;settings&quot;],&quot;default&quot;:&quot;dashboard&quot;,&quot;tsType&quot;:&quot;string&quot;}}">
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:240,&quot;height&quot;:848},&quot;active&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;dashboard&quot;,&quot;path&quot;,&quot;discussions&quot;,&quot;documents&quot;,&quot;definitions&quot;,&quot;decisions&quot;,&quot;artifacts&quot;,&quot;standard&quot;,&quot;glossary&quot;,&quot;settings&quot;],&quot;default&quot;:&quot;dashboard&quot;,&quot;tsType&quot;:&quot;string&quot;}}">
 class Component extends DCLogic {
   renderVals() {
-    const keys = ['dashboard','path','discussions','documents','definitions','decisions','standard','artifacts','glossary','settings'];
+    const keys = ['dashboard','path','discussions','documents','definitions','decisions','artifacts','standard','glossary','settings'];
     const v = {};
     keys.forEach(k => {
       const on = this.props.active === k;
