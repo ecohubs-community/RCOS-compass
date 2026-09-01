@@ -1,0 +1,1239 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet data-dc-atomics>
+<meta name="design_doc_mode" content="canvas">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Newsreader:ital,opsz,wght@0,6..72,400;1,6..72,400&display=swap" rel="stylesheet">
+<style>body{margin:0;background:#0B0D0D;-webkit-font-smoothing:antialiased}a{color:#10B981;text-decoration:none}a:hover{color:#34D399}</style>
+</helmet>
+
+<div style="padding:52px;display:flex;flex-direction:column;gap:52px;align-items:flex-start;background:#0B0D0D;font-family:Inter,system-ui,sans-serif">
+
+  <div style="display:flex;flex-direction:column;gap:10px" data-screen-label="01 Dashboard">
+    <div style="display:flex;align-items:baseline;gap:10px;font-family:ui-monospace,Menlo,monospace;font-size:11px;color:#6B7574"><span style="color:#9BA3A1">01</span><span>Dashboard</span><span style="color:#3A4142">1440 × 900</span></div>
+    <div style="width:1440px;height:900px;background:#0E1011;border:1px solid #262B2C;border-radius:8px;overflow:hidden;display:flex;color:#E8EAE9;font-size:13px">
+      <dc-import name="Sidebar" active="dashboard" hint-size="240px,900px" style="width:240px;flex:none"></dc-import>
+      <div style="flex:1;min-width:0;display:flex;flex-direction:column">
+        <dc-import name="TopBar" crumb="Dashboard" hint-size="100%,52px" style="width:100%;flex:none"></dc-import>
+        <div style="flex:1;min-height:0;padding:22px 24px;display:flex;gap:20px;overflow:hidden">
+
+          <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:20px">
+            <div style="border:1px solid #262B2C;border-radius:8px;background:#16191A;overflow:hidden">
+              <div style="padding:16px 18px 14px;display:flex;align-items:flex-start;gap:12px;border-bottom:1px solid #262B2C">
+                <div style="flex:1">
+                  <div style="font-size:18px;font-weight:550;letter-spacing:-.01em">Your next 5</div>
+                  <div style="font-size:12px;color:#6B7574;margin-top:3px">The questions worth answering before anything else · ordered by the Path rules</div>
+                </div>
+                <div style="font-size:12px;color:#9BA3A1;border:1px solid #262B2C;border-radius:6px;padding:5px 10px">See all 23</div>
+              </div>
+              <sc-for list="{{ next5 }}" as="row" hint-placeholder-count="5">
+                <div style="display:flex;align-items:center;gap:16px;padding:15px 18px;border-bottom:1px solid #1F2324;background:{{ row.bg }}">
+                  <div style="width:20px;flex:none;font-size:12px;color:#4E5756;font-variant-numeric:tabular-nums">{{ row.n }}</div>
+                  <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:7px">
+                    <div style="font-size:15px;line-height:1.35;color:#E8EAE9;text-wrap:pretty">{{ row.q }}</div>
+                    <div style="display:flex;align-items:center;gap:8px">
+                      <span style="font-size:11px;color:#9BA3A1;border:1px solid #262B2C;border-radius:4px;padding:2px 6px">{{ row.layer }}</span>
+                      <span style="font-size:11px;color:#6B7574">{{ row.effort }}</span>
+                      <span style="font-size:11px;color:#3A4142">·</span>
+                      <span style="font-size:11px;color:#6B7574">{{ row.clauses }}</span>
+                    </div>
+                  </div>
+                  <div style="flex:none;display:{{ row.btn }};align-items:center;gap:6px;font-size:12px;color:#10B981;border:1px solid #2E4A42;background:rgba(5,150,105,0.12);border-radius:6px;padding:6px 11px">Start discussion</div>
+                </div>
+              </sc-for>
+            </div>
+
+            <div style="border:1px solid #262B2C;border-radius:8px;background:#16191A;overflow:hidden">
+              <div style="padding:13px 18px;display:flex;align-items:center;border-bottom:1px solid #262B2C">
+                <div style="flex:1;font-size:15px;font-weight:550">Recently decided</div>
+                <div style="font-size:12px;color:#6B7574">Decision register</div>
+              </div>
+              <div style="padding:4px 0">
+                <sc-for list="{{ recent }}" as="d" hint-placeholder-count="5">
+                  <div style="display:flex;align-items:center;gap:10px;padding:7px 18px;font-size:12.5px">
+                    <span style="font-family:ui-monospace,Menlo,monospace;font-size:11.5px;color:#6B7574;font-variant-numeric:tabular-nums">{{ d.id }}</span>
+                    <span style="color:#E8EAE9">{{ d.title }}</span>
+                    <span style="color:#3A4142">·</span>
+                    <span style="color:#9BA3A1;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ d.meta }}</span>
+                    <span style="font-size:11px;color:{{ d.tagColor }};border:1px solid {{ d.tagBorder }};border-radius:4px;padding:1px 6px">{{ d.tag }}</span>
+                  </div>
+                </sc-for>
+              </div>
+            </div>
+          </div>
+
+          <div style="width:352px;flex:none;display:flex;flex-direction:column;gap:20px">
+            <div style="border:1px solid #262B2C;border-radius:8px;background:#16191A;padding:16px 18px">
+              <div style="display:flex;align-items:flex-end;justify-content:space-between;margin-bottom:14px">
+                <div>
+                  <div style="font-size:15px;font-weight:550">Readiness</div>
+                  <div style="font-size:12px;color:#6B7574;margin-top:2px">by layer</div>
+                </div>
+                <div style="font-size:24px;font-weight:550;letter-spacing:-.02em;font-variant-numeric:tabular-nums;line-height:1">41%</div>
+              </div>
+              <div style="display:flex;flex-direction:column;gap:9px">
+                <div style="display:flex;align-items:center;gap:10px"><span style="width:132px;flex:none;font-size:11.5px;color:#9BA3A1">0 · Identity &amp; Scope</span><span style="flex:1;height:4px;border-radius:2px;background:#262B2C;overflow:hidden"><span style="display:block;width:100%;height:100%;background:#059669"></span></span><span style="width:30px;text-align:right;font-size:11px;color:#9BA3A1;font-variant-numeric:tabular-nums">100%</span></div>
+                <div style="display:flex;align-items:center;gap:10px"><span style="width:132px;flex:none;font-size:11.5px;color:#9BA3A1">1 · Membership</span><span style="flex:1;height:4px;border-radius:2px;background:#262B2C;overflow:hidden"><span style="display:block;width:62%;height:100%;background:#059669"></span></span><span style="width:30px;text-align:right;font-size:11px;color:#9BA3A1;font-variant-numeric:tabular-nums">62%</span></div>
+                <div style="display:flex;align-items:center;gap:10px"><span style="width:132px;flex:none;font-size:11.5px;color:#9BA3A1">2 · Governance</span><span style="flex:1;height:4px;border-radius:2px;background:#262B2C;overflow:hidden"><span style="display:block;width:45%;height:100%;background:#059669"></span></span><span style="width:30px;text-align:right;font-size:11px;color:#9BA3A1;font-variant-numeric:tabular-nums">45%</span></div>
+                <div style="display:flex;align-items:center;gap:10px"><span style="width:132px;flex:none;font-size:11.5px;color:#9BA3A1">3 · Economy</span><span style="flex:1;height:4px;border-radius:2px;background:#262B2C;overflow:hidden"><span style="display:block;width:20%;height:100%;background:#059669"></span></span><span style="width:30px;text-align:right;font-size:11px;color:#9BA3A1;font-variant-numeric:tabular-nums">20%</span></div>
+                <div style="display:flex;align-items:center;gap:10px"><span style="width:132px;flex:none;font-size:11.5px;color:#9BA3A1">4 · Conflict</span><span style="flex:1;height:4px;border-radius:2px;background:#262B2C;overflow:hidden"><span style="display:block;width:0%;height:100%;background:#059669"></span></span><span style="width:30px;text-align:right;font-size:11px;color:#6B7574;font-variant-numeric:tabular-nums">0%</span></div>
+                <div style="display:flex;align-items:center;gap:10px"><span style="width:132px;flex:none;font-size:11.5px;color:#9BA3A1">5 · Operations</span><span style="flex:1;height:4px;border-radius:2px;background:#262B2C;overflow:hidden"><span style="display:block;width:33%;height:100%;background:#059669"></span></span><span style="width:30px;text-align:right;font-size:11px;color:#9BA3A1;font-variant-numeric:tabular-nums">33%</span></div>
+                <div style="display:flex;align-items:center;gap:10px"><span style="width:132px;flex:none;font-size:11.5px;color:#9BA3A1">6 · Evolution</span><span style="flex:1;height:4px;border-radius:2px;background:#262B2C;overflow:hidden"><span style="display:block;width:0%;height:100%;background:#059669"></span></span><span style="width:30px;text-align:right;font-size:11px;color:#6B7574;font-variant-numeric:tabular-nums">0%</span></div>
+              </div>
+              <div style="margin-top:14px;padding-top:12px;border-top:1px solid #262B2C;font-size:12px;color:#9BA3A1">14 of 21 artifacts complete.</div>
+            </div>
+
+            <div style="border:1px solid #262B2C;border-radius:8px;background:#16191A;overflow:hidden">
+              <div style="padding:13px 18px;display:flex;align-items:center;gap:8px;border-bottom:1px solid #262B2C">
+                <span style="width:6px;height:6px;border-radius:50%;background:#D97706"></span>
+                <span style="font-size:15px;font-weight:550;flex:1">Needs attention</span>
+                <span style="font-size:11px;color:#6B7574;font-variant-numeric:tabular-nums">3</span>
+              </div>
+              <div style="display:flex;flex-direction:column">
+                <div style="padding:12px 18px;border-bottom:1px solid #1F2324">
+                  <div style="font-size:13px;color:#E8EAE9">2 definitions are past their review date</div>
+                  <div style="font-size:11.5px;color:#6B7574;margin-top:3px">Contribution accounting · Quiet hours — both due Jan 2026</div>
+                </div>
+                <div style="padding:12px 18px;border-bottom:1px solid #1F2324">
+                  <div style="font-size:13px;color:#E8EAE9">4 provisional definitions await ratification</div>
+                  <div style="font-size:11.5px;color:#6B7574;margin-top:3px">Recorded before the Decision Matrix was adopted</div>
+                </div>
+                <div style="padding:12px 18px">
+                  <div style="font-size:13px;color:#E8EAE9">1 discussion stalled for 12 days</div>
+                  <div style="font-size:11.5px;color:#6B7574;margin-top:3px">Exit &amp; separation (clause 3.6) · last reply by Marco, 19 Aug</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div style="display:flex;flex-direction:column;gap:10px" data-screen-label="02 Standard browser">
+    <div style="display:flex;align-items:baseline;gap:10px;font-family:ui-monospace,Menlo,monospace;font-size:11px;color:#6B7574"><span style="color:#9BA3A1">02</span><span>Standard browser</span><span style="color:#3A4142">1440 × 900</span></div>
+    <div style="width:1440px;height:900px;background:#0E1011;border:1px solid #262B2C;border-radius:8px;overflow:hidden;display:flex;color:#E8EAE9;font-size:13px">
+      <dc-import name="Sidebar" active="standard" hint-size="240px,900px" style="width:240px;flex:none"></dc-import>
+      <div style="flex:1;min-width:0;display:flex;flex-direction:column">
+        <dc-import name="TopBar" crumb="Standard" sub="RCOS-Core v0.1" hint-size="100%,52px" style="width:100%;flex:none"></dc-import>
+        <div style="flex:1;min-height:0;display:flex;overflow:hidden">
+
+          <div style="width:236px;flex:none;border-right:1px solid #262B2C;background:#131617;padding:16px 14px;display:flex;flex-direction:column;gap:3px">
+            <div style="font-size:11px;color:#6B7574;letter-spacing:.06em;text-transform:uppercase;margin-bottom:8px">Layers</div>
+            <sc-for list="{{ layerTree }}" as="l" hint-placeholder-count="7">
+              <div style="padding:8px 10px;border-radius:6px;background:{{ l.bg }};display:flex;flex-direction:column;gap:6px">
+                <div style="display:flex;align-items:baseline;gap:8px">
+                  <span style="font-family:ui-monospace,Menlo,monospace;font-size:11px;color:#6B7574">{{ l.n }}</span>
+                  <span style="flex:1;font-size:12.5px;color:{{ l.fg }}">{{ l.name }}</span>
+                  <span style="font-size:11px;color:#6B7574;font-variant-numeric:tabular-nums">{{ l.pct }}</span>
+                </div>
+                <div style="height:3px;border-radius:2px;background:#262B2C;overflow:hidden"><div style="width:{{ l.pct }};height:100%;background:{{ l.bar }}"></div></div>
+              </div>
+            </sc-for>
+            <div style="margin-top:auto;padding-top:14px;border-top:1px solid #262B2C;font-size:11.5px;color:#6B7574;line-height:1.5">213 clauses · 21 mandatory artifacts.<br>You satisfy 87.</div>
+          </div>
+
+          <div style="flex:1;min-width:0;display:flex;flex-direction:column">
+            <div style="flex:none;height:48px;padding:0 22px;border-bottom:1px solid #262B2C;display:flex;align-items:center;gap:10px;background:#131617">
+              <span style="font-size:12px;color:#6B7574">Filter</span>
+              <span style="display:inline-flex;align-items:center;gap:6px;font-size:12px;color:#E8EAE9;border:1px solid #3A4142;border-radius:6px;padding:4px 9px">Status <span style="color:#6B7574">3 selected</span><svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="#6B7574" stroke-width="1.4"><path d="M4 6.5 8 10l4-3.5"></path></svg></span>
+              <span style="display:inline-flex;border:1px solid #262B2C;border-radius:6px;overflow:hidden;font-size:12px">
+                <span style="padding:4px 11px;background:#1D2122;color:#E8EAE9;border-right:1px solid #262B2C">MUST</span>
+                <span style="padding:4px 11px;color:#6B7574;border-right:1px solid #262B2C">SHOULD</span>
+                <span style="padding:4px 11px;color:#6B7574">MAY</span>
+              </span>
+              <span style="display:inline-flex;align-items:center;gap:8px;font-size:12px;color:#E8EAE9;margin-left:4px">
+                <span style="width:26px;height:15px;border-radius:8px;background:#059669;position:relative;display:inline-block"><span style="position:absolute;top:2px;left:13px;width:11px;height:11px;border-radius:50%;background:#fff"></span></span>
+                Show only gaps
+              </span>
+              <span style="flex:1"></span>
+              <span style="font-size:12px;color:#6B7574;font-variant-numeric:tabular-nums">31 sections · 12 gaps</span>
+            </div>
+
+            <div style="flex:1;min-height:0;overflow:hidden;padding:0 0 0 0">
+              <sc-for list="{{ stdGroups }}" as="g" hint-placeholder-count="3">
+                <div>
+                  <div style="display:flex;align-items:center;gap:10px;padding:13px 22px 9px;background:#0E1011">
+                    <span style="font-size:15px;font-weight:550;color:#E8EAE9">{{ g.artifact }}</span>
+                    <span style="font-size:11px;color:#9BA3A1;border:1px solid #262B2C;border-radius:4px;padding:1px 6px">{{ g.layer }}</span>
+                    <span style="font-size:11.5px;color:#6B7574">{{ g.note }}</span>
+                    <span style="flex:1"></span>
+                    <span style="font-size:11px;color:#6B7574;font-variant-numeric:tabular-nums">{{ g.pct }}</span>
+                  </div>
+                  <sc-for list="{{ g.rows }}" as="r" hint-placeholder-count="4">
+                    <div style="display:flex;align-items:center;gap:14px;padding:9px 22px;border-top:1px solid #1B1F20;background:{{ r.bg }}">
+                      <span style="width:250px;flex:none;font-size:13px;color:{{ r.fg }};overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ r.name }}</span>
+                      <span style="width:104px;flex:none;font-family:ui-monospace,Menlo,monospace;font-size:11.5px;color:#6B7574;font-variant-numeric:tabular-nums">{{ r.clauses }}</span>
+                      <span style="width:46px;flex:none;font-family:ui-monospace,Menlo,monospace;font-size:10.5px;color:#4E5756">{{ r.level }}</span>
+                      <span style="display:inline-flex;align-items:center;gap:5px;padding:2px 8px;border-radius:5px;font-size:11px;background:{{ r.chipBg }};border:1px solid {{ r.chipBorder }};color:{{ r.chipFg }}"><span style="width:5px;height:5px;border-radius:50%;background:{{ r.chipFg }}"></span>{{ r.status }}</span>
+                      <span style="font-size:10.5px;color:#6B7574;border:1px dashed #3A4142;border-radius:4px;padding:1px 6px;display:{{ r.provisional }}">Provisional</span>
+                      <span style="font-size:11px;color:#4E5756;display:{{ r.ai }}">✦ AI-drafted</span>
+                      <span style="flex:1"></span>
+                      <span style="font-size:11.5px;color:#6B7574;font-variant-numeric:tabular-nums">{{ r.date }}</span>
+                      <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="#3A4142" stroke-width="1.25"><path d="m6.5 4 4 4-4 4"></path></svg>
+                    </div>
+                  </sc-for>
+                </div>
+              </sc-for>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div style="display:flex;flex-direction:column;gap:10px" data-screen-label="03 Definition detail">
+    <div style="display:flex;align-items:baseline;gap:10px;font-family:ui-monospace,Menlo,monospace;font-size:11px;color:#6B7574"><span style="color:#9BA3A1">03</span><span>Definition detail — the requirement / what we said / how we got here</span><span style="color:#3A4142">1440 × 900</span></div>
+    <div style="width:1440px;height:900px;background:#0E1011;border:1px solid #262B2C;border-radius:8px;overflow:hidden;display:flex;color:#E8EAE9;font-size:13px">
+      <dc-import name="Sidebar" active="definitions" hint-size="240px,900px" style="width:240px;flex:none"></dc-import>
+      <div style="flex:1;min-width:0;display:flex;flex-direction:column">
+        <dc-import name="TopBar" crumb="Definitions" sub="Probationary period" hint-size="100%,52px" style="width:100%;flex:none"></dc-import>
+
+        <div style="flex:none;padding:16px 24px 14px;border-bottom:1px solid #262B2C;display:flex;align-items:flex-start;gap:14px">
+          <div style="flex:1;min-width:0">
+            <div style="display:flex;align-items:center;gap:10px">
+              <span style="font-size:24px;font-weight:550;letter-spacing:-.02em">Probationary period</span>
+              <span style="display:inline-flex;align-items:center;gap:5px;padding:2px 8px;border-radius:5px;font-size:11px;background:rgba(217,119,6,0.12);color:#D97706"><span style="width:5px;height:5px;border-radius:50%;background:#D97706"></span>In discussion</span>
+              <span style="font-size:10.5px;color:#6B7574;border:1px dashed #3A4142;border-radius:4px;padding:1px 6px">Provisional</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:9px;margin-top:7px;font-size:12px;color:#9BA3A1">
+              <span>Layer 1 · Membership</span><span style="color:#3A4142">/</span>
+              <span>Membership Charter</span><span style="color:#3A4142">/</span>
+              <span style="font-family:ui-monospace,Menlo,monospace;font-size:11.5px;color:#6B7574">satisfies 1.2.5 · 1.2.6 · 1.2.7</span>
+              <span style="font-family:ui-monospace,Menlo,monospace;font-size:10.5px;color:#4E5756;border:1px solid #262B2C;border-radius:4px;padding:0 5px">MUST</span>
+            </div>
+          </div>
+          <div style="display:flex;align-items:center;gap:8px;flex:none">
+            <span style="font-size:12px;color:#9BA3A1;border:1px solid #262B2C;border-radius:6px;padding:6px 11px">Version history</span>
+            <span style="font-size:12px;color:#9BA3A1;border:1px solid #262B2C;border-radius:6px;padding:6px 11px">Export</span>
+          </div>
+        </div>
+
+        <div style="flex:1;min-height:0;display:flex;overflow:hidden">
+          <div style="width:300px;flex:none;background:#16191A;border-right:1px solid #262B2C;padding:20px;display:flex;flex-direction:column;gap:16px;overflow:hidden">
+            <div style="font-size:11px;color:#6B7574;letter-spacing:.06em;text-transform:uppercase">The requirement</div>
+            <div style="border-left:2px solid #3A4142;padding-left:14px;font-family:Newsreader,Georgia,serif;font-size:14.5px;line-height:1.6;color:#CFD4D2">
+              <div style="font-family:ui-monospace,Menlo,monospace;font-size:10.5px;color:#6B7574;margin-bottom:7px;letter-spacing:.02em">RCOS-CORE 1.2.5</div>
+              “A community <span style="color:#E8EAE9">MUST</span> define the conditions under which a person who has been admitted is not yet a full member, including the maximum duration of that state, the rights withheld during it, and the act by which it ends.”
+              <div style="font-family:ui-monospace,Menlo,monospace;font-size:10.5px;color:#6B7574;margin:14px 0 7px">RCOS-CORE 1.2.6</div>
+              “The ending of a probationary state <span style="color:#E8EAE9">MUST</span> be a recorded decision, not a lapse of time alone.”
+            </div>
+            <div style="border-top:1px solid #262B2C;padding-top:14px">
+              <div style="display:flex;align-items:center;gap:8px;font-size:12.5px;color:#E8EAE9"><svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="#6B7574" stroke-width="1.4"><path d="M4 6.5 8 10l4-3.5"></path></svg>Why it matters</div>
+              <div style="font-size:12px;line-height:1.55;color:#9BA3A1;margin-top:8px;text-wrap:pretty">Most disputes about belonging start here: someone believed they were in, the group believed they were still being watched. Naming the end of the trial removes the ambiguity that later becomes a conflict case.</div>
+            </div>
+            <div style="border-top:1px solid #262B2C;padding-top:14px">
+              <div style="display:flex;align-items:center;gap:8px;font-size:12.5px;color:#9BA3A1"><svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="#6B7574" stroke-width="1.4"><path d="m6.5 4 4 4-4 4"></path></svg>What NOT to define here</div>
+            </div>
+            <div style="margin-top:auto;font-size:11.5px;color:#6B7574;line-height:1.5">Related clauses in other layers: 2.1.3 (who admits), 4.2.1 (disputed exits).</div>
+          </div>
+
+          <div style="flex:1;min-width:0;padding:20px 26px;display:flex;flex-direction:column;gap:16px;overflow:hidden">
+            <div>
+              <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
+                <span style="font-size:11px;color:#6B7574;letter-spacing:.06em;text-transform:uppercase">What we said</span>
+                <span style="font-family:ui-monospace,Menlo,monospace;font-size:11px;color:#9BA3A1;border:1px solid #262B2C;border-radius:4px;padding:1px 7px">v2 · adopted 2026-06-01</span>
+                <span style="font-size:11.5px;color:#6B7574">superseded draft v3 in discussion</span>
+              </div>
+              <div style="font-size:14px;line-height:1.65;color:#E8EAE9;text-wrap:pretty">A person admitted by the Welcome Circle holds <span style="color:#fff">candidate</span> status for six months from the date of their arrival. Candidates take part in all discussions and hold no blocking right in consent decisions. Candidates who attend the assembly regularly and complete their contribution hours become full members by a consent decision of the assembly at the end of the six months. The assembly may extend candidacy once, by three months, with reasons recorded.</div>
+            </div>
+
+            <div style="border:1px solid #2E4A42;background:rgba(5,150,105,0.10);border-radius:8px;padding:14px 16px">
+              <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+                <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="#10B981" stroke-width="1.3"><circle cx="8" cy="8" r="5.5"></circle><path d="M8 7.4v3.2M8 5.2v.6"></path></svg>
+                <span style="font-size:12px;color:#10B981;letter-spacing:.03em;text-transform:uppercase">In plain words</span>
+              </div>
+              <div style="font-size:14px;line-height:1.6;color:#D7DEDB;text-wrap:pretty">You are a candidate for your first six months. You can speak in everything and block nothing. At six months the assembly decides out loud whether you are a member — it does not happen automatically. If people need more time, they can add three months once, and they have to say why.</div>
+            </div>
+
+            <div style="border:1px solid #262B2C;border-radius:8px;background:#16191A;overflow:hidden">
+              <div style="padding:12px 16px;border-bottom:1px solid #262B2C;display:flex;align-items:center;gap:10px">
+                <span style="font-size:13px;font-weight:550">Definition linter</span>
+                <span style="font-size:11.5px;color:#6B7574">what kind of rule is this meant to be?</span>
+                <span style="flex:1"></span>
+                <span style="font-size:11px;color:#4E5756">✦ AI-assisted check</span>
+              </div>
+              <div style="padding:14px 16px;display:flex;flex-direction:column;gap:13px">
+                <div style="display:flex;gap:8px">
+                  <span style="display:inline-flex;align-items:center;gap:7px;font-size:12px;padding:5px 11px;border-radius:6px;border:1px solid #2E4A42;background:rgba(5,150,105,0.14);color:#10B981"><span style="width:9px;height:9px;border-radius:50%;border:3px solid #10B981"></span>Enforceable</span>
+                  <span style="display:inline-flex;align-items:center;gap:7px;font-size:12px;padding:5px 11px;border-radius:6px;border:1px solid #262B2C;color:#9BA3A1"><span style="width:9px;height:9px;border-radius:50%;border:1px solid #3A4142"></span>Interpretive</span>
+                  <span style="display:inline-flex;align-items:center;gap:7px;font-size:12px;padding:5px 11px;border-radius:6px;border:1px solid #262B2C;color:#9BA3A1"><span style="width:9px;height:9px;border-radius:50%;border:1px solid #3A4142"></span>Expressive</span>
+                </div>
+                <div style="display:flex;flex-direction:column;gap:9px">
+                  <div style="display:flex;align-items:flex-start;gap:9px;font-size:12.5px;color:#9BA3A1"><span style="color:#10B981">✓</span><span><span style="color:#E8EAE9">Has a subject</span> — “a person admitted by the Welcome Circle”</span></div>
+                  <div style="display:flex;align-items:flex-start;gap:9px;font-size:12.5px;color:#9BA3A1"><span style="color:#10B981">✓</span><span><span style="color:#E8EAE9">Has a process</span> — consent decision of the assembly</span></div>
+                  <div style="display:flex;align-items:flex-start;gap:9px;font-size:12.5px;color:#9BA3A1"><span style="color:#D97706">⚠</span><span><span style="color:#E8EAE9">No consequence if the criteria are not met</span> — what happens to a candidate the assembly does not confirm?</span></div>
+                  <div style="display:flex;align-items:flex-start;gap:9px;font-size:12.5px;color:#9BA3A1"><span style="color:#D97706">⚠</span><span><span style="color:#E8EAE9">Vague word: “regularly”</span> — three of eleven communities read this as monthly, eight as weekly</span></div>
+                </div>
+              </div>
+              <div style="padding:12px 16px;border-top:1px solid #262B2C;display:flex;align-items:center;gap:9px">
+                <span style="font-size:12.5px;color:#fff;background:#059669;border-radius:6px;padding:7px 13px">Start discussion</span>
+                <span style="font-size:12.5px;color:#E8EAE9;border:1px solid #3A4142;border-radius:6px;padding:7px 13px">Propose change</span>
+                <span style="flex:1"></span>
+                <span style="font-size:11.5px;color:#6B7574">Last edited 3 Aug by Ana Restrepo</span>
+              </div>
+            </div>
+          </div>
+
+          <div style="width:280px;flex:none;border-left:1px solid #262B2C;padding:20px;display:flex;flex-direction:column;gap:16px;overflow:hidden;background:#121516">
+            <div style="font-size:11px;color:#6B7574;letter-spacing:.06em;text-transform:uppercase">How we got here</div>
+            <div style="display:flex;flex-direction:column;gap:11px">
+              <div style="display:flex;align-items:center;gap:9px;font-size:12.5px;color:#E8EAE9"><span style="width:22px;height:22px;border-radius:5px;border:1px solid #262B2C;display:inline-flex;align-items:center;justify-content:center;font-size:11px;color:#9BA3A1;font-variant-numeric:tabular-nums">2</span>discussions · 31 messages</div>
+              <div style="border:1px solid #3A3020;background:rgba(217,119,6,0.07);border-radius:6px;padding:10px 12px">
+                <div style="font-size:11px;color:#D97706;letter-spacing:.03em;text-transform:uppercase;margin-bottom:5px">Open proposal · v3</div>
+                <div style="font-size:12px;line-height:1.5;color:#9BA3A1">Shorten candidacy to four months and name what happens if the assembly says no. Opened 19 Aug by Marco.</div>
+              </div>
+            </div>
+            <div style="border-top:1px solid #262B2C;padding-top:14px">
+              <div style="font-family:ui-monospace,Menlo,monospace;font-size:11.5px;color:#10B981">DEC-2026-009</div>
+              <div style="font-size:12.5px;color:#E8EAE9;margin-top:5px;line-height:1.45">Adopt candidate status of six months</div>
+              <div style="display:flex;flex-direction:column;gap:5px;margin-top:9px;font-size:11.5px;color:#9BA3A1">
+                <div style="display:flex;justify-content:space-between"><span style="color:#6B7574">Mechanism</span><span>Consent</span></div>
+                <div style="display:flex;justify-content:space-between"><span style="color:#6B7574">Tally</span><span style="font-variant-numeric:tabular-nums">14 of 17 present · 0 objections</span></div>
+                <div style="display:flex;justify-content:space-between"><span style="color:#6B7574">Decided</span><span style="font-variant-numeric:tabular-nums">1 Jun 2026</span></div>
+                <div style="display:flex;justify-content:space-between"><span style="color:#6B7574">Review due</span><span style="font-variant-numeric:tabular-nums">Jun 2027</span></div>
+              </div>
+            </div>
+            <div style="border-top:1px solid #262B2C;padding-top:14px">
+              <div style="font-size:12px;color:#9BA3A1;margin-bottom:8px">Related definitions</div>
+              <div style="display:flex;flex-direction:column;gap:7px;font-size:12.5px">
+                <a href="#">Admission process</a><a href="#">Member obligations</a><a href="#">Exit &amp; separation</a>
+              </div>
+            </div>
+            <div style="border-top:1px solid #262B2C;padding-top:14px">
+              <div style="font-size:12px;color:#9BA3A1;margin-bottom:8px">Evidence</div>
+              <div style="display:flex;align-items:center;gap:8px;font-size:12.5px;color:#E8EAE9;border:1px solid #262B2C;border-radius:6px;padding:8px 10px">
+                <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="#6B7574" stroke-width="1.25"><path d="M4 2.5h5l3 3v8h-8z"></path><path d="M9 2.5v3h3"></path></svg>
+                bylaws-2019.pdf <span style="color:#6B7574">p. 4</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div style="display:flex;flex-direction:column;gap:10px" data-screen-label="04 The Path">
+    <div style="display:flex;align-items:baseline;gap:10px;font-family:ui-monospace,Menlo,monospace;font-size:11px;color:#6B7574"><span style="color:#9BA3A1">04</span><span>The Path</span><span style="color:#3A4142">1440 × 900</span></div>
+    <div style="width:1440px;height:900px;background:#0E1011;border:1px solid #262B2C;border-radius:8px;overflow:hidden;display:flex;color:#E8EAE9;font-size:13px">
+      <dc-import name="Sidebar" active="path" hint-size="240px,900px" style="width:240px;flex:none"></dc-import>
+      <div style="flex:1;min-width:0;display:flex;flex-direction:column">
+        <dc-import name="TopBar" crumb="The Path" hint-size="100%,52px" style="width:100%;flex:none"></dc-import>
+        <div style="flex:1;min-height:0;padding:20px 24px;display:flex;flex-direction:column;gap:16px;overflow:hidden">
+
+          <div style="display:flex;align-items:flex-start;gap:16px">
+            <div style="flex:1">
+              <div style="font-size:18px;font-weight:550;letter-spacing:-.01em">What Valle Verde still has to decide</div>
+              <div style="font-size:12.5px;color:#6B7574;margin-top:4px">23 open questions, in the order that makes each next one easier. Drag to reorder — the tool will tell you what that breaks.</div>
+            </div>
+            <div style="display:flex;align-items:center;gap:8px;flex:none">
+              <span style="display:inline-flex;border:1px solid #262B2C;border-radius:6px;overflow:hidden;font-size:12px">
+                <span style="padding:6px 11px;background:#1D2122;color:#E8EAE9;border-right:1px solid #262B2C">All questions</span>
+                <span style="padding:6px 11px;color:#9BA3A1;border-right:1px solid #262B2C">Mine · 3</span>
+                <span style="padding:6px 11px;color:#9BA3A1">This month</span>
+              </span>
+              <span style="display:inline-flex;align-items:center;gap:7px;font-size:12px;color:#E8EAE9;border:1px solid #3A4142;border-radius:6px;padding:6px 11px"><svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3"><path d="M4 3v10M4 3 2 5.2M4 3l2 2.2M12 13V3m0 10-2-2.2M12 13l2-2.2"></path></svg>Reorder</span>
+            </div>
+          </div>
+
+          <div style="border:1px solid #262B2C;border-radius:8px;background:#16191A;padding:12px 16px;display:flex;align-items:center;gap:16px">
+            <div style="flex:none">
+              <div style="font-size:13px;font-weight:550">What should we tackle first?</div>
+              <div style="font-size:11.5px;color:#6B7574;margin-top:3px">Pick one — the list re-sorts. Nothing changes for others until you publish.</div>
+            </div>
+            <div style="display:flex;gap:8px">
+              <span style="display:inline-flex;align-items:center;gap:7px;font-size:12px;padding:7px 12px;border-radius:6px;border:1px solid #2E4A42;background:rgba(5,150,105,0.14);color:#10B981"><span style="width:9px;height:9px;border-radius:50%;border:3px solid #10B981"></span>Things that unblock other things</span>
+              <span style="display:inline-flex;align-items:center;gap:7px;font-size:12px;padding:7px 12px;border-radius:6px;border:1px solid #262B2C;color:#9BA3A1"><span style="width:9px;height:9px;border-radius:50%;border:1px solid #3A4142"></span>The riskiest gaps</span>
+              <span style="display:inline-flex;align-items:center;gap:7px;font-size:12px;padding:7px 12px;border-radius:6px;border:1px solid #262B2C;color:#9BA3A1"><span style="width:9px;height:9px;border-radius:50%;border:1px solid #3A4142"></span>What we already have going</span>
+            </div>
+            <span style="flex:1"></span>
+            <span style="display:inline-flex;align-items:center;gap:6px;font-size:11.5px;color:#6B7574"><svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="#6B7574" stroke-width="1.25"><path d="M2.5 5h11M2.5 11h11"></path><circle cx="6" cy="5" r="1.6" fill="#16191A"></circle><circle cx="10.5" cy="11" r="1.6" fill="#16191A"></circle></svg>Fine-tune the weights</span>
+          </div>
+
+          <div style="display:flex;align-items:center;gap:12px;border:1px solid #2E4A42;background:rgba(5,150,105,0.07);border-radius:8px;padding:10px 14px">
+            <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="#10B981" stroke-width="1.3" style="flex:none"><path d="M8 13V4M4.8 7.2 8 4l3.2 3.2"></path></svg>
+            <div style="flex:1;min-width:0">
+              <div style="font-size:12.5px;color:#E8EAE9">You moved 2 questions and changed the ordering rule — only you can see this order.</div>
+              <div style="font-size:11.5px;color:#6B7574;margin-top:2px">Last published 3 Aug by Ana · the published order is what all 27 members see on their dashboard.</div>
+            </div>
+            <span style="font-size:12px;color:#9BA3A1;padding:6px 10px;flex:none">Discard changes</span>
+            <span style="font-size:12.5px;color:#fff;background:#059669;border-radius:6px;padding:7px 13px;flex:none">Publish this order</span>
+          </div>
+
+          <div style="flex:1;min-height:0;border:1px solid #262B2C;border-radius:8px;background:#16191A;overflow:hidden">
+            <sc-for list="{{ pathItems }}" as="p" hint-placeholder-count="6">
+              <div style="display:flex;align-items:flex-start;gap:12px;padding:10px 16px 10px 10px;border-bottom:1px solid #1F2324;background:{{ p.bg }}">
+                <span style="width:14px;flex:none;display:flex;justify-content:center;padding-top:3px;opacity:{{ p.handle }}">
+                  <svg width="10" height="14" viewBox="0 0 10 14" fill="#4E5756"><circle cx="3" cy="3" r="1.1"></circle><circle cx="7" cy="3" r="1.1"></circle><circle cx="3" cy="7" r="1.1"></circle><circle cx="7" cy="7" r="1.1"></circle><circle cx="3" cy="11" r="1.1"></circle><circle cx="7" cy="11" r="1.1"></circle></svg>
+                </span>
+                <span style="width:20px;flex:none;font-size:12px;color:#6B7574;font-variant-numeric:tabular-nums;padding-top:1px">{{ p.n }}</span>
+                <span style="flex:1;min-width:0;display:flex;flex-direction:column;gap:6px">
+                  <span style="font-size:14.5px;line-height:1.35;color:#E8EAE9;text-wrap:pretty">{{ p.q }}</span>
+                  <span style="display:flex;align-items:center;gap:9px">
+                    <span style="font-size:11px;color:#9BA3A1;border:1px solid #262B2C;border-radius:4px;padding:1px 6px">{{ p.layer }}</span>
+                    <span style="font-size:11px;color:#6B7574">{{ p.effort }}</span>
+                  </span>
+                  <span style="font-size:11.5px;color:#6B7574;line-height:1.4">{{ p.reason }}</span>
+                </span>
+                <span style="flex:none;display:{{ p.btn }};align-items:center;gap:6px;font-size:12px;color:#10B981;border:1px solid #2E4A42;background:rgba(5,150,105,0.12);border-radius:6px;padding:6px 11px;margin-top:2px">Start discussion</span>
+              </div>
+            </sc-for>
+            <div style="display:flex;align-items:center;gap:10px;padding:11px 16px 11px 46px;font-size:12px;color:#6B7574">
+              <span style="flex:1">17 more questions below — the next one opens up once Layer 2 is adopted.</span>
+              <a href="#" style="font-size:12px">Show all 23</a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div style="display:flex;flex-direction:column;gap:10px" data-screen-label="05 Documents and mapping">
+    <div style="display:flex;align-items:baseline;gap:10px;font-family:ui-monospace,Menlo,monospace;font-size:11px;color:#6B7574"><span style="color:#9BA3A1">05</span><span>Documents &amp; mapping</span><span style="color:#3A4142">1440 × 900</span></div>
+    <div style="width:1440px;height:900px;background:#0E1011;border:1px solid #262B2C;border-radius:8px;overflow:hidden;display:flex;color:#E8EAE9;font-size:13px">
+      <dc-import name="Sidebar" active="documents" hint-size="240px,900px" style="width:240px;flex:none"></dc-import>
+      <div style="flex:1;min-width:0;display:flex;flex-direction:column">
+        <dc-import name="TopBar" crumb="Documents" sub="bylaws-2019.pdf" hint-size="100%,52px" style="width:100%;flex:none"></dc-import>
+        <div style="flex:1;min-height:0;display:flex;overflow:hidden">
+
+          <div style="width:600px;flex:none;border-right:1px solid #262B2C;background:#131617;display:flex;flex-direction:column">
+            <div style="height:42px;flex:none;display:flex;align-items:center;gap:10px;padding:0 14px;border-bottom:1px solid #262B2C">
+              <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="#9BA3A1" stroke-width="1.25"><path d="M4 2.5h5l3 3v8h-8z"></path><path d="M9 2.5v3h3"></path></svg>
+              <span style="font-size:12.5px;color:#E8EAE9">bylaws-2019.pdf</span>
+              <span style="flex:1"></span>
+              <span style="display:inline-flex;align-items:center;border:1px solid #262B2C;border-radius:6px;overflow:hidden;font-size:11.5px;color:#9BA3A1">
+                <span style="padding:4px 8px;border-right:1px solid #262B2C;display:inline-flex"><svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><path d="m9.5 4-4 4 4 4"></path></svg></span>
+                <span style="padding:3px 9px;color:#E8EAE9;font-variant-numeric:tabular-nums;border-right:1px solid #262B2C">4</span>
+                <span style="padding:3px 9px;border-right:1px solid #262B2C;font-variant-numeric:tabular-nums">of 11</span>
+                <span style="padding:4px 8px;display:inline-flex"><svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><path d="m6.5 4 4 4-4 4"></path></svg></span>
+              </span>
+              <span style="display:inline-flex;border:1px solid #262B2C;border-radius:6px;overflow:hidden;font-size:11.5px;color:#9BA3A1"><span style="padding:3px 8px;border-right:1px solid #262B2C">−</span><span style="padding:3px 8px;color:#E8EAE9;font-variant-numeric:tabular-nums;border-right:1px solid #262B2C">110%</span><span style="padding:3px 8px">+</span></span>
+            </div>
+            <div style="flex:1;min-height:0;display:flex;overflow:hidden">
+              <div style="width:70px;flex:none;border-right:1px solid #262B2C;padding:12px 0;display:flex;flex-direction:column;align-items:center;gap:8px;overflow:hidden">
+                <div style="width:44px;height:58px;border:1px solid #262B2C;border-radius:3px;background:#1A1D1E;display:flex;align-items:flex-end;justify-content:center;padding-bottom:3px;font-size:10px;color:#6B7574">1</div>
+                <div style="width:44px;height:58px;border:1px solid #262B2C;border-radius:3px;background:#1A1D1E;display:flex;align-items:flex-end;justify-content:center;padding-bottom:3px;font-size:10px;color:#6B7574;position:relative">2<span style="position:absolute;top:5px;right:5px;width:5px;height:5px;border-radius:50%;background:#059669"></span></div>
+                <div style="width:44px;height:58px;border:1px solid #262B2C;border-radius:3px;background:#1A1D1E;display:flex;align-items:flex-end;justify-content:center;padding-bottom:3px;font-size:10px;color:#6B7574;position:relative">3<span style="position:absolute;top:5px;right:5px;width:5px;height:5px;border-radius:50%;background:#059669"></span></div>
+                <div style="width:44px;height:58px;border:1px solid #10B981;border-radius:3px;background:#EDEAE4;display:flex;align-items:flex-end;justify-content:center;padding-bottom:3px;font-size:10px;color:#2B2F2E;position:relative">4<span style="position:absolute;top:5px;right:5px;width:5px;height:5px;border-radius:50%;background:#059669"></span></div>
+                <div style="width:44px;height:58px;border:1px solid #262B2C;border-radius:3px;background:#1A1D1E;display:flex;align-items:flex-end;justify-content:center;padding-bottom:3px;font-size:10px;color:#6B7574">5</div>
+                <div style="width:44px;height:58px;border:1px solid #262B2C;border-radius:3px;background:#1A1D1E;display:flex;align-items:flex-end;justify-content:center;padding-bottom:3px;font-size:10px;color:#6B7574">6</div>
+                <div style="width:44px;height:58px;border:1px solid #262B2C;border-radius:3px;background:#1A1D1E;display:flex;align-items:flex-end;justify-content:center;padding-bottom:3px;font-size:10px;color:#6B7574;position:relative">7<span style="position:absolute;top:5px;right:5px;width:5px;height:5px;border-radius:50%;background:#059669"></span></div>
+                <div style="font-size:10px;color:#4E5756;margin-top:2px">+4</div>
+              </div>
+              <div style="flex:1;min-width:0;display:flex;flex-direction:column">
+              <div style="flex:1;min-height:0;display:flex;justify-content:center;padding:18px 0;overflow:hidden">
+              <div style="width:452px;background:#EDEAE4;border-radius:2px;padding:32px 40px;font-family:Newsreader,Georgia,serif;color:#2B2F2E;font-size:11.5px;line-height:1.85">
+                <div style="text-align:center;font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:#6B655C;margin-bottom:22px">Article IV — Membership</div>
+                <p style="margin:0 0 12px"><span style="font-weight:600">4.1</span> &nbsp;New residents are admitted to the association by vote of the council at any ordinary meeting, provided that notice of the application has been posted for fourteen days.</p>
+                <p style="margin:0 0 12px"><span style="font-weight:600">4.2</span> &nbsp;<span style="background:rgba(5,150,105,0.30);box-shadow:0 1px 0 #059669">Any member wishing to depart shall give the council no less than sixty days written notice, and shall be repaid their capital share within one year of departure.</span> The council may shorten this period at its discretion.</p>
+                <p style="margin:0 0 12px"><span style="font-weight:600">4.3</span> &nbsp;Members shall contribute to the upkeep of the common house and grounds according to their ability, and shall attend the ordinary meetings of the association.</p>
+                <p style="margin:0 0 12px"><span style="font-weight:600">4.4</span> &nbsp;A member who fails without excuse to attend three consecutive ordinary meetings may be asked by the council to account for their absence.</p>
+                <p style="margin:0 0 12px"><span style="font-weight:600">4.5</span> &nbsp;<span style="background:rgba(5,150,105,0.30);box-shadow:0 1px 0 #059669">New residents are admitted on a trial basis for a period to be determined by the council, not exceeding one year.</span></p>
+                <p style="margin:0 0 12px"><span style="font-weight:600">4.6</span> &nbsp;The association may, by two-thirds vote of the members present, terminate the membership of any person for conduct injurious to the association or its purposes.</p>
+                <div style="margin-top:26px;text-align:center;font-size:10px;color:#8C877C">— 4 —</div>
+              </div>
+              </div>
+              <div style="flex:none;height:44px;border-top:1px solid #262B2C;display:flex;align-items:center;gap:10px;padding:0 16px">
+                <span style="display:inline-flex;align-items:center;gap:6px;font-size:12px;color:#9BA3A1;border:1px solid #262B2C;border-radius:6px;padding:5px 10px"><svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><path d="m9.5 4-4 4 4 4"></path></svg>Page 3</span>
+                <span style="font-size:11.5px;color:#6B7574">2 passages on this page · 7 pages contain governance language</span>
+                <span style="flex:1"></span>
+                <span style="font-size:12px;color:#10B981">Jump to next unmapped passage →</span>
+                <span style="display:inline-flex;align-items:center;gap:6px;font-size:12px;color:#9BA3A1;border:1px solid #262B2C;border-radius:6px;padding:5px 10px">Page 5<svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><path d="m6.5 4 4 4-4 4"></path></svg></span>
+              </div>
+              </div>
+            </div>
+          </div>
+
+          <div style="flex:1;min-width:0;display:flex;flex-direction:column">
+            <div style="flex:none;padding:14px 20px;border-bottom:1px solid #262B2C;background:#131617">
+              <div style="font-size:13.5px;color:#E8EAE9">bylaws-2019.pdf — <span style="font-variant-numeric:tabular-nums">23</span> passages found, <span style="font-variant-numeric:tabular-nums">14</span> mapped to clauses.</div>
+              <div style="display:flex;align-items:center;gap:10px;margin-top:8px">
+                <div style="flex:1;height:4px;border-radius:2px;background:#262B2C;overflow:hidden"><div style="width:20%;height:100%;background:#059669"></div></div>
+                <span style="font-size:11.5px;color:#9BA3A1;font-variant-numeric:tabular-nums">You already have language for 38 of 187 requirements.</span>
+              </div>
+            </div>
+            <div style="flex:none;padding:12px 20px 4px;display:flex;align-items:center;gap:10px">
+              <span style="font-size:12px;color:#6B7574;letter-spacing:.06em;text-transform:uppercase">Suggested mappings</span>
+              <span style="font-size:11px;color:#4E5756">✦ AI-drafted · nothing is applied until you confirm</span>
+            </div>
+            <div style="flex:1;min-height:0;padding:8px 20px 20px;display:flex;flex-direction:column;gap:12px;overflow:hidden">
+              <sc-for list="{{ mappings }}" as="m" hint-placeholder-count="4">
+                <div style="border:1px solid {{ m.border }};background:{{ m.bg }};border-radius:8px;padding:14px 16px;position:relative">
+                  <div style="display:{{ m.helpOpen }};position:absolute;top:calc(100% + 6px);right:0;left:auto;width:290px;z-index:20;background:#1D2122;border:1px solid #3A4142;border-radius:6px;padding:13px 14px;box-shadow:0 6px 22px rgba(0,0,0,0.45)">
+                    <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+                      <span style="font-family:ui-monospace,Menlo,monospace;font-size:11px;color:#10B981">↑ RCOS-CORE {{ m.clause }}</span>
+                      <span style="font-family:ui-monospace,Menlo,monospace;font-size:10px;color:#6B7574;border:1px solid #3A4142;border-radius:3px;padding:0 5px">MUST</span>
+                      <span style="flex:1"></span>
+                      <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="#6B7574" stroke-width="1.3"><path d="m4.5 4.5 7 7m0-7-7 7"></path></svg>
+                    </div>
+                    <div style="font-family:Newsreader,Georgia,serif;font-size:13px;line-height:1.55;color:#CFD4D2">“A community MUST define how a member ends their membership, the notice required, and how obligations and property are settled between the leaver and the community.”</div>
+                    <div style="font-size:11.5px;color:#6B7574;margin-top:9px;line-height:1.5">Layer 1 · Membership → Exit &amp; Separation Protocol. Satisfied when a definition names both the notice and the settlement.</div>
+                    <div style="margin-top:10px;font-size:12px"><a href="#">Open in Standard →</a></div>
+                  </div>
+                  <div style="display:flex;align-items:flex-start;gap:14px">
+                    <div style="flex:1;min-width:0">
+                      <div style="font-family:Newsreader,Georgia,serif;font-size:13px;line-height:1.5;color:#CFD4D2;text-wrap:pretty">{{ m.quote }}</div>
+                      <div style="font-size:11px;color:#6B7574;margin-top:6px">bylaws-2019.pdf · {{ m.page }}</div>
+                    </div>
+                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="#4E5756" stroke-width="1.25" style="margin-top:4px;flex:none"><path d="M3 8h9m-3.5-3.5L12 8l-3.5 3.5"></path></svg>
+                    <div style="width:196px;flex:none">
+                      <div style="display:flex;align-items:center;gap:7px">
+                        <span style="font-family:ui-monospace,Menlo,monospace;font-size:12px;color:#E8EAE9">{{ m.clause }}</span>
+                        <span style="width:14px;height:14px;border-radius:50%;border:1px solid #3A4142;color:#9BA3A1;font-size:9.5px;display:inline-flex;align-items:center;justify-content:center">?</span>
+                      </div>
+                      <div style="font-size:11.5px;color:#9BA3A1;line-height:1.4;margin-top:3px">{{ m.clauseName }}</div>
+                      <div style="display:inline-block;margin-top:7px;font-size:11px;padding:1px 7px;border-radius:4px;color:{{ m.confFg }};background:{{ m.confBg }}">{{ m.confidence }}</div>
+                    </div>
+                  </div>
+                  <div style="display:{{ m.actions }};align-items:center;gap:8px;margin-top:12px;padding-top:12px;border-top:1px solid #262B2C">
+                    <span style="font-size:12px;color:#fff;background:#059669;border-radius:6px;padding:5px 12px">Confirm</span>
+                    <span style="font-size:12px;color:#E8EAE9;border:1px solid #3A4142;border-radius:6px;padding:5px 12px">Change clause</span>
+                    <span style="font-size:12px;color:#9BA3A1;padding:5px 8px">Dismiss</span>
+                  </div>
+                  <div style="display:{{ m.confirmed }};align-items:center;gap:8px;margin-top:11px">
+                    <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="#10B981" stroke-width="1.4"><circle cx="8" cy="8" r="5.5"></circle><path d="m5.75 8 1.6 1.6 3-3.2"></path></svg>
+                    <span style="font-size:12px;color:#9BA3A1">Mapped</span>
+                    <span style="flex:1"></span>
+                    <a href="#" style="font-size:12px">Turn into definition →</a>
+                  </div>
+                </div>
+              </sc-for>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div style="display:flex;flex-direction:column;gap:10px" data-screen-label="06 Discussion and freeze modal">
+    <div style="display:flex;align-items:baseline;gap:10px;font-family:ui-monospace,Menlo,monospace;font-size:11px;color:#6B7574"><span style="color:#9BA3A1">06</span><span>Discussion thread · Freeze into a decision</span><span style="color:#3A4142">1440 × 900</span></div>
+    <div style="width:1440px;height:900px;background:#0E1011;border:1px solid #262B2C;border-radius:8px;overflow:hidden;display:flex;position:relative;color:#E8EAE9;font-size:13px">
+      <dc-import name="Sidebar" active="discussions" hint-size="240px,900px" style="width:240px;flex:none"></dc-import>
+      <div style="flex:1;min-width:0;display:flex;flex-direction:column">
+        <dc-import name="TopBar" crumb="Discussions" sub="Exit &amp; separation" hint-size="100%,52px" style="width:100%;flex:none"></dc-import>
+
+        <div style="flex:none;padding:15px 26px;border-bottom:1px solid #262B2C;display:flex;align-items:center;gap:12px">
+          <div style="flex:1;min-width:0">
+            <div style="font-size:18px;font-weight:550;letter-spacing:-.01em">What happens to someone’s things when they leave?</div>
+            <div style="display:flex;align-items:center;gap:9px;margin-top:6px;font-size:12px;color:#9BA3A1">
+              <span style="display:inline-flex;align-items:center;gap:5px;padding:2px 8px;border-radius:5px;font-size:11px;background:rgba(217,119,6,0.12);color:#D97706"><span style="width:5px;height:5px;border-radius:50%;background:#D97706"></span>In discussion</span>
+              <span>Layer 1 · Membership</span><span style="color:#3A4142">/</span>
+              <span style="font-family:ui-monospace,Menlo,monospace;font-size:11.5px;color:#6B7574">clause 3.6 · exit &amp; separation</span>
+              <span style="color:#3A4142">·</span><span style="color:#6B7574">opened 11 Aug by Ana · 4 replies</span>
+            </div>
+          </div>
+          <span style="display:inline-flex;align-items:center;gap:7px;font-size:12px;color:#E8EAE9;border:1px solid #3A4142;border-radius:6px;padding:6px 11px;flex:none"><svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3"><circle cx="8" cy="8" r="5.5"></circle><path d="M8 5v3.2l2 1.2"></path></svg>Take offline</span>
+          <span style="font-size:12px;color:#9BA3A1;border:1px solid #262B2C;border-radius:6px;padding:6px 11px;flex:none">Open definition</span>
+        </div>
+
+        <div style="flex:1;min-height:0;padding:18px 26px;display:flex;flex-direction:column;gap:14px;overflow:hidden">
+          <sc-for list="{{ messages }}" as="m" hint-placeholder-count="4">
+            <div style="display:flex;gap:12px">
+              <div style="width:28px;height:28px;flex:none;border-radius:50%;background:{{ m.avBg }};color:{{ m.avFg }};display:flex;align-items:center;justify-content:center;font-size:10.5px;font-weight:600">{{ m.initials }}</div>
+              <div style="flex:1;min-width:0">
+                <div style="display:flex;align-items:baseline;gap:9px">
+                  <span style="font-size:13px;font-weight:550;color:#E8EAE9">{{ m.who }}</span>
+                  <span style="font-size:11.5px;color:#6B7574">{{ m.time }}</span>
+                </div>
+                <div style="margin-top:5px;font-size:13.5px;line-height:1.55;color:#CFD4D2;text-wrap:pretty">{{ m.text }}</div>
+              </div>
+            </div>
+          </sc-for>
+
+          <div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-top:1px solid #1F2324;border-bottom:1px solid #1F2324">
+            <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="#4E5756" stroke-width="1.25"><circle cx="8" cy="8" r="5.5"></circle><path d="M8 5v3.2l2 1.2"></path></svg>
+            <span style="font-size:12px;color:#6B7574">Taken offline — meeting 14 Aug · summary added by Marco</span>
+            <a href="#" style="font-size:12px;color:#6B7574">read summary</a>
+          </div>
+
+          <div style="border:1px solid #262B2C;border-left:3px solid #059669;border-radius:6px;background:#16191A;padding:14px 16px">
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:9px">
+              <span style="font-size:11px;color:#10B981;letter-spacing:.06em;text-transform:uppercase">Proposal · v3</span>
+              <span style="font-size:11.5px;color:#6B7574">by Marco Silva, 19 Aug · 3 support · 1 objection</span>
+            </div>
+            <div style="font-size:14px;line-height:1.6;color:#E8EAE9;text-wrap:pretty">A member may leave at any time by telling the assembly in writing. Within three months of that notice, the treasurer and one other member settle what is owed in both directions: capital share, outstanding contribution hours, and any community objects held privately. Objects bought with common money stay with the community. The settlement is recorded in the decision register, and the leaving member signs it.</div>
+            <div style="display:flex;align-items:center;gap:10px;margin-top:12px;padding-top:11px;border-top:1px solid #262B2C;font-size:11.5px">
+              <span style="color:#6B7574">Linter on this proposal:</span>
+              <span style="color:#9BA3A1"><span style="color:#10B981">✓</span> subject</span>
+              <span style="color:#9BA3A1"><span style="color:#10B981">✓</span> process</span>
+              <span style="color:#9BA3A1"><span style="color:#10B981">✓</span> consequence</span>
+              <span style="color:#9BA3A1"><span style="color:#D97706">⚠</span> “what is owed in both directions” is vague</span>
+              <span style="flex:1"></span>
+              <span style="color:#6B7574">run 19 Aug · re-run</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:8px;margin-top:12px;padding-top:12px;border-top:1px solid #262B2C">
+              <span style="display:inline-flex;align-items:center;gap:6px;font-size:12px;color:#E8EAE9;border:1px solid #3A4142;border-radius:6px;padding:6px 12px">Support</span>
+              <span style="display:inline-flex;align-items:center;gap:6px;font-size:12px;color:#E8EAE9;border:1px solid #3A4142;border-radius:6px;padding:6px 12px">Object</span>
+              <span style="display:inline-flex;align-items:center;gap:6px;font-size:12px;color:#E8EAE9;border:1px solid #3A4142;border-radius:6px;padding:6px 12px"><svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3"><path d="M10.5 2.9 13.1 5.5 5.6 13H3v-2.6z"></path></svg>Suggest an edit</span>
+              <span style="display:inline-flex;align-items:center;gap:6px;font-size:12px;color:#9BA3A1;border:1px solid #262B2C;border-radius:6px;padding:6px 12px">Run the linter</span>
+              <span style="flex:1"></span>
+              <span style="display:inline-flex;align-items:center;gap:7px;font-size:12.5px;color:#fff;background:#059669;border-radius:6px;padding:7px 14px">
+                <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3"><path d="M8 2.5v11M3.5 5.2l9 5.6M12.5 5.2l-9 5.6"></path></svg>Freeze into a decision
+              </span>
+            </div>
+          </div>
+
+          <div style="margin-top:auto;display:flex;align-items:center;gap:10px;border:1px solid #262B2C;border-radius:6px;background:#131617;padding:9px 12px">
+            <span style="font-size:12.5px;color:#6B7574;flex:1">Reply to the thread…</span>
+            <span style="display:inline-flex;align-items:center;gap:6px;font-size:11.5px;color:#9BA3A1;border:1px solid #262B2C;border-radius:6px;padding:5px 10px"><svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3"><circle cx="8" cy="8" r="5.5"></circle><path d="M8 5v3.2l2 1.2"></path></svg>Add an offline summary</span>
+            <span style="font-size:11.5px;color:#4E5756">✦ Summarise this thread</span>
+          </div>
+        </div>
+      </div>
+
+      <div style="position:absolute;inset:0;background:rgba(8,10,10,0.66);display:flex;align-items:center;justify-content:center">
+        <div style="width:520px;background:#16191A;border:1px solid #3A4142;border-radius:8px;overflow:hidden">
+          <div style="padding:16px 20px;border-bottom:1px solid #262B2C;display:flex;align-items:center">
+            <div style="flex:1">
+              <div style="font-size:15px;font-weight:550">Freeze into a decision</div>
+              <div style="font-size:12px;color:#6B7574;margin-top:3px">Proposal v3 · Exit &amp; separation · clause 3.6</div>
+            </div>
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="#6B7574" stroke-width="1.3"><path d="m4.5 4.5 7 7m0-7-7 7"></path></svg>
+          </div>
+          <div style="padding:16px 20px;display:flex;flex-direction:column;gap:14px">
+            <div>
+              <div style="font-size:11.5px;color:#9BA3A1;margin-bottom:7px">Decision type</div>
+              <div style="display:flex;border:1px solid #262B2C;border-radius:6px;overflow:hidden;font-size:12.5px">
+                <span style="flex:1;text-align:center;padding:7px 0;color:#9BA3A1;border-right:1px solid #262B2C">Constitutional</span>
+                <span style="flex:1;text-align:center;padding:7px 0;color:#E8EAE9;background:#1D2122;border-right:1px solid #262B2C">Strategic</span>
+                <span style="flex:1;text-align:center;padding:7px 0;color:#9BA3A1">Operational</span>
+              </div>
+            </div>
+            <div style="display:flex;gap:12px">
+              <div style="flex:1">
+                <div style="font-size:11.5px;color:#9BA3A1;margin-bottom:7px">Mechanism</div>
+                <div style="display:flex;align-items:center;height:32px;padding:0 10px;border:1px solid #262B2C;border-radius:6px;background:#131617;font-size:12.5px">Consent<span style="flex:1"></span><svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="#6B7574" stroke-width="1.4"><path d="M4 6.5 8 10l4-3.5"></path></svg></div>
+              </div>
+              <div style="flex:1">
+                <div style="font-size:11.5px;color:#9BA3A1;margin-bottom:7px">Threshold</div>
+                <div style="display:flex;align-items:center;height:32px;padding:0 10px;border:1px solid #262B2C;border-radius:6px;background:#131617;font-size:12.5px">No sustained objection<span style="flex:1"></span><svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="#6B7574" stroke-width="1.4"><path d="M4 6.5 8 10l4-3.5"></path></svg></div>
+              </div>
+            </div>
+            <div style="display:flex;gap:12px">
+              <div style="flex:1">
+                <div style="font-size:11.5px;color:#9BA3A1;margin-bottom:7px">Who was present</div>
+                <div style="display:flex;align-items:center;gap:6px;height:32px;padding:0 8px;border:1px solid #262B2C;border-radius:6px;background:#131617">
+                  <span style="display:inline-flex;align-items:center;gap:5px;font-size:11.5px;color:#E8EAE9;background:#232728;border-radius:4px;padding:2px 7px">Ana</span>
+                  <span style="display:inline-flex;align-items:center;gap:5px;font-size:11.5px;color:#E8EAE9;background:#232728;border-radius:4px;padding:2px 7px">Marco</span>
+                  <span style="display:inline-flex;align-items:center;gap:5px;font-size:11.5px;color:#E8EAE9;background:#232728;border-radius:4px;padding:2px 7px">Lena</span>
+                  <span style="font-size:11.5px;color:#6B7574">+8</span>
+                </div>
+              </div>
+              <div style="width:150px;flex:none">
+                <div style="font-size:11.5px;color:#9BA3A1;margin-bottom:7px">Tally</div>
+                <div style="display:flex;align-items:center;height:32px;padding:0 10px;border:1px solid #262B2C;border-radius:6px;background:#131617;font-size:12.5px;font-variant-numeric:tabular-nums">11 present · 0 objections</div>
+              </div>
+            </div>
+            <div>
+              <div style="font-size:11.5px;color:#9BA3A1;margin-bottom:7px">Rationale — why this, and what it replaces</div>
+              <div style="border:1px solid #262B2C;border-radius:6px;background:#131617;padding:9px 10px;font-size:12.5px;line-height:1.5;color:#CFD4D2;height:58px">Sixty days notice was holding people who had already left in their heads. We keep a settlement window instead, and name who does it.</div>
+            </div>
+            <div style="display:flex;gap:12px;align-items:flex-end">
+              <div style="width:170px;flex:none">
+                <div style="font-size:11.5px;color:#9BA3A1;margin-bottom:7px">Review date</div>
+                <div style="display:flex;align-items:center;height:32px;padding:0 10px;border:1px solid #262B2C;border-radius:6px;background:#131617;font-size:12.5px;font-variant-numeric:tabular-nums">Aug 2027<span style="flex:1"></span><svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="#6B7574" stroke-width="1.25"><rect x="2.5" y="3.5" width="11" height="10" rx="1.5"></rect><path d="M2.5 6.5h11M5.5 2v3M10.5 2v3"></path></svg></div>
+              </div>
+              <div style="flex:1;font-size:11.5px;color:#6B7574;line-height:1.45">Attributed to the 11 people present. Anyone can see who decided this and when.</div>
+            </div>
+            <div style="display:flex;gap:10px;border:1px solid #3A3020;background:rgba(217,119,6,0.07);border-radius:6px;padding:11px 13px">
+              <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="#D97706" stroke-width="1.3" style="flex:none;margin-top:1px"><path d="M8 2.8 14 13H2z"></path><path d="M8 6.6v2.6M8 10.8v.6"></path></svg>
+              <div style="font-size:12px;line-height:1.5;color:#D9B071">Your Decision Matrix isn’t adopted yet. This will be recorded as <span style="color:#E8C88E">Provisional</span> and listed for ratification later.</div>
+            </div>
+          </div>
+          <div style="padding:13px 20px;border-top:1px solid #262B2C;display:flex;align-items:center;gap:10px">
+            <span style="font-size:11.5px;color:#6B7574;flex:1">Will be recorded as DEC-2026-015</span>
+            <span style="font-size:12.5px;color:#9BA3A1;padding:7px 12px">Cancel</span>
+            <span style="font-size:12.5px;color:#fff;background:#059669;border-radius:6px;padding:7px 14px">Record decision</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div style="display:flex;flex-direction:column;gap:10px" data-screen-label="07 Decision register">
+    <div style="display:flex;align-items:baseline;gap:10px;font-family:ui-monospace,Menlo,monospace;font-size:11px;color:#6B7574"><span style="color:#9BA3A1">07</span><span>Decision register</span><span style="color:#3A4142">1440 × 900</span></div>
+    <div style="width:1440px;height:900px;background:#0E1011;border:1px solid #262B2C;border-radius:8px;overflow:hidden;display:flex;color:#E8EAE9;font-size:13px">
+      <dc-import name="Sidebar" active="decisions" hint-size="240px,900px" style="width:240px;flex:none"></dc-import>
+      <div style="flex:1;min-width:0;display:flex;flex-direction:column">
+        <dc-import name="TopBar" crumb="Decisions" hint-size="100%,52px" style="width:100%;flex:none"></dc-import>
+        <div style="flex:1;min-height:0;padding:20px 24px;display:flex;flex-direction:column;gap:16px;overflow:hidden">
+
+          <div style="border:1px solid #262B2C;border-radius:8px;background:#16191A;padding:16px 18px">
+            <div style="font-size:12px;color:#6B7574;margin-bottom:10px">Ask the register a question — it answers with the clause and the decision that govern it.</div>
+            <div style="display:flex;align-items:center;gap:12px;border:1px solid #3A4142;border-radius:6px;background:#0E1011;padding:11px 14px">
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="#6B7574" stroke-width="1.25"><circle cx="7" cy="7" r="4.5"></circle><path d="m10.5 10.5 3 3"></path></svg>
+              <span style="flex:1;font-size:15px;color:#E8EAE9">Can we spend €800 on the water pump?</span>
+              <span style="font-size:11.5px;color:#4E5756">2 answers</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:10px;margin-top:11px">
+              <span style="display:inline-flex;align-items:center;gap:8px;border:1px solid #2E4A42;background:rgba(5,150,105,0.10);border-radius:6px;padding:6px 11px;font-size:12px">
+                <span style="font-family:ui-monospace,Menlo,monospace;color:#10B981">3.2.3</span><span style="color:#9BA3A1">Spending authority — not yet defined</span>
+              </span>
+              <span style="display:inline-flex;align-items:center;gap:8px;border:1px solid #2E4A42;background:rgba(5,150,105,0.10);border-radius:6px;padding:6px 11px;font-size:12px">
+                <span style="font-family:ui-monospace,Menlo,monospace;color:#10B981">DEC-2026-012</span><span style="color:#9BA3A1">Water pump maintenance fund — €1,200/yr, treasurer signs</span>
+              </span>
+              <span style="font-size:11.5px;color:#6B7574">Short answer: yes, out of the pump fund — but nobody has defined a general spending limit.</span>
+            </div>
+          </div>
+
+          <div style="flex:1;min-height:0;border:1px solid #262B2C;border-radius:8px;background:#16191A;overflow:hidden;display:flex;flex-direction:column">
+            <div style="flex:none;display:flex;align-items:center;gap:14px;padding:11px 18px;border-bottom:1px solid #262B2C;font-size:11px;color:#6B7574;letter-spacing:.04em;text-transform:uppercase">
+              <span style="width:118px;flex:none">ID</span>
+              <span style="flex:1;min-width:0">Title</span>
+              <span style="width:104px;flex:none">Type</span>
+              <span style="width:74px;flex:none">Layer</span>
+              <span style="width:92px;flex:none">Decided</span>
+              <span style="width:80px;flex:none">Review due</span>
+              <span style="width:112px;flex:none">Decided by</span>
+              <span style="width:92px;flex:none">Status</span>
+            </div>
+            <sc-for list="{{ decisions }}" as="d" hint-placeholder-count="8">
+              <div style="display:flex;align-items:center;gap:14px;padding:9px 18px;border-bottom:1px solid #1F2324;font-size:12.5px">
+                <span style="width:118px;flex:none;font-family:ui-monospace,Menlo,monospace;font-size:11.5px;color:#9BA3A1;font-variant-numeric:tabular-nums">{{ d.id }}</span>
+                <span style="flex:1;min-width:0;color:#E8EAE9;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ d.title }}</span>
+                <span style="width:104px;flex:none;color:#9BA3A1">{{ d.type }}</span>
+                <span style="width:74px;flex:none;color:#9BA3A1">{{ d.layer }}</span>
+                <span style="width:92px;flex:none;color:#9BA3A1;font-variant-numeric:tabular-nums">{{ d.decided }}</span>
+                <span style="width:80px;flex:none;color:#9BA3A1;font-variant-numeric:tabular-nums">{{ d.review }}</span>
+                <span style="width:112px;flex:none;color:#9BA3A1;font-variant-numeric:tabular-nums">{{ d.by }}</span>
+                <span style="width:92px;flex:none"><span style="display:inline-flex;align-items:center;gap:5px;padding:2px 8px;border-radius:5px;font-size:11px;background:{{ d.bg }};color:{{ d.fg }}"><span style="width:5px;height:5px;border-radius:50%;background:{{ d.fg }}"></span>{{ d.status }}</span></span>
+                <div style="display:{{ d.expandedRow }};width:0"></div>
+              </div>
+              <div style="display:{{ d.expanded }};flex-direction:column;gap:14px;padding:16px 18px 18px 150px;border-bottom:1px solid #1F2324;background:#131617">
+                <div style="display:flex;gap:28px">
+                  <div style="flex:1;min-width:0">
+                    <div style="font-size:11px;color:#6B7574;letter-spacing:.05em;text-transform:uppercase;margin-bottom:7px">Rationale</div>
+                    <div style="font-size:13px;line-height:1.55;color:#CFD4D2;text-wrap:pretty">Six months was long enough that two candidates left before anyone decided about them. The assembly shortened it and made the ending an explicit act, so nobody is left in an undefined state.</div>
+                    <div style="font-size:11px;color:#6B7574;letter-spacing:.05em;text-transform:uppercase;margin:14px 0 7px">Proposal text as voted</div>
+                    <div style="font-family:Newsreader,Georgia,serif;font-size:13.5px;line-height:1.6;color:#CFD4D2;border-left:2px solid #3A4142;padding-left:13px;text-wrap:pretty">“A candidate becomes a full member by consent decision of the assembly at the end of four months. If the assembly does not decide, candidacy continues until the next assembly and the delay is recorded.”</div>
+                  </div>
+                  <div style="width:300px;flex:none">
+                    <div style="font-size:11px;color:#6B7574;letter-spacing:.05em;text-transform:uppercase;margin-bottom:8px">Affected clauses</div>
+                    <div style="display:flex;flex-wrap:wrap;gap:6px">
+                      <span style="font-family:ui-monospace,Menlo,monospace;font-size:11.5px;color:#9BA3A1;border:1px solid #262B2C;border-radius:4px;padding:2px 7px">1.2.5</span>
+                      <span style="font-family:ui-monospace,Menlo,monospace;font-size:11.5px;color:#9BA3A1;border:1px solid #262B2C;border-radius:4px;padding:2px 7px">1.2.6</span>
+                      <span style="font-family:ui-monospace,Menlo,monospace;font-size:11.5px;color:#9BA3A1;border:1px solid #262B2C;border-radius:4px;padding:2px 7px">1.2.7</span>
+                      <span style="font-family:ui-monospace,Menlo,monospace;font-size:11.5px;color:#9BA3A1;border:1px solid #262B2C;border-radius:4px;padding:2px 7px">2.1.3</span>
+                    </div>
+                    <div style="font-size:11px;color:#6B7574;letter-spacing:.05em;text-transform:uppercase;margin:14px 0 8px">Related decisions</div>
+                    <div style="display:flex;flex-direction:column;gap:6px;font-size:12.5px">
+                      <a href="#">DEC-2026-009 · Candidate status of six months <span style="color:#6B7574">superseded</span></a>
+                      <a href="#">DEC-2026-010 · Welcome Circle mandate</a>
+                    </div>
+                    <div style="display:flex;align-items:center;gap:8px;margin-top:16px">
+                      <span style="font-size:12px;color:#E8EAE9;border:1px solid #3A4142;border-radius:6px;padding:6px 11px">Open definition</span>
+                      <span style="font-size:12px;color:#9BA3A1;border:1px solid #262B2C;border-radius:6px;padding:6px 11px">Export record</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </sc-for>
+            <div style="margin-top:auto;flex:none;padding:11px 18px;border-top:1px solid #262B2C;display:flex;align-items:center;font-size:11.5px;color:#6B7574">
+              <span style="flex:1">Showing 8 of 14 recorded decisions · 4 provisional, awaiting ratification</span>
+              <span>Every record names who was present.</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div style="display:flex;flex-direction:column;gap:10px" data-screen-label="08 Public artifact index">
+    <div style="display:flex;align-items:baseline;gap:10px;font-family:ui-monospace,Menlo,monospace;font-size:11px;color:#6B7574"><span style="color:#9BA3A1">08</span><span>Public artifact index — outward facing, no percentages</span><span style="color:#3A4142">1440 × 900</span></div>
+    <div style="width:1440px;height:900px;background:#0E1011;border:1px solid #262B2C;border-radius:8px;overflow:hidden;display:flex;flex-direction:column;color:#E8EAE9;font-size:13px">
+      <div style="flex:none;height:52px;display:flex;align-items:center;gap:10px;padding:0 40px;border-bottom:1px solid #1F2324">
+        <div style="width:20px;height:20px;border-radius:5px;background:#064E3B;color:#10B981;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:600">VV</div>
+        <span style="font-size:12.5px;color:#9BA3A1">Valle Verde</span>
+        <span style="flex:1"></span>
+        <span style="font-size:12px;color:#6B7574">Public index</span>
+      </div>
+
+      <div style="flex:1;min-height:0;display:flex;justify-content:center;padding:52px 40px;overflow:hidden">
+        <div style="width:920px;display:flex;flex-direction:column;gap:34px">
+          <div>
+            <div style="font-size:24px;font-weight:550;letter-spacing:-.02em">Valle Verde</div>
+            <div style="display:flex;align-items:center;gap:10px;margin-top:9px;font-size:13px;color:#9BA3A1">
+              <span>Intentional community · Imbabura, Ecuador</span><span style="color:#3A4142">·</span>
+              <span style="font-variant-numeric:tabular-nums">27 members</span><span style="color:#3A4142">·</span>
+              <span style="font-variant-numeric:tabular-nums">founded 2021</span><span style="color:#3A4142">·</span>
+              <span>adopting RCOS since March 2026</span>
+            </div>
+          </div>
+
+          <div style="border:1px solid #3A3020;border-radius:8px;padding:22px 26px;display:flex;gap:34px;align-items:flex-start">
+            <div style="flex:1">
+              <div style="display:flex;align-items:center;gap:9px">
+                <span style="width:7px;height:7px;border-radius:50%;background:#D97706"></span>
+                <span style="font-size:18px;color:#E8EAE9">Not yet RCOS-Core compliant</span>
+              </div>
+              <div style="font-size:13px;color:#9BA3A1;margin-top:9px;line-height:1.55;max-width:420px">Four mandatory artifacts are missing. Compliance is a yes or a no: a community either publishes all 21 artifacts or it does not.</div>
+            </div>
+            <div style="width:360px;flex:none">
+              <div style="font-size:11px;color:#6B7574;letter-spacing:.05em;text-transform:uppercase;margin-bottom:10px">Missing</div>
+              <div style="display:flex;flex-direction:column;gap:8px;font-size:13px">
+                <div style="display:flex;gap:12px"><span style="width:62px;flex:none;color:#6B7574;font-family:ui-monospace,Menlo,monospace;font-size:11.5px">Layer 1</span><span style="color:#CFD4D2">Exit &amp; Separation Protocol</span></div>
+                <div style="display:flex;gap:12px"><span style="width:62px;flex:none;color:#6B7574;font-family:ui-monospace,Menlo,monospace;font-size:11.5px">Layer 2</span><span style="color:#CFD4D2">Role Registry</span></div>
+                <div style="display:flex;gap:12px"><span style="width:62px;flex:none;color:#6B7574;font-family:ui-monospace,Menlo,monospace;font-size:11.5px">Layer 4</span><span style="color:#CFD4D2">Conflict Pathway</span></div>
+                <div style="display:flex;gap:12px"><span style="width:62px;flex:none;color:#6B7574;font-family:ui-monospace,Menlo,monospace;font-size:11.5px">Layer 6</span><span style="color:#CFD4D2">Amendment Procedure</span></div>
+              </div>
+            </div>
+          </div>
+
+          <div>
+            <div style="display:flex;align-items:baseline;gap:12px;margin-bottom:14px">
+              <span style="font-size:15px;font-weight:550">Published artifacts</span>
+              <span style="font-size:12px;color:#6B7574">adopted by the assembly and open to read</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:16px;padding:0 0 10px;border-bottom:1px solid #262B2C;font-size:11px;color:#6B7574;letter-spacing:.04em;text-transform:uppercase">
+              <span style="flex:1">Artifact</span><span style="width:130px;flex:none">Layer</span><span style="width:70px;flex:none">Version</span><span style="width:110px;flex:none">Adopted</span><span style="width:60px;flex:none;text-align:right">Read</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:16px;padding:11px 0;border-bottom:1px solid #1B1F20;font-size:13px"><span style="flex:1">Community Charter</span><span style="width:130px;flex:none;color:#9BA3A1">0 · Identity &amp; Scope</span><span style="width:70px;flex:none;color:#9BA3A1;font-variant-numeric:tabular-nums">v3</span><span style="width:110px;flex:none;color:#9BA3A1;font-variant-numeric:tabular-nums">14 Mar 2026</span><span style="width:60px;flex:none;text-align:right"><a href="#">open</a></span></div>
+            <div style="display:flex;align-items:center;gap:16px;padding:11px 0;border-bottom:1px solid #1B1F20;font-size:13px"><span style="flex:1">Purpose &amp; Boundaries Statement</span><span style="width:130px;flex:none;color:#9BA3A1">0 · Identity &amp; Scope</span><span style="width:70px;flex:none;color:#9BA3A1;font-variant-numeric:tabular-nums">v2</span><span style="width:110px;flex:none;color:#9BA3A1;font-variant-numeric:tabular-nums">14 Mar 2026</span><span style="width:60px;flex:none;text-align:right"><a href="#">open</a></span></div>
+            <div style="display:flex;align-items:center;gap:16px;padding:11px 0;border-bottom:1px solid #1B1F20;font-size:13px"><span style="flex:1">Membership Charter</span><span style="width:130px;flex:none;color:#9BA3A1">1 · Membership</span><span style="width:70px;flex:none;color:#9BA3A1;font-variant-numeric:tabular-nums">v2</span><span style="width:110px;flex:none;color:#9BA3A1;font-variant-numeric:tabular-nums">12 Jun 2026</span><span style="width:60px;flex:none;text-align:right"><a href="#">open</a></span></div>
+            <div style="display:flex;align-items:center;gap:16px;padding:11px 0;border-bottom:1px solid #1B1F20;font-size:13px"><span style="flex:1">Membership Register <span style="font-size:10.5px;color:#6B7574;border:1px dashed #3A4142;border-radius:4px;padding:1px 6px;margin-left:6px">Provisional</span></span><span style="width:130px;flex:none;color:#9BA3A1">1 · Membership</span><span style="width:70px;flex:none;color:#9BA3A1;font-variant-numeric:tabular-nums">v1</span><span style="width:110px;flex:none;color:#9BA3A1;font-variant-numeric:tabular-nums">18 Apr 2026</span><span style="width:60px;flex:none;text-align:right"><a href="#">open</a></span></div>
+            <div style="display:flex;align-items:center;gap:16px;padding:11px 0;border-bottom:1px solid #1B1F20;font-size:13px"><span style="flex:1">Meeting Practice</span><span style="width:130px;flex:none;color:#9BA3A1">2 · Governance</span><span style="width:70px;flex:none;color:#9BA3A1;font-variant-numeric:tabular-nums">v1</span><span style="width:110px;flex:none;color:#9BA3A1;font-variant-numeric:tabular-nums">9 Mar 2026</span><span style="width:60px;flex:none;text-align:right"><a href="#">open</a></span></div>
+            <div style="display:flex;align-items:center;gap:16px;padding:11px 0;border-bottom:1px solid #1B1F20;font-size:13px"><span style="flex:1">Common Fund Rules</span><span style="width:130px;flex:none;color:#9BA3A1">3 · Economy</span><span style="width:70px;flex:none;color:#9BA3A1;font-variant-numeric:tabular-nums">v1</span><span style="width:110px;flex:none;color:#9BA3A1;font-variant-numeric:tabular-nums">28 May 2026</span><span style="width:60px;flex:none;text-align:right"><a href="#">open</a></span></div>
+            <div style="display:flex;align-items:center;gap:16px;padding:11px 0;border-bottom:1px solid #1B1F20;font-size:13px"><span style="flex:1">House &amp; Land Practice</span><span style="width:130px;flex:none;color:#9BA3A1">5 · Operations</span><span style="width:70px;flex:none;color:#9BA3A1;font-variant-numeric:tabular-nums">v4</span><span style="width:110px;flex:none;color:#9BA3A1;font-variant-numeric:tabular-nums">21 May 2026</span><span style="width:60px;flex:none;text-align:right"><a href="#">open</a></span></div>
+            <div style="display:flex;align-items:center;gap:16px;padding:11px 0;font-size:13px"><span style="flex:1">Decision Register</span><span style="width:130px;flex:none;color:#9BA3A1">2 · Governance</span><span style="width:70px;flex:none;color:#9BA3A1;font-variant-numeric:tabular-nums">live</span><span style="width:110px;flex:none;color:#9BA3A1;font-variant-numeric:tabular-nums">continuous</span><span style="width:60px;flex:none;text-align:right"><a href="#">open</a></span></div>
+          </div>
+
+          <div style="margin-top:auto;padding-top:20px;border-top:1px solid #1F2324;display:flex;align-items:center;font-size:11.5px;color:#6B7574">
+            <span style="flex:1">RCOS-Core v0.1 · last self-audit 1 Aug 2026</span>
+            <span>Published by the Valle Verde assembly · questions to stewards@valleverde.ec</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div style="display:flex;flex-direction:column;gap:10px" data-screen-label="09 Documents library">
+    <div style="display:flex;align-items:baseline;gap:10px;font-family:ui-monospace,Menlo,monospace;font-size:11px;color:#6B7574"><span style="color:#9BA3A1">09</span><span>Documents — library &amp; upload</span><span style="color:#3A4142">1440 × 900</span></div>
+    <div style="width:1440px;height:900px;background:#0E1011;border:1px solid #262B2C;border-radius:8px;overflow:hidden;display:flex;color:#E8EAE9;font-size:13px">
+      <dc-import name="Sidebar" active="documents" hint-size="240px,900px" style="width:240px;flex:none"></dc-import>
+      <div style="flex:1;min-width:0;display:flex;flex-direction:column">
+        <dc-import name="TopBar" crumb="Documents" hint-size="100%,52px" style="width:100%;flex:none"></dc-import>
+        <div style="flex:1;min-height:0;padding:22px 24px;display:flex;flex-direction:column;gap:16px;overflow:hidden">
+
+          <div style="display:flex;align-items:flex-start;gap:16px">
+            <div style="flex:1">
+              <div style="font-size:18px;font-weight:550;letter-spacing:-.01em">Documents</div>
+              <div style="font-size:12.5px;color:#6B7574;margin-top:4px">Everything Valle Verde has already written down. Compass reads a document, finds the passages that govern something, and suggests which RCOS clause each one answers. You confirm or reject every suggestion.</div>
+            </div>
+            <span style="display:inline-flex;align-items:center;gap:7px;font-size:12.5px;color:#fff;background:#059669;border-radius:6px;padding:8px 13px;flex:none"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M8 12.5V3.5M4.8 6.7 8 3.5l3.2 3.2M3 12.8v.7h10v-.7"></path></svg>Upload documents</span>
+          </div>
+
+          <div style="display:flex;align-items:center;gap:14px;border:1px dashed #3A4142;border-radius:8px;padding:14px 18px;background:#131617">
+            <svg width="18" height="18" viewBox="0 0 16 16" fill="none" stroke="#6B7574" stroke-width="1.2" style="flex:none"><path d="M8 11.5v-8M5 6.5 8 3.5l3 3M2.5 11v2.5h11V11"></path></svg>
+            <div style="flex:1">
+              <div style="font-size:13px;color:#E8EAE9">Drop PDFs, Word files or plain text here</div>
+              <div style="font-size:11.5px;color:#6B7574;margin-top:2px">Bylaws, meeting minutes, handbooks, land agreements. Files stay inside the community — nothing is published unless the assembly publishes it.</div>
+            </div>
+            <span style="font-size:12px;color:#9BA3A1;border:1px solid #3A4142;border-radius:6px;padding:6px 12px;flex:none">Browse files</span>
+          </div>
+
+          <div style="display:flex;align-items:center;gap:10px">
+            <span style="font-size:12px;color:#9BA3A1;font-variant-numeric:tabular-nums">5 documents</span>
+            <span style="color:#3A4142">·</span>
+            <span style="font-size:12px;color:#6B7574;font-variant-numeric:tabular-nums">38 of 187 requirements already have language somewhere in them</span>
+            <span style="flex:1"></span>
+            <span style="display:inline-flex;border:1px solid #262B2C;border-radius:6px;overflow:hidden;font-size:12px">
+              <span style="padding:5px 11px;background:#1D2122;color:#E8EAE9;border-right:1px solid #262B2C">All</span>
+              <span style="padding:5px 11px;color:#9BA3A1;border-right:1px solid #262B2C">Not mapped · 2</span>
+              <span style="padding:5px 11px;color:#9BA3A1">Mapped · 2</span>
+            </span>
+          </div>
+
+          <div style="border:1px solid #262B2C;border-radius:8px;background:#16191A;overflow:hidden">
+            <sc-for list="{{ docs }}" as="d" hint-placeholder-count="5">
+              <div style="display:flex;align-items:center;gap:16px;padding:14px 18px;border-bottom:1px solid #1F2324;position:relative">
+                <div style="width:30px;height:38px;flex:none;border:1px solid #3A4142;border-radius:3px;display:flex;align-items:flex-end;justify-content:center;padding-bottom:3px;font-size:8.5px;color:#6B7574;font-family:ui-monospace,Menlo,monospace">{{ d.kind }}</div>
+                <div style="flex:1;min-width:0">
+                  <div style="display:flex;align-items:center;gap:9px">
+                    <span style="font-size:13.5px;color:#E8EAE9">{{ d.name }}</span>
+                    <span style="display:inline-flex;align-items:center;gap:5px;padding:2px 8px;border-radius:5px;font-size:11px;background:{{ d.stateBg }};color:{{ d.stateFg }}"><span style="width:5px;height:5px;border-radius:50%;background:{{ d.stateFg }}"></span>{{ d.stateLabel }}</span>
+                  </div>
+                  <div style="display:flex;align-items:center;gap:9px;margin-top:5px;font-size:11.5px;color:#6B7574">
+                    <span>{{ d.meta }}</span><span style="color:#3A4142">·</span><span>{{ d.added }}</span>
+                  </div>
+                </div>
+                <div style="width:250px;flex:none">
+                  <div style="font-size:11.5px;color:#9BA3A1;margin-bottom:6px">{{ d.progress }}</div>
+                  <div style="height:3px;border-radius:2px;background:#262B2C;overflow:hidden"><div style="width:{{ d.bar }};height:100%;background:#059669"></div></div>
+                </div>
+                <span style="flex:none;font-size:12px;color:{{ d.actionFg }};background:{{ d.actionBg }};border:1px solid {{ d.actionBorder }};border-radius:6px;padding:6px 12px">{{ d.action }}</span>
+                <span style="flex:none;display:inline-flex;padding:4px"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="#6B7574" stroke-width="1.25"><circle cx="3.5" cy="8" r=".9"></circle><circle cx="8" cy="8" r=".9"></circle><circle cx="12.5" cy="8" r=".9"></circle></svg></span>
+                <div style="display:{{ d.menuOpen }};position:absolute;top:52px;right:14px;z-index:6;width:224px;background:#1D2122;border:1px solid #3A4142;border-radius:6px;padding:5px;flex-direction:column">
+                  <span style="display:flex;align-items:center;gap:9px;padding:7px 9px;border-radius:5px;background:#262B2C;font-size:12.5px;color:#E8EAE9"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="#10B981" stroke-width="1.3"><path d="M3 8h9m-3.5-3.5L12 8l-3.5 3.5"></path></svg>Start RCOS mapping</span>
+                  <span style="display:flex;align-items:center;gap:9px;padding:7px 9px;font-size:12.5px;color:#9BA3A1">Open document</span>
+                  <span style="display:flex;align-items:center;gap:9px;padding:7px 9px;font-size:12.5px;color:#9BA3A1">Replace with a newer file</span>
+                  <span style="display:flex;align-items:center;gap:9px;padding:7px 9px;font-size:12.5px;color:#9BA3A1">Mark as reference only</span>
+                  <span style="display:flex;align-items:center;gap:9px;padding:7px 9px;font-size:12.5px;color:#DC5B4A;border-top:1px solid #262B2C;margin-top:4px;padding-top:9px">Remove from library</span>
+                </div>
+              </div>
+            </sc-for>
+            <div style="padding:11px 18px;font-size:11.5px;color:#6B7574">Compass never changes a document. Mapping only proposes where its language could satisfy a clause.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div style="display:flex;flex-direction:column;gap:10px" data-screen-label="10 Discussions">
+    <div style="display:flex;align-items:baseline;gap:10px;font-family:ui-monospace,Menlo,monospace;font-size:11px;color:#6B7574"><span style="color:#9BA3A1">10</span><span>Discussions</span><span style="color:#3A4142">1440 × 900</span></div>
+    <div style="width:1440px;height:900px;background:#0E1011;border:1px solid #262B2C;border-radius:8px;overflow:hidden;display:flex;color:#E8EAE9;font-size:13px">
+      <dc-import name="Sidebar" active="discussions" hint-size="240px,900px" style="width:240px;flex:none"></dc-import>
+      <div style="flex:1;min-width:0;display:flex;flex-direction:column">
+        <dc-import name="TopBar" crumb="Discussions" hint-size="100%,52px" style="width:100%;flex:none"></dc-import>
+        <div style="flex:1;min-height:0;padding:22px 24px;display:flex;flex-direction:column;gap:16px;overflow:hidden">
+
+          <div style="display:flex;align-items:flex-start;gap:16px">
+            <div style="flex:1">
+              <div style="font-size:18px;font-weight:550;letter-spacing:-.01em">Discussions</div>
+              <div style="font-size:12.5px;color:#6B7574;margin-top:4px">Every conversation that is trying to become a decision. Threads that end in a frozen decision leave the list and appear in the register.</div>
+            </div>
+            <span style="display:inline-flex;align-items:center;gap:7px;font-size:12px;color:#E8EAE9;border:1px solid #3A4142;border-radius:6px;padding:7px 12px;flex:none"><svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3"><circle cx="8" cy="8" r="5.5"></circle><path d="M8 5v3.2l2 1.2"></path></svg>Record an offline conversation</span>
+          </div>
+
+          <div style="display:flex;align-items:center;gap:10px">
+            <span style="display:inline-flex;border:1px solid #262B2C;border-radius:6px;overflow:hidden;font-size:12px">
+              <span style="padding:5px 11px;background:#1D2122;color:#E8EAE9;border-right:1px solid #262B2C">Open · 6</span>
+              <span style="padding:5px 11px;color:#9BA3A1;border-right:1px solid #262B2C">Waiting on me · 2</span>
+              <span style="padding:5px 11px;color:#9BA3A1;border-right:1px solid #262B2C">In vote · 1</span>
+              <span style="padding:5px 11px;color:#9BA3A1">Frozen · 14</span>
+            </span>
+            <span style="flex:1"></span>
+            <span style="font-size:12px;color:#6B7574">Sort: last activity</span>
+          </div>
+
+          <div style="display:flex;align-items:center;gap:12px;border:1px solid #3A3020;background:rgba(217,119,6,0.07);border-radius:8px;padding:11px 14px">
+            <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="#D97706" stroke-width="1.3" style="flex:none"><path d="M8 2.8 14 13H2z"></path><path d="M8 6.6v2.6M8 10.8v.6"></path></svg>
+            <span style="font-size:12.5px;color:#D9B071;flex:1">Two threads are waiting on you — the consent round on decision types closes 3 Sep, and the exit thread has been quiet for 12 days.</span>
+            <span style="font-size:12px;color:#E8C88E;border:1px solid #3A3020;border-radius:6px;padding:5px 11px">Show them</span>
+          </div>
+
+          <div style="flex:1;min-height:0;border:1px solid #262B2C;border-radius:8px;background:#16191A;overflow:hidden">
+            <sc-for list="{{ threads }}" as="t" hint-placeholder-count="6">
+              <div style="display:flex;align-items:center;gap:16px;padding:14px 18px;border-bottom:1px solid #1F2324;background:{{ t.rowBg }}">
+                <div style="flex:1;min-width:0">
+                  <div style="display:flex;align-items:center;gap:9px">
+                    <span style="font-size:14px;color:#E8EAE9">{{ t.title }}</span>
+                    <span style="display:inline-flex;align-items:center;gap:5px;padding:2px 8px;border-radius:5px;font-size:11px;background:{{ t.bg }};color:{{ t.fg }};border:1px solid {{ t.chipBorder }}"><span style="width:5px;height:5px;border-radius:50%;background:{{ t.fg }}"></span>{{ t.status }}</span>
+                  </div>
+                  <div style="display:flex;align-items:center;gap:9px;margin-top:6px;font-size:11.5px;color:#6B7574">
+                    <span style="color:#9BA3A1;border:1px solid #262B2C;border-radius:4px;padding:1px 6px;font-size:11px">{{ t.layer }}</span>
+                    <span style="font-family:ui-monospace,Menlo,monospace">{{ t.clause }}</span>
+                  </div>
+                </div>
+                <div style="width:230px;flex:none;font-size:11.5px;color:#9BA3A1">{{ t.people }}</div>
+                <div style="width:270px;flex:none;font-size:11.5px;color:#6B7574">{{ t.last }}</div>
+                <div style="width:78px;flex:none;font-size:11px;color:{{ t.staleFg }};text-align:right">{{ t.stale }}</div>
+                <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="#3A4142" stroke-width="1.25" style="flex:none"><path d="m6.5 4 4 4-4 4"></path></svg>
+              </div>
+            </sc-for>
+            <div style="padding:11px 18px;font-size:11.5px;color:#6B7574">A thread only becomes binding when someone freezes it into a decision — and the freeze records who was present.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div style="display:flex;flex-direction:column;gap:10px" data-screen-label="11 Definitions">
+    <div style="display:flex;align-items:baseline;gap:10px;font-family:ui-monospace,Menlo,monospace;font-size:11px;color:#6B7574"><span style="color:#9BA3A1">11</span><span>Definitions</span><span style="color:#3A4142">1440 × 900</span></div>
+    <div style="width:1440px;height:900px;background:#0E1011;border:1px solid #262B2C;border-radius:8px;overflow:hidden;display:flex;color:#E8EAE9;font-size:13px">
+      <dc-import name="Sidebar" active="definitions" hint-size="240px,900px" style="width:240px;flex:none"></dc-import>
+      <div style="flex:1;min-width:0;display:flex;flex-direction:column">
+        <dc-import name="TopBar" crumb="Definitions" hint-size="100%,52px" style="width:100%;flex:none"></dc-import>
+        <div style="flex:1;min-height:0;padding:22px 24px;display:flex;flex-direction:column;gap:14px;overflow:hidden">
+
+          <div style="display:flex;align-items:flex-start;gap:16px">
+            <div style="flex:1">
+              <div style="font-size:18px;font-weight:550;letter-spacing:-.01em">Definitions</div>
+              <div style="font-size:12.5px;color:#6B7574;margin-top:4px">What Valle Verde has actually said, in its own words. Each definition answers one or more clauses and carries the decision that adopted it.</div>
+            </div>
+            <span style="display:inline-flex;align-items:center;gap:7px;font-size:12.5px;color:#fff;background:#059669;border-radius:6px;padding:8px 13px;flex:none"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M8 3.5v9M3.5 8h9"></path></svg>New definition</span>
+          </div>
+
+          <div style="display:flex;align-items:center;gap:9px">
+            <span style="display:inline-flex;align-items:center;gap:6px;font-size:12px;color:#E8EAE9;border:1px solid #3A4142;border-radius:6px;padding:5px 10px">Status <span style="color:#6B7574">any</span><svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="#6B7574" stroke-width="1.4"><path d="M4 6.5 8 10l4-3.5"></path></svg></span>
+            <span style="display:inline-flex;align-items:center;gap:6px;font-size:12px;color:#E8EAE9;border:1px solid #3A4142;border-radius:6px;padding:5px 10px">Artifact <span style="color:#6B7574">all 9</span><svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="#6B7574" stroke-width="1.4"><path d="M4 6.5 8 10l4-3.5"></path></svg></span>
+            <span style="display:inline-flex;align-items:center;gap:6px;font-size:12px;color:#9BA3A1;border:1px solid #262B2C;border-radius:6px;padding:5px 10px">Needs my attention · 4</span>
+            <span style="display:inline-flex;align-items:center;gap:6px;font-size:12px;color:#9BA3A1;border:1px solid #262B2C;border-radius:6px;padding:5px 10px">Provisional · 4</span>
+            <span style="flex:1"></span>
+            <span style="font-size:12px;color:#6B7574;font-variant-numeric:tabular-nums">31 definitions · 12 answer a clause nobody has reviewed</span>
+          </div>
+
+          <div style="flex:1;min-height:0;border:1px solid #262B2C;border-radius:8px;background:#16191A;overflow:hidden;display:flex;flex-direction:column">
+            <div style="flex:none;display:flex;align-items:center;gap:14px;padding:10px 18px;border-bottom:1px solid #262B2C;font-size:11px;color:#6B7574;letter-spacing:.04em;text-transform:uppercase">
+              <span style="flex:1;min-width:0">Definition</span>
+              <span style="width:230px;flex:none">Artifact</span>
+              <span style="width:96px;flex:none">Clauses</span>
+              <span style="width:56px;flex:none">Version</span>
+              <span style="width:120px;flex:none">Status</span>
+              <span style="width:190px;flex:none">Last changed</span>
+            </div>
+            <sc-for list="{{ defs }}" as="d" hint-placeholder-count="12">
+              <div style="display:flex;align-items:center;gap:14px;padding:9px 18px;border-bottom:1px solid #1B1F20;font-size:12.5px;background:{{ d.rowBg }}">
+                <span style="flex:1;min-width:0;display:flex;align-items:center;gap:8px">
+                  <span style="color:#E8EAE9">{{ d.name }}</span>
+                  <span style="font-size:10.5px;color:#6B7574;border:1px dashed #3A4142;border-radius:4px;padding:1px 6px;display:{{ d.flagShow }}">{{ d.flag }}</span>
+                </span>
+                <span style="width:230px;flex:none;color:#9BA3A1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ d.artifact }}</span>
+                <span style="width:96px;flex:none;font-family:ui-monospace,Menlo,monospace;font-size:11.5px;color:#6B7574;font-variant-numeric:tabular-nums">{{ d.clauses }}</span>
+                <span style="width:56px;flex:none;color:#9BA3A1;font-variant-numeric:tabular-nums">{{ d.v }}</span>
+                <span style="width:120px;flex:none"><span style="display:inline-flex;align-items:center;gap:5px;padding:2px 8px;border-radius:5px;font-size:11px;background:{{ d.bg }};color:{{ d.fg }};border:1px solid {{ d.chipBorder }}"><span style="width:5px;height:5px;border-radius:50%;background:{{ d.fg }}"></span>{{ d.status }}</span></span>
+                <span style="width:190px;flex:none;color:#6B7574;font-variant-numeric:tabular-nums">{{ d.changed }} · {{ d.who }}</span>
+              </div>
+            </sc-for>
+            <div style="margin-top:auto;flex:none;padding:10px 18px;border-top:1px solid #262B2C;display:flex;align-items:center;font-size:11.5px;color:#6B7574">
+              <span style="flex:1">Showing 12 of 31 · grouped by artifact in the Standard browser</span>
+              <span>Two definitions are past their review date.</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div style="display:flex;flex-direction:column;gap:10px" data-screen-label="12 Artifacts">
+    <div style="display:flex;align-items:baseline;gap:10px;font-family:ui-monospace,Menlo,monospace;font-size:11px;color:#6B7574"><span style="color:#9BA3A1">12</span><span>Artifacts</span><span style="color:#3A4142">1440 × 900</span></div>
+    <div style="width:1440px;height:900px;background:#0E1011;border:1px solid #262B2C;border-radius:8px;overflow:hidden;display:flex;color:#E8EAE9;font-size:13px">
+      <dc-import name="Sidebar" active="artifacts" hint-size="240px,900px" style="width:240px;flex:none"></dc-import>
+      <div style="flex:1;min-width:0;display:flex;flex-direction:column">
+        <dc-import name="TopBar" crumb="Artifacts" hint-size="100%,52px" style="width:100%;flex:none"></dc-import>
+        <div style="flex:1;min-height:0;padding:22px 24px;display:flex;flex-direction:column;gap:16px;overflow:hidden">
+
+          <div style="display:flex;align-items:flex-start;gap:16px">
+            <div style="flex:1">
+              <div style="font-size:18px;font-weight:550;letter-spacing:-.01em">Artifacts</div>
+              <div style="font-size:12.5px;color:#6B7574;margin-top:4px">The 21 documents RCOS-Core asks every community to hold. An artifact is complete when all of its sections have adopted definitions.</div>
+            </div>
+            <div style="display:flex;align-items:center;gap:8px;flex:none">
+              <span style="font-size:12px;color:#9BA3A1;border:1px solid #262B2C;border-radius:6px;padding:7px 12px">Public index</span>
+              <span style="font-size:12.5px;color:#fff;background:#059669;border-radius:6px;padding:8px 13px">Run self-audit</span>
+            </div>
+          </div>
+
+          <div style="display:flex;align-items:center;gap:22px;border:1px solid #262B2C;border-radius:8px;background:#16191A;padding:14px 18px">
+            <div><div style="font-size:24px;font-weight:550;font-variant-numeric:tabular-nums;letter-spacing:-.02em">14 / 21</div><div style="font-size:11.5px;color:#6B7574;margin-top:3px">artifacts complete</div></div>
+            <div style="width:1px;height:34px;background:#262B2C"></div>
+            <div><div style="font-size:24px;font-weight:550;font-variant-numeric:tabular-nums;letter-spacing:-.02em;color:#D97706">4</div><div style="font-size:11.5px;color:#6B7574;margin-top:3px">mandatory, missing entirely</div></div>
+            <div style="width:1px;height:34px;background:#262B2C"></div>
+            <div><div style="font-size:24px;font-weight:550;font-variant-numeric:tabular-nums;letter-spacing:-.02em">8</div><div style="font-size:11.5px;color:#6B7574;margin-top:3px">published on the public index</div></div>
+            <span style="flex:1"></span>
+            <div style="font-size:12px;color:#9BA3A1;max-width:330px;line-height:1.5">Compliance is binary. Until the four missing artifacts exist, the outward statement stays “not yet compliant” — no percentage.</div>
+          </div>
+
+          <div style="flex:1;min-height:0;display:flex;flex-wrap:wrap;gap:14px;align-content:flex-start;overflow:hidden">
+            <sc-for list="{{ artifacts }}" as="a" hint-placeholder-count="10">
+              <div style="width:569px;box-sizing:border-box;border:1px solid {{ a.cardBorder }};border-radius:8px;background:#16191A;padding:12px 16px">
+                <div style="display:flex;align-items:center;gap:9px">
+                  <span style="font-size:13.5px;color:#E8EAE9;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ a.name }}</span>
+                  <span style="font-family:ui-monospace,Menlo,monospace;font-size:10px;color:#4E5756;border:1px solid #262B2C;border-radius:3px;padding:0 5px">{{ a.mand }}</span>
+                  <span style="display:inline-flex;align-items:center;gap:5px;padding:2px 8px;border-radius:5px;font-size:11px;background:{{ a.bg }};color:{{ a.fg }}"><span style="width:5px;height:5px;border-radius:50%;background:{{ a.fg }}"></span>{{ a.status }}</span>
+                </div>
+                <div style="display:flex;align-items:center;gap:9px;margin-top:7px;font-size:11.5px;color:#6B7574">
+                  <span>{{ a.layer }}</span><span style="color:#3A4142">·</span><span>{{ a.sections }}</span><span style="color:#3A4142">·</span><span>{{ a.v }}</span>
+                </div>
+                <div style="display:flex;align-items:center;gap:12px;margin-top:10px">
+                  <div style="flex:1;height:3px;border-radius:2px;background:#262B2C;overflow:hidden"><div style="width:{{ a.pct }};height:100%;background:{{ a.barColor }}"></div></div>
+                  <span style="font-size:11px;color:#9BA3A1;font-variant-numeric:tabular-nums;width:34px;text-align:right">{{ a.pct }}</span>
+                </div>
+                <div style="display:flex;align-items:center;gap:10px;margin-top:9px">
+                  <span style="font-size:11.5px;color:#6B7574;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ a.note }}</span>
+                  <span style="font-size:12px;color:{{ a.linkFg }}">{{ a.link }}</span>
+                </div>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;showAiTags&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Content&quot;},&quot;expandedDecision&quot;:{&quot;editor&quot;:&quot;int&quot;,&quot;default&quot;:1,&quot;min&quot;:0,&quot;max&quot;:8,&quot;tsType&quot;:&quot;number&quot;,&quot;section&quot;:&quot;Content&quot;}}">
+class Component extends DCLogic {
+  renderVals() {
+    const chip = {
+      notstarted: { chipBg: 'rgba(107,117,116,0.12)', chipBorder: 'transparent', chipFg: '#9BA3A1', status: 'Not started' },
+      drafting:   { chipBg: 'rgba(155,163,161,0.10)', chipBorder: 'transparent', chipFg: '#B6BFBD', status: 'Drafting' },
+      discussion: { chipBg: 'rgba(217,119,6,0.12)',   chipBorder: 'transparent', chipFg: '#D97706', status: 'In discussion' },
+      vote:       { chipBg: 'rgba(62,130,196,0.12)',  chipBorder: 'transparent', chipFg: '#3E82C4', status: 'In vote' },
+      adopted:    { chipBg: 'rgba(5,150,105,0.12)',   chipBorder: 'transparent', chipFg: '#10B981', status: 'Adopted' },
+      review:     { chipBg: 'transparent',            chipBorder: '#7A5518',    chipFg: '#D97706', status: 'Needs review' }
+    };
+    const row = (name, clauses, level, st, date, opts) => Object.assign(
+      { name, clauses, level, date,
+        fg: st === 'notstarted' ? '#9BA3A1' : '#E8EAE9',
+        bg: (opts && opts.hi) ? '#16191A' : 'transparent',
+        provisional: (opts && opts.prov) ? 'inline-block' : 'none',
+        ai: (opts && opts.ai && (this.props.showAiTags ?? true)) ? 'inline-block' : 'none' },
+      chip[st]
+    );
+
+    const v = {
+      docs: [
+        { name: 'bylaws-2019.pdf', meta: 'PDF · 11 pages · 1.4 MB', added: 'added 21 Aug by Ana', state: 'mapped', stateLabel: 'Mapping in progress', stateFg: '#D97706', stateBg: 'rgba(217,119,6,0.12)', progress: '14 of 23 passages mapped', bar: '61%', action: 'Continue mapping', primary: 'true' },
+        { name: 'assembly-minutes-2025.pdf', meta: 'PDF · 34 pages · 3.1 MB', added: 'added 21 Aug by Ana', state: 'unmapped', stateLabel: 'Not mapped', stateFg: '#9BA3A1', stateBg: 'rgba(107,117,116,0.12)', progress: 'No passages extracted yet', bar: '0%', action: 'Start RCOS mapping', primary: 'true' },
+        { name: 'land-trust-agreement.pdf', meta: 'PDF · 7 pages · 820 KB', added: 'added 4 Jul by Marco', state: 'done', stateLabel: 'Mapped', stateFg: '#10B981', stateBg: 'rgba(5,150,105,0.12)', progress: '9 of 9 passages mapped · 3 became definitions', bar: '100%', action: 'Review mapping', primary: 'false' },
+        { name: 'welcome-handbook-v2.docx', meta: 'Word · 18 pages · 640 KB', added: 'added 12 Jun by Lena', state: 'unmapped', stateLabel: 'Not mapped', stateFg: '#9BA3A1', stateBg: 'rgba(107,117,116,0.12)', progress: 'No passages extracted yet', bar: '0%', action: 'Start RCOS mapping', primary: 'true' },
+        { name: 'insurance-policy-2026.pdf', meta: 'PDF · 22 pages · 2.2 MB', added: 'added 2 Feb by Tomás', state: 'skipped', stateLabel: 'Not governance', stateFg: '#6B7574', stateBg: 'rgba(107,117,116,0.08)', progress: 'Marked as reference only — excluded from mapping', bar: '0%', action: 'Include in mapping', primary: 'false' }
+      ],
+      threads: [
+        { title: 'What happens to someone’s things when they leave?', clause: 'clause 1.4 · exit & separation', layer: 'L1 · Membership', status: 'In discussion', fg: '#D97706', bg: 'rgba(217,119,6,0.12)', people: '7 in the thread · 4 replies', last: 'Proposal v3 open since 19 Aug', stale: 'stalled 12 days', staleFg: '#D97706', rowBg: '#191D1E' },
+        { title: 'Should candidacy be four months instead of six?', clause: 'clause 1.2.5 · probationary period', layer: 'L1 · Membership', status: 'In discussion', fg: '#D97706', bg: 'rgba(217,119,6,0.12)', people: '11 in the thread · 23 replies', last: 'last reply 2 h ago by Lena', stale: '', staleFg: '#6B7574', rowBg: 'transparent' },
+        { title: 'Decision types — what needs the whole assembly?', clause: 'clause 2.1.1–2.1.5 · decision matrix', layer: 'L2 · Governance', status: 'In vote', fg: '#3E82C4', bg: 'rgba(62,130,196,0.12)', people: '19 voting · closes 3 Sep', last: 'consent round open, 12 of 19 responded', stale: '', staleFg: '#6B7574', rowBg: 'transparent' },
+        { title: 'How much can one person spend without asking?', clause: 'clause 3.2.3 · spending authority', layer: 'L3 · Economy', status: 'Drafting', fg: '#B6BFBD', bg: 'rgba(155,163,161,0.10)', people: '3 in the thread · 6 replies', last: 'Marco is writing a first proposal', stale: '', staleFg: '#6B7574', rowBg: 'transparent' },
+        { title: 'Meeting on 14 Aug — summary of the exit conversation', clause: 'offline record · linked to clause 1.4', layer: 'L1 · Membership', status: 'Adopted', fg: '#10B981', bg: 'rgba(5,150,105,0.12)', people: '11 present · summary by Marco', last: 'recorded 15 Aug, no objections since', stale: '', staleFg: '#6B7574', rowBg: 'transparent' },
+        { title: 'Quiet hours are past their review date', clause: 'clause 5.2.1 · house practice', layer: 'L5 · Operations', status: 'Needs review', fg: '#D97706', bg: 'transparent', people: '2 in the thread · 2 replies', last: 'review was due Jan 2026', stale: 'overdue', staleFg: '#D97706', rowBg: 'transparent' }
+      ],
+      defs: [
+        { name: 'Probationary period', artifact: 'Membership Charter', clauses: '1.2.5–1.2.7', v: 'v2', status: 'In discussion', fg: '#D97706', bg: 'rgba(217,119,6,0.12)', flag: 'Provisional', changed: '3 Aug 2026', who: 'Ana', rowBg: '#191D1E' },
+        { name: 'Admission process', artifact: 'Membership Charter', clauses: '1.2.1–1.2.4', v: 'v3', status: 'Adopted', fg: '#10B981', bg: 'rgba(5,150,105,0.12)', flag: '', changed: '12 Jun 2026', who: 'assembly', rowBg: 'transparent' },
+        { name: 'Member obligations', artifact: 'Membership Charter', clauses: '1.3.1–1.3.6', v: 'v2', status: 'Adopted', fg: '#10B981', bg: 'rgba(5,150,105,0.12)', flag: '', changed: '2 May 2026', who: 'assembly', rowBg: 'transparent' },
+        { name: 'Membership register', artifact: 'Membership Charter', clauses: '1.1.1–1.1.3', v: 'v1', status: 'Adopted', fg: '#10B981', bg: 'rgba(5,150,105,0.12)', flag: 'Provisional', changed: '18 Apr 2026', who: 'Welcome Circle', rowBg: 'transparent' },
+        { name: 'Decision types', artifact: 'Decision Matrix', clauses: '2.1.1–2.1.5', v: 'v1', status: 'In vote', fg: '#3E82C4', bg: 'rgba(62,130,196,0.12)', flag: '', changed: '28 Aug 2026', who: 'Marco', rowBg: 'transparent' },
+        { name: 'Consent thresholds', artifact: 'Decision Matrix', clauses: '2.2.1–2.2.4', v: 'draft', status: 'Drafting', fg: '#B6BFBD', bg: 'rgba(155,163,161,0.10)', flag: 'AI-drafted', changed: '21 Aug 2026', who: 'Compass', rowBg: 'transparent' },
+        { name: 'Meeting cadence', artifact: 'Decision Matrix', clauses: '2.4.1–2.4.2', v: 'v1', status: 'Adopted', fg: '#10B981', bg: 'rgba(5,150,105,0.12)', flag: '', changed: '9 Mar 2026', who: 'assembly', rowBg: 'transparent' },
+        { name: 'Common fund', artifact: 'Resource & Contribution Policy', clauses: '3.1.1–3.1.4', v: 'draft', status: 'Drafting', fg: '#B6BFBD', bg: 'rgba(155,163,161,0.10)', flag: 'AI-drafted', changed: '25 Aug 2026', who: 'Compass', rowBg: 'transparent' },
+        { name: 'Contribution accounting', artifact: 'Resource & Contribution Policy', clauses: '3.3.1–3.3.4', v: 'v2', status: 'Needs review', fg: '#D97706', bg: 'transparent', flag: '', changed: '14 Jan 2026', who: 'Tomás', rowBg: 'transparent' },
+        { name: 'Quiet hours', artifact: 'House & Land Practice', clauses: '5.2.1–5.2.2', v: 'v4', status: 'Needs review', fg: '#D97706', bg: 'transparent', flag: '', changed: '21 May 2026', who: 'assembly', rowBg: 'transparent' },
+        { name: 'Guest stays', artifact: 'House & Land Practice', clauses: '5.3.1–5.3.4', v: 'v1', status: 'Adopted', fg: '#10B981', bg: 'rgba(5,150,105,0.12)', flag: '', changed: '4 Jun 2026', who: 'assembly', rowBg: 'transparent' },
+        { name: 'Purpose statement', artifact: 'Community Charter', clauses: '0.1.1–0.1.4', v: 'v3', status: 'Adopted', fg: '#10B981', bg: 'rgba(5,150,105,0.12)', flag: '', changed: '14 Mar 2026', who: 'assembly', rowBg: 'transparent' }
+      ],
+      artifacts: [
+        { name: 'Community Charter', layer: 'Layer 0 · Identity & Scope', sections: '4 of 4 sections', v: 'v3', status: 'Published', fg: '#10B981', bg: 'rgba(5,150,105,0.12)', pct: '100%', note: 'adopted 14 Mar 2026 · public', mand: 'MUST' },
+        { name: 'Purpose & Boundaries Statement', layer: 'Layer 0 · Identity & Scope', sections: '3 of 3 sections', v: 'v2', status: 'Published', fg: '#10B981', bg: 'rgba(5,150,105,0.12)', pct: '100%', note: 'adopted 14 Mar 2026 · public', mand: 'MUST' },
+        { name: 'Membership Charter', layer: 'Layer 1 · Membership', sections: '5 of 8 sections', v: 'v2', status: 'In progress', fg: '#D97706', bg: 'rgba(217,119,6,0.12)', pct: '62%', note: '2 sections in discussion, 1 not started', mand: 'MUST' },
+        { name: 'Exit & Separation Protocol', layer: 'Layer 1 · Membership', sections: '0 of 5 sections', v: '—', status: 'Missing', fg: '#9BA3A1', bg: 'rgba(107,117,116,0.12)', pct: '0%', note: 'blocks RCOS-Core compliance', mand: 'MUST' },
+        { name: 'Decision Matrix', layer: 'Layer 2 · Governance', sections: '3 of 6 sections', v: 'v1', status: 'In progress', fg: '#D97706', bg: 'rgba(217,119,6,0.12)', pct: '45%', note: '6 recorded decisions depend on this being adopted', mand: 'MUST' },
+        { name: 'Role Registry', layer: 'Layer 2 · Governance', sections: '0 of 4 sections', v: '—', status: 'Missing', fg: '#9BA3A1', bg: 'rgba(107,117,116,0.12)', pct: '0%', note: 'referenced by the Decision Matrix', mand: 'MUST' },
+        { name: 'Resource & Contribution Policy', layer: 'Layer 3 · Economy', sections: '2 of 7 sections', v: 'draft', status: 'In progress', fg: '#D97706', bg: 'rgba(217,119,6,0.12)', pct: '20%', note: '2 sections drafted by Compass, unreviewed', mand: 'MUST' },
+        { name: 'Conflict Pathway', layer: 'Layer 4 · Conflict', sections: '0 of 6 sections', v: '—', status: 'Missing', fg: '#9BA3A1', bg: 'rgba(107,117,116,0.12)', pct: '0%', note: 'blocks RCOS-Core compliance', mand: 'MUST' },
+        { name: 'House & Land Practice', layer: 'Layer 5 · Operations', sections: '4 of 6 sections', v: 'v4', status: 'In progress', fg: '#D97706', bg: 'rgba(217,119,6,0.12)', pct: '33%', note: '1 section past its review date', mand: 'SHOULD' },
+        { name: 'Amendment Procedure', layer: 'Layer 6 · Evolution', sections: '0 of 3 sections', v: '—', status: 'Missing', fg: '#9BA3A1', bg: 'rgba(107,117,116,0.12)', pct: '0%', note: 'no route exists for changing a rule', mand: 'MUST' }
+      ],
+      pathItems: [
+        { n: '1', q: 'Can someone leave at any time — and what happens to their things?', layer: 'L1 · Membership', effort: 'one meeting', reason: 'Clause 1.4 is mandatory and nothing in your documents answers it.', bg: 'transparent' },
+        { n: '2', q: 'Who can spend community money, and up to how much?', layer: 'L3 · Economy', effort: 'one conversation', reason: 'Your Common fund draft refers to a spending limit that is not defined anywhere.', bg: '#191D1E' },
+        { n: '3', q: 'What happens when someone stops showing up?', layer: 'L1 · Membership', effort: 'a series', reason: 'Two discussions have stalled on this since April; the Absence section is still empty.', bg: 'transparent' },
+        { n: '4', q: 'Who decides what, and when do we need everyone in the room?', layer: 'L2 · Governance', effort: 'a series', reason: 'Your Decision Matrix is provisional — 6 recorded decisions depend on it being adopted.', bg: 'transparent' },
+        { n: '5', q: 'How do we handle it when two people cannot work together?', layer: 'L4 · Conflict', effort: 'a series', reason: 'Layer 4 is at 0%. Unresolved conflict is the most common reason communities of your size dissolve.', bg: 'transparent' },
+        { n: '6', q: 'What is a role here, and how does someone stop holding one?', layer: 'L2 · Governance', effort: 'one meeting', reason: 'Your Decision Matrix references a Role Registry you have not written yet.', bg: 'transparent' },
+      ],
+      mappings: [
+        { quote: '“Any member wishing to depart shall give the council no less than sixty days written notice, and shall be repaid their capital share within one year of departure.”', page: 'p. 4, ¶2', clause: '1.4.2', clauseName: 'Exit & separation — notice and settlement', confidence: 'Strong match', confFg: '#10B981', confBg: 'rgba(5,150,105,0.12)', state: 'open', border: '#262B2C', bg: '#16191A' },
+        { quote: '“New residents are admitted on a trial basis for a period to be determined by the council, not exceeding one year.”', page: 'p. 4, ¶5', clause: '1.2.5', clauseName: 'Probationary period — maximum duration', confidence: 'Partial — no end act', confFg: '#D97706', confBg: 'rgba(217,119,6,0.12)', state: 'open', border: '#262B2C', bg: '#16191A' },
+        { quote: '“Expenditure above five hundred dollars requires the assent of the treasurer and one other officer.”', page: 'p. 7, ¶1', clause: '3.2.3', clauseName: 'Spending authority — thresholds', confidence: 'Confirmed by Ana, 29 Aug', confFg: '#10B981', confBg: 'rgba(5,150,105,0.12)', state: 'confirmed', border: '#2E4A42', bg: 'rgba(5,150,105,0.06)' },
+        { quote: '“The association keeps a register of members, updated at each annual meeting.”', page: 'p. 3, ¶4', clause: '1.1.1', clauseName: 'Membership register', confidence: 'Confirmed by Marco, 28 Aug', confFg: '#10B981', confBg: 'rgba(5,150,105,0.12)', state: 'confirmed', border: '#2E4A42', bg: 'rgba(5,150,105,0.06)' }
+      ],
+      messages: [
+        { who: 'Ana Restrepo', initials: 'AR', avBg: '#2E3A46', avFg: '#9BC0DE', time: '11 Aug, 20:14', text: 'The standard wants us to say what happens to a leaver’s things, not just that they can leave. Right now the 2019 bylaws only mention capital shares — nothing about the tools, the greenhouse, or the room itself.' },
+        { who: 'Marco Silva', initials: 'MS', avBg: '#3A3323', avFg: '#D9B071', time: '11 Aug, 21:02', text: 'Sixty days notice is far too long for someone who has already decided. I would rather we said: leave whenever you want, and we settle money and objects within three months.' },
+        { who: 'Lena Vogt', initials: 'LV', avBg: '#2C3B34', avFg: '#7FC8A5', time: '12 Aug, 08:47', text: 'Three months is fine if there is a named person who does the settling. Otherwise it will sit for a year like Tomás’ deposit did.' },
+        { who: 'Tomás Herrera', initials: 'TH', avBg: '#3A2E33', avFg: '#D9A0AE', time: '12 Aug, 09:30', text: 'Can we separate the two things? Leaving is one decision, settlement is another. I do not want a person to feel held here because we have not counted the tools.' }
+      ],
+      decisions: [
+        { id: 'DEC-2026-014', title: 'Probation period', type: 'Strategic', layer: 'Layer 1', decided: '12 Jun 2026', review: 'Jun 2027', by: 'consent, 9/11', status: 'Active', fg: '#10B981', bg: 'rgba(5,150,105,0.12)', rowBg: 'transparent' },
+        { id: 'DEC-2026-013', title: 'Guest stays over 14 nights', type: 'Operational', layer: 'Layer 5', decided: '4 Jun 2026', review: 'Jun 2027', by: 'consent, 12/14', status: 'Active', fg: '#10B981', bg: 'rgba(5,150,105,0.12)', rowBg: 'transparent' },
+        { id: 'DEC-2026-012', title: 'Water pump maintenance fund', type: 'Operational', layer: 'Layer 3', decided: '28 May 2026', review: 'May 2027', by: 'majority, 15/19', status: 'Active', fg: '#10B981', bg: 'rgba(5,150,105,0.12)', rowBg: 'transparent' },
+        { id: 'DEC-2026-011', title: 'Quiet hours 22:00–07:00', type: 'Operational', layer: 'Layer 5', decided: '21 May 2026', review: 'Jan 2026', by: 'consent, 11/13', status: 'Review due', fg: '#D97706', bg: 'rgba(217,119,6,0.12)', rowBg: 'transparent' },
+        { id: 'DEC-2026-010', title: 'Welcome Circle mandate', type: 'Constitutional', layer: 'Layer 2', decided: '9 May 2026', review: 'May 2028', by: 'consent, 10/12', status: 'Provisional', fg: '#9BA3A1', bg: 'rgba(107,117,116,0.12)', rowBg: 'transparent' },
+        { id: 'DEC-2026-009', title: 'Candidate status of six months', type: 'Constitutional', layer: 'Layer 1', decided: '1 Jun 2026', review: 'Jun 2027', by: 'consent, 14/17', status: 'Superseding', fg: '#3E82C4', bg: 'rgba(62,130,196,0.12)', rowBg: 'transparent' },
+        { id: 'DEC-2026-008', title: 'Contribution hours per month', type: 'Strategic', layer: 'Layer 3', decided: '17 Apr 2026', review: 'Jan 2026', by: 'majority, 16/21', status: 'Review due', fg: '#D97706', bg: 'rgba(217,119,6,0.12)', rowBg: 'transparent' },
+        { id: 'DEC-2026-007', title: 'Adopt RCOS-Core v0.1 as our standard', type: 'Constitutional', layer: 'Layer 0', decided: '14 Mar 2026', review: 'Mar 2028', by: 'consent, 24/27', status: 'Active', fg: '#10B981', bg: 'rgba(5,150,105,0.12)', rowBg: 'transparent' }
+      ],
+      next5: [
+        { n: '1', q: 'Can someone leave at any time — and what happens to their things?', layer: 'L1 · Membership', effort: 'one meeting', clauses: 'clauses 1.4.1–1.4.5', bg: 'transparent', btn: 'none' },
+        { n: '2', q: 'Who can spend community money, and up to how much?', layer: 'L3 · Economy', effort: 'one conversation', clauses: 'clauses 3.2.1–3.2.6', bg: '#191D1E', btn: 'flex' },
+        { n: '3', q: 'What happens when someone stops showing up?', layer: 'L1 · Membership', effort: 'a series', clauses: 'clauses 1.3.4–1.3.6', bg: 'transparent', btn: 'none' },
+        { n: '4', q: 'Who decides what, and when do we need everyone in the room?', layer: 'L2 · Governance', effort: 'a series', clauses: 'clauses 2.1.1–2.1.5', bg: 'transparent', btn: 'none' },
+        { n: '5', q: 'How do we handle it when two people cannot work together?', layer: 'L4 · Conflict', effort: 'a series', clauses: 'clauses 4.1.1–4.3.2', bg: 'transparent', btn: 'none' }
+      ],
+      recent: [
+        { id: 'DEC-2026-014', title: 'Probation period', meta: 'adopted 12 Jun by consent, 9 of 11 present', tag: 'Active', tagColor: '#10B981', tagBorder: '#2E4A42' },
+        { id: 'DEC-2026-013', title: 'Guest stays over 14 nights', meta: 'adopted 4 Jun by consent, 12 of 14 present', tag: 'Active', tagColor: '#10B981', tagBorder: '#2E4A42' },
+        { id: 'DEC-2026-012', title: 'Water pump maintenance fund', meta: 'adopted 28 May by majority, 15 of 19 present', tag: 'Active', tagColor: '#10B981', tagBorder: '#2E4A42' },
+        { id: 'DEC-2026-011', title: 'Quiet hours 22:00–07:00', meta: 'adopted 21 May by consent, 11 of 13 present', tag: 'Review due', tagColor: '#D97706', tagBorder: '#3A3020' },
+        { id: 'DEC-2026-010', title: 'Welcome Circle mandate', meta: 'adopted 9 May by consent, 10 of 12 present', tag: 'Provisional', tagColor: '#9BA3A1', tagBorder: '#3A4142' }
+      ],
+      layerTree: [
+        { n: '0', name: 'Identity & Scope', pct: '100%', bg: 'transparent', fg: '#9BA3A1', bar: '#059669' },
+        { n: '1', name: 'Membership', pct: '62%', bg: '#1D2122', fg: '#E8EAE9', bar: '#059669' },
+        { n: '2', name: 'Governance', pct: '45%', bg: 'transparent', fg: '#9BA3A1', bar: '#059669' },
+        { n: '3', name: 'Economy', pct: '20%', bg: 'transparent', fg: '#9BA3A1', bar: '#059669' },
+        { n: '4', name: 'Conflict', pct: '0%', bg: 'transparent', fg: '#9BA3A1', bar: '#059669' },
+        { n: '5', name: 'Operations', pct: '33%', bg: 'transparent', fg: '#9BA3A1', bar: '#059669' },
+        { n: '6', name: 'Evolution', pct: '0%', bg: 'transparent', fg: '#9BA3A1', bar: '#059669' }
+      ],
+      stdGroups: [
+        { artifact: 'Membership Charter', layer: 'Layer 1', note: '5 of 8 sections written', pct: '62%', rows: [
+          row('Membership register', '1.1.1–1.1.3', 'MUST', 'adopted', '18 Apr 2026', { prov: true }),
+          row('Admission process', '1.2.1–1.2.4', 'MUST', 'adopted', '12 Jun 2026'),
+          row('Probationary period', '1.2.5–1.2.7', 'MUST', 'discussion', '3 Aug 2026', { hi: true }),
+          row('Member obligations', '1.3.1–1.3.6', 'MUST', 'adopted', '2 May 2026'),
+          row('Absence & dormancy', '1.3.4–1.3.6', 'SHOULD', 'notstarted', '—'),
+          row('Exit & separation', '1.4.1–1.4.5', 'MUST', 'notstarted', '—')
+        ] },
+        { artifact: 'Decision Matrix', layer: 'Layer 2', note: '3 of 6 sections written · artifact not yet adopted', pct: '45%', rows: [
+          row('Decision types', '2.1.1–2.1.5', 'MUST', 'vote', '28 Aug 2026'),
+          row('Consent thresholds', '2.2.1–2.2.4', 'MUST', 'drafting', '21 Aug 2026', { ai: true }),
+          row('Meeting cadence', '2.4.1–2.4.2', 'SHOULD', 'adopted', '9 Mar 2026'),
+          row('Role registry', '2.3.1–2.3.7', 'MUST', 'notstarted', '—'),
+          row('Delegation & mandates', '2.3.8–2.3.11', 'SHOULD', 'notstarted', '—')
+        ] },
+        { artifact: 'Resource & Contribution Policy', layer: 'Layer 3', note: '2 of 7 sections written', pct: '20%', rows: [
+          row('Common fund', '3.1.1–3.1.4', 'MUST', 'drafting', '25 Aug 2026', { ai: true }),
+          row('Spending authority', '3.2.1–3.2.6', 'MUST', 'notstarted', '—'),
+          row('Contribution accounting', '3.3.1–3.3.4', 'SHOULD', 'review', '14 Jan 2026'),
+          row('What the community owns', '3.4.1–3.4.3', 'MUST', 'notstarted', '—')
+        ] }
+      ]
+    };
+    const exp = this.props.expandedDecision ?? 1;
+    v.decisions = v.decisions.map((d, i) => Object.assign({}, d, {
+      expanded: i === exp - 1 ? 'flex' : 'none',
+      expandedRow: 'none'
+    }));
+    v.pathItems = v.pathItems.map((p, i) => Object.assign({}, p, { handle: i === 1 ? '1' : '0', btn: i === 1 ? 'flex' : 'none' }));
+    v.mappings = v.mappings.map((m, i) => Object.assign({}, m, {
+      helpOpen: i === 0 ? 'block' : 'none',
+      actions: m.state === 'confirmed' ? 'none' : 'flex',
+      confirmed: m.state === 'confirmed' ? 'flex' : 'none'
+    }));
+    v.docs = v.docs.map((d, i) => Object.assign({}, d, {
+      kind: d.name.endsWith('.docx') ? 'DOC' : 'PDF',
+      menuOpen: i === 1 ? 'flex' : 'none',
+      actionFg: d.primary === 'true' ? '#10B981' : '#9BA3A1',
+      actionBg: d.primary === 'true' ? 'rgba(5,150,105,0.12)' : 'transparent',
+      actionBorder: d.primary === 'true' ? '#2E4A42' : '#262B2C'
+    }));
+    v.threads = v.threads.map(t => Object.assign({}, t, {
+      chipBorder: t.bg === 'transparent' ? '#7A5518' : 'transparent'
+    }));
+    v.defs = v.defs.map(d => Object.assign({}, d, {
+      flagShow: d.flag ? 'inline-block' : 'none',
+      chipBorder: d.bg === 'transparent' ? '#7A5518' : 'transparent'
+    }));
+    v.artifacts = v.artifacts.map(a => Object.assign({}, a, {
+      cardBorder: a.status === 'Missing' ? '#3A3020' : '#262B2C',
+      barColor: a.status === 'Missing' ? '#3A4142' : '#059669',
+      link: a.status === 'Missing' ? 'Start it →' : 'Open →',
+      linkFg: a.status === 'Missing' ? '#D97706' : '#10B981'
+    }));
+    return v;
+  }
+}
+</script>
+</body>
+</html>

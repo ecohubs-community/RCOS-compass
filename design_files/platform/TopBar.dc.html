@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<div style="height:52px;flex:none;display:flex;align-items:center;gap:14px;padding:0 16px;border-bottom:1px solid #262B2C;background:#0E1011;font-family:Inter,system-ui,sans-serif">
+  <div style="display:flex;align-items:center;gap:7px;font-size:13px;white-space:nowrap">
+    <span style="color:#6B7574">Valle Verde</span>
+    <span style="color:#3A4142">/</span>
+    <span style="color:{{ crumbColor }}">{{ crumb }}</span>
+    <sc-if value="{{ sub }}" hint-placeholder-val="{{ false }}">
+      <span style="color:#3A4142">/</span>
+      <span style="color:#E8EAE9">{{ sub }}</span>
+    </sc-if>
+  </div>
+  <div style="flex:none;width:340px;height:30px;display:flex;align-items:center;gap:8px;padding:0 10px;border:1px solid #262B2C;border-radius:6px;background:#131617">
+    <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="#6B7574" stroke-width="1.25"><circle cx="7" cy="7" r="4.5"></circle><path d="m10.5 10.5 3 3"></path></svg>
+    <span style="font-size:12px;color:#6B7574">Search decisions, clauses, definitions…</span>
+    <span style="margin-left:auto;font-size:10px;color:#4E5756;border:1px solid #262B2C;border-radius:4px;padding:1px 4px">⌘K</span>
+  </div>
+  <div style="flex:1"></div>
+  <div style="display:flex;align-items:center;gap:8px">
+    <div style="width:28px;height:28px;border:1px solid #262B2C;border-radius:6px;display:flex;align-items:center;justify-content:center">
+      <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="#9BA3A1" stroke-width="1.25"><path d="M8 2.5a3.5 3.5 0 0 0-3.5 3.5v3l-1 2h9l-1-2V6A3.5 3.5 0 0 0 8 2.5Z"></path><path d="M6.75 13a1.4 1.4 0 0 0 2.5 0"></path></svg>
+    </div>
+    <div style="display:flex;align-items:center;gap:6px;height:30px;padding:0 11px;border-radius:6px;background:#059669;color:#fff;font-size:12.5px;font-weight:520">
+      <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M8 3.5v9M3.5 8h9"></path></svg>New discussion
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1200,&quot;height&quot;:52},&quot;crumb&quot;:{&quot;editor&quot;:&quot;text&quot;,&quot;default&quot;:&quot;Dashboard&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;sub&quot;:{&quot;editor&quot;:&quot;text&quot;,&quot;default&quot;:&quot;&quot;,&quot;tsType&quot;:&quot;string&quot;}}">
+class Component extends DCLogic {
+  renderVals() {
+    return {
+      crumb: this.props.crumb ?? 'Dashboard',
+      sub: this.props.sub ?? false,
+      crumbColor: this.props.sub ? '#9BA3A1' : '#E8EAE9'
+    };
+  }
+}
+</script>
+</body>
+</html>

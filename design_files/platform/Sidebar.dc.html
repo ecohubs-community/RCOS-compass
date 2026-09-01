@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<div style="width:240px;height:100%;flex:none;background:#16191A;border-right:1px solid #262B2C;display:flex;flex-direction:column;font-family:Inter,system-ui,sans-serif">
+  <div style="height:52px;flex:none;display:flex;align-items:center;gap:9px;padding:0 12px;border-bottom:1px solid #262B2C">
+    <div style="width:24px;height:24px;flex:none;border-radius:6px;background:#064E3B;color:#10B981;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:600;letter-spacing:.03em">VV</div>
+    <div style="flex:1;min-width:0">
+      <div style="font-size:13px;font-weight:550;color:#E8EAE9;line-height:1.2">Valle Verde</div>
+    </div>
+    <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="#6B7574" stroke-width="1.25"><path d="M4 6.5 8 10l4-3.5"></path></svg>
+  </div>
+
+  <div style="flex:1;padding:12px 8px;display:flex;flex-direction:column;gap:1px;overflow:hidden">
+    <div style="display:flex;align-items:center;gap:9px;padding:6px 10px;border-radius:6px;font-size:13px;color:{{ c_dashboard }};background:{{ b_dashboard }}">
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.25"><rect x="2.5" y="2.5" width="4.5" height="4.5" rx="1"></rect><rect x="9" y="2.5" width="4.5" height="4.5" rx="1"></rect><rect x="2.5" y="9" width="4.5" height="4.5" rx="1"></rect><rect x="9" y="9" width="4.5" height="4.5" rx="1"></rect></svg>Dashboard</div>
+    <div style="display:flex;align-items:center;gap:9px;padding:6px 10px;border-radius:6px;font-size:13px;color:{{ c_path }};background:{{ b_path }}">
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.25"><circle cx="4" cy="4" r="1.75"></circle><circle cx="12" cy="12" r="1.75"></circle><path d="M4 6v3.5A2.5 2.5 0 0 0 6.5 12H10"></path></svg>The Path</div>
+
+    <div style="padding:14px 10px 6px;font-size:10.5px;color:#4E5756;letter-spacing:.08em;text-transform:uppercase">Working on</div>
+    <div style="display:flex;align-items:center;gap:9px;padding:6px 10px;border-radius:6px;font-size:13px;color:{{ c_discussions }};background:{{ b_discussions }}">
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.25"><path d="M13.5 9.5a1.5 1.5 0 0 1-1.5 1.5H6l-3 2.5V4a1.5 1.5 0 0 1 1.5-1.5H12A1.5 1.5 0 0 1 13.5 4z"></path></svg>Discussions
+      <span style="margin-left:auto;font-size:10.5px;color:#D97706;background:rgba(217,119,6,0.12);border-radius:9px;padding:1px 6px;font-variant-numeric:tabular-nums">3</span></div>
+    <div style="display:flex;align-items:center;gap:9px;padding:6px 10px;border-radius:6px;font-size:13px;color:{{ c_documents }};background:{{ b_documents }}">
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.25"><path d="M4 2.5h5l3 3v8h-8z"></path><path d="M9 2.5v3h3"></path></svg>Documents</div>
+    <div style="display:flex;align-items:center;gap:9px;padding:6px 10px;border-radius:6px;font-size:13px;color:{{ c_definitions }};background:{{ b_definitions }}">
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.25"><circle cx="8" cy="8" r="5.5"></circle><path d="M8 5.5v5"></path></svg>Definitions</div>
+    <div style="display:flex;align-items:center;gap:9px;padding:6px 10px;border-radius:6px;font-size:13px;color:{{ c_decisions }};background:{{ b_decisions }}">
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.25"><circle cx="8" cy="8" r="5.5"></circle><path d="m5.75 8 1.6 1.6 3-3.2"></path></svg>Decisions</div>
+
+    <div style="padding:14px 10px 6px;font-size:10.5px;color:#4E5756;letter-spacing:.08em;text-transform:uppercase">Reference</div>
+    <div style="display:flex;align-items:center;gap:9px;padding:6px 10px;border-radius:6px;font-size:13px;color:{{ c_standard }};background:{{ b_standard }}">
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.25"><rect x="2.5" y="2.5" width="11" height="11" rx="1.5"></rect><path d="M5.5 6h5M5.5 9h3"></path></svg>Standard</div>
+    <div style="display:flex;align-items:center;gap:9px;padding:6px 10px;border-radius:6px;font-size:13px;color:{{ c_artifacts }};background:{{ b_artifacts }}">
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.25"><rect x="8" y="1.9" width="8.6" height="8.6" rx="1.4" transform="rotate(45 8 1.9)"></rect></svg>Artifacts</div>
+  </div>
+
+  <div style="flex:none;padding:6px 8px 10px;display:flex;flex-direction:column;gap:1px">
+    <div style="display:flex;align-items:center;gap:9px;padding:5px 10px;border-radius:6px;font-size:12.5px;color:{{ c_glossary }};background:{{ b_glossary }}">
+      <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.25"><path d="M3 3.5h10M3 8h10M3 12.5h6"></path></svg>Glossary</div>
+    <div style="display:flex;align-items:center;gap:9px;padding:5px 10px;border-radius:6px;font-size:12.5px;color:{{ c_settings }};background:{{ b_settings }}">
+      <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.25"><circle cx="8" cy="8" r="2"></circle><circle cx="8" cy="8" r="5.5"></circle></svg>Settings</div>
+  </div>
+
+  <div style="flex:none;padding:12px 14px;border-top:1px solid #262B2C;display:flex;flex-direction:column;gap:6px">
+    <div style="display:flex;align-items:baseline;justify-content:space-between">
+      <span style="font-size:12px;color:#9BA3A1">Readiness</span>
+      <span style="font-size:12px;color:#E8EAE9;font-variant-numeric:tabular-nums">41%</span>
+    </div>
+    <div style="height:4px;border-radius:2px;background:#262B2C;overflow:hidden"><div style="width:41%;height:100%;background:#059669"></div></div>
+    <div style="font-size:11px;color:#6B7574">14 of 21 artifacts complete</div>
+  </div>
+  <div style="flex:none;height:48px;padding:0 14px;border-top:1px solid #262B2C;display:flex;align-items:center;gap:9px">
+    <div style="width:22px;height:22px;border-radius:50%;background:#2E3A46;color:#9BC0DE;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:600">AR</div>
+    <div style="flex:1;min-width:0">
+      <div style="font-size:12px;color:#E8EAE9;line-height:1.2">Ana Restrepo</div>
+      <div style="font-size:11px;color:#6B7574;line-height:1.2">Steward</div>
+    </div>
+    <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="#6B7574" stroke-width="1.25"><circle cx="3.5" cy="8" r=".9"></circle><circle cx="8" cy="8" r=".9"></circle><circle cx="12.5" cy="8" r=".9"></circle></svg>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:240,&quot;height&quot;:848},&quot;active&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;dashboard&quot;,&quot;path&quot;,&quot;discussions&quot;,&quot;documents&quot;,&quot;definitions&quot;,&quot;decisions&quot;,&quot;standard&quot;,&quot;artifacts&quot;,&quot;glossary&quot;,&quot;settings&quot;],&quot;default&quot;:&quot;dashboard&quot;,&quot;tsType&quot;:&quot;string&quot;}}">
+class Component extends DCLogic {
+  renderVals() {
+    const keys = ['dashboard','path','discussions','documents','definitions','decisions','standard','artifacts','glossary','settings'];
+    const v = {};
+    keys.forEach(k => {
+      const on = this.props.active === k;
+      v['c_' + k] = on ? '#E8EAE9' : '#9BA3A1';
+      v['b_' + k] = on ? '#1D2122' : 'transparent';
+    });
+    return v;
+  }
+}
+</script>
+</body>
+</html>
