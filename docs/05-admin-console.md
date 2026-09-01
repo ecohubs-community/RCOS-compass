@@ -61,10 +61,12 @@ Fields: name, slug (validated: lowercase, `a-z0-9-`, 3–40 chars, reserved-word
 list — `admin`, `api`, `public`, `healthz`, `new`, `c`), owner email, locale,
 timezone, standard version, optional limits.
 
-On submit, in one transaction: create the community, create an `owner`
-invitation for the email, send it, write an audit event. **The admin does not
-become a member.** A community with no accepted owner invitation shows as
-`pending owner` until someone accepts.
+On submit, in one transaction: create the community, create a **steward
+invitation carrying the owner flag** for that email, send it, write an audit
+event. **The admin does not become a member.** A community whose first
+invitation has not been accepted shows as `pending owner` until someone does.
+(There is no `owner` *role* — see `04-security.md` §1: two roles, and the owner is
+a flag on one steward's membership.)
 
 ### 3.3 Tenant detail — `/admin/communities/[id]`
 
@@ -78,7 +80,7 @@ administrative events. Actions:
 - **Feature flags** — AI on/off, git mirror on/off, public index on/off.
 - **Suspend / unsuspend** — members see a read-only banner and can still export.
   Suspension never deletes anything. Reason required, shown to the owner.
-- **Transfer ownership** — pick an existing member with an accepted membership.
+- **Transfer ownership** — move the owner flag to another steward with an accepted membership. If the community has only one steward, promote someone first; the flag never sits on a `member`.
 - **Delete** — soft delete, requires typing the slug, sets `deleted_at`, hides the
   tenant everywhere, keeps data for a 30-day grace window, then a purge job removes
   rows and files. **Restore** available during the window. Owner is emailed at both
@@ -122,11 +124,15 @@ delivery failures. This is the page that answers "is anything broken right now".
 
 ## 6. Acceptance tests
 
-- Non-admin, unauthenticated, and observer users each get 404 on `/admin`,
-  `/admin/communities`, and a valid community detail URL.
+- Unauthenticated users, ordinary members, and stewards (including a community
+  owner) each get 404 on `/admin`, `/admin/communities`, and a valid community
+  detail URL. Being a steward of every community on the instance still grants
+  nothing here.
 - Admin without 2FA cannot reach the tenant list.
-- Creating a tenant produces exactly one community, one pending owner
-  invitation, one audit event, and no membership for the admin.
+- Creating a tenant produces exactly one community, one pending steward
+  invitation carrying the owner flag, one default *Community Agreements* artifact,
+  one audit event, and no membership for the admin.
+- An invitation with `role = 'owner'` is rejected — owner is a flag, not a role.
 - Slug uniqueness and the reserved-word list are enforced server-side.
 - Deleting a tenant hides it from members immediately, keeps rows for 30 days,
   and restore returns the community intact.

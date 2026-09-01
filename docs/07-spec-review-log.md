@@ -196,6 +196,44 @@ defining.
 
 ---
 
+## Pass 8 — check pass over Passes 6–7 (2026-09-01)
+
+Re-reading what the last two passes added, before any code exists to make the
+mistakes permanent.
+
+| # | Sev | Finding | Resolution | Landed in |
+|---|---|---|---|---|
+| 87 | H | **Local definitions had two overlapping ways to attach to an artifact** — `definition.community_artifact_id`, *and* `community_artifact.rcos_artifact_key` pointing back at an RCOS artifact. Two paths to the same place is how orphans happen. | One field pair: `attach_kind` plus exactly one of `attach_rcos_artifact_key` / `attach_community_artifact_id`, enforced by a check constraint and a test. `rcos_artifact_key` dropped from `community_artifact`. | 03 §3 |
+| 88 | H | **The hero screen has no left column for a local definition.** The triad is *what the standard asks / what we said / how we got here*; for a local rule the standard asks nothing, and an empty column reads as a bug. | The left column becomes **"Why we made this rule"** — a community-authored `purpose` field, prompted with the linter's kill question, plus the adopted definitions for the declared layer. Same layout, different source. That field is also what a member reads in three years when nobody remembers why the rule exists. | 03 §3a.1 |
+| 89 | H | **Consent-round eligibility was a number with no rule.** `eligible_count` existed; nothing said who was in it, or what happens when someone joins or leaves mid-round. | Eligibility is a **snapshot written when the round opens** (`consent_eligible`), never recomputed. Default all active memberships; a steward may deselect. `rcos_state` is shown as information, never as an automatic exclusion — membership state must not quietly authorise anything. A tally whose denominator moves after the fact is worse than no tally. | 03 §3, §5 |
+| 90 | M | **The admin console still spoke of an `owner` role** after roles were cut to two — an "owner invitation", transfer to "an existing member", and an acceptance test naming `observer`. | Rewritten: a **steward invitation carrying the owner flag**; transfer moves the flag between stewards and never lands on a member; the guard test now names members and stewards, since observer does not exist in the MVP. Invitations validate the role and reject `owner`. | 05 §3.2–3.3, §6; 04 §3 |
+| 91 | M | **What happens when a module later covers something a community already defined locally?** Nothing said, and the tempting answer — auto-convert — would change what a community is committed to without anyone deciding. | The module section appears as a **new gap**; the local definition offers *"answer this with our existing rule"*, which pre-fills a draft. The local one stays until a freeze supersedes it. Post-MVP, but the shape is fixed now so the data never has to move. | 03 §3b |
+| 92 | M | **`standard_feedback` had no exit.** "Opt-in, never automatic" described a door with nothing behind it. | MVP: entries appear in the community's own export and on a settings page a steward can copy or download. No automatic channel to the standard's stewards; building one is post-MVP. Honest about being a capture mechanism first. | UI spec §1.4b |
+| 93 | L | Local definitions were not stated to appear in the **glossary and search**, which would have made them second-class in exactly the way §1.4b argues against. | Same index, same panel, same reverse lookup. Stated in the comparison table so it cannot be missed. | 03 §3a |
+| 94 | L | The **self-audit** snapshot ignored local definitions entirely. | Local definitions past their review date are listed separately and marked as not affecting compliance — the community's own rules going stale is worth knowing even though RCOS does not care. | UI spec §4.8 |
+
+### Design files that no longer match the spec
+
+Tracked here so they are not discovered during implementation:
+
+1. **Clause numbering** — the artboards use a layer-relative scheme (`1.2.5`);
+   canonical is the document-section ref (`3.3.2`), rendered as the
+   `(standard, version, ref)` triple. *(Pass 1 #1, still open.)*
+2. **Navigation grouping** — the sidebar's "Working on / Reference" split becomes
+   *Working on* / *What we've agreed* / *Reference*, moving Decisions and
+   Artifacts (UI spec §4.0).
+3. **Decision register Status column** — currently mixes statuses with the
+   `Provisional` flag; they are orthogonal (Pass 2 #20).
+4. **Linter panel** — remove the cross-community statistic (Pass 4 #28).
+5. **No mobile artboards yet** — every screen is a supported surface down to
+   375px, and four of them have non-obvious collapses (the triad → tabs, mapping
+   → two-step queue, tables → cards, drag → move controls).
+6. **Missing screens** — consent round, local definition detail (with the "Why we
+   made this rule" column), the Local additions block on an artifact page, and
+   `?` help affordances throughout.
+
+---
+
 ## Follow-ups from earlier passes — now closed
 
 1. ~~Say what "adopted" means mechanically.~~ **Done** — UI spec §1.4a: a

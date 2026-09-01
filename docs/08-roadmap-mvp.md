@@ -27,7 +27,11 @@ and the blank-slate path with neither forced. What remains here is execution.
 
 Carry-over from those decisions:
 
-1. Regenerate the mockups' clause numbers to document-section refs.
+1. **Update the design files** — six divergences from the spec are listed at the
+   end of `07-spec-review-log.md`: clause numbering, nav grouping, the register's
+   Status column, the linter panel's cross-community statistic, mobile artboards,
+   and four missing screens (consent round, local definition detail, the Local
+   additions block, `?` affordances).
 2. Confirm where the published template content lives (repo or CMS) — it decides
    whether P1 is a script or a migration.
 

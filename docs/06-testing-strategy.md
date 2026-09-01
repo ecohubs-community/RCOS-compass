@@ -147,6 +147,10 @@ v3 + provisional ⇒ status `in_discussion`, badges `Provisional`).
 standard; adding a module changes no core number; retiring a module removes its
 figure and touches nothing else.
 
+**Local definition attachment** — exactly one of `attach_rcos_artifact_key` /
+`attach_community_artifact_id` is set; a local definition with neither, or both,
+is rejected by the check constraint and by the service.
+
 **Local definitions move no number** — the load-bearing test for UI spec §1.4b.
 Adding, adopting, superseding and deleting a local definition leaves readiness,
 compliance, the artifact completeness bar and the missing-artifact list byte-for-byte
@@ -190,7 +194,9 @@ fails until the matrix is updated.
 - **Export**: contains only what the requesting member may see; is streamed; the
   link expires.
 - **Git mirror**: a push failure retries and never blocks or rolls back a freeze.
-- **Consent rounds**: one response per member enforced by the unique key; a
+- **Consent rounds**: the eligible set is **snapshotted at open** — a member who
+  joins mid-round cannot respond and does not change the denominator, and a member
+  who leaves does not shrink it; one response per member enforced by the unique key; a
   response after `closes_at` is rejected; closing early when everyone has
   responded produces the same tally as closing at the deadline; the tally
   pre-fills the freeze but **a closed round with full consent adopts nothing

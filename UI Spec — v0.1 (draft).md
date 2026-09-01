@@ -244,7 +244,9 @@ Kind 3 costs almost nothing and is worth a lot: when someone creates a local
 definition, one checkbox — *"RCOS should require this"* — records a
 `standard_feedback` entry with the community's own text as a worked example.
 Nothing is sent anywhere without a deliberate act, and sharing it upstream is
-opt-in. But the data is captured from day one, because you cannot retroactively
+opt-in — in the MVP that means the entries appear in the community's own export
+and on a settings page where a steward can copy or download them; there is no
+automatic channel to the standard's stewards, and building one is post-MVP. But the data is captured from day one, because you cannot retroactively
 collect "what did communities wish the standard had asked for". RCOS §11.2 wants
 this loop; this is the cheapest possible version of it.
 
@@ -620,7 +622,10 @@ immutable `self_audit` record containing, at that moment:
 - every definition past its **review date**;
 - every decision frozen over an **unresolved objection**;
 - every **transparency exception** and its expiry;
-- readiness per layer as a snapshot, for the community's own inward use.
+- readiness per layer as a snapshot, for the community's own inward use;
+- **local definitions past their review date**, listed separately and explicitly
+  marked as not affecting compliance — they are still the community's own rules
+  going stale, which is worth knowing even though RCOS does not care.
 
 The result is a dated, shareable page; the date appears on the public index; the
 previous audits stay listed, so a community can see its own trajectory. It never

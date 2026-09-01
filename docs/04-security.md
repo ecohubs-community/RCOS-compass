@@ -128,7 +128,9 @@ The single highest-severity risk. Defence in depth:
   (`01-server-client-contract.md` §5). Login failures are logged to `audit_event`.
 - **Invitations**: single-use token, hashed at rest, 7-day expiry, bound to the
   invited email, and consumed inside a transaction. Accepting an invite for a
-  different email address fails.
+  different email address fails. The invited role is validated against the two
+  real roles — an invitation naming `owner` is rejected, because owner is a flag
+  and moving it is a separate, deliberate act.
 - TOTP two-factor is available to all users and **required for platform admins**
   (§6). Post-MVP: required-2FA policy per community.
 - CSRF: SvelteKit's origin check on form actions stays on; any `+server.ts` that

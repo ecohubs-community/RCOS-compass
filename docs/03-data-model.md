@@ -111,18 +111,21 @@ membership         id | community_id | user_id | role steward|member   -- observ
                    | rcos_state applicant|trial|full|exited|suspended   -- CONTENT, not access
                    | display_name | joined_at | ended_at?
 user               better-auth table | email | email_verified | name | locale
-invitation         id | community_id | email | role | token_hash | expires_at | accepted_at? | invited_by
+invitation         id | community_id | email | role steward|member   -- never 'owner'
+                   | token_hash | expires_at | accepted_at? | invited_by
 
 definition         id | community_id | scope standard|local
                    | community_standard_id? | section_key?     -- scope=standard
-                   | title? | layer? | community_artifact_id?  -- scope=local
+                   | title? | layer? | purpose?                -- scope=local
+                   | attach_kind rcos_artifact|community_artifact       -- scope=local
+                   | attach_rcos_artifact_key? | attach_community_artifact_id?
                    | adopted_version_id? | open_proposal_id? | review_due_at?
                    | provisional bool
                    | PARTIAL UNIQUE(community_standard_id, section_key) WHERE section_key IS NOT NULL
                    | CHECK (scope='standard') = (section_key IS NOT NULL)
+                   | CHECK exactly one attach_* is set when scope='local'
 community_artifact id | community_id | title | layer? | description | order
                    | kind default|custom   -- every community gets one 'Community Agreements'
-                   | rcos_artifact_key?    -- set when local additions attach to an RCOS artifact
 standard_feedback  id | community_id | definition_id? | clause_key? | standard_id | version
                    | kind gap|ambiguity|conflict|suggestion | body | created_by | created_at
                    | shared_upstream bool  -- opt-in, never automatic
@@ -152,7 +155,9 @@ objection          id | proposal_post_id | raised_by | reason | raised_at
                    | state open|withdrawn|addressed|overruled
                    | resolved_by? | resolved_at? | resolution_note?
 consent_round      id | community_id | proposal_post_id | opened_by | opened_at
-                   | closes_at | eligible_count | status open|closed|cancelled
+                   | closes_at | status open|closed|cancelled
+                   | eligibility all_members|selected  -- see §5
+consent_eligible   round_id | membership_id   -- snapshot, written when the round opens
 consent_response   round_id | membership_id | value consent|objection|abstain
                    | objection_id? | responded_at | UNIQUE(round_id, membership_id)
 document           id | community_id | filename | mime | bytes | sha256 | storage_key
@@ -194,6 +199,9 @@ visibility and transparency exceptions, search, export, the git mirror.
 | `section_key` | required | null |
 | `title` | from the section | authored by the community |
 | `layer` | from the section | declared by the author (may be null → "unassigned") |
+| Attaches to | its artifact, via the section | exactly one of: an RCOS artifact, or a community artifact |
+| Left column of the detail screen | the verbatim clause | the community's own `purpose` — *why we made this rule* (§3c) |
+| In the glossary and search | yes | **yes** — same index, same panel |
 | Enters `clause_coverage` | yes | **never** |
 | Enters readiness / compliance | yes (core only) | **never, in either direction** |
 | Completes an artifact | yes | **no** — see §3b |
@@ -205,6 +213,23 @@ must be `WHERE section_key IS NOT NULL`, or a community could hold only one loca
 definition. Both SQLite and Postgres support partial indexes, so this survives
 the migration in `00-architecture.md` §5.
 
+### 3a.1 The detail screen has no left column for a local definition
+
+The hero screen is a triad: *what the standard asks / what we said / how we got
+here*. A local definition has no standard asking anything, and an empty column
+would read as a missing feature rather than a deliberate absence.
+
+So for `scope = local` the left column becomes **"Why we made this rule"** — a
+short community-authored `purpose` field, prompted at creation with the linter's
+own kill question (*"what breaks if we delete this?"*), plus the adopted
+definitions for the declared layer, so an author can see what they are writing
+next to. Same three columns, same widths, same provenance on the right; only the
+left column's source changes.
+
+That `purpose` field is not decoration: it is the thing a member reads in three
+years when nobody remembers why the rule exists, and it is what the AI-assist
+conflict check compares against.
+
 ## 3b. Artifact completeness with local content
 
 ```
@@ -215,6 +240,15 @@ Local definitions attached to an RCOS artifact are rendered under it and are
 **excluded from its completeness computation and its percentage**. They can
 neither complete an artifact nor block one — a community with a hundred local
 additions and one unanswered RCOS section is still incomplete, and rightly so.
+
+**If a module later covers what a community defined locally** — a community
+writes its own composting rules, then adopts the permaculture module which has a
+section for exactly that — the local definition is **not** silently converted.
+The module section appears as a new gap, and the local definition offers
+*"answer this with our existing rule"*, which copies its text into a draft for the
+module section and leaves the local one in place until a freeze supersedes it.
+Automatic promotion would change what a community is committed to without anyone
+deciding. Post-MVP, but the shape is fixed now so the data does not have to move.
 
 `community_artifact` rows never enter compliance at all. They are grouped
 separately on the Artifacts page and in the export bundle, under a heading that
@@ -303,8 +337,24 @@ decision permalink. Governance tools that let dissent evaporate at the moment of
 recording are how communities end up arguing about what was agreed.
 
 A consent round is a time-boxed collection of responses against one proposal. It
-closes at `closes_at` or when everyone has responded; the tally feeds the freeze
-form pre-filled, and the freeze is still a human act.
+closes at `closes_at` or when everyone eligible has responded; the tally feeds the
+freeze form pre-filled, and the freeze is still a human act.
+
+**Who is eligible is a snapshot, not a query.** The app cannot know a community's
+own eligibility rule — many communities give trial members voice but not a block,
+and that lives in *their* Membership Charter, not in ours. So:
+
+- The default is every active membership at the moment the round opens.
+- The steward opening the round may deselect people, with the round recording
+  that it was a `selected` set.
+- **The eligible list is written to `consent_eligible` when the round opens** and
+  never recomputed. Someone joining mid-round does not silently become eligible;
+  someone leaving does not retroactively shrink the denominator. A tally whose
+  denominator moves after the fact is worse than no tally.
+- `rcos_state` is shown next to each name as *information* for the person opening
+  the round — never as an automatic exclusion. Membership state is content the
+  community governs; it must not quietly authorise anything
+  (`04-security.md` §1).
 
 ### Evidence
 
