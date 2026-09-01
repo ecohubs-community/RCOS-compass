@@ -164,6 +164,14 @@ Noncommercial. Consume the generated data, not the source.
 - **A community is pinned to a standard version** via `community_standard`, and
   moves only through a guided migration that is itself a decision. Historical
   decisions keep the ref they quoted — a migration never rewrites history.
+- **Definitions have a `scope`.** `standard` answers an RCOS section; `local` is
+  the community's own rule (quiet hours, guests, pets). Local definitions get the
+  full lifecycle — versions, discussions, consent rounds, freeze, decisions,
+  linter, export — and **move no number in either direction**: not readiness, not
+  compliance, not an artifact's completeness bar. They render in a separated
+  "Local additions" block and are **always** exported carrying *"community
+  addition — not required by RCOS-Core v0.1"*. Omitting them misrepresents the
+  community; shipping them unlabelled misrepresents the standard.
 - **Clauses have a `disposition`.** Only `defined_by_section` clauses count
   toward readiness. `satisfied_by_platform` (the app's own versioning and
   accessibility answer it) and `not_a_definition` (rules about the standard) are

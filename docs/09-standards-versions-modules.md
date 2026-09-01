@@ -97,7 +97,7 @@ compliance evaluation.** So the arithmetic in `03-data-model.md` §7 runs
   adopted modules in a clearly separate block. A module at 100% must never make a
   non-compliant community look compliant — that is the one way this feature could
   damage the standard, so it is a test, not a guideline
-  (`06-testing-strategy.md` §6.4).
+  (`06-testing-strategy.md` §6.5).
 - The Path ranks core clauses above module clauses by default, because core
   compliance is the gate. The weight is visible and editable like the others.
 - Module sections may **reference** core clauses; they may never **own** them.

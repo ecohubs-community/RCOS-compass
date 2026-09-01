@@ -113,9 +113,19 @@ membership         id | community_id | user_id | role steward|member   -- observ
 user               better-auth table | email | email_verified | name | locale
 invitation         id | community_id | email | role | token_hash | expires_at | accepted_at? | invited_by
 
-definition         id | community_id | community_standard_id | section_key
+definition         id | community_id | scope standard|local
+                   | community_standard_id? | section_key?     -- scope=standard
+                   | title? | layer? | community_artifact_id?  -- scope=local
                    | adopted_version_id? | open_proposal_id? | review_due_at?
-                   | provisional bool | UNIQUE(community_standard_id, section_key)
+                   | provisional bool
+                   | PARTIAL UNIQUE(community_standard_id, section_key) WHERE section_key IS NOT NULL
+                   | CHECK (scope='standard') = (section_key IS NOT NULL)
+community_artifact id | community_id | title | layer? | description | order
+                   | kind default|custom   -- every community gets one 'Community Agreements'
+                   | rcos_artifact_key?    -- set when local additions attach to an RCOS artifact
+standard_feedback  id | community_id | definition_id? | clause_key? | standard_id | version
+                   | kind gap|ambiguity|conflict|suggestion | body | created_by | created_at
+                   | shared_upstream bool  -- opt-in, never automatic
 definition_draft   definition_id | body | plain_language | type | updated_by | updated_at
                    | edit_token   -- optimistic concurrency; one live draft per definition
 definition_version id | definition_id | n | body | plain_language | type enforceable|interpretive|expressive
@@ -166,6 +176,57 @@ self_audit         id | community_id | run_by | run_at | compliant bool
 ```
 
 ---
+
+## 3a. Local definitions — scope, and what it changes
+
+A definition either answers a section of a standard (`scope = standard`) or it is
+the community's own rule (`scope = local`). See UI spec §1.4b for why.
+
+**Everything the lifecycle gives a standard definition, a local one gets**:
+versions, drafts with `edit_token`, discussions, proposals, objections, consent
+rounds, freeze, decision records, review dates, linter results, glossary entries,
+visibility and transparency exceptions, search, export, the git mirror.
+
+**What differs, exhaustively:**
+
+| | `standard` | `local` |
+|---|---|---|
+| `section_key` | required | null |
+| `title` | from the section | authored by the community |
+| `layer` | from the section | declared by the author (may be null → "unassigned") |
+| Enters `clause_coverage` | yes | **never** |
+| Enters readiness / compliance | yes (core only) | **never, in either direction** |
+| Completes an artifact | yes | **no** — see §3b |
+| Appears in the Path's ordered gaps | yes | only via a manual override |
+| Appears in exports and the public index | yes | yes, **labelled as a community addition** |
+
+The partial unique index matters: `UNIQUE(community_standard_id, section_key)`
+must be `WHERE section_key IS NOT NULL`, or a community could hold only one local
+definition. Both SQLite and Postgres support partial indexes, so this survives
+the migration in `00-architecture.md` §5.
+
+## 3b. Artifact completeness with local content
+
+```
+artifact_complete(a) := every section of a with scope='standard' has an adopted definition
+```
+
+Local definitions attached to an RCOS artifact are rendered under it and are
+**excluded from its completeness computation and its percentage**. They can
+neither complete an artifact nor block one — a community with a hundred local
+additions and one unanswered RCOS section is still incomplete, and rightly so.
+
+`community_artifact` rows never enter compliance at all. They are grouped
+separately on the Artifacts page and in the export bundle, under a heading that
+says what they are.
+
+**Labelling is a correctness requirement, not decoration.** Every rendering of a
+local definition outside the app's own list views — export, public index, PDF,
+git mirror, onboarding pack — carries *"community addition — not required by
+RCOS-Core v0.1"*. Omitting local content from an export would misrepresent how
+the community governs itself; including it unlabelled would let an outsider read
+a house rule as a standard requirement. Both failures are tested
+(`06-testing-strategy.md` §6.4–6.5).
 
 ## 4. Cardinality: the open question §10.5, resolved
 
@@ -275,6 +336,10 @@ Two numbers, two audiences (UI spec §1.4). Both computed **server-side only**,
 and both computed **once per adopted standard** — core produces the compliance
 claim; each module produces its own separate figure that is never added to it
 (RCOS §10.1.5; see `09-standards-versions-modules.md` §3).
+
+**Only `scope = standard` definitions and clauses with
+`disposition = defined_by_section` are counted.** Local definitions (§3a) are
+outside this arithmetic entirely.
 
 **Only clauses with `disposition = defined_by_section` are counted.** The other
 two — `satisfied_by_platform` (the app's versioning, accessibility and

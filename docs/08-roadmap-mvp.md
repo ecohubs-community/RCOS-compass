@@ -142,6 +142,11 @@ is audit-logged.
 - **Freeze**: transactional, idempotent, gapless refs, provisional handling,
   change-log entry. Plus *Take offline* as a first-class path (UI spec §5.1).
 - Readiness and compliance services with the full unit suite.
+- **Local definitions** (UI spec §1.4b): scope on the definition, the partial
+  unique index, a default *Community Agreements* artifact per community, the
+  "Local additions" block under RCOS artifacts, and the `standard_feedback`
+  checkbox. Same lifecycle as everything else — the work is mostly making sure
+  they touch no number.
 - Objections with a lifecycle, and **consent rounds** — open a round with a
   deadline, one response per member (consent / objection / abstain), tally
   pre-filling the freeze — behind a `VotingProvider` interface so VoteCast slots
@@ -171,7 +176,7 @@ fresh community, and readiness moves by the right amount.
 - **The definition linter** — rule-based half first, AI-assist rules second;
   the full rule set with messages and fixtures is `11-definition-linter.md`. Cut the
   cross-community statistic from the mockup (#28).
-- Injection fixture test (`06` §6.6) before the AI path ships.
+- Injection fixture test (`06` §6.7) before the AI path ships.
 
 **Exit:** upload bylaws → confirmed evidence → a definition pre-filled with the
 community's own words; the whole flow works with `AI_PROVIDER=null`.
@@ -198,7 +203,8 @@ ordered list; reverse lookup answers the water-pump question from the mockup.
   expiry; unpublish → 410.
 - Public artifact index (anonymous, binary claim, no percentage, names only by
   consent) + the public-surface test.
-- Export: Markdown + PDF + JSON bundle as a background job with signed links.
+- Export: Markdown + PDF + JSON bundle as a background job with signed links,
+  **including local definitions, each labelled as a community addition**.
 - Git mirror as a post-freeze job.
 - i18n: Paraglide for the UI. **Standard content ships in all five locales the
   RCOS-website repo already maintains** (en/de/es/fr/pt-br) — it is generated, so it is

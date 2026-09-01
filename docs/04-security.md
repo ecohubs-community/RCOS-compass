@@ -47,6 +47,10 @@ So:
 | Comment in discussions | ✓ | ✓ | |
 | Open a discussion, write a proposal | ✓ | ✓ | |
 | Draft / edit a definition draft | ✓ | ✓ | |
+| Create a **local** definition (§ UI spec 1.4b) | ✓ | ✓ | |
+| Create / rename a community artifact | ✓ | — | |
+| Record RCOS feedback ("the standard should require this") | ✓ | ✓ | |
+| Share RCOS feedback upstream | ✓ | — | |
 | Respond in a consent round | ✓ | ✓ | |
 | Raise an objection, withdraw their own | ✓ | ✓ | |
 | **Open a consent round** | ✓ | — | |

@@ -182,6 +182,20 @@ defining.
 
 ---
 
+## Pass 7 — local definitions (2026-09-01)
+
+| # | Sev | Finding | Resolution | Landed in |
+|---|---|---|---|---|
+| 80 | **B** | **The model could only hold answers to RCOS clauses.** Real communities define quiet hours, guests, pets, kitchen duty — and earlier work found genuine gaps in RCOS itself. All of that would have gone into a second document, and the register that was supposed to be the single place you look becomes one of two. | Definitions carry a **scope**: `standard` or `local`. Local definitions get the entire lifecycle — versions, discussions, consent rounds, freeze, decisions, review dates, linter, glossary, export — and **move no number in either direction**. | UI spec §1.4b, 03 §3a |
+| 81 | H | **Three different needs were hiding in one request** — a local rule (quiet hours), a local *extension* of an RCOS section (a sabbatical membership state), and a **gap in RCOS itself**. Treating them alike would waste the third. | Separated. The first two are `scope=local` and attach either to an RCOS artifact or to a community artifact; the third becomes a `standard_feedback` record from one checkbox — *"RCOS should require this"* — with the community's own text as a worked example. Sharing upstream is opt-in and never automatic. This is RCOS §11.2's feedback loop at the cost of a table. | 03 §3, UI spec §1.4b |
+| 82 | H | **Artifact completeness would have been corrupted** — if local sections counted, an artifact could be "complete" without answering RCOS, or permanently incomplete because someone added a house rule. | `artifact_complete` counts only `scope='standard'` sections. Local additions render **under** the artifact in a separated block, badged, and excluded from its bar. Community artifacts never enter compliance at all. | 03 §3b |
+| 83 | H | **Exports would have been wrong either way.** Omitting local definitions misrepresents how the community actually governs itself; including them unlabelled lets an outsider read a house rule as an RCOS requirement. | Always included, always carrying *"community addition — not required by RCOS-Core v0.1"* — in every export format, the public index, the PDF bundle and the git mirror. Both failure directions are tested. | 03 §3b, 06 §6.4 |
+| 84 | M | **A local definition could contradict an adopted RCOS definition or a Layer 0 invariant** (§2.3.5 says invariants prevail). | The app does not pretend to detect contradictions. It requires a declared layer, shows the adopted definitions for that layer beside the draft, and lets the linter's AI-assist rules raise an apparent conflict **as a question**. Surfacing, never enforcement. | UI spec §1.4b |
+| 85 | M | The unique index `(community_standard_id, section_key)` would have allowed a community exactly **one** local definition. | Partial unique index `WHERE section_key IS NOT NULL`; supported by both SQLite and Postgres, so it survives the migration. Covered by a test. | 03 §3a, 06 §4 |
+| 86 | L | The Path would have been diluted by local items. | The Path answers *"which RCOS obligations do we do next"* and stays clause-driven; a community that wants a local item there drags it, using the manual override the ordering system already has. | UI spec §4.8 |
+
+---
+
 ## Follow-ups from earlier passes — now closed
 
 1. ~~Say what "adopted" means mechanically.~~ **Done** — UI spec §1.4a: a

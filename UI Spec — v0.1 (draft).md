@@ -201,6 +201,60 @@ Two consequences worth stating out loud:
   countable toward readiness — but flagged, and it blocks the compliance claim
   until ratified.
 
+### 1.4b Not everything a community decides is an RCOS clause
+
+Real communities define things RCOS never asked about: quiet hours, guests, pets,
+kitchen duty, how the WhatsApp group is used, what happens to the tools in
+winter. Earlier work also surfaced genuine **gaps** in RCOS — things a community
+needed to write down where the standard has nothing to say. If the app can only
+hold answers to clauses, all of that lands in a Google Doc, and the register that
+was supposed to be the single place you look becomes one of two places.
+
+So a definition has a **scope**:
+
+| Scope | What it answers | Counts toward readiness? |
+|---|---|---|
+| **Standard** | one section of RCOS-Core, or of an adopted module | yes (core only — §12.3) |
+| **Local** | nothing in the standard. The community's own rule. | **no — in neither direction** |
+
+**Local definitions get the whole machinery** — versions, discussions, proposals,
+consent rounds, freeze, decision records, review dates, the linter, the glossary,
+visibility, export, the register. They are just as binding for the people living
+there as anything RCOS required, so treating them as second-class notes would be
+both wrong and the reason people keep a second document.
+
+What they never do is move a number. A local definition cannot raise readiness
+(there is no clause to satisfy) and cannot lower it (it is not a gap). Compliance
+ignores them entirely — the §10.1.1 claim is about RCOS-Core and nothing else.
+
+**Three kinds, and they need separating.** Conflating them is the mistake to
+avoid:
+
+1. **Local rules** — RCOS never covered this and never will. Quiet hours. The
+   common case.
+2. **Local extensions** — the community wants to say *more* inside a section RCOS
+   does define. RCOS asks for membership states; this community adds a
+   *sabbatical* state with its own conditions. Attaches to the RCOS artifact, but
+   is still scope `local` and still counts for nothing.
+3. **Gaps in RCOS** — the community believes the standard *should* have asked for
+   this. That is not a local rule; it is **feedback to the standard**, and it is
+   how RCOS v0.2 gets written.
+
+Kind 3 costs almost nothing and is worth a lot: when someone creates a local
+definition, one checkbox — *"RCOS should require this"* — records a
+`standard_feedback` entry with the community's own text as a worked example.
+Nothing is sent anywhere without a deliberate act, and sharing it upstream is
+opt-in. But the data is captured from day one, because you cannot retroactively
+collect "what did communities wish the standard had asked for". RCOS §11.2 wants
+this loop; this is the cheapest possible version of it.
+
+**One safeguard.** A local definition must not contradict an adopted RCOS
+definition or a Layer 0 invariant — §2.3.5 says invariants prevail. The app
+cannot reliably detect a contradiction, so it does not pretend to: it requires
+the local definition to declare its layer, shows the adopted definitions for that
+layer alongside the draft, and the linter's AI-assist rules may flag an apparent
+conflict *as a question*. Surfacing, never enforcement.
+
 ### 1.5 The bootstrap paradox needs a first-class mode
 
 To adopt a definition *properly* you need a Decision Matrix (Layer 2). To adopt
@@ -522,6 +576,34 @@ is a glossary that stays right.
 
 ### 4.8 Artifacts & export
 
+**Where local definitions appear.** This is the question local scope really
+raises: an artifact is an RCOS shape, so what happens to the things RCOS did not
+ask for?
+
+- **Inside an RCOS artifact** — its required sections first, then a visually
+  separated **"Local additions"** block below them, each item badged `Local`. The
+  artifact's completeness bar counts **only the RCOS sections**: local additions
+  can neither complete an artifact nor block one. A *sabbatical* membership state
+  sits under the Membership Charter where anyone reading it would look for it,
+  without pretending RCOS asked for it.
+- **In a community artifact** — for things that fit no RCOS artifact at all.
+  Every community starts with one, *Community Agreements*, and stewards may
+  create more (*House & Land*, *Children & Education*). Each declares a layer so
+  the glossary, navigation and the register stay coherent. They appear in their
+  own group on the Artifacts page, below the 21 mandatory ones and clearly
+  outside the compliance count.
+- **In exports and on the public index** — **included**, always, and always
+  labelled *"community addition — not required by RCOS-Core v0.1"*. Leaving them
+  out would make an exported artifact a misrepresentation of how the community
+  actually governs itself; including them unlabelled would let an outsider read a
+  house rule as a standard requirement. An auditor must be able to tell the two
+  apart at a glance, and so must a new member.
+
+**Where they do not appear:** the readiness bars, the compliance statement, the
+missing-artifact list, or the Path's ordered gaps. The Path answers *"which RCOS
+obligations do we do next"*; a community that wants a local item in that list
+drags it there, using the manual override the ordering system already has.
+
 **"Run self-audit" — what the button actually does.** It appears in the artifacts
 mockup and the public index footer says *"last self-audit 1 Aug 2026"*, so it has
 to produce that date. It is not a recompute — readiness is always live. It is a
@@ -710,6 +792,9 @@ unstated (`docs/07-spec-review-log.md`):
 19. Per-user AI and upload rate limits (`docs/04-security.md` §5.1, §5.3) — a
     single enthusiastic member must not be able to drain the community's budget
 20. Self-audit records (§4.8)
+21. **Local definitions** (§1.4b) — community-specific rules with the full
+    lifecycle, a default *Community Agreements* artifact, the "Local additions"
+    block in RCOS artifacts, and the one-checkbox `standard_feedback` capture
 
 **Out of MVP:** VoteCast integration, facilitation guides, meeting mode,
 stress tests, info-graphic generation, cross-community library, local AI,
