@@ -7,8 +7,9 @@ then keeps what they decided findable, alive, and attributable.
 For intentional communities of 5–150 people, place-based or online.
 **It never decides for them.**
 
-> Status: **specification stage.** No implementation yet. See
-> [`docs/08-roadmap-mvp.md`](docs/08-roadmap-mvp.md) for the path to an MVP.
+> Status: **scaffolding.** The application boots, but no product feature exists
+> yet. See [`docs/08-roadmap-mvp.md`](docs/08-roadmap-mvp.md) for the path to an
+> MVP, and `openspec/changes/` for what is in flight.
 
 ## What it does
 
@@ -23,6 +24,71 @@ Readiness is shown inward as a percentage; compliance is stated outward as a
 binary yes or no, because that is what [RCOS §10.1.1](https://rcos.ecohubs.community)
 requires.
 
+## Running it
+
+```bash
+cp .env.example .env          # then set BETTER_AUTH_SECRET: openssl rand -base64 32
+pnpm install
+pnpm dev
+```
+
+The app refuses to start on invalid configuration rather than starting wrong, and
+tells you which variable is at fault.
+
+| | |
+|---|---|
+| `pnpm dev` | development server |
+| `pnpm check` | types (`svelte-check` + `tsc`) |
+| `pnpm lint` | Prettier, ESLint, and the design-token check |
+| `pnpm test` | unit + integration (Vitest) |
+| `pnpm test:e2e` | end-to-end against a production build, four viewports |
+| `pnpm test:gallery` | component gallery + accessibility, against the dev server |
+| `pnpm db:generate` | generate a migration from a schema change |
+
+`/dev/components` renders every primitive in every state. It is development-only
+and a production build returns 404 for it — there is a test for that.
+
+## Testing
+
+**Nothing ships untested.** Every change that alters behaviour brings its tests in
+the same commit; `docs/06-testing-strategy.md` §1 has the per-change bar and what
+does not count as a meaningful test.
+
+No test reaches the network, a real AI provider, a real mail server, or a git
+remote — all four are stubbed at their interfaces, with a runtime guard as a
+backstop. Time and ids are injectable, and CI runs `TZ=UTC` with
+`AI_PROVIDER=null`.
+
+Environments, from `docs/06-testing-strategy.md` §2:
+
+| | Purpose | Database | AI | Mail |
+|---|---|---|---|---|
+| Local dev | day-to-day work | `./data/compass.db` | `null`, or `fixture` | console |
+| Unit | pure logic | none | none | none |
+| Integration | services against a real DB | temp file **per suite**, migrated fresh | `fixture` | memory |
+| E2E | the loop, in a browser | temp, seeded, frozen clock | `fixture` | memory |
+| Preview | look at a PR | ephemeral, demo seed | `fixture` | catch-all |
+| Staging | release and migration rehearsal | anonymised production restore | live, capped | sandbox |
+| Production | real communities | the volume | live | live |
+
+Plus **demo** (public showcase, fictional content, reset nightly) and
+**self-hosted** (a community's own container, smoke-tested in CI on every release:
+boot, migrate, serve).
+
+## Deployment
+
+`adapter-node` on a VPS with a mounted volume — not serverless. SQLite and the
+in-process job worker both assume one process with a real filesystem, so **the
+MVP runs as a single instance**; that is why migrations run at boot.
+
+```bash
+docker build -t rcos-compass .
+docker run -p 3000:3000 -v compass-data:/data -e BETTER_AUTH_SECRET=… rcos-compass
+```
+
+The volume holds both the database and uploaded documents. Backing up one without
+the other is a broken restore.
+
 ## Documentation
 
 | | |
@@ -31,6 +97,11 @@ requires.
 | [`RCOS Core Specification — v0.1.md`](RCOS%20Core%20Specification%20—%20v0.1.md) | the standard being implemented |
 | [`AGENT.md`](AGENT.md) | the short version, for anyone (or anything) writing code here |
 | [`docs/`](docs/) | architecture, data model, security, testing, roadmap, legal |
+| [`openspec/`](openspec/) | change proposals and capability specs |
+
+Non-trivial changes start as an OpenSpec proposal under `openspec/changes/`, not
+as code. `docs/` is the reasoning — why the model is shaped this way, and what was
+considered and rejected. `openspec/specs/` is behaviour a test can pin down.
 
 ## Licensing
 

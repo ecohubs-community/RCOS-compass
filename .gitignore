@@ -16,3 +16,6 @@ node_modules/
 
 # local, machine-specific tool permissions
 .claude/settings.local.json
+# transient fixtures written by tests/unit/boundaries.test.ts
+src/lib/lintcheck-*/
+src/lib/tokencheck-*/

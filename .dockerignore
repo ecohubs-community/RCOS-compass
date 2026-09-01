@@ -1,0 +1,15 @@
+node_modules
+.svelte-kit
+build
+data
+docs
+design_files
+openspec
+tests
+test-results
+playwright-report
+coverage
+.git
+.env
+.env.*
+*.md

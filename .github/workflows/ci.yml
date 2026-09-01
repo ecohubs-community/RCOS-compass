@@ -1,0 +1,98 @@
+name: CI
+
+# docs/06-testing-strategy.md §9. Order is cheapest-failure-first, and the
+# standard-content validation will move to the front of it in P1.
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  # Every job runs with AI off and a deterministic clock/timezone.
+  # docs/06-testing-strategy.md §2.1.
+  AI_PROVIDER: 'null'
+  TZ: UTC
+  BETTER_AUTH_SECRET: ci-secret-that-is-long-enough-for-tests
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v5
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+
+      - name: Types
+        run: pnpm check
+
+      - name: Lint, format and design tokens
+        run: pnpm lint
+
+      - name: Unit tests
+        run: pnpm test:unit
+
+      - name: Integration tests
+        run: pnpm test:integration
+
+      - name: Build
+        run: pnpm build
+
+      - name: Install browsers
+        run: pnpm exec playwright install --with-deps chromium
+
+      - name: End-to-end (production build, four viewports)
+        run: pnpm test:e2e
+
+      - name: Component gallery and accessibility (dev server)
+        run: pnpm test:gallery
+
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: playwright-report
+          path: playwright-report/
+          retention-days: 7
+
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v5
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Dependency audit
+        run: pnpm audit --audit-level moderate
+
+  docker:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v5
+      - name: Build image
+        run: docker build -t rcos-compass:ci .
+      - name: Smoke test — boots, migrates, serves
+        run: |
+          docker run -d --name smoke -p 3000:3000 \
+            -e BETTER_AUTH_SECRET=ci-secret-that-is-long-enough-for-tests \
+            rcos-compass:ci
+          for i in $(seq 1 30); do
+            if curl -fsS http://localhost:3000/healthz > /tmp/health.json; then break; fi
+            sleep 2
+          done
+          cat /tmp/health.json
+          grep -q '"database":"ok"' /tmp/health.json
+          grep -q '"status":"ok"' /tmp/health.json
+          docker rm -f smoke
