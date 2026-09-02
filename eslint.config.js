@@ -86,6 +86,12 @@ export default ts.config(
 		}
 	},
 	{
+		// Build and check scripts are command-line tools; printing is their job.
+		files: ['scripts/**/*.mjs', 'scripts/**/*.js'],
+		rules: { 'no-console': 'off' }
+	},
+
+	{
 		ignores: [
 			'build/',
 			'.svelte-kit/',

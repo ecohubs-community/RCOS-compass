@@ -1,0 +1,204 @@
+# Compass's annotations for RCOS-Core 0.1.
+#
+# Kept separate from the standard's own data, and not published upstream, because
+# these are this tool's opinion rather than properties of RCOS:
+#
+#   question   the plain-language form of the section, as it appears on the
+#              dashboard and the Path. A member should recognise their own
+#              situation in it without having read the clause.
+#   effort     one_conversation | one_meeting | a_series — so a group can plan a
+#              season rather than a decade.
+#   dependsOn  sections that make this one easier or safer to answer first. The
+#              Path treats these as structural ordering.
+#
+# Layers 0 and 1 are annotated here. That is what P3 and a pilot community's
+# first month need; Layers 2–6 land before P5 (docs/08-roadmap-mvp.md P1).
+#
+# Annotations are optional: a section without one still loads and is still
+# answerable. It simply appears in the Path with its template title instead of a
+# question.
+
+sections:
+  # ---- Layer 0 · Identity & Scope -----------------------------------------
+
+  purpose-charter.primary-purpose:
+    question: Why does this community exist — in one sentence that will still be true in ten years?
+    effort: a_series
+    dependsOn: []
+
+  purpose-charter.secondary-purposes:
+    question: What else do we do, that matters but is not the reason we exist?
+    effort: one_meeting
+    dependsOn: [purpose-charter.primary-purpose]
+
+  purpose-charter.non-goals-and-exclusions:
+    question: What are we deliberately not, however tempting it becomes?
+    effort: one_meeting
+    dependsOn: [purpose-charter.primary-purpose]
+
+  purpose-charter.conditions-for-purpose-change:
+    question: What would it take to change why we exist — and who would have to agree?
+    effort: one_meeting
+    dependsOn: [purpose-charter.primary-purpose]
+
+  purpose-charter.ratification-record:
+    question: Who adopted this charter, when, and how was it decided?
+    effort: one_conversation
+    dependsOn: [purpose-charter.primary-purpose]
+
+  scope-declaration.in-scope-assets:
+    question: What does the community own or steward together?
+    effort: one_meeting
+    dependsOn: [purpose-charter.primary-purpose]
+
+  scope-declaration.in-scope-decision-domains:
+    question: Which decisions belong to the group rather than to individuals?
+    effort: one_meeting
+    dependsOn: [scope-declaration.in-scope-assets]
+
+  scope-declaration.in-scope-activities-and-responsibilities:
+    question: Which work and responsibilities are collective?
+    effort: one_meeting
+    dependsOn: [scope-declaration.in-scope-decision-domains]
+
+  scope-declaration.explicitly-out-of-scope:
+    question: What is none of the community's business — and stays that way?
+    effort: one_meeting
+    dependsOn: [scope-declaration.in-scope-assets]
+
+  scope-declaration.ratification-record:
+    question: Who adopted this scope, when, and how was it decided?
+    effort: one_conversation
+    dependsOn: [scope-declaration.in-scope-assets]
+
+  invariants-register.active-invariants:
+    question: What must never happen here, whatever the circumstances or the majority?
+    effort: a_series
+    dependsOn: [purpose-charter.primary-purpose]
+
+  invariants-register.ratification-record:
+    question: Who adopted these invariants, when, and how was it decided?
+    effort: one_conversation
+    dependsOn: [invariants-register.active-invariants]
+
+  identity-constraints-register.active-identity-constraints:
+    question: What do we require of people who live or take part here?
+    effort: a_series
+    dependsOn: [purpose-charter.primary-purpose, invariants-register.active-invariants]
+
+  identity-constraints-register.enforcement-and-testability:
+    question: How would anyone check whether a constraint is being met — and what happens if it is not?
+    effort: one_meeting
+    dependsOn: [identity-constraints-register.active-identity-constraints]
+
+  identity-constraints-register.conditions-for-change:
+    question: How do these requirements change, and who decides?
+    effort: one_conversation
+    dependsOn: [identity-constraints-register.active-identity-constraints]
+
+  identity-constraints-register.ratification-record:
+    question: Who adopted these constraints, when, and how was it decided?
+    effort: one_conversation
+    dependsOn: [identity-constraints-register.active-identity-constraints]
+
+  # ---- Layer 1 · Membership ------------------------------------------------
+
+  membership-state-registry.defined-membership-states:
+    question: What kinds of member are there here, and what can each of them do?
+    effort: one_meeting
+    dependsOn: [purpose-charter.primary-purpose]
+
+  membership-state-registry.ratification-record:
+    question: Who adopted the membership states, when, and how was it decided?
+    effort: one_conversation
+    dependsOn: [membership-state-registry.defined-membership-states]
+
+  onboarding-protocol.admission-criteria:
+    question: Who can join, and who decides?
+    effort: a_series
+    dependsOn: [membership-state-registry.defined-membership-states]
+
+  onboarding-protocol.onboarding-steps:
+    question: What actually happens between "I'd like to join" and "I'm in"?
+    effort: one_meeting
+    dependsOn: [onboarding-protocol.admission-criteria]
+
+  onboarding-protocol.initial-membership-state:
+    question: What is someone on their first day — and what can they do yet?
+    effort: one_conversation
+    dependsOn: [membership-state-registry.defined-membership-states]
+
+  onboarding-protocol.trial-and-evaluation:
+    question: How long is someone new on trial, and who says when it ends?
+    effort: one_meeting
+    dependsOn: [onboarding-protocol.initial-membership-state]
+
+  onboarding-protocol.completion-record:
+    question: How do we record that someone has finished joining?
+    effort: one_conversation
+    dependsOn: [onboarding-protocol.onboarding-steps]
+
+  onboarding-protocol.ratification-record:
+    question: Who adopted this onboarding process, when, and how was it decided?
+    effort: one_conversation
+    dependsOn: [onboarding-protocol.onboarding-steps]
+
+  membership-agreement.membership-state-on-signing:
+    question: What is someone agreeing to be, at the moment they sign?
+    effort: one_conversation
+    dependsOn: [membership-state-registry.defined-membership-states]
+
+  membership-agreement.member-rights:
+    question: What can every member count on, that nobody can quietly take away?
+    effort: one_meeting
+    dependsOn: [membership-state-registry.defined-membership-states]
+
+  membership-agreement.member-obligations:
+    question: What does the community expect of each member — and where does that expectation stop?
+    effort: one_meeting
+    dependsOn: [membership-agreement.member-rights]
+
+  membership-agreement.participation-and-contribution-expectations:
+    question: What counts as contributing here, and how much is enough?
+    effort: a_series
+    dependsOn: [membership-agreement.member-obligations]
+
+  membership-agreement.due-process-reference:
+    question: What protects a member when the community turns against them?
+    effort: one_conversation
+    dependsOn: [membership-agreement.member-rights]
+
+  membership-agreement.consent-acknowledgment:
+    question: How does someone show they have read and agreed to all of this?
+    effort: one_conversation
+    dependsOn: [membership-agreement.member-obligations]
+
+  membership-agreement.ratification-record:
+    question: Who adopted this agreement, when, and how was it decided?
+    effort: one_conversation
+    dependsOn: [membership-agreement.member-rights]
+
+  exit-protocol.voluntary-exit:
+    question: Can someone leave at any time — and what happens to their things?
+    effort: one_meeting
+    dependsOn: [membership-state-registry.defined-membership-states]
+
+  exit-protocol.forced-exit:
+    question: What has to be true before the community can ask someone to leave?
+    effort: a_series
+    dependsOn: [exit-protocol.voluntary-exit, membership-agreement.due-process-reference]
+
+  exit-protocol.suspension:
+    question: Can someone be paused rather than removed — for how long, and reviewed by whom?
+    effort: one_meeting
+    dependsOn: [exit-protocol.forced-exit]
+
+  exit-protocol.asset-role-and-responsibility-separation:
+    question: When someone leaves, who takes over their roles and how is money settled?
+    effort: one_meeting
+    dependsOn: [exit-protocol.voluntary-exit]
+
+  exit-protocol.ratification-record:
+    question: Who adopted this exit protocol, when, and how was it decided?
+    effort: one_conversation
+    dependsOn: [exit-protocol.voluntary-exit]

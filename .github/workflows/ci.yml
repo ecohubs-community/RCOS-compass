@@ -31,6 +31,11 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
 
+      # Cheapest failure, most likely to break, and everything downstream depends
+      # on it — docs/06-testing-strategy.md §9.
+      - name: Standard content
+        run: pnpm check:standard
+
       - name: Types
         run: pnpm check
 
