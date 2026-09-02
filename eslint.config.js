@@ -86,6 +86,25 @@ export default ts.config(
 		}
 	},
 	{
+		// docs/04-security.md §1: one permission matrix, read by one function.
+		// A handler that compares a role directly is a second copy of the matrix
+		// that will drift from it, and the drift is a security bug.
+		files: ['src/**/*.ts', 'src/**/*.svelte'],
+		ignores: ['src/lib/server/auth/permissions.ts'],
+		rules: {
+			'no-restricted-syntax': [
+				'error',
+				{
+					selector:
+						'BinaryExpression[operator=/^[!=]==?$/] > Literal[value=/^(steward|member|owner)$/]',
+					message:
+						'Do not compare roles. Ask for a capability: requirePermission(ctx, …) or can(actor, …) — docs/04-security.md §1.'
+				}
+			]
+		}
+	},
+
+	{
 		// Build and check scripts are command-line tools; printing is their job.
 		files: ['scripts/**/*.mjs', 'scripts/**/*.js'],
 		rules: { 'no-console': 'off' }

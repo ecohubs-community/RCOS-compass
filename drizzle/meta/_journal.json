@@ -15,6 +15,13 @@
 			"when": 1788297161537,
 			"tag": "0001_special_human_torch",
 			"breakpoints": true
+		},
+		{
+			"idx": 2,
+			"version": "6",
+			"when": 1788380579355,
+			"tag": "0002_lucky_dazzler",
+			"breakpoints": true
 		}
 	]
 }
