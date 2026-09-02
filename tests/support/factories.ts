@@ -14,6 +14,7 @@ export function makeUser(db: Db, overrides: { email?: string; verified?: boolean
 		email: overrides.email ?? `${newId()}@example.org`,
 		emailVerified: overrides.verified ?? true,
 		image: null,
+		twoFactorEnabled: false,
 		locale: 'en',
 		createdAt: NOW,
 		updatedAt: NOW

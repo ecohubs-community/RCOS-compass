@@ -12,7 +12,7 @@ export const user = sqliteTable(
 	'user',
 	{
 		id: text('id').primaryKey(),
-		name: text('name'),
+		name: text('name').notNull().default(''),
 		email: text('email').notNull(),
 		/**
 		 * Almost everything is withheld until this is true, and the platform-admin
@@ -20,6 +20,12 @@ export const user = sqliteTable(
 		 */
 		emailVerified: integer('email_verified', { mode: 'boolean' }).notNull().default(false),
 		image: text('image'),
+		/**
+		 * Owned by the two-factor plugin. It adds this column to `user`, so the
+		 * schema has to carry it or every write fails — found by making the library
+		 * actually sign someone up rather than by reading its source.
+		 */
+		twoFactorEnabled: integer('two_factor_enabled', { mode: 'boolean' }).notNull().default(false),
 		/** Interface language. Community content follows the community's locale. */
 		locale: text('locale').notNull().default('en'),
 		createdAt: integer('created_at', { mode: 'timestamp_ms' }).notNull(),
@@ -37,7 +43,12 @@ export const session = sqliteTable(
 			.references(() => user.id, { onDelete: 'cascade' }),
 		token: text('token').notNull(),
 		expiresAt: integer('expires_at', { mode: 'timestamp_ms' }).notNull(),
-		/** Sessions are bounded absolutely, not only by inactivity. */
+		/**
+		 * Ours, not the library's: better-auth rolls `expiresAt` forward on
+		 * activity, so without a second bound a session never truly ends. Nullable
+		 * because better-auth writes sessions and does not know about it; the
+		 * pipeline sets and enforces it.
+		 */
 		absoluteExpiresAt: integer('absolute_expires_at', { mode: 'timestamp_ms' }),
 		ipAddress: text('ip_address'),
 		userAgent: text('user_agent'),
@@ -58,6 +69,8 @@ export const account = sqliteTable(
 		userId: text('user_id')
 			.notNull()
 			.references(() => user.id, { onDelete: 'cascade' }),
+		/** Required by better-auth; identifies the credential's issuer. */
+		issuer: text('issuer').notNull(),
 		accountId: text('account_id').notNull(),
 		providerId: text('provider_id').notNull(),
 		accessToken: text('access_token'),
@@ -99,11 +112,13 @@ export const twoFactor = sqliteTable(
 			.notNull()
 			.references(() => user.id, { onDelete: 'cascade' }),
 		secret: text('secret').notNull(),
-		backupCodes: text('backup_codes'),
-		verifiedAt: integer('verified_at', { mode: 'timestamp_ms' }),
-		createdAt: integer('created_at', { mode: 'timestamp_ms' }).notNull()
+		backupCodes: text('backup_codes').notNull(),
+		verified: integer('verified', { mode: 'boolean' }).notNull().default(false),
+		/** The plugin locks a factor out after repeated failures. */
+		failedVerificationCount: integer('failed_verification_count').notNull().default(0),
+		lockedUntil: integer('locked_until', { mode: 'timestamp_ms' })
 	},
-	(table) => [uniqueIndex('two_factor_user_idx').on(table.userId)]
+	(table) => [index('two_factor_user_idx').on(table.userId)]
 );
 
 export type User = typeof user.$inferSelect;

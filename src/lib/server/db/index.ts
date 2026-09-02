@@ -41,9 +41,20 @@ export function migrateDatabase(db: Db, migrationsFolder = './drizzle'): void {
 
 let singleton: { db: Db; close: () => void } | null = null;
 
+let override: Db | null = null;
+
 export function getDb(): Db {
+	if (override) return override;
 	singleton ??= openDatabase(getConfig().DATABASE_URL);
 	return singleton.db;
+}
+
+/**
+ * Test seam. Services resolve the database through `getDb()` rather than taking
+ * it as a parameter, so a test points that at its own migrated file.
+ */
+export function setDbForTests(db: Db | null): void {
+	override = db;
 }
 
 /**

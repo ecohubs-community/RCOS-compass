@@ -5,8 +5,8 @@
  * here rather than at call sites so the same term is explained the same way
  * everywhere, and so a writer can review the whole vocabulary in one file.
  *
- * An entry is: what it is, why it exists, and optionally where to read more.
- * It is never an apology for a confusing label — fix the label instead.
+ * An entry is what it is and why it exists, in one sentence each. It is never an
+ * apology for a confusing label — fix the label instead.
  */
 export type HelpEntry = {
 	title: string;
@@ -14,7 +14,6 @@ export type HelpEntry = {
 	what: string;
 	/** Why it exists. One sentence. */
 	why: string;
-	link?: { label: string; href: string };
 };
 
 export const HELP: Record<string, HelpEntry> = {

@@ -22,6 +22,20 @@
 			"when": 1788380579355,
 			"tag": "0002_lucky_dazzler",
 			"breakpoints": true
+		},
+		{
+			"idx": 3,
+			"version": "6",
+			"when": 1788384572621,
+			"tag": "0003_lovely_darkhawk",
+			"breakpoints": true
+		},
+		{
+			"idx": 4,
+			"version": "6",
+			"when": 1788384606586,
+			"tag": "0004_groovy_wither",
+			"breakpoints": true
 		}
 	]
 }

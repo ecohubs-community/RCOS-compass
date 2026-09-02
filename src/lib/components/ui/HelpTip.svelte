@@ -1,6 +1,5 @@
 <script lang="ts">
 	import { Popover } from 'bits-ui';
-	import { resolve } from '$app/paths';
 	import { HELP, type HelpId } from '$lib/help/registry';
 	import { cn } from './cn.js';
 
@@ -37,15 +36,6 @@
 				<p class="text-fg font-medium">{entry.title}</p>
 				<p class="text-fg-secondary mt-1.5">{entry.what}</p>
 				<p class="text-fg-muted mt-1.5">{entry.why}</p>
-				{#if entry.link}
-					<!-- Help links point at in-app reference pages; resolve() keeps them base-path safe. -->
-					<a
-						class="text-accent-fg mt-2 inline-block underline underline-offset-2"
-						href={resolve(entry.link.href as Parameters<typeof resolve>[0])}
-					>
-						{entry.link.label}
-					</a>
-				{/if}
 			</Popover.Content>
 		</Popover.Portal>
 	</Popover.Root>

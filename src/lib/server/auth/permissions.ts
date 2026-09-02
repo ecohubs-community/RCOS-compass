@@ -104,6 +104,18 @@ const MATRIX: Record<Capability, readonly Role[]> = {
 /** Capabilities that additionally require the owner flag. */
 const OWNER_ONLY: ReadonlySet<Capability> = new Set(['community.transfer', 'community.delete']);
 
+/**
+ * The owner flag only ever sits on a steward: the owner is accountable for
+ * transfer and deletion, and a member cannot perform either. Exported so that
+ * rule lives here with the rest of the role knowledge rather than as a literal
+ * comparison somewhere else.
+ */
+export const OWNER_ROLE: Role = 'steward';
+
+export function ownerRoleIsValid(role: Role): boolean {
+	return role === OWNER_ROLE;
+}
+
 export type Actor = {
 	role: Role;
 	isOwner: boolean;

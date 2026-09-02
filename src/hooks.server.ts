@@ -5,6 +5,7 @@ import { initDatabase } from '$lib/server/db';
 import { getLogger } from '$lib/server/logger';
 import { securityHeaders } from '$lib/server/http/security-headers';
 import { rateLimitRequest } from '$lib/server/http/rate-limit-request';
+import { resolveActor } from '$lib/server/auth/session';
 import { handlers } from '$lib/server/jobs/handlers';
 import { enqueue, startWorker } from '$lib/server/jobs';
 import { systemClock } from '$lib/server/clock';
@@ -47,6 +48,15 @@ export const handle: Handle = async ({ event, resolve }) => {
 
 	event.locals.requestId = requestId;
 	event.locals.log = log.child({ requestId, route: event.route.id ?? event.url.pathname });
+
+	// Identity, before the tenant. The community is resolved per route from the
+	// URL (docs/04-security.md §2), never from anything the session carries.
+	const actor = await resolveActor(db, event.request, systemClock.now());
+	event.locals.user = actor?.user ?? null;
+	event.locals.sessionId = actor?.sessionId ?? null;
+	if (actor) {
+		event.locals.log = event.locals.log.child({ userId: actor.user.id });
+	}
 
 	const refusal = rateLimitRequest({
 		db,
