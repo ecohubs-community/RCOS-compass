@@ -61,7 +61,7 @@ describe('lint boundaries', () => {
 		} catch (error) {
 			const output = String((error as { stderr?: string }).stderr ?? '');
 			expect(output).toContain('Coloured.svelte');
-			expect(output).toContain('semantic token');
+			expect(output).toContain('hex colour');
 		} finally {
 			rmSync(dir, { recursive: true, force: true });
 		}

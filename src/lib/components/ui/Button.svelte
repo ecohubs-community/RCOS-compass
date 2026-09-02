@@ -41,7 +41,7 @@
 
 <button
 	class={cn(
-		'inline-flex cursor-pointer items-center justify-center rounded-[--radius-control] border font-medium',
+		'inline-flex cursor-pointer items-center justify-center rounded-(--radius-control) border font-medium',
 		'transition-colors disabled:cursor-not-allowed disabled:opacity-50',
 		VARIANTS[variant],
 		SIZES[size],

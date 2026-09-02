@@ -78,6 +78,9 @@ const ConfigSchema = v.object({
 	 */
 	ALLOW_TEST_ROUTES: v.optional(v.picklist(['0', '1'], 'must be 0 or 1'), '0'),
 
+	/** Per-IP ceiling for dynamic requests. docs/01-server-client-contract.md §5. */
+	REQUESTS_PER_MINUTE: intFromEnv(300, 1),
+
 	LOG_LEVEL: v.optional(
 		v.picklist(
 			['trace', 'debug', 'info', 'warn', 'error', 'fatal', 'silent'],

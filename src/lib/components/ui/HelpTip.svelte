@@ -31,7 +31,7 @@
 		</Popover.Trigger>
 		<Popover.Portal>
 			<Popover.Content
-				class="border-border bg-raised text-body z-50 max-w-xs rounded-[--radius-card] border p-3 shadow-lg"
+				class="border-border bg-raised text-body z-50 max-w-xs rounded-(--radius-card) border p-3 shadow-lg"
 				sideOffset={6}
 			>
 				<p class="text-fg font-medium">{entry.title}</p>

@@ -69,7 +69,7 @@
 		</p>
 		<ul class="mt-4 grid gap-2 sm:grid-cols-2">
 			{#each helpIds as id (id)}
-				<li class="border-border flex items-center gap-2 rounded-[--radius-control] border p-2">
+				<li class="border-border flex items-center gap-2 rounded-(--radius-control) border p-2">
 					<HelpTip {id} />
 					<span class="text-fg-secondary">{HELP[id]?.title}</span>
 				</li>
@@ -80,12 +80,12 @@
 	<section class="mt-10" aria-labelledby="tokens">
 		<h2 id="tokens" class="text-section font-medium">Tokens</h2>
 		<div class="mt-4 grid gap-2 sm:grid-cols-2">
-			<div class="border-border rounded-[--radius-card] border p-3">
+			<div class="border-border rounded-(--radius-card) border p-3">
 				<p class="text-fg">Primary text on surface</p>
 				<p class="text-fg-secondary">Secondary text</p>
 				<p class="text-fg-muted">Muted text</p>
 			</div>
-			<div class="border-border rounded-[--radius-card] border p-3">
+			<div class="border-border rounded-(--radius-card) border p-3">
 				<p class="text-accent-fg">Accent</p>
 				<p class="text-attention">Attention</p>
 				<p class="text-info">Information</p>

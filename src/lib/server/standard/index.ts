@@ -32,6 +32,13 @@ export * from './types.js';
 
 const DEFAULT_ROOT = 'standard';
 
+export class MissingContentError extends Error {
+	constructor(message: string) {
+		super(message);
+		this.name = 'MissingContentError';
+	}
+}
+
 export class UnknownStandardError extends Error {
 	constructor(id: StandardId, version: Version, cause?: unknown) {
 		super(
@@ -45,7 +52,13 @@ export class UnknownStandardError extends Error {
 
 const cache = new Map<string, Standard>();
 
-const cacheKey = (id: StandardId, version: Version) => `${id}@${version}`;
+/**
+ * The root is part of the identity: the same id and version can legitimately be
+ * loaded from two places — a migration preview comparing vendored copies, a test
+ * fixture beside the real one — and returning whichever was cached first would
+ * hand back the wrong standard with no error.
+ */
+const cacheKey = (id: StandardId, version: Version, root: string) => `${root}::${id}@${version}`;
 
 function readYaml<T>(root: string, id: StandardId, version: Version, name: string): T {
 	const file = join(root, id, version, `${name}.yaml`);
@@ -69,7 +82,7 @@ export function loadStandard(
 	version: Version,
 	{ root = DEFAULT_ROOT, useCache = true } = {}
 ): Standard {
-	const key = cacheKey(id, version);
+	const key = cacheKey(id, version, root);
 	if (useCache) {
 		const hit = cache.get(key);
 		if (hit) return hit;
@@ -221,12 +234,18 @@ export class StandardView {
 		if (wanted !== undefined && wanted !== null) {
 			return { value: wanted, locale, isFallback: false };
 		}
+
 		const fallbackLocale = this.meta.defaultLocale;
-		return {
-			value: i18n[fallbackLocale] as T,
-			locale: fallbackLocale,
-			isFallback: locale !== fallbackLocale
-		};
+		const fallback = i18n[fallbackLocale];
+		if (fallback === undefined || fallback === null) {
+			// Rendering an empty clause reads as a broken app and hides a content
+			// bug. Fail where it can be traced instead.
+			throw new MissingContentError(
+				`No content in "${locale}" or the default locale "${fallbackLocale}".`
+			);
+		}
+
+		return { value: fallback, locale: fallbackLocale, isFallback: locale !== fallbackLocale };
 	}
 
 	clauseText(clause: Clause, locale: Locale): Localised<string> {
@@ -241,10 +260,11 @@ export function getStandard(
 	version: Version,
 	options?: { root?: string }
 ): StandardView {
-	const key = cacheKey(id, version);
+	const root = options?.root ?? DEFAULT_ROOT;
+	const key = cacheKey(id, version, root);
 	let view = views.get(key);
 	if (!view) {
-		view = new StandardView(loadStandard(id, version, options));
+		view = new StandardView(loadStandard(id, version, { ...options, root }));
 		views.set(key, view);
 	}
 	return view;

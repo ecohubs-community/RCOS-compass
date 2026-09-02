@@ -1,4 +1,4 @@
-import { and, asc, eq, lte, or, sql } from 'drizzle-orm';
+import { and, asc, desc, eq, lte, or, sql } from 'drizzle-orm';
 import type { Clock } from '../clock.js';
 import type { Db } from '../db/index.js';
 import { newId } from '../db/id.js';
@@ -131,7 +131,19 @@ export function findJob(db: Db, id: string): Job | undefined {
 	return db.select().from(job).where(eq(job.id, id)).get();
 }
 
-/** For the instance status page: jobs that gave up. */
+/**
+ * For the instance status page: jobs that gave up, most recent first.
+ *
+ * The ordering is not cosmetic — without it, an operator watching the page past
+ * the first 50 dead letters sees an arbitrary subset that can change between
+ * loads, and the failure they came to look at may simply not appear.
+ */
 export function deadLetters(db: Db, limit = 50): Job[] {
-	return db.select().from(job).where(eq(job.status, 'dead')).limit(limit).all();
+	return db
+		.select()
+		.from(job)
+		.where(eq(job.status, 'dead'))
+		.orderBy(desc(job.updatedAt), desc(job.id))
+		.limit(limit)
+		.all();
 }

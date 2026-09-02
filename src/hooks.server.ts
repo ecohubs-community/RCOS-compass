@@ -4,6 +4,7 @@ import { assertConfigOrExit } from '$lib/server/config';
 import { initDatabase } from '$lib/server/db';
 import { getLogger } from '$lib/server/logger';
 import { securityHeaders } from '$lib/server/http/security-headers';
+import { rateLimitRequest } from '$lib/server/http/rate-limit-request';
 import { handlers } from '$lib/server/jobs/handlers';
 import { enqueue, startWorker } from '$lib/server/jobs';
 import { systemClock } from '$lib/server/clock';
@@ -26,6 +27,19 @@ if (!config.isTest) {
 	enqueue(db, systemClock, { kind: 'prune-rate-limits' });
 }
 
+/**
+ * Behind a proxy this needs ADDRESS_HEADER set for adapter-node; without it
+ * SvelteKit throws rather than guessing. An unknown address shares one bucket,
+ * which is the safe direction: it limits more, not less.
+ */
+function clientAddress(event: Parameters<Handle>[0]['event']): string {
+	try {
+		return event.getClientAddress();
+	} catch {
+		return 'unknown';
+	}
+}
+
 export const handle: Handle = async ({ event, resolve }) => {
 	// The request id is safe to show a user: it is how a bug report finds its
 	// way to the log lines, and it discloses nothing.
@@ -33,6 +47,19 @@ export const handle: Handle = async ({ event, resolve }) => {
 
 	event.locals.requestId = requestId;
 	event.locals.log = log.child({ requestId, route: event.route.id ?? event.url.pathname });
+
+	const refusal = rateLimitRequest({
+		db,
+		clock: systemClock,
+		pathname: event.url.pathname,
+		clientAddress: clientAddress(event),
+		limit: config.REQUESTS_PER_MINUTE,
+		requestId
+	});
+	if (refusal) {
+		event.locals.log.warn({ path: event.url.pathname }, 'rate limited');
+		return refusal;
+	}
 
 	const startedAt = performance.now();
 

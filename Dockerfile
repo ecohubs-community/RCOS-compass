@@ -33,6 +33,9 @@ VOLUME /data
 COPY --from=build --chown=node:node /app/build ./build
 COPY --from=build --chown=node:node /app/node_modules ./node_modules
 COPY --from=build --chown=node:node /app/drizzle ./drizzle
+# RCOS itself. The loader reads it from disk at runtime, so the image is
+# incomplete without it — every page that renders a clause would 500.
+COPY --from=build --chown=node:node /app/standard ./standard
 COPY --from=build --chown=node:node /app/package.json ./package.json
 
 ENV DATABASE_URL=file:/data/compass.db

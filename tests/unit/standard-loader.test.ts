@@ -355,3 +355,28 @@ describe('100% is reachable', () => {
 		expect(view.countableClauses().length).toBeGreaterThan(0);
 	});
 });
+
+describe('the cache is keyed by where the content came from', () => {
+	it('does not return one root’s standard for another root', () => {
+		const dir = mkdtempSync(join(tmpdir(), 'compass-roots-'));
+		try {
+			cpSync(join(standardRoot, 'rcos-core'), join(dir, 'rcos-core'), { recursive: true });
+			const metaFile = join(dir, 'rcos-core', '0.1', 'meta.yaml');
+			writeFileSync(
+				metaFile,
+				readFileSync(metaFile, 'utf8').replace("version: '0.1'", "version: 'other'")
+			);
+
+			// Same id and version, two roots — a migration preview comparing vendored
+			// copies would do exactly this.
+			const fromRepo = getStandard('rcos-core', '0.1', { root: standardRoot });
+			const fromTemp = getStandard('rcos-core', '0.1', { root: dir });
+
+			expect(fromRepo.meta.version).toBe('0.1');
+			expect(fromTemp.meta.version).toBe('other');
+			expect(fromTemp).not.toBe(fromRepo);
+		} finally {
+			rmSync(dir, { recursive: true, force: true });
+		}
+	});
+});
