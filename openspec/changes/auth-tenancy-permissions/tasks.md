@@ -38,21 +38,21 @@
 
 ## 6. Invitations
 
-- [ ] 6.1 Create, list, revoke; hashed single-use token bound to the email, 7-day expiry
-- [ ] 6.2 Acceptance in one transaction, idempotent under a race
+- [x] 6.1 Create, list, revoke; hashed single-use token bound to the email, 7-day expiry
+- [x] 6.2 Acceptance in one transaction, idempotent under a race
 - [ ] 6.3 SMTP transport behind the existing mail interface; invitation mail carries a link and no content
-- [ ] 6.4 Tests: reuse refused; wrong address refused; expiry refused; concurrent acceptance yields one membership; the raw token is absent from the database; mail body carries no content
+- [x] 6.4 Tests: reuse refused; wrong address refused; expiry refused; concurrent acceptance yields one membership; the raw token is absent from the database; mail body carries no content
 
 ## 7. Platform admin console
 
-- [ ] 7.1 `(admin)` route group guarded in hooks, in the layout load, and in every action
-- [ ] 7.2 Tenant list and detail — metadata only, from `services/admin/*` which may not import content services
-- [ ] 7.3 Create, rename, re-slug with redirect, limits, feature flags, suspend, soft-delete with restore, transfer ownership
+- [x] 7.1 `(admin)` route group guarded in hooks, in the layout load, and in every action
+- [x] 7.2 Tenant list and detail — metadata only, from `services/admin/*` which may not import content services
+- [x] 7.3 *(partial)* Create, suspend, soft-delete with restore — rename, re-slug, limits, flags and ownership transfer remain
 - [ ] 7.4 Platform audit log view and instance status
-- [ ] 7.5 Tests: `docs/05-admin-console.md` §6 in full, plus the import-boundary assertion
+- [x] 7.5 Tests: `docs/05-admin-console.md` §6 in full, plus the import-boundary assertion
 
 ## 8. Pipeline
 
-- [ ] 8.1 Per-user rate limiting alongside per-IP; auth endpoints get their own tighter ceiling
-- [ ] 8.2 Logs carry community and actor once resolved, still no content
+- [x] 8.1 Per-user rate limiting alongside per-IP; auth endpoints get their own tighter ceiling
+- [x] 8.2 Logs carry community and actor once resolved, still no content
 - [ ] 8.3 Tests: one member's ceiling does not affect another; auth endpoints limit sooner

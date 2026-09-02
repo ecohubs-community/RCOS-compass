@@ -4,6 +4,8 @@ import type { Db } from '../../src/lib/server/db/index.js';
 import { setDbForTests } from '../../src/lib/server/db/index.js';
 import { tenantServices } from '../../src/lib/server/services/registry.js';
 import '../../src/lib/server/services/members.js';
+import '../../src/lib/server/services/invitations.js';
+import { inviteMember } from '../../src/lib/server/services/invitations.js';
 import { createTestDb } from '../support/db.js';
 import { makeCommunity, makeMembership, makeUser } from '../support/factories.js';
 
@@ -40,6 +42,13 @@ beforeEach(() => {
 		role: 'steward',
 		isOwner: true
 	});
+	const ctxA: Ctx = {
+		user: alice,
+		community: communityA,
+		membership: aliceInA,
+		now: () => Date.UTC(2026, 8, 2, 12, 0, 0)
+	};
+	const invitationInA = inviteMember(ctxA, { email: 'carol@example.org' }, { db }).invitation;
 	const bobInB = makeMembership(db, communityB.id, bob.id, { role: 'steward', isOwner: true });
 
 	world = {
@@ -54,7 +63,7 @@ beforeEach(() => {
 		subjectInA: {
 			membership: aliceInA.id,
 			community: communityA.id,
-			invitation: 'invitation-in-a'
+			invitation: invitationInA.id
 		}
 	};
 });

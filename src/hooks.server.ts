@@ -6,6 +6,7 @@ import { getLogger } from '$lib/server/logger';
 import { securityHeaders } from '$lib/server/http/security-headers';
 import { rateLimitRequest } from '$lib/server/http/rate-limit-request';
 import { resolveActor } from '$lib/server/auth/session';
+import { requirePlatformAdmin } from '$lib/server/auth/admin';
 import { handlers } from '$lib/server/jobs/handlers';
 import { enqueue, startWorker } from '$lib/server/jobs';
 import { systemClock } from '$lib/server/clock';
@@ -56,6 +57,12 @@ export const handle: Handle = async ({ event, resolve }) => {
 	event.locals.sessionId = actor?.sessionId ?? null;
 	if (actor) {
 		event.locals.log = event.locals.log.child({ userId: actor.user.id });
+	}
+
+	// The first of three admin checks (docs/05-admin-console.md §5). Doing it here
+	// means an unguarded admin route never even runs.
+	if (event.url.pathname.startsWith('/admin')) {
+		requirePlatformAdmin(event.locals.user);
 	}
 
 	const refusal = rateLimitRequest({
