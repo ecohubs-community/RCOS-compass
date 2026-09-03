@@ -11,9 +11,9 @@
 
 - [x] 2.1 better-auth wired to Drizzle, email+password and magic link, verification required
 - [x] 2.2 Session cookie hardening and absolute lifetime; server-side revocation
-- [ ] 2.3 TOTP enrolment and challenge; required for platform admins only
-- [ ] 2.4 Auth rate limits reusing the existing limiter; failures written to `audit_event`
-- [x] 2.5 Tests (partial — TOTP cases land with 2.3): unverified session is withheld from communities; revoked session refused; expired session refused; no user enumeration on sign-in or reset; admin without TOTP cannot reach admin routes
+- [x] 2.3 TOTP enrolment and challenge; required for platform admins only
+- [x] 2.4 Auth rate limits reusing the existing limiter; failures written to `audit_event`
+- [x] 2.5 Tests: unverified session is withheld from communities; revoked session refused; expired session refused; no user enumeration on sign-in or reset; admin without TOTP cannot reach admin routes; enrolment is inert until a code confirms it; a recovery code works once
 
 ## 3. Tenancy
 
@@ -55,4 +55,4 @@
 
 - [x] 8.1 Per-user rate limiting alongside per-IP; auth endpoints get their own tighter ceiling
 - [x] 8.2 Logs carry community and actor once resolved, still no content
-- [ ] 8.3 Tests: one member's ceiling does not affect another; auth endpoints limit sooner
+- [x] 8.3 Tests: one member's ceiling does not affect another; auth endpoints limit sooner

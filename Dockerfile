@@ -41,6 +41,10 @@ COPY --from=build --chown=node:node /app/package.json ./package.json
 ENV DATABASE_URL=file:/data/compass.db
 ENV UPLOAD_DIR=/data/uploads
 ENV PORT=3000
+# ORIGIN and PUBLIC_APP_URL are deliberately not defaulted: they are the
+# deployment's public address, the boot check refuses to start without ORIGIN in
+# production, and a wrong guess here would be a silent 403 on every form.
+
 EXPOSE 3000
 
 USER node

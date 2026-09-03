@@ -18,6 +18,8 @@ import { auditEvent } from '../db/schema/tenancy.js';
 export type AuditAction =
 	| 'auth.signin.failed'
 	| 'auth.signin.rate_limited'
+	| 'auth.two_factor.enrolled'
+	| 'auth.two_factor.removed'
 	| 'member.invited'
 	| 'member.invitation_revoked'
 	| 'member.joined'

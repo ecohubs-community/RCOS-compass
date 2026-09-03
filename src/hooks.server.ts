@@ -69,8 +69,12 @@ export const handle: Handle = async ({ event, resolve }) => {
 		db,
 		clock: systemClock,
 		pathname: event.url.pathname,
+		method: event.request.method,
 		clientAddress: clientAddress(event),
+		userId: event.locals.user?.id ?? null,
+		userAgent: event.request.headers.get('user-agent'),
 		limit: config.REQUESTS_PER_MINUTE,
+		authLimit: config.AUTH_ATTEMPTS_PER_15MIN,
 		requestId
 	});
 	if (refusal) {

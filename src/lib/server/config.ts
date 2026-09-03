@@ -38,6 +38,16 @@ const ConfigSchema = v.object({
 		v.optional(v.string(), 'http://localhost:5173'),
 		v.url('must be an absolute URL, e.g. https://compass.example.org')
 	),
+	/**
+	 * What the *server* believes its own origin is.
+	 *
+	 * adapter-node reads this at startup and builds `event.url` from it. Left
+	 * unset it assumes `http://localhost`, and SvelteKit's CSRF check then
+	 * compares that against the browser's real `Origin` and refuses every form
+	 * submission with a bare 403 — no log line, no message, nothing to chase. It
+	 * is validated below rather than merely documented.
+	 */
+	ORIGIN: optionalString,
 	DATABASE_URL: v.optional(v.string(), 'file:./data/compass.db'),
 	BETTER_AUTH_SECRET: v.pipe(
 		required('is required — generate one with `openssl rand -base64 32`'),
@@ -80,6 +90,11 @@ const ConfigSchema = v.object({
 
 	/** Per-IP ceiling for dynamic requests. docs/01-server-client-contract.md §5. */
 	REQUESTS_PER_MINUTE: intFromEnv(300, 1),
+	/**
+	 * The tighter ceiling for anything that checks a credential — sign-in, the
+	 * two-factor challenge, enrolment. Same §5: ten attempts per quarter hour.
+	 */
+	AUTH_ATTEMPTS_PER_15MIN: intFromEnv(10, 1),
 
 	LOG_LEVEL: v.optional(
 		v.picklist(
@@ -152,6 +167,28 @@ export function parseConfig(env: Record<string, string | undefined>): Config {
 	}
 
 	const parsed = result.output;
+
+	// Cross-field checks, once every field is known to be well-formed on its own.
+	const problems: string[] = [];
+	const origin = parsed.ORIGIN.replace(/\/+$/, '');
+	const appUrl = parsed.PUBLIC_APP_URL.replace(/\/+$/, '');
+	if (parsed.NODE_ENV === 'production') {
+		if (origin.length === 0) {
+			problems.push(
+				'ORIGIN is required in production — without it the server assumes ' +
+					'http://localhost and every form submission is refused as cross-site. ' +
+					`Set it to the same value as PUBLIC_APP_URL (${appUrl}).`
+			);
+		} else if (origin !== appUrl) {
+			problems.push(
+				`ORIGIN (${origin}) and PUBLIC_APP_URL (${appUrl}) must be the same address — ` +
+					'one is what the server checks submissions against, the other is what it ' +
+					'puts in links, and a difference breaks one of the two.'
+			);
+		}
+	}
+	if (problems.length > 0) throw new ConfigError(problems);
+
 	return {
 		...parsed,
 		isProduction: parsed.NODE_ENV === 'production',

@@ -64,7 +64,12 @@ export function createAuth(db: Db = getDb()) {
 				}
 			}),
 			// Available to everyone; required for platform admins (docs/04 §6).
-			twoFactor({ issuer: 'RCOS Compass' })
+			//
+			// `allowPasswordless` does not weaken re-authentication: the plugin
+			// still demands the password of an account that has one. It only lets
+			// an account that signs in by magic link — and therefore has no
+			// password to be asked for — enrol at all.
+			twoFactor({ issuer: 'RCOS Compass', allowPasswordless: true })
 		]
 	});
 }

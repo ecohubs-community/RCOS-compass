@@ -254,6 +254,7 @@ access anywhere else.
 ```
 # .env.example
 PUBLIC_APP_URL=http://localhost:5173
+ORIGIN=http://localhost:5173   # same address; required in production (see below)
 DATABASE_URL=file:./data/compass.db
 BETTER_AUTH_SECRET=            # 32+ random bytes, required
 ADMIN_EMAILS=                  # comma-separated; platform admins (05-admin-console.md)
@@ -277,6 +278,14 @@ UPLOAD_DIR=./data/uploads
 MAX_UPLOAD_MB=25
 LOG_LEVEL=info
 ```
+
+**`ORIGIN` is not optional in production.** `adapter-node` builds `event.url`
+from it, and left unset it assumes `http://localhost`. SvelteKit then compares
+that against the browser's real `Origin` and refuses every form submission with
+a bare 403 — no log line, no message. The config module therefore requires it in
+production and requires it to equal `PUBLIC_APP_URL`, so the failure is a boot
+error rather than an unexplained 403 on the first sign-in.
+
 
 `ADMIN_EMAILS` is compared against the user's **verified** email, lower-cased and
 trimmed, on every request — never cached in a session claim, so revoking an admin

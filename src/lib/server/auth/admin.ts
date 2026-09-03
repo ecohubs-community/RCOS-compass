@@ -1,4 +1,4 @@
-import { error } from '@sveltejs/kit';
+import { error, redirect } from '@sveltejs/kit';
 import { eq } from 'drizzle-orm';
 import { getConfig, isPlatformAdmin } from '../config.js';
 import { getDb } from '../db/index.js';
@@ -30,6 +30,9 @@ export function adminStatus(user: User | null): AdminStatus {
 	return 'ok';
 }
 
+/** Where an admin without a second factor is sent. */
+export const ENROLMENT_PATH = '/account/two-factor';
+
 /**
  * Guards an admin route. Called in `hooks.server.ts`, again in the admin
  * layout, and again in every action — three checks, because one of them will
@@ -39,7 +42,8 @@ export function requirePlatformAdmin(user: User | null): void {
 	const status = adminStatus(user);
 	// Not-an-admin and no-such-page are the same answer on purpose.
 	if (status === 'not_admin') error(404, 'Not found');
-	if (status === 'needs_two_factor') {
-		error(403, 'Set up two-factor authentication before using the admin console.');
-	}
+	// A listed admin who has not enrolled is sent to enrolment rather than shown
+	// a dead end: they are the right person, holding half of what they need. This
+	// discloses nothing — they already know their own address is listed.
+	if (status === 'needs_two_factor') redirect(303, ENROLMENT_PATH);
 }

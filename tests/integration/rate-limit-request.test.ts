@@ -2,9 +2,11 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { fixedClock } from '../../src/lib/server/clock.js';
 import type { Db } from '../../src/lib/server/db/index.js';
 import {
+	isCredentialAttempt,
 	isExemptFromRateLimit,
 	rateLimitRequest
 } from '../../src/lib/server/http/rate-limit-request.js';
+import { listAudit } from '../../src/lib/server/services/audit.js';
 import { createTestDb } from '../support/db.js';
 
 /**
@@ -24,8 +26,22 @@ beforeEach(() => {
 });
 afterEach(() => cleanup());
 
-const request = (pathname = '/c/valle-verde', clientAddress = '203.0.113.4') =>
-	rateLimitRequest({ db, clock, pathname, clientAddress, limit: 3, requestId: 'req-1' });
+const request = (
+	pathname = '/c/valle-verde',
+	clientAddress = '203.0.113.4',
+	extra: { method?: string; userId?: string | null } = {}
+) =>
+	rateLimitRequest({
+		db,
+		clock,
+		pathname,
+		method: extra.method ?? 'GET',
+		clientAddress,
+		userId: extra.userId ?? null,
+		limit: 3,
+		authLimit: 2,
+		requestId: 'req-1'
+	});
 
 describe('rate limiting a request', () => {
 	it('lets requests through up to the ceiling', () => {
@@ -77,5 +93,54 @@ describe('exemptions', () => {
 		expect(isExemptFromRateLimit('/')).toBe(false);
 		expect(isExemptFromRateLimit('/healthz')).toBe(true);
 		expect(isExemptFromRateLimit('/_app/version.json')).toBe(true);
+	});
+});
+
+describe('one account cannot spend another\u2019s budget', () => {
+	it('counts signed-in members separately behind one address', () => {
+		// The normal case here, not an edge one: a co-housing project on a single
+		// connection is one IP and thirty people.
+		for (let i = 0; i < 4; i += 1) request('/c/valle-verde', '203.0.113.4', { userId: 'ana' });
+		// Ana is over her own ceiling.
+		expect(request('/c/valle-verde', '203.0.113.4', { userId: 'ana' })).not.toBeNull();
+	});
+
+	it('still holds a single account to the ceiling across addresses', () => {
+		for (let i = 0; i < 4; i += 1)
+			request('/c/valle-verde', `198.51.100.${i}`, { userId: 'marco' });
+		expect(request('/c/valle-verde', '198.51.100.9', { userId: 'marco' })).not.toBeNull();
+	});
+});
+
+describe('credential attempts have their own, tighter ceiling', () => {
+	it('refuses a third sign-in POST while a third page view is still fine', () => {
+		expect(request('/sign-in', '203.0.113.4', { method: 'POST' })).toBeNull();
+		expect(request('/sign-in', '203.0.113.4', { method: 'POST' })).toBeNull();
+		// authLimit is 2 and the general limit is 3: this is refused by the auth
+		// bucket, which is the whole point of having a second one.
+		expect(request('/sign-in', '203.0.113.4', { method: 'POST' })).not.toBeNull();
+	});
+
+	it('leaves rendering the sign-in page alone', () => {
+		for (let i = 0; i < 3; i += 1) {
+			expect(request('/sign-in', '198.51.100.20', { method: 'GET' }), `view ${i}`).toBeNull();
+		}
+	});
+
+	it('records the refusal, so a burst is visible afterwards', () => {
+		for (let i = 0; i < 3; i += 1) request('/sign-in', '203.0.113.9', { method: 'POST' });
+
+		const events = listAudit({ action: 'auth.signin.rate_limited' }, db);
+		expect(events).toHaveLength(1);
+		expect(events[0]!.ip).toBe('203.0.113.9');
+	});
+
+	it('covers the challenge and enrolment, not only the password', () => {
+		expect(isCredentialAttempt('/sign-in/two-factor', 'POST')).toBe(true);
+		expect(isCredentialAttempt('/account/two-factor', 'POST')).toBe(true);
+		expect(isCredentialAttempt('/api/auth/sign-in/email', 'POST')).toBe(true);
+		expect(isCredentialAttempt('/c/valle-verde/definitions', 'POST')).toBe(false);
+		// Not a prefix match on a path that merely starts with the same letters.
+		expect(isCredentialAttempt('/sign-in-help', 'POST')).toBe(false);
 	});
 });

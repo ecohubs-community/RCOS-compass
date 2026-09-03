@@ -112,3 +112,37 @@ describe('isPlatformAdmin', () => {
 		expect(isPlatformAdmin('', true, admins)).toBe(false);
 	});
 });
+
+describe('the origin the server checks submissions against', () => {
+	/**
+	 * Found by a form action returning a bare 403 in a production build: without
+	 * `ORIGIN`, adapter-node assumes `http://localhost`, SvelteKit compares that
+	 * against the browser's real origin, and every submission is refused with no
+	 * log line to chase. The check turns a silent failure into a boot failure.
+	 */
+	const production = {
+		NODE_ENV: 'production',
+		BETTER_AUTH_SECRET: 'a-secret-long-enough-to-be-accepted-here',
+		PUBLIC_APP_URL: 'https://compass.example.org'
+	};
+
+	it('refuses to start in production without one', () => {
+		expect(() => parseConfig(production)).toThrow(/ORIGIN is required in production/);
+	});
+
+	it('refuses one that disagrees with the address in links', () => {
+		expect(() => parseConfig({ ...production, ORIGIN: 'https://staging.example.org' })).toThrow(
+			/must be the same address/
+		);
+	});
+
+	it('accepts them when they agree, trailing slash or not', () => {
+		expect(parseConfig({ ...production, ORIGIN: 'https://compass.example.org/' }).ORIGIN).toBe(
+			'https://compass.example.org/'
+		);
+	});
+
+	it('asks nothing of development, where the dev server knows its own address', () => {
+		expect(() => parseConfig({ ...production, NODE_ENV: 'development' })).not.toThrow();
+	});
+});

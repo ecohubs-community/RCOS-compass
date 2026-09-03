@@ -1,4 +1,4 @@
-import { eq } from 'drizzle-orm';
+import { and, eq, isNull } from 'drizzle-orm';
 import type { Db } from '../db/index.js';
 import { session as sessionTable, user as userTable, type User } from '../db/schema/auth.js';
 import { getAuth } from './auth.js';
@@ -37,4 +37,24 @@ export async function resolveActor(db: Db, request: Request, now: number): Promi
 	if (!user) return null;
 
 	return { user, sessionId: stored.id };
+}
+
+/**
+ * Record when this session must end regardless of activity.
+ *
+ * better-auth writes the session row itself and knows nothing about the absolute
+ * ceiling, so it is stamped here, once, immediately after the sign-in that
+ * created it. Only a row without one is stamped: re-running this against a live
+ * session would push its ceiling forward, which is the behaviour the ceiling
+ * exists to prevent.
+ *
+ * A session the library rotates — verifying a second factor does this — is a new
+ * row and starts its own ninety days. That is deliberate: a rotation follows an
+ * act of authentication, not mere activity.
+ */
+export function stampAbsoluteExpiry(db: Db, token: string, now: number): void {
+	db.update(sessionTable)
+		.set({ absoluteExpiresAt: new Date(now + ABSOLUTE_SESSION_MS) })
+		.where(and(eq(sessionTable.token, token), isNull(sessionTable.absoluteExpiresAt)))
+		.run();
 }

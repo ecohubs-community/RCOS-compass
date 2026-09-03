@@ -7,6 +7,7 @@
 		type Status
 	} from '$lib/components/ui/StatusChip.svelte';
 	import HelpTip from '$lib/components/ui/HelpTip.svelte';
+	import TextField from '$lib/components/ui/TextField.svelte';
 	import { HELP, type HelpId } from '$lib/help/registry';
 
 	const statuses = Object.keys(STATUS_LABELS) as Status[];
@@ -75,6 +76,30 @@
 				</li>
 			{/each}
 		</ul>
+	</section>
+
+	<section class="mt-10" aria-labelledby="fields">
+		<h2 id="fields" class="text-section font-medium">Text field</h2>
+		<p class="text-fg-muted text-meta mt-1">
+			Always a real label, never a placeholder standing in for one. An error is announced, not only
+			coloured.
+		</p>
+		<div class="mt-4 grid max-w-md gap-4">
+			<TextField id="gallery-email" label="Email" type="email" value="ana@example.org" />
+			<TextField
+				id="gallery-hinted"
+				label="Community slug"
+				value="valle-verde"
+				hint="This becomes the address members visit."
+			/>
+			<TextField
+				id="gallery-error"
+				label="Six-digit code"
+				value="12"
+				error="Enter the six-digit code from your authenticator app."
+			/>
+			<TextField id="gallery-disabled" label="Standard version" value="RCOS-Core 0.1" disabled />
+		</div>
 	</section>
 
 	<section class="mt-10" aria-labelledby="tokens">

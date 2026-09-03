@@ -39,10 +39,22 @@ export default defineConfig({
 		env: {
 			PORT: String(PORT),
 			NODE_ENV: 'production',
+			// Without this the server assumes http://localhost and refuses every
+			// form submission as cross-site — which is what these specs exercise.
+			ORIGIN: `http://localhost:${PORT}`,
+			PUBLIC_APP_URL: `http://localhost:${PORT}`,
 			BETTER_AUTH_SECRET: 'e2e-secret-that-is-long-enough-to-pass',
 			DATABASE_URL: 'file:./data/e2e.db',
 			AI_PROVIDER: 'null',
 			ALLOW_TEST_ROUTES: '1',
+			/**
+			 * Four browser projects share one loopback address, so the real
+			 * credential ceiling (10 per 15 minutes) would be spent by the sign-in
+			 * specs themselves rather than by anything under test. The ceiling is
+			 * proved in tests/integration/rate-limit-request.ts, where the clock is
+			 * controlled; here it only needs to be out of the way.
+			 */
+			AUTH_ATTEMPTS_PER_15MIN: '500',
 			LOG_LEVEL: 'silent',
 			BUILD_SHA: 'e2e'
 		}
