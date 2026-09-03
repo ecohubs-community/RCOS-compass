@@ -8,7 +8,10 @@
 	} from '$lib/components/ui/StatusChip.svelte';
 	import HelpTip from '$lib/components/ui/HelpTip.svelte';
 	import TextField from '$lib/components/ui/TextField.svelte';
+	import Markdown from '$lib/components/ui/Markdown.svelte';
 	import { HELP, type HelpId } from '$lib/help/registry';
+
+	let { data } = $props();
 
 	const statuses = Object.keys(STATUS_LABELS) as Status[];
 	const modifiers = Object.keys(MODIFIER_LABELS) as Modifier[];
@@ -99,6 +102,18 @@
 				error="Enter the six-digit code from your authenticator app."
 			/>
 			<TextField id="gallery-disabled" label="Standard version" value="RCOS-Core 0.1" disabled />
+		</div>
+	</section>
+
+	<section class="mt-10" aria-labelledby="markdown">
+		<h2 id="markdown" class="text-section font-medium">Governance text</h2>
+		<p class="text-fg-muted text-meta mt-1">
+			Parsed on the server into a narrow node tree and rendered through ordinary templating. The
+			payloads in the last paragraph are words here, and only words — there is no raw-HTML sink for
+			them to reach.
+		</p>
+		<div class="border-border mt-4 rounded-(--radius-card) border p-4">
+			<Markdown blocks={data.markdown} />
 		</div>
 	</section>
 

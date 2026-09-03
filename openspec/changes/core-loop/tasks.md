@@ -20,13 +20,13 @@ Names and columns from `docs/03-data-model.md` §3, which already specifies them
 
 ## 2. Definitions and drafts
 
-- [ ] 2.1 `services/definitions.ts` — create, read, list by artifact, with `Ctx` and no community id from input; registered in `services/registry.ts`
-- [ ] 2.2 Scope rules: a `local` definition may not name a section; a `standard` one must; the second definition for a section is refused and the existing one offered
-- [ ] 2.3 Draft autosave with `edit_token`, rotated on each save; a stale token refuses and returns who else is editing and what changed
-- [ ] 2.4 `standard_feedback` from the "RCOS should require this" checkbox, stored with the community's own text
-- [ ] 2.5 Markdown rendered server-side to a sanitised subtree; no component passes external text to a raw-HTML sink
-- [ ] 2.6 Tests: the `definitions` spec in full, including a local definition that names a section being refused, a stale token that does not overwrite, and the cross-tenant case the registry suite adds automatically
-- [ ] 2.7 Tests: `docs/06` §6.6 in full — a definition body, a post and a proposal each carrying `<img onerror>`, a `javascript:` URL and a Markdown image payload render inert, plus the grep test that no `{@html}` receives external data. This phase introduces the risk, so it carries the suite
+- [x] 2.1 `services/definitions.ts` — create, read, list by artifact, with `Ctx` and no community id from input; registered in `services/registry.ts`
+- [x] 2.2 Scope rules: a `local` definition may not name a section; a `standard` one must; the second definition for a section is refused and the existing one offered
+- [x] 2.3 Draft autosave with `edit_token`, rotated on each save; a stale token refuses and returns who else is editing and what changed
+- [x] 2.4 `standard_feedback` from the "RCOS should require this" checkbox, stored with the community's own text
+- [x] 2.5 Markdown rendered server-side to a sanitised subtree; no component passes external text to a raw-HTML sink
+- [x] 2.6 Tests: the `definitions` spec in full, including a local definition that names a section being refused, a stale token that does not overwrite, and the cross-tenant case the registry suite adds automatically
+- [x] 2.7 Tests: `docs/06` §6.6 in full — a definition body, a post and a proposal each carrying `<img onerror>`, a `javascript:` URL and a Markdown image payload render inert, plus the grep test that no `{@html}` receives external data. This phase introduces the risk, so it carries the suite
 
 ## 3. Discussions, posts and proposals
 

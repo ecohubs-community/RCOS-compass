@@ -5,7 +5,12 @@ import { setDbForTests } from '../../src/lib/server/db/index.js';
 import { tenantServices } from '../../src/lib/server/services/registry.js';
 import '../../src/lib/server/services/members.js';
 import '../../src/lib/server/services/invitations.js';
+import '../../src/lib/server/services/definitions.js';
 import { inviteMember } from '../../src/lib/server/services/invitations.js';
+import { createDefinition } from '../../src/lib/server/services/definitions.js';
+import { newId } from '../../src/lib/server/db/id.js';
+import { communityArtifact } from '../../src/lib/server/db/schema/definitions.js';
+import { communityStandard } from '../../src/lib/server/db/schema/tenancy.js';
 import { createTestDb } from '../support/db.js';
 import { makeCommunity, makeMembership, makeUser } from '../support/factories.js';
 
@@ -49,6 +54,41 @@ beforeEach(() => {
 		now: () => Date.UTC(2026, 8, 2, 12, 0, 0)
 	};
 	const invitationInA = inviteMember(ctxA, { email: 'carol@example.org' }, { db }).invitation;
+
+	// A's own content, for the services that address a definition or an artifact.
+	db.insert(communityStandard)
+		.values({
+			id: newId(),
+			communityId: communityA.id,
+			standardId: 'rcos-core',
+			version: '0.1',
+			status: 'active',
+			adoptedAt: new Date(Date.UTC(2026, 8, 2, 12, 0, 0)),
+			retiredAt: null
+		})
+		.run();
+	const artifactInA = newId();
+	db.insert(communityArtifact)
+		.values({
+			id: artifactInA,
+			communityId: communityA.id,
+			title: 'Community Agreements',
+			description: null,
+			layer: null,
+			order: 0,
+			kind: 'default',
+			createdAt: new Date(Date.UTC(2026, 8, 2, 12, 0, 0))
+		})
+		.run();
+	const definitionInA = createDefinition(
+		ctxA,
+		{
+			scope: 'local',
+			title: 'Quiet hours',
+			attach: { kind: 'community_artifact', artifactId: artifactInA }
+		},
+		{ db }
+	);
 	const bobInB = makeMembership(db, communityB.id, bob.id, { role: 'steward', isOwner: true });
 
 	world = {
@@ -63,7 +103,9 @@ beforeEach(() => {
 		subjectInA: {
 			membership: aliceInA.id,
 			community: communityA.id,
-			invitation: invitationInA.id
+			invitation: invitationInA.id,
+			definition: definitionInA.id,
+			communityArtifact: artifactInA
 		}
 	};
 });

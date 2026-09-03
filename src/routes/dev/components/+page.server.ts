@@ -1,5 +1,6 @@
 import { error } from '@sveltejs/kit';
 import { getConfig } from '$lib/server/config';
+import { parseMarkdown } from '$lib/server/markdown';
 
 /**
  * The gallery is a development and review surface; it never ships.
@@ -12,4 +13,25 @@ import { getConfig } from '$lib/server/config';
  */
 export function load() {
 	if (getConfig().isProduction) error(404, 'Not found');
+
+	// Parsed here because the parser is server-side: the safety argument lives
+	// there, and there is no reason to ship a Markdown parser to the browser to
+	// render text the server has already parsed.
+	return {
+		markdown: parseMarkdown(
+			[
+				'A member **may** leave at any time, with *notice* where practical.',
+				'',
+				'## What happens to their things',
+				'',
+				'- Personal property leaves with them',
+				'- Commons contributions stay, per the [Treasury Ruleset](/c/valle-verde)',
+				'',
+				'> Agreed at the assembly of 12 June.',
+				'',
+				'Payloads render as words, never as behaviour: ' +
+					'<img src=x onerror="alert(1)"> and [this link](javascript:alert(1)).'
+			].join('\n')
+		)
+	};
 }
