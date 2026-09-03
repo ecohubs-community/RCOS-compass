@@ -37,6 +37,16 @@ const AUTH_PREFIXES = [
 const AUTH_WINDOW_MS = 15 * 60_000;
 const GENERAL_WINDOW_MS = 60_000;
 
+/**
+ * Administrative actions. docs/05-admin-console.md §5.6.
+ *
+ * A ceiling on the widest-reaching account on the instance: sixty writes an hour
+ * is far more than an operator does by hand and far less than a stolen session
+ * needs to suspend every community on the box.
+ */
+const ADMIN_ACTIONS_PER_HOUR = 60;
+const ADMIN_WINDOW_MS = 60 * 60_000;
+
 export function isExemptFromRateLimit(pathname: string): boolean {
 	return EXEMPT_PREFIXES.some((prefix) => pathname.startsWith(prefix));
 }
@@ -44,6 +54,11 @@ export function isExemptFromRateLimit(pathname: string): boolean {
 export function isCredentialAttempt(pathname: string, method: string): boolean {
 	if (method.toUpperCase() !== 'POST') return false;
 	return AUTH_PREFIXES.some((prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`));
+}
+
+export function isAdminAction(pathname: string, method: string): boolean {
+	if (method.toUpperCase() !== 'POST') return false;
+	return pathname === '/admin' || pathname.startsWith('/admin/');
 }
 
 export type RateLimitContext = {
@@ -77,6 +92,7 @@ function refuse(context: RateLimitContext, resetAt: number): Response {
  *    that makes password and code guessing expensive, and the only one written
  *    to the audit trail;
  *  - **per IP**, the general ceiling — one address cannot occupy the instance;
+ *  - **administrative writes**, per admin account, at sixty an hour;
  *  - **per account**, the same ceiling — so one member behind a shared address
  *    (a co-housing project on one connection is the normal case here) cannot
  *    spend everyone else's budget. docs/04-security.md §5.3 asks for exactly
@@ -103,6 +119,15 @@ export function rateLimitRequest(context: RateLimitContext): Response | null {
 			});
 			return refuse(context, attempt.resetAt);
 		}
+	}
+
+	if (context.userId && isAdminAction(context.pathname, context.method)) {
+		const byAdmin = checkRateLimit(context.db, context.clock, {
+			key: `admin:user:${context.userId}`,
+			limit: ADMIN_ACTIONS_PER_HOUR,
+			windowMs: ADMIN_WINDOW_MS
+		});
+		if (!byAdmin.allowed) return refuse(context, byAdmin.resetAt);
 	}
 
 	const byAddress = checkRateLimit(context.db, context.clock, {

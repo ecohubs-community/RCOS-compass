@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { fixedClock } from '../../src/lib/server/clock.js';
 import type { Db } from '../../src/lib/server/db/index.js';
 import {
+	isAdminAction,
 	isCredentialAttempt,
 	isExemptFromRateLimit,
 	rateLimitRequest
@@ -29,7 +30,7 @@ afterEach(() => cleanup());
 const request = (
 	pathname = '/c/valle-verde',
 	clientAddress = '203.0.113.4',
-	extra: { method?: string; userId?: string | null } = {}
+	extra: { method?: string; userId?: string | null; limit?: number } = {}
 ) =>
 	rateLimitRequest({
 		db,
@@ -38,7 +39,7 @@ const request = (
 		method: extra.method ?? 'GET',
 		clientAddress,
 		userId: extra.userId ?? null,
-		limit: 3,
+		limit: extra.limit ?? 3,
 		authLimit: 2,
 		requestId: 'req-1'
 	});
@@ -142,5 +143,34 @@ describe('credential attempts have their own, tighter ceiling', () => {
 		expect(isCredentialAttempt('/c/valle-verde/definitions', 'POST')).toBe(false);
 		// Not a prefix match on a path that merely starts with the same letters.
 		expect(isCredentialAttempt('/sign-in-help', 'POST')).toBe(false);
+	});
+});
+
+describe('administrative writes have their own hourly ceiling', () => {
+	it('lets an operator work and stops a stolen session emptying the instance', () => {
+		// docs/05-admin-console.md §5.6: sixty an hour. Far more than anyone does
+		// by hand, far less than suspending every community on the box needs.
+		// The general ceiling is raised out of the way so the hourly admin bucket
+		// is the only thing this measures.
+		const action = () =>
+			request('/admin/communities/x', '203.0.113.4', {
+				method: 'POST',
+				userId: 'ops',
+				limit: 10_000
+			});
+
+		for (let i = 0; i < 60; i += 1) {
+			expect(action(), `action ${i}`).toBeNull();
+		}
+
+		expect(action()).not.toBeNull();
+	});
+
+	it('leaves reading the console alone', () => {
+		expect(isAdminAction('/admin/communities', 'GET')).toBe(false);
+		expect(isAdminAction('/admin/communities', 'POST')).toBe(true);
+		expect(isAdminAction('/admin', 'POST')).toBe(true);
+		// Not a prefix match on a path that merely begins with the same letters.
+		expect(isAdminAction('/administration', 'POST')).toBe(false);
 	});
 });

@@ -1,41 +1,48 @@
 {
-	"version": "7",
-	"dialect": "sqlite",
-	"entries": [
-		{
-			"idx": 0,
-			"version": "6",
-			"when": 1788296938651,
-			"tag": "0000_good_terror",
-			"breakpoints": true
-		},
-		{
-			"idx": 1,
-			"version": "6",
-			"when": 1788297161537,
-			"tag": "0001_special_human_torch",
-			"breakpoints": true
-		},
-		{
-			"idx": 2,
-			"version": "6",
-			"when": 1788380579355,
-			"tag": "0002_lucky_dazzler",
-			"breakpoints": true
-		},
-		{
-			"idx": 3,
-			"version": "6",
-			"when": 1788384572621,
-			"tag": "0003_lovely_darkhawk",
-			"breakpoints": true
-		},
-		{
-			"idx": 4,
-			"version": "6",
-			"when": 1788384606586,
-			"tag": "0004_groovy_wither",
-			"breakpoints": true
-		}
-	]
+  "version": "7",
+  "dialect": "sqlite",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "6",
+      "when": 1788296938651,
+      "tag": "0000_good_terror",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "6",
+      "when": 1788297161537,
+      "tag": "0001_special_human_torch",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1788380579355,
+      "tag": "0002_lucky_dazzler",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "6",
+      "when": 1788384572621,
+      "tag": "0003_lovely_darkhawk",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "6",
+      "when": 1788384606586,
+      "tag": "0004_groovy_wither",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "6",
+      "when": 1788447967041,
+      "tag": "0005_pink_karen_page",
+      "breakpoints": true
+    }
+  ]
 }

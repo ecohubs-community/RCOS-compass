@@ -1,6 +1,12 @@
-import { and, eq, isNull } from 'drizzle-orm';
+import { and, eq, gt, isNull } from 'drizzle-orm';
 import type { Db } from '../db/index.js';
-import { community, membership, type Community, type Membership } from '../db/schema/tenancy.js';
+import {
+	community,
+	communitySlugRedirect,
+	membership,
+	type Community,
+	type Membership
+} from '../db/schema/tenancy.js';
 
 /**
  * Resolving a request to a community. docs/04-security.md §2.
@@ -66,16 +72,22 @@ export function resolveCommunity(db: Db, slug: string, userId: string | null): R
  * a community that shadows `/admin` is a phishing surface.
  */
 export const RESERVED_SLUGS = new Set([
+	'account',
 	'admin',
 	'api',
 	'auth',
 	'c',
+	'invitations',
 	'dev',
 	'favicon',
 	'healthz',
 	'new',
 	'public',
 	'settings',
+	'reset-password',
+	'sign-in',
+	'sign-out',
+	'sign-up',
 	'signin',
 	'signout',
 	'signup',
@@ -95,4 +107,36 @@ export function validateSlug(db: Db | null, slug: string): SlugProblem | null {
 	if (!SLUG_PATTERN.test(slug)) return 'malformed';
 	if (db && db.select().from(community).where(eq(community.slug, slug)).get()) return 'taken';
 	return null;
+}
+
+/**
+ * The slug a retired one now points at, if it is still within its window.
+ *
+ * Consulted only after {@link resolveCommunity} has said `not_found`, so a live
+ * slug is never shadowed by an expired redirect pointing elsewhere. Returns null
+ * for an unknown slug, an expired redirect, or a community that has since been
+ * deleted — all of which are the same 404 to the person asking.
+ */
+export function resolveSlugRedirect(db: Db, slug: string, now: number): string | null {
+	const redirect = db
+		.select({ communityId: communitySlugRedirect.communityId })
+		.from(communitySlugRedirect)
+		.where(
+			and(
+				eq(communitySlugRedirect.oldSlug, slug),
+				gt(communitySlugRedirect.expiresAt, new Date(now))
+			)
+		)
+		.get();
+	if (!redirect) return null;
+
+	const target = db
+		.select({ slug: community.slug, status: community.status })
+		.from(community)
+		.where(eq(community.id, redirect.communityId))
+		.get();
+	if (!target || target.status === 'deleted') return null;
+	// A redirect to itself would be a loop; it can only happen if a slug was
+	// changed back to a retired name, which changeTenantSlug prevents.
+	return target.slug === slug ? null : target.slug;
 }

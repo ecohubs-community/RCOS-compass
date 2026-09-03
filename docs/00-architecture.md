@@ -30,7 +30,7 @@ Versions are the latest published as of 2026-08-31. Pin exact versions in
 | Auth | **better-auth** | 1.7.x | Email+password and magic-link, sessions in DB, organization-shaped multi-tenancy, invitations. |
 | Validation | **Valibot** | 1.x | Every server boundary. Smaller than Zod, same ergonomics; one schema per action, exported for tests. |
 | AI | **Provider interface + Google AI Studio adapter** (`@google/genai` 2.20.x) | | See §4. Never called from the browser. |
-| Email | **Nodemailer over SMTP**, with a Resend adapter behind the same interface | | *Added in review — the spec promised invites and review-date nags with no way to send them.* |
+| Email | **Nodemailer over SMTP**, with a Resend adapter behind the same interface | 9.1.x | *Added in review — the spec promised invites and review-date nags with no way to send them.* |
 | Testing | **Vitest** 4.1.x, **Playwright** 1.62.x | | See `06-testing-strategy.md`. |
 | Lint/format | ESLint 9 flat config, Prettier, `svelte-check` | | |
 | Runtime | Node 24 LTS, pnpm 10 | | |

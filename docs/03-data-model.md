@@ -101,7 +101,15 @@ templates do not carry and we must author (UI spec §6.3).
 ```
 community          id | slug | name | locale | timezone | created_at | status active|suspended|deleted
                    | interim_adoption_rule_id? | ordering_weights (json)
-                   | ai_enabled | ai_provider_override? | publish_names_policy
+                   | ai_enabled | git_mirror_enabled | public_index_enabled   -- flags, all default off
+                   | ai_provider_override? | publish_names_policy
+                   | max_members? | storage_mb? | ai_monthly_tokens?   -- null = instance default
+community_slug_redirect
+                   id | old_slug UNIQUE | community_id | created_at | expires_at
+                   -- a retired address keeps resolving for 90 days: a decision
+                   -- reference pasted into a mailing list should not die because
+                   -- a community changed its name. Offered only to someone who
+                   -- would be let into the target, so the boundary still holds.
 community_standard community_id | standard_id | version | status active|migrating|retired
                    | adopted_at | adoption_decision_id | retired_at?
                    | UNIQUE(community_id, standard_id)

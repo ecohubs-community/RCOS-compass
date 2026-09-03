@@ -10,7 +10,14 @@ import { expect, test } from '@playwright/test';
  * absent — which is itself the first requirement.
  */
 test.describe('the admin console', () => {
-	const paths = ['/admin', '/admin/communities', '/admin/communities/some-id', '/admin/audit'];
+	const paths = [
+		'/admin',
+		'/admin/communities',
+		'/admin/communities/new',
+		'/admin/communities/some-id',
+		'/admin/audit',
+		'/admin/status'
+	];
 
 	for (const path of paths) {
 		test(`${path} is 404 for an unauthenticated request`, async ({ request }) => {
@@ -22,6 +29,26 @@ test.describe('the admin console', () => {
 		const body = await (await request.get('/admin/communities')).text();
 		expect(body.toLowerCase()).not.toContain('administration');
 		expect(body.toLowerCase()).not.toContain('two-factor');
+	});
+
+	test('refuses a POST to an action the same way as a GET to the page', async ({
+		request,
+		baseURL
+	}) => {
+		// §5.1 asks for the check in every action, not only in the loads: a route
+		// group that 404s on GET and runs on POST is the whole boundary undone.
+		//
+		// The Origin header is deliberate. Without it SvelteKit's CSRF check
+		// answers 403 before the route runs, which would make this test pass for
+		// the wrong reason — it would prove the origin check works, not the guard.
+		for (const action of ['?/rename', '?/slug', '?/delete', '?/transfer']) {
+			const response = await request.post(`/admin/communities/some-id${action}`, {
+				headers: { origin: baseURL! },
+				form: { name: 'x' },
+				maxRedirects: 0
+			});
+			expect(response.status(), action).toBe(404);
+		}
 	});
 });
 

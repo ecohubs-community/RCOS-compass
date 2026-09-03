@@ -1,7 +1,7 @@
-import { error } from '@sveltejs/kit';
+import { error, redirect } from '@sveltejs/kit';
 import { systemClock } from '$lib/server/clock';
 import { getDb } from '$lib/server/db';
-import { resolveCommunity } from '$lib/server/services/tenancy';
+import { resolveCommunity, resolveSlugRedirect } from '$lib/server/services/tenancy';
 import { requirePermission, type Ctx } from '$lib/server/auth/guard';
 import type { LayoutServerLoad } from './$types';
 
@@ -13,10 +13,32 @@ import type { LayoutServerLoad } from './$types';
  * reported exactly as one that does not exist — telling a stranger that a
  * community exists is itself a disclosure.
  */
-export const load: LayoutServerLoad = async ({ params, locals }) => {
+export const load: LayoutServerLoad = async ({ params, locals, url }) => {
 	const resolution = resolveCommunity(getDb(), params.slug, locals.user?.id ?? null);
 
-	if (resolution.kind === 'not_found') error(404, 'Not found');
+	if (resolution.kind === 'not_found') {
+		// A slug the community used to answer to still resolves, for ninety days
+		// after a rename (docs/05-admin-console.md §3.3): a decision reference
+		// pasted into a mailing list last year should not become a dead link
+		// because a community changed its name.
+		//
+		// Consulted only after `not_found`, so a live slug is never shadowed by a
+		// redirect — and the redirect is offered only to someone who would be let
+		// into the community it points at. `not_found` covers both "no such
+		// community" and "not a member", so redirecting on it alone would tell a
+		// stranger that the old slug existed and what it became, which is the one
+		// thing the tenant boundary exists to withhold.
+		const current = resolveSlugRedirect(getDb(), params.slug, systemClock.now());
+		const target = current
+			? resolveCommunity(getDb(), current, locals.user?.id ?? null)
+			: { kind: 'not_found' as const };
+		if (current && target.kind !== 'not_found') {
+			// 308 rather than 301: it keeps the method, so a form post to an old
+			// address is not silently turned into a GET.
+			redirect(308, `${url.pathname.replace(`/c/${params.slug}`, `/c/${current}`)}${url.search}`);
+		}
+		error(404, 'Not found');
+	}
 
 	locals.community = resolution.community;
 	locals.membership = resolution.membership;

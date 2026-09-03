@@ -38,6 +38,8 @@ export function makeCommunity(
 		deletedAt: null,
 		publishNamesPolicy: 'roles_and_counts' as const,
 		aiEnabled: false,
+		gitMirrorEnabled: false,
+		publicIndexEnabled: false,
 		maxMembers: null,
 		storageMb: null,
 		aiMonthlyTokens: null,

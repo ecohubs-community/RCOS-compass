@@ -29,6 +29,7 @@ export type AuditAction =
 	| 'community.renamed'
 	| 'community.slug_changed'
 	| 'community.limits_changed'
+	| 'community.flags_changed'
 	| 'community.suspended'
 	| 'community.unsuspended'
 	| 'community.deleted'

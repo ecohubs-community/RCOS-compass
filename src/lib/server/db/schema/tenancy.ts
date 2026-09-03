@@ -37,7 +37,18 @@ export const community = sqliteTable(
 		})
 			.notNull()
 			.default('roles_and_counts'),
+		/**
+		 * Feature flags, per tenant. docs/05-admin-console.md §3.3.
+		 *
+		 * All three default off: a community that has not been told a feature
+		 * exists has not agreed to it, and two of them send its material
+		 * somewhere else (a git remote, a public page).
+		 */
 		aiEnabled: integer('ai_enabled', { mode: 'boolean' }).notNull().default(false),
+		gitMirrorEnabled: integer('git_mirror_enabled', { mode: 'boolean' }).notNull().default(false),
+		publicIndexEnabled: integer('public_index_enabled', { mode: 'boolean' })
+			.notNull()
+			.default(false),
 		/** Null means "the instance default"; unlimited during the testing phase. */
 		maxMembers: integer('max_members'),
 		storageMb: integer('storage_mb'),
@@ -48,6 +59,33 @@ export const community = sqliteTable(
 	(table) => [
 		uniqueIndex('community_slug_idx').on(table.slug),
 		index('community_status_idx').on(table.status)
+	]
+);
+
+/**
+ * Slugs a community used to answer to.
+ *
+ * A permalink is a product promise: a decision reference pasted into a mailing
+ * list in 2026 should still resolve in 2027. So changing a slug leaves the old
+ * one redirecting rather than breaking, for ninety days — long enough for the
+ * links that matter to be re-shared, short enough that the name is eventually
+ * free again.
+ */
+export const communitySlugRedirect = sqliteTable(
+	'community_slug_redirect',
+	{
+		id: text('id').primaryKey(),
+		/** Unique across the instance: two communities cannot claim one old name. */
+		oldSlug: text('old_slug').notNull(),
+		communityId: text('community_id')
+			.notNull()
+			.references(() => community.id, { onDelete: 'cascade' }),
+		createdAt: integer('created_at', { mode: 'timestamp_ms' }).notNull(),
+		expiresAt: integer('expires_at', { mode: 'timestamp_ms' }).notNull()
+	},
+	(table) => [
+		uniqueIndex('slug_redirect_old_idx').on(table.oldSlug),
+		index('slug_redirect_community_idx').on(table.communityId)
 	]
 );
 

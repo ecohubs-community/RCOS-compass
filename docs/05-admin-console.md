@@ -74,8 +74,15 @@ Metadata, quota usage, invitation status, and the audit trail for this tenant's
 administrative events. Actions:
 
 - **Rename** — free.
-- **Change slug** — old slug 301-redirects for 90 days (permalinks are a product
-  promise); requires confirmation because it breaks pasted links.
+- **Change slug** — the old slug redirects for 90 days (permalinks are a product
+  promise); requires the current address to be typed out, because it breaks
+  pasted links. A **308**, not a 301: it preserves the method, so a form post to
+  an old address is not silently turned into a GET. The redirect is offered only
+  to someone who would be let into the community it points at — `not_found`
+  covers both "no such community" and "not a member", so redirecting on it alone
+  would tell a stranger that the old slug existed and what it became.
+  A retired slug is not handed to another community while it still redirects:
+  pointing old links at the wrong community is worse than breaking them.
 - **Limits** — max members, storage MB, monthly AI tokens; blank = instance default.
 - **Feature flags** — AI on/off, git mirror on/off, public index on/off.
 - **Suspend / unsuspend** — members see a read-only banner and can still export.
