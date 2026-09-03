@@ -43,6 +43,13 @@
       "when": 1788447967041,
       "tag": "0005_pink_karen_page",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "6",
+      "when": 1788473090592,
+      "tag": "0006_nice_fantastic_four",
+      "breakpoints": true
     }
   ]
 }

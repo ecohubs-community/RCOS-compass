@@ -7,6 +7,7 @@ import {
 	communitySlugRedirect,
 	membership
 } from '../../src/lib/server/db/schema/tenancy.js';
+import { communityArtifact } from '../../src/lib/server/db/schema/definitions.js';
 import { listAudit, type AuditAction } from '../../src/lib/server/services/audit.js';
 import {
 	SLUG_REDIRECT_MS,
@@ -351,5 +352,54 @@ describe('the detail view', () => {
 
 	it('is null for a community that does not exist', () => {
 		expect(getTenant(db, 'no-such-id')).toBeNull();
+	});
+});
+
+describe('a community starts with somewhere to put its own agreements', () => {
+	it('creates the default artifact in the same transaction', () => {
+		const artifacts = db
+			.select()
+			.from(communityArtifact)
+			.where(eq(communityArtifact.communityId, communityId))
+			.all();
+
+		expect(artifacts).toHaveLength(1);
+		expect(artifacts[0]!.kind).toBe('default');
+		expect(artifacts[0]!.title).toBe('Community Agreements');
+	});
+
+	it('leaves none behind when creation fails', () => {
+		// The slug is already taken, so the whole transaction rolls back.
+		expect(() =>
+			createTenant(db, clock, actor, {
+				name: 'Duplicate',
+				slug: 'valle-verde',
+				ownerEmail: 'someone@example.org'
+			})
+		).toThrow(TenantError);
+
+		expect(db.select().from(communityArtifact).all()).toHaveLength(1);
+	});
+
+	it('gives each community its own', () => {
+		const other = createTenant(db, clock, actor, {
+			name: 'Other Place',
+			slug: 'other-place',
+			ownerEmail: 'other@example.org'
+		});
+
+		const theirs = db
+			.select()
+			.from(communityArtifact)
+			.where(eq(communityArtifact.communityId, other.communityId))
+			.all();
+		expect(theirs).toHaveLength(1);
+		expect(theirs[0]!.id).not.toBe(
+			db
+				.select()
+				.from(communityArtifact)
+				.where(eq(communityArtifact.communityId, communityId))
+				.all()[0]!.id
+		);
 	});
 });

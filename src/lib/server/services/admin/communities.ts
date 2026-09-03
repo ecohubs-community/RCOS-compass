@@ -12,6 +12,7 @@ import {
 import { user } from '../../db/schema/auth.js';
 import { recordAudit } from '../audit.js';
 import { validateSlug } from '../tenancy.js';
+import { seedCommunityDefaults } from '../community-setup.js';
 
 /**
  * The platform admin's view of tenants. docs/05-admin-console.md §2.
@@ -175,6 +176,11 @@ export function createTenant(
 				updatedAt: new Date(now)
 			})
 			.run();
+
+		// A new community comes with somewhere to put its own agreements. Asked
+		// for rather than inserted here: the console creates tenants, and may not
+		// reach into what a community writes.
+		seedCommunityDefaults(tx as unknown as Db, { communityId, now });
 
 		// The owner flag travels with this first invitation.
 		tx.insert(invitation)

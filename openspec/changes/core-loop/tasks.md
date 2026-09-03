@@ -1,22 +1,22 @@
 ## 0. The target, written first
 
-- [ ] 0.1 The e2e loop spec from `docs/06-testing-strategy.md` §7, written against the seeded Valle Verde fixture and left failing — see the gap → discuss → decide → find it again. It is the definition of done for this change, and "nearly there" stays visible rather than asserted
+- [x] 0.1 The e2e loop spec from `docs/06-testing-strategy.md` §7, written against the seeded Valle Verde fixture and left failing — see the gap → discuss → decide → find it again. It is the definition of done for this change, and "nearly there" stays visible rather than asserted
 - [ ] 0.2 The Valle Verde seed (`docs/06` §8) — 27 members, Layer 0 complete, Layer 1 part-written, one open discussion, one adopted decision. Written after §1, since it needs the tables, but listed here because it is part of the target rather than of the schema
 
 ## 1. Schema
 
 Names and columns from `docs/03-data-model.md` §3, which already specifies them.
 
-- [ ] 1.1 `definition` and `definition_version` as §3 gives them — including `attach_kind` with its two nullable keys, `open_proposal_id`, `provisional`, and the version's `n`, `supersedes_version_id`, `ai_assisted` and `linter_result`
-- [ ] 1.2 The three constraints, in the schema rather than in a service: the partial unique index on `(community_standard_id, section_key)`, `CHECK (scope='standard') = (section_key IS NOT NULL)`, and the check that exactly one `attach_*` is set when the scope is local
-- [ ] 1.3 `definition_draft` with `edit_token`, one live draft per definition
-- [ ] 1.4 `community_artifact`, and the *Community Agreements* row created with every community
-- [ ] 1.5 `clause_coverage`, unique on `(community_standard_id, clause_key)` — the one-owning-definition-per-clause rule made physical (§4)
-- [ ] 1.6 `discussion`, `post` (`kind message|proposal|offline_summary` with `proposal_version` — a proposal is a post, not a table), `objection`
-- [ ] 1.7 `consent_round`, `consent_eligible` (the snapshot written when a round opens), `consent_response` with `UNIQUE(round_id, membership_id)`
-- [ ] 1.8 `decision` with `UNIQUE(community_id, seq)` and `UNIQUE(community_id, idempotency_key)`, plus `decision_attendee`, `decision_clause` and `change_log`
-- [ ] 1.9 `notification` and `standard_feedback` (the table shape was missing from `docs/03` §3 and was added there during this review)
-- [ ] 1.10 Tests: migrations apply; the partial index permits many local definitions and exactly one standard definition per section; each CHECK refuses the shape it exists to refuse; a second response from one member replaces rather than duplicates; a duplicate idempotency key is refused by the database and not only by the service; coverage refuses two definitions for one clause
+- [x] 1.1 `definition` and `definition_version` as §3 gives them — including `attach_kind` with its two nullable keys, `open_proposal_id`, `provisional`, and the version's `n`, `supersedes_version_id`, `ai_assisted` and `linter_result`
+- [x] 1.2 The three constraints, in the schema rather than in a service: the partial unique index on `(community_standard_id, section_key)`, `CHECK (scope='standard') = (section_key IS NOT NULL)`, and the check that exactly one `attach_*` is set when the scope is local
+- [x] 1.3 `definition_draft` with `edit_token`, one live draft per definition
+- [x] 1.4 `community_artifact`, and the *Community Agreements* row created with every community
+- [x] 1.5 `clause_coverage`, unique on `(community_standard_id, clause_key)` — the one-owning-definition-per-clause rule made physical (§4)
+- [x] 1.6 `discussion`, `post` (`kind message|proposal|offline_summary` with `proposal_version` — a proposal is a post, not a table), `objection`
+- [x] 1.7 `consent_round`, `consent_eligible` (the snapshot written when a round opens), `consent_response` with `UNIQUE(round_id, membership_id)`
+- [x] 1.8 `decision` with `UNIQUE(community_id, seq)` and `UNIQUE(community_id, idempotency_key)`, plus `decision_attendee`, `decision_clause` and `change_log`
+- [x] 1.9 `notification` and `standard_feedback` (the table shape was missing from `docs/03` §3 and was added there during this review)
+- [x] 1.10 Tests: migrations apply; the partial index permits many local definitions and exactly one standard definition per section; each CHECK refuses the shape it exists to refuse; a second response from one member replaces rather than duplicates; a duplicate idempotency key is refused by the database and not only by the service; coverage refuses two definitions for one clause
 
 ## 2. Definitions and drafts
 
