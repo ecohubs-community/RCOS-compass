@@ -1,7 +1,7 @@
 import { randomBytes } from 'node:crypto';
 import { and, eq, isNull } from 'drizzle-orm';
 import { error } from '@sveltejs/kit';
-import { requirePermission, type Ctx } from '../auth/guard.js';
+import { requirePermission, requireWritableCommunity, type Ctx } from '../auth/guard.js';
 import { getDb, type Db } from '../db/index.js';
 import { newId } from '../db/id.js';
 import {
@@ -86,6 +86,7 @@ export function createDefinition(
 	options: { db?: Db } = {}
 ): Definition {
 	requirePermission(ctx, 'definition.draft');
+	requireWritableCommunity(ctx);
 	const db = options.db ?? getDb();
 	const now = ctx.now();
 
@@ -299,6 +300,7 @@ export function saveDraft(
 	options: { db?: Db } = {}
 ): DraftView {
 	requirePermission(ctx, 'definition.draft');
+	requireWritableCommunity(ctx);
 	getDefinition(ctx, input.definitionId, options);
 
 	const db = options.db ?? getDb();

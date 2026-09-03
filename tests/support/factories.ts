@@ -25,14 +25,19 @@ export function makeUser(db: Db, overrides: { email?: string; verified?: boolean
 
 export function makeCommunity(
 	db: Db,
-	overrides: { slug?: string; status?: 'active' | 'suspended' | 'deleted' } = {}
+	overrides: {
+		slug?: string;
+		status?: 'active' | 'suspended' | 'deleted';
+		/** Decision references are year-stamped in it, so tests need to set it. */
+		timezone?: string;
+	} = {}
 ) {
 	const row = {
 		id: newId(),
 		slug: overrides.slug ?? `community-${newId().slice(-8)}`,
 		name: 'Valle Verde',
 		locale: 'en',
-		timezone: 'America/Guayaquil',
+		timezone: overrides.timezone ?? 'America/Guayaquil',
 		status: overrides.status ?? ('active' as const),
 		suspendedReason: null,
 		deletedAt: null,

@@ -44,17 +44,17 @@ Names and columns from `docs/03-data-model.md` §3, which already specifies them
 
 ## 5. Freeze and the decision register
 
-- [ ] 5.1 `services/decisions.ts` — the freeze in one transaction: decision, version, change-log entry, and the definition's adopted version
-- [ ] 5.2 `seq` from `max(seq) + 1` inside that transaction, `ref = DEC-<year>-<seq>` with the year taken from the community's timezone
-- [ ] 5.3 Idempotency: insert on the unique key, return the existing decision on conflict rather than raising
-- [ ] 5.4 The interim adoption rule — provisional while the Decision Matrix is incomplete — and the ratification sweep that lists them once it is adopted
-- [ ] 5.5 Ratification Records rendered from the adopting decision for `filled_from_decision` sections, with no `definition` row created
-- [ ] 5.6 Unresolved objections counted onto the decision and shown wherever it appears
-- [ ] 5.7 `post.frozen_decision_id` set inside the transaction, so a proposal freezes once — the idempotency key stops one person submitting twice and cannot stop two people submitting once each
-- [ ] 5.8 Supersession: a re-freeze marks the previous decision superseded and names its replacement, changing nothing about it otherwise
-- [ ] 5.9 `decision_clause` storing standard, version and reference as quoted at decision time, alongside the stable clause key; `decision_attendee` with consent-to-publish captured at the freeze, because it cannot be collected retroactively in P6
-- [ ] 5.10 Writes refused while the community is suspended, freezing included
-- [ ] 5.11 Tests: the `decisions` spec in full — three consecutive numbers, a rolled-back freeze that consumes none, 23:59 on 31 December in a non-UTC community, a double submit producing one decision, and two stewards freezing at once producing one
+- [x] 5.1 `services/decisions.ts` — the freeze in one transaction: decision, version, change-log entry, and the definition's adopted version
+- [x] 5.2 `seq` from `max(seq) + 1` inside that transaction, `ref = DEC-<year>-<seq>` with the year taken from the community's timezone
+- [x] 5.3 Idempotency: insert on the unique key, return the existing decision on conflict rather than raising
+- [x] 5.4 The interim adoption rule — provisional while the Decision Matrix is incomplete — and the ratification sweep that lists them once it is adopted
+- [x] 5.5 Ratification Records rendered from the adopting decision for `filled_from_decision` sections, with no `definition` row created
+- [x] 5.6 Unresolved objections counted onto the decision and shown wherever it appears
+- [x] 5.7 `post.frozen_decision_id` set inside the transaction, so a proposal freezes once — the idempotency key stops one person submitting twice and cannot stop two people submitting once each
+- [x] 5.8 Supersession: a re-freeze marks the previous decision superseded and names its replacement, changing nothing about it otherwise
+- [x] 5.9 `decision_clause` storing standard, version and reference as quoted at decision time, alongside the stable clause key; `decision_attendee` with consent-to-publish captured at the freeze, because it cannot be collected retroactively in P6
+- [x] 5.10 Writes refused while the community is suspended, freezing included
+- [x] 5.11 Tests: the `decisions` spec in full — three consecutive numbers, a rolled-back freeze that consumes none, 23:59 on 31 December in a non-UTC community, a double submit producing one decision, and two stewards freezing at once producing one
 
 ## 6. Readiness and compliance
 

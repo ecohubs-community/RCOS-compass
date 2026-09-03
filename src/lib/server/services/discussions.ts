@@ -1,6 +1,6 @@
 import { and, desc, eq } from 'drizzle-orm';
 import { error } from '@sveltejs/kit';
-import { requirePermission, type Ctx } from '../auth/guard.js';
+import { requirePermission, requireWritableCommunity, type Ctx } from '../auth/guard.js';
 import { getDb, type Db } from '../db/index.js';
 import { newId } from '../db/id.js';
 import { definition } from '../db/schema/definitions.js';
@@ -58,6 +58,7 @@ export function openDiscussion(
 	options: { db?: Db } = {}
 ): Discussion {
 	requirePermission(ctx, 'discussion.create');
+	requireWritableCommunity(ctx);
 	const db = options.db ?? getDb();
 	const now = ctx.now();
 
@@ -135,6 +136,7 @@ export function addMessage(
 	options: { db?: Db } = {}
 ): Post {
 	requirePermission(ctx, 'discussion.comment');
+	requireWritableCommunity(ctx);
 	const found = getDiscussion(ctx, input.discussionId, options);
 	requireWritable(found);
 
@@ -162,6 +164,7 @@ export function addProposal(
 	options: { db?: Db } = {}
 ): Post {
 	requirePermission(ctx, 'proposal.create');
+	requireWritableCommunity(ctx);
 	const found = getDiscussion(ctx, input.discussionId, options);
 	requireWritable(found);
 
@@ -198,6 +201,7 @@ export function takeOffline(
 	options: { db?: Db } = {}
 ): { summary: Post; proposal: Post } {
 	requirePermission(ctx, 'discussion.comment');
+	requireWritableCommunity(ctx);
 	const found = getDiscussion(ctx, input.discussionId, options);
 	requireWritable(found);
 

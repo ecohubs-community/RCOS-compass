@@ -26,7 +26,8 @@ export type TenantService = {
 		| 'discussion'
 		| 'proposal'
 		| 'objection'
-		| 'consentRound';
+		| 'consentRound'
+		| 'decision';
 };
 
 const services: TenantService[] = [];

@@ -1,6 +1,6 @@
 import { and, count, eq, isNull } from 'drizzle-orm';
 import { error } from '@sveltejs/kit';
-import { requirePermission, type Ctx } from '../auth/guard.js';
+import { requirePermission, requireWritableCommunity, type Ctx } from '../auth/guard.js';
 import { getDb, type Db } from '../db/index.js';
 import { newId } from '../db/id.js';
 import {
@@ -92,6 +92,7 @@ export const consentRoundProvider: VotingProvider = {
 
 	openRound(ctx: Ctx, input: OpenRoundInput, options: { db?: Db } = {}): Round {
 		requirePermission(ctx, 'consent.open');
+		requireWritableCommunity(ctx);
 		const db = options.db ?? getDb();
 		const now = ctx.now();
 
@@ -168,6 +169,7 @@ export const consentRoundProvider: VotingProvider = {
 		options: { db?: Db } = {}
 	): Round {
 		requirePermission(ctx, 'consent.respond');
+		requireWritableCommunity(ctx);
 		const db = options.db ?? getDb();
 		const now = ctx.now();
 

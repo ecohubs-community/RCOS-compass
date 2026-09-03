@@ -8,10 +8,13 @@ import '../../src/lib/server/services/invitations.js';
 import '../../src/lib/server/services/definitions.js';
 import '../../src/lib/server/services/discussions.js';
 import '../../src/lib/server/services/objections.js';
+import '../../src/lib/server/services/decisions.js';
 import { inviteMember } from '../../src/lib/server/services/invitations.js';
 import { createDefinition } from '../../src/lib/server/services/definitions.js';
 import { addProposal, openDiscussion } from '../../src/lib/server/services/discussions.js';
 import { raiseObjection } from '../../src/lib/server/services/objections.js';
+import { freeze } from '../../src/lib/server/services/decisions.js';
+import { getStandard } from '../../src/lib/server/standard/index.js';
 import { newId } from '../../src/lib/server/db/id.js';
 import { communityArtifact } from '../../src/lib/server/db/schema/definitions.js';
 import { communityStandard } from '../../src/lib/server/db/schema/tenancy.js';
@@ -112,6 +115,26 @@ beforeEach(() => {
 		{ db }
 	);
 
+	// A decision in A, so `decisions.get` has a subject to be refused.
+	const countable = getStandard('rcos-core', '0.1').countableClauses()[0]!;
+	const decidable = openDiscussion(
+		ctxA,
+		{ title: 'Exit', about: { kind: 'clause', clauseKey: countable.key } },
+		{ db }
+	);
+	addProposal(ctxA, { discussionId: decidable.id, body: 'Members may leave.' }, { db });
+	const decisionInA = freeze(
+		ctxA,
+		{
+			discussionId: decidable.id,
+			idempotencyKey: 'cross-tenant-seed',
+			title: 'Exit',
+			type: 'strategic',
+			mechanism: 'consent'
+		},
+		{ db }
+	);
+
 	world = {
 		// Bob is a steward — the most privileged ordinary role — of B. If the
 		// boundary held only for members, it would not be a boundary.
@@ -129,7 +152,8 @@ beforeEach(() => {
 			communityArtifact: artifactInA,
 			discussion: discussionInA.id,
 			proposal: proposalInA.id,
-			objection: objectionInA.id
+			objection: objectionInA.id,
+			decision: decisionInA.id
 		}
 	};
 });

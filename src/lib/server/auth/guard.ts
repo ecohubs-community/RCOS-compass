@@ -39,6 +39,28 @@ export function requirePermission(ctx: Ctx, capability: Capability): void {
 	}
 }
 
+/**
+ * Writes stop while a community is suspended; reads and exports do not.
+ *
+ * Suspension is an operational state, not a punishment applied to the record: a
+ * community that cannot pay its bill must still be able to read what it agreed
+ * and take it with them (docs/05-admin-console.md §3.3). So this guards the write
+ * paths specifically, rather than being folded into `requirePermission`, which
+ * reads call too.
+ *
+ * A deleted community never reaches here — the pipeline answers 404 for it
+ * before a service is called.
+ */
+export function requireWritableCommunity(ctx: Ctx): void {
+	if (ctx.community.status === 'suspended') {
+		error(
+			409,
+			ctx.community.suspendedReason ??
+				'This community is suspended. You can still read and export everything.'
+		);
+	}
+}
+
 /** Non-throwing form, for shaping what a page offers rather than guarding it. */
 export function ctxCan(ctx: Ctx, capability: Capability): boolean {
 	return can({ role: ctx.membership.role, isOwner: ctx.membership.isOwner }, capability);
