@@ -279,6 +279,15 @@ MAX_UPLOAD_MB=25
 LOG_LEVEL=info
 ```
 
+**A plain `node` invocation reads no `.env`.** Vite loads it for `pnpm dev` and
+`pnpm build`; `adapter-node`'s output is an ordinary Node server that sees only
+the real environment. So `pnpm preview` and `pnpm db:migrate` pass
+`--env-file-if-exists=.env`, and the container does not — an image expecting a
+bundled `.env` would either ship secrets or start misconfigured. Without the
+flag the failure is a configuration error that reads exactly like a missing
+variable, which is how an hour goes into a `.env` that was correct all along.
+A test asserts it for every script (`tests/unit/package-scripts.test.ts`).
+
 **`ORIGIN` is not optional in production.** `adapter-node` builds `event.url`
 from it, and left unset it assumes `http://localhost`. SvelteKit then compares
 that against the browser's real `Origin` and refuses every form submission with
