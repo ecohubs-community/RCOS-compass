@@ -39,6 +39,29 @@ export type Clause = {
 	i18n: Record<Locale, string>;
 };
 
+/**
+ * What a section *is*, as distinct from what it says. docs/12 §"An open question".
+ *
+ * Most sections are written by the community, and those are the only ones an
+ * artifact's completeness may depend on. The rest exist in the template for
+ * other reasons, and asking a community to fill them in would be 24 pieces of
+ * busywork standing between them and compliance:
+ *
+ *  - `filled_from_decision` — every Ratification Record. Compass already holds
+ *    one: the decision that adopted the artifact, with its mechanism and tally
+ *    recorded at freeze time. Writing it a second time by hand is a chance for
+ *    the two to disagree.
+ *  - `derived` — a view over other sections (the Role Registry's summary table),
+ *    generated so it cannot fall out of step with what it summarises.
+ *  - `instance_record` — the *shape* of an entry that recurs, shown in the
+ *    template as a specimen. One is written per event, not one per community.
+ */
+export type SectionDisposition =
+	| 'authored'
+	| 'filled_from_decision'
+	| 'derived'
+	| 'instance_record';
+
 export type Section = {
 	key: string;
 	artifact: string;
@@ -46,6 +69,8 @@ export type Section = {
 	clauseRefs: string[];
 	/** Refs this section owns. Derived upstream; the invariant is checked here too. */
 	ownsClauses: string[];
+	disposition: SectionDisposition;
+	dispositionNote?: string | null;
 	i18n: Record<
 		Locale,
 		{

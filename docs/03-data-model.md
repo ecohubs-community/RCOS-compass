@@ -241,8 +241,27 @@ conflict check compares against.
 ## 3b. Artifact completeness with local content
 
 ```
-artifact_complete(a) := every section of a with scope='standard' has an adopted definition
+artifact_complete(a) := every AUTHORED section of a with scope='standard'
+                        has an adopted definition
 ```
+
+**Authored** is the section disposition the standard data carries
+(`docs/12-clause-ownership-report.md`). Of RCOS-Core 0.1's 118 sections, 94 are
+authored; the other 24 are not things a community writes, and counting them would
+put that much busywork between a community and compliance:
+
+- **19 `filled_from_decision`** — every Ratification Record. Compass writes it
+  from the decision that adopted the artifact, at freeze time, so the record and
+  the register cannot disagree. It is present in exports and on the public index;
+  it is simply never asked for.
+- **4 `instance_record`** — a learning-log entry, two version-history lines, an
+  experiment outcome. These are the shape of an entry that recurs, one per event.
+- **1 `derived`** — the Role Registry's summary table, generated from the roles
+  defined below it.
+
+An artifact with no authored section at all would be complete on creation, which
+would read as work that never happened; `scripts/check-standard.mjs` refuses that
+shape.
 
 Local definitions attached to an RCOS artifact are rendered under it and are
 **excluded from its completeness computation and its percentage**. They can

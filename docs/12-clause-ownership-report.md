@@ -81,18 +81,45 @@ generator and in `pnpm check:standard`, so it cannot regress.
    documented right"* — went to `member-obligations` rather than `member-rights`,
    because the constraint binds obligations. It reads naturally either way.
 
-## An open question for P3, not for you now
+## Resolved: the 25 sections that carry no clause reference
 
-Five artifacts have a **ratification-record** section that owns no clause. Under
-`artifact_complete` (`docs/03-data-model.md` §3b), a community must adopt a
-definition for each of them before the artifact counts as complete — even though
-Compass already *has* that information: the decision that adopted the artifact is
-the ratification record.
+*Decided 3 September 2026. Stefan chose auto-fill.*
 
-Either those sections should be filled automatically from the decision that
-adopted the artifact, or artifact completeness should skip them. It affects
-whether compliance is reachable without busywork, and it belongs with the
-completeness computation in P3.
+Twenty-five of the 118 sections reference no clause. They were not one problem
+but three, and each now carries an explicit **section disposition** in
+`ownership.yaml`, checked by the generator and again by
+`scripts/check-standard.mjs`:
+
+| Disposition | Count | What it means |
+|---|---|---|
+| `authored` | 94 | A community writes it. The only kind artifact completeness counts. |
+| `filled_from_decision` | 19 | Every Ratification Record. |
+| `instance_record` | 4 | The shape of an entry that recurs, shown as a specimen. |
+| `derived` | 1 | A view over other sections, generated. |
+
+**The 19 Ratification Records.** A ratification record is "adopted on `<date>`,
+by `<mechanism>`, `<tally>`, present `<who>`" — which is the adopting decision,
+information Compass already holds in the register with its mechanism and tally
+recorded at freeze time. Asking for it again would be nineteen pieces of busywork
+standing between a community and compliance, and nineteen chances to record a
+tally that disagrees with the register. The platform writes them.
+
+**The 4 instance records** — a learning-log entry, two version-history lines, an
+experiment outcome — are specimens (`<YYYY-MM-DD> — <Short title>`), not
+definitions with one answer per community. One is written per event, forever.
+
+**The 1 derived view** is the Role Registry's summary table, generated from the
+roles defined below it so the two cannot disagree.
+
+The twenty-fifth, `experiment-template.expiry-and-renewal`, is a real definition
+that owns no clause only because the experiment MUSTs moved to the Change
+Protocol (rule 2). It is listed as `authored` deliberately, so the judgement is
+recorded rather than inferred from silence.
+
+**Still open, for whoever builds the freeze path in P3:** RCOS names fields on a
+Ratification Record that a decision does not carry one-to-one — quorum, and who
+chaired. What maps will be mapped; the leftovers go to Stefan as a short list
+rather than being invented.
 
 ## Also worth knowing
 

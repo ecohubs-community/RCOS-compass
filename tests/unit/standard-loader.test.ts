@@ -2,6 +2,7 @@ import { execFileSync } from 'node:child_process';
 import { cpSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import yaml from 'js-yaml';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import {
 	StandardView,
@@ -161,6 +162,67 @@ describe('the ownership invariant', () => {
 	});
 });
 
+describe('what a section is, not only what it says', () => {
+	it('classifies every section, so none is silently treated as work', () => {
+		const allowed = ['authored', 'filled_from_decision', 'derived', 'instance_record'];
+		for (const section of view.sections) {
+			expect(allowed, `${section.key}`).toContain(section.disposition);
+		}
+	});
+
+	it('leaves 94 sections for a community to write, not 118', () => {
+		// The 24 difference is the busywork this classification removes: 19
+		// Ratification Records, 4 specimen entries and 1 generated table.
+		expect(view.sections).toHaveLength(118);
+		expect(view.authoredSections()).toHaveLength(94);
+	});
+
+	it('gives every mandatory artifact a Ratification Record the platform fills', () => {
+		for (const artifact of view.mandatoryArtifacts()) {
+			const filled = view.sectionsFilledFromDecision(artifact.key);
+			// Every mandatory artifact has exactly one, and none of them is
+			// something a community is asked for.
+			expect(filled.length, `${artifact.key}`).toBeLessThanOrEqual(1);
+			for (const section of filled) {
+				expect(section.key).toMatch(/ratification-record$/);
+				expect(view.authoredSectionsOf(artifact.key)).not.toContain(section);
+			}
+		}
+		expect(view.sections.filter((s) => s.disposition === 'filled_from_decision')).toHaveLength(19);
+	});
+
+	it('never lets a clause be answered by text nobody writes', () => {
+		// A `derived` or `filled_from_decision` section owning a clause would
+		// count that clause against something no member is ever asked for.
+		for (const section of view.sections) {
+			if (section.disposition === 'authored') continue;
+			expect(section.ownsClauses, `${section.key}`).toEqual([]);
+		}
+	});
+
+	it('leaves every mandatory artifact something real to write', () => {
+		for (const artifact of view.mandatoryArtifacts()) {
+			expect(view.authoredSectionsOf(artifact.key).length, `${artifact.key}`).toBeGreaterThan(0);
+		}
+	});
+
+	it('explains every section it does not ask for', () => {
+		for (const section of view.sections) {
+			if (section.disposition === 'authored') continue;
+			expect(section.dispositionNote, `${section.key} needs an explanation`).toBeTruthy();
+		}
+	});
+
+	it('keeps the one authored section that answers nothing, on purpose', () => {
+		// Its clauses moved to the Change Protocol, so it is written and counts
+		// toward nothing. Recorded rather than inferred from silence.
+		const section = view.section('experiment-template.expiry-and-renewal')!;
+		expect(section.disposition).toBe('authored');
+		expect(section.clauseRefs).toEqual([]);
+		expect(section.ownsClauses).toEqual([]);
+	});
+});
+
 describe('artifacts and sections', () => {
 	it('resolves an artifact to its sections in order', () => {
 		const sections = view.sectionsOf('membership-agreement');
@@ -248,6 +310,28 @@ describe('the vendored copy is pinned to its source', () => {
 
 	it('passes as vendored', () => {
 		expect(() => run()).not.toThrow();
+	});
+
+	it('fails when a section owns a clause but is not authored', () => {
+		// Proving the invariant fires rather than trusting it: the checker is the
+		// only thing standing between a bad regeneration and a readiness number
+		// computed against text nobody is ever asked to write.
+		const file = join(standardRoot, 'rcos-core', '0.1', 'sections.yaml');
+		const original = readFileSync(file, 'utf8');
+		const sections = yaml.load(original) as { key: string; disposition: string }[];
+		sections.find((x) => x.key === 'purpose-charter.primary-purpose')!.disposition = 'derived';
+		writeFileSync(file, yaml.dump(sections, { lineWidth: 100, noRefs: true, sortKeys: false }));
+		try {
+			run();
+			expect.unreachable('the section invariant should have failed');
+		} catch (error) {
+			const output = String((error as { stdout?: string; stderr?: string }).stderr ?? '');
+			// It trips the hash check too, which is correct — but the section
+			// invariant is the one being proved here.
+			expect(output).toContain('only an authored section can answer one');
+		} finally {
+			writeFileSync(file, original);
+		}
 	});
 
 	it('fails when a vendored file is edited by hand', () => {

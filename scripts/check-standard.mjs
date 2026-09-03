@@ -109,6 +109,36 @@ for (const { id, version } of manifest.standards ?? []) {
 		}
 	}
 
+	// Every section says what it is. A section with no disposition would be
+	// treated as something a community writes, which is how a Ratification Record
+	// ends up in a queue of things to decide.
+	const SECTION_DISPOSITIONS = ['authored', 'filled_from_decision', 'derived', 'instance_record'];
+	for (const section of sections) {
+		const where = `${id}@${version} ${section.key}`;
+		if (!SECTION_DISPOSITIONS.includes(section.disposition)) {
+			note(`${where}: unknown section disposition "${section.disposition}".`);
+			continue;
+		}
+		// A clause cannot be answered by text nobody is ever asked to write.
+		if ((section.ownsClauses ?? []).length > 0 && section.disposition !== 'authored') {
+			note(
+				`${where}: disposition "${section.disposition}" but it owns ` +
+					`${section.ownsClauses.length} clause(s) — only an authored section can answer one.`
+			);
+		}
+	}
+
+	// Every mandatory artifact must have something a community can actually
+	// write, or completing it would be a no-op that nonetheless reads as work.
+	for (const artifact of artifacts.filter((a) => a.mandatory)) {
+		const authored = sections.filter(
+			(s) => s.artifact === artifact.key && s.disposition === 'authored'
+		);
+		if (authored.length === 0) {
+			note(`${id}@${version} ${artifact.key}: mandatory, but no section is authored.`);
+		}
+	}
+
 	// Every section that claims to own a clause must be believed by that clause.
 	for (const section of sections) {
 		for (const ref of section.ownsClauses ?? []) {

@@ -11,7 +11,7 @@
 
 - [x] 2.1 Resolve the 57 multiply-claimed clauses — mechanically where the sections share an artifact, by judgement where they do not
 - [x] 2.2 Disposition the 12 unmapped MUST clauses as `satisfied_by_platform` or `not_a_definition`, each with an explanation
-- [ ] 2.3 *(open)* Resolve the 25 sections that carry no clause reference — they are mostly ratification records; see the open question in `docs/12-clause-ownership-report.md`, which belongs with artifact completeness in P3
+- [x] 2.3 Resolve the 25 sections that carry no clause reference — each now carries a section disposition (`authored` 94, `filled_from_decision` 19, `instance_record` 4, `derived` 1); reasoning in `docs/12-clause-ownership-report.md`
 - [x] 2.4 `content/standard-data/rcos-core-0.1/ownership.yaml`, consumed by the generator so the judgement is reviewable and the script stays pure
 - [x] 2.5 `docs/12-clause-ownership-report.md` — every decision with its reasoning, for Stefan to correct
 

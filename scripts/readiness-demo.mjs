@@ -22,6 +22,17 @@ const read = (name) => yaml.load(readFileSync(join(DIR, `${name}.yaml`), 'utf8')
 
 const clauses = read('clauses');
 const sections = read('sections');
+/**
+ * Only the sections a community actually writes decide completeness
+ * (docs/03-data-model.md §3b). Ratification Records are filled from the adopting
+ * decision, the Role Registry's summary table is generated, and the specimen
+ * entries recur per event — counting them would make every artifact look four
+ * questions further away than it is.
+ */
+const authoredKeys = new Set(
+	sections.filter((s) => s.disposition === 'authored').map((s) => s.key)
+);
+const authoredOf = (artifact) => artifact.sectionKeys.filter((k) => authoredKeys.has(k));
 const artifacts = read('artifacts');
 const meta = read('meta');
 
@@ -77,7 +88,7 @@ console.log(
 
 // Compliance is binary and counts artifacts, not clauses.
 const mandatory = artifacts.filter((a) => a.mandatory);
-const incomplete = mandatory.filter((a) => !a.sectionKeys.every((k) => adopted.has(k)));
+const incomplete = mandatory.filter((a) => !authoredOf(a).every((k) => adopted.has(k)));
 const compliant = incomplete.length === 0;
 
 console.log('\nCompliance (the outward claim)');
@@ -88,12 +99,12 @@ console.log(
 		: `Not yet RCOS-Core compliant — ${incomplete.length} of ${mandatory.length} mandatory artifacts incomplete.`
 );
 for (const artifact of incomplete.slice(0, 5)) {
-	const missing = artifact.sectionKeys.filter((k) => !adopted.has(k)).length;
+	const missing = authoredOf(artifact).filter((k) => !adopted.has(k)).length;
 	console.log(
 		'    · %s — %d of %d sections unanswered',
 		artifact.key,
 		missing,
-		artifact.sectionKeys.length
+		authoredOf(artifact).length
 	);
 }
 if (incomplete.length > 5) console.log('    · … and %d more', incomplete.length - 5);

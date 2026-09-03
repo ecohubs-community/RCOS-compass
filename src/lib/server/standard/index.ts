@@ -206,6 +206,32 @@ export class StandardView {
 		return this.standard.artifacts.filter((a) => a.mandatory);
 	}
 
+	/**
+	 * The sections a community actually writes.
+	 *
+	 * This is the denominator of artifact completeness (docs/03-data-model.md
+	 * §3b). The others are filled by the platform, generated, or written once per
+	 * event — counting them would put 24 pieces of busywork between a community
+	 * and compliance, most of them Ratification Records the tool already holds.
+	 */
+	authoredSections(): Section[] {
+		return this.standard.sections.filter((s) => s.disposition === 'authored');
+	}
+
+	/** The authored sections of one artifact, in document order. */
+	authoredSectionsOf(artifactKey: string): Section[] {
+		return this.sectionsOf(artifactKey).filter((s) => s.disposition === 'authored');
+	}
+
+	/**
+	 * The Ratification Records, which the platform fills from the decision that
+	 * adopted each artifact. Exposed so the freeze path can find them by artifact
+	 * rather than by matching on a key suffix.
+	 */
+	sectionsFilledFromDecision(artifactKey: string): Section[] {
+		return this.sectionsOf(artifactKey).filter((s) => s.disposition === 'filled_from_decision');
+	}
+
 	/** Every number the product shows is derived here, never hard-coded. */
 	counts() {
 		const clauses = this.standard.clauses;
@@ -220,6 +246,7 @@ export class StandardView {
 			artifacts: this.standard.artifacts.length,
 			mandatoryArtifacts: this.mandatoryArtifacts().length,
 			sections: this.standard.sections.length,
+			authoredSections: this.authoredSections().length,
 			glossary: this.standard.glossary.length
 		};
 	}
