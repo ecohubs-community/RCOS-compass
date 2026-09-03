@@ -30,10 +30,10 @@ Names and columns from `docs/03-data-model.md` §3, which already specifies them
 
 ## 3. Discussions, posts and proposals
 
-- [ ] 3.1 `services/discussions.ts` — open against a clause or a definition, post, list; registered
-- [ ] 3.2 Proposals as `post` rows with `kind = 'proposal'` and a `proposal_version` — distinct in the UI and in the data, without a second table that would have to be kept in step with the thread
-- [ ] 3.3 *Take offline*: mark decided offline with a summary and the proposal that came out of the room, reaching the same freeze
-- [ ] 3.4 Tests: the `discussions` spec in full — a member may propose and may not freeze; a freeze with no proposal is refused and says why; an offline decision records that it happened offline
+- [x] 3.1 `services/discussions.ts` — open against a clause or a definition, post, list; registered
+- [x] 3.2 Proposals as `post` rows with `kind = 'proposal'` and a `proposal_version` — distinct in the UI and in the data, without a second table that would have to be kept in step with the thread
+- [x] 3.3 *Take offline*: mark decided offline with a summary and the proposal that came out of the room, reaching the same freeze
+- [x] 3.4 Tests: the `discussions` spec in full — a member may propose and may not freeze; a freeze with no proposal is refused and says why; an offline decision records that it happened offline
 
 ## 4. Objections and consent rounds
 

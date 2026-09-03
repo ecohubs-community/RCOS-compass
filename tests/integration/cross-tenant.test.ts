@@ -6,8 +6,10 @@ import { tenantServices } from '../../src/lib/server/services/registry.js';
 import '../../src/lib/server/services/members.js';
 import '../../src/lib/server/services/invitations.js';
 import '../../src/lib/server/services/definitions.js';
+import '../../src/lib/server/services/discussions.js';
 import { inviteMember } from '../../src/lib/server/services/invitations.js';
 import { createDefinition } from '../../src/lib/server/services/definitions.js';
+import { openDiscussion } from '../../src/lib/server/services/discussions.js';
 import { newId } from '../../src/lib/server/db/id.js';
 import { communityArtifact } from '../../src/lib/server/db/schema/definitions.js';
 import { communityStandard } from '../../src/lib/server/db/schema/tenancy.js';
@@ -91,6 +93,12 @@ beforeEach(() => {
 	);
 	const bobInB = makeMembership(db, communityB.id, bob.id, { role: 'steward', isOwner: true });
 
+	const discussionInA = openDiscussion(
+		ctxA,
+		{ title: 'Exit and separation', about: { kind: 'clause', clauseKey: '3.6.1' } },
+		{ db }
+	);
+
 	world = {
 		// Bob is a steward — the most privileged ordinary role — of B. If the
 		// boundary held only for members, it would not be a boundary.
@@ -105,7 +113,8 @@ beforeEach(() => {
 			community: communityA.id,
 			invitation: invitationInA.id,
 			definition: definitionInA.id,
-			communityArtifact: artifactInA
+			communityArtifact: artifactInA,
+			discussion: discussionInA.id
 		}
 	};
 });

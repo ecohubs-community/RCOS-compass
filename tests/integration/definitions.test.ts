@@ -18,6 +18,7 @@ import {
 	saveDraft
 } from '../../src/lib/server/services/definitions.js';
 import { createTestDb } from '../support/db.js';
+import { catchRefusal } from '../support/errors.js';
 import { makeCommunity, makeMembership, makeUser } from '../support/factories.js';
 
 /**
@@ -111,20 +112,16 @@ describe('a definition answers one section, or nothing at all', () => {
 
 		// The index would refuse it anyway; asking first means the member is told
 		// what to do instead of being shown a constraint violation.
-		type Refusal = { status?: number; body?: { message?: string } };
-		let thrown: Refusal | null = null;
-		try {
+		const refusal = catchRefusal(() =>
 			createDefinition(
 				ctx,
 				{ scope: 'standard', sectionKey: 'purpose-charter.primary-purpose' },
 				{ db }
-			);
-		} catch (problem) {
-			thrown = problem as Refusal;
-		}
+			)
+		);
 
-		expect(thrown?.status).toBe(409);
-		expect(thrown?.body?.message).toMatch(/already has a definition/);
+		expect(refusal?.status).toBe(409);
+		expect(refusal?.message).toMatch(/already has a definition/);
 		expect(db.select().from(definition).all()).toHaveLength(1);
 	});
 
