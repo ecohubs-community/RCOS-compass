@@ -1,19 +1,22 @@
 ## 0. The target, written first
 
 - [ ] 0.1 The e2e loop spec from `docs/06-testing-strategy.md` §7, written against the seeded Valle Verde fixture and left failing — see the gap → discuss → decide → find it again. It is the definition of done for this change, and "nearly there" stays visible rather than asserted
-- [ ] 0.2 The Valle Verde seed (`docs/06` §8): 27 members, Layer 0 complete, Layer 1 part-written, one open discussion, one adopted decision — the state the mockups show
+- [ ] 0.2 The Valle Verde seed (`docs/06` §8) — 27 members, Layer 0 complete, Layer 1 part-written, one open discussion, one adopted decision. Written after §1, since it needs the tables, but listed here because it is part of the target rather than of the schema
 
 ## 1. Schema
 
-- [ ] 1.1 `definition` (scope `standard|local`, nullable `section_key`, `local_artifact_id?`, `attached_to_artifact?`, `adopted_version_id?`, `provisional`, `review_due_at?`) and `definition_version` (immutable body, author, frozen_at, decision_id)
-- [ ] 1.2 The partial unique index `UNIQUE(community_standard_id, section_key) WHERE section_key IS NOT NULL` — one answer per standard section, many local definitions
-- [ ] 1.3 `draft` with `edit_token`, one live draft per definition
-- [ ] 1.4 `local_artifact`, and the *Community Agreements* row created with every community
-- [ ] 1.5 `discussion`, `post`, `proposal`, `objection`
-- [ ] 1.6 `consent_round`, `consent_response` with `UNIQUE(round_id, user_id)`
-- [ ] 1.7 `decision` with `UNIQUE(community_id, seq)` and `UNIQUE(community_id, idempotency_key)`, plus `change_log_entry`
-- [ ] 1.8 `notification` and `standard_feedback`
-- [ ] 1.9 Tests: migrations apply; the partial index permits many local definitions and exactly one standard definition per section; a second response from one member replaces rather than duplicates; a duplicate idempotency key is refused by the database, not only by the service
+Names and columns from `docs/03-data-model.md` §3, which already specifies them.
+
+- [ ] 1.1 `definition` and `definition_version` as §3 gives them — including `attach_kind` with its two nullable keys, `open_proposal_id`, `provisional`, and the version's `n`, `supersedes_version_id`, `ai_assisted` and `linter_result`
+- [ ] 1.2 The three constraints, in the schema rather than in a service: the partial unique index on `(community_standard_id, section_key)`, `CHECK (scope='standard') = (section_key IS NOT NULL)`, and the check that exactly one `attach_*` is set when the scope is local
+- [ ] 1.3 `definition_draft` with `edit_token`, one live draft per definition
+- [ ] 1.4 `community_artifact`, and the *Community Agreements* row created with every community
+- [ ] 1.5 `clause_coverage`, unique on `(community_standard_id, clause_key)` — the one-owning-definition-per-clause rule made physical (§4)
+- [ ] 1.6 `discussion`, `post` (`kind message|proposal|offline_summary` with `proposal_version` — a proposal is a post, not a table), `objection`
+- [ ] 1.7 `consent_round`, `consent_eligible` (the snapshot written when a round opens), `consent_response` with `UNIQUE(round_id, membership_id)`
+- [ ] 1.8 `decision` with `UNIQUE(community_id, seq)` and `UNIQUE(community_id, idempotency_key)`, plus `decision_attendee`, `decision_clause` and `change_log`
+- [ ] 1.9 `notification` and `standard_feedback` (the table shape was missing from `docs/03` §3 and was added there during this review)
+- [ ] 1.10 Tests: migrations apply; the partial index permits many local definitions and exactly one standard definition per section; each CHECK refuses the shape it exists to refuse; a second response from one member replaces rather than duplicates; a duplicate idempotency key is refused by the database and not only by the service; coverage refuses two definitions for one clause
 
 ## 2. Definitions and drafts
 
@@ -21,12 +24,14 @@
 - [ ] 2.2 Scope rules: a `local` definition may not name a section; a `standard` one must; the second definition for a section is refused and the existing one offered
 - [ ] 2.3 Draft autosave with `edit_token`, rotated on each save; a stale token refuses and returns who else is editing and what changed
 - [ ] 2.4 `standard_feedback` from the "RCOS should require this" checkbox, stored with the community's own text
-- [ ] 2.5 Tests: the `definitions` spec in full, including a local definition that names a section being refused, a stale token that does not overwrite, and the cross-tenant case the registry suite adds automatically
+- [ ] 2.5 Markdown rendered server-side to a sanitised subtree; no component passes external text to a raw-HTML sink
+- [ ] 2.6 Tests: the `definitions` spec in full, including a local definition that names a section being refused, a stale token that does not overwrite, and the cross-tenant case the registry suite adds automatically
+- [ ] 2.7 Tests: `docs/06` §6.6 in full — a definition body, a post and a proposal each carrying `<img onerror>`, a `javascript:` URL and a Markdown image payload render inert, plus the grep test that no `{@html}` receives external data. This phase introduces the risk, so it carries the suite
 
 ## 3. Discussions, posts and proposals
 
 - [ ] 3.1 `services/discussions.ts` — open against a clause or a definition, post, list; registered
-- [ ] 3.2 Proposals as their own records with versions, authors, and the actions that hang off them
+- [ ] 3.2 Proposals as `post` rows with `kind = 'proposal'` and a `proposal_version` — distinct in the UI and in the data, without a second table that would have to be kept in step with the thread
 - [ ] 3.3 *Take offline*: mark decided offline with a summary and the proposal that came out of the room, reaching the same freeze
 - [ ] 3.4 Tests: the `discussions` spec in full — a member may propose and may not freeze; a freeze with no proposal is refused and says why; an offline decision records that it happened offline
 
@@ -45,11 +50,15 @@
 - [ ] 5.4 The interim adoption rule — provisional while the Decision Matrix is incomplete — and the ratification sweep that lists them once it is adopted
 - [ ] 5.5 Ratification Records rendered from the adopting decision for `filled_from_decision` sections, with no `definition` row created
 - [ ] 5.6 Unresolved objections counted onto the decision and shown wherever it appears
-- [ ] 5.7 Tests: the `decisions` spec in full — three consecutive numbers, a rolled-back freeze that consumes none, 23:59 on 31 December in a non-UTC community, a double submit producing one decision, and two stewards freezing at once producing one
+- [ ] 5.7 `post.frozen_decision_id` set inside the transaction, so a proposal freezes once — the idempotency key stops one person submitting twice and cannot stop two people submitting once each
+- [ ] 5.8 Supersession: a re-freeze marks the previous decision superseded and names its replacement, changing nothing about it otherwise
+- [ ] 5.9 `decision_clause` storing standard, version and reference as quoted at decision time, alongside the stable clause key; `decision_attendee` with consent-to-publish captured at the freeze, because it cannot be collected retroactively in P6
+- [ ] 5.10 Writes refused while the community is suspended, freezing included
+- [ ] 5.11 Tests: the `decisions` spec in full — three consecutive numbers, a rolled-back freeze that consumes none, 23:59 on 31 December in a non-UTC community, a double submit producing one decision, and two stewards freezing at once producing one
 
 ## 6. Readiness and compliance
 
-- [ ] 6.1 `services/readiness.ts` — readiness per layer and per community, computed from the loaded standard, memoised per request
+- [ ] 6.1 `services/readiness.ts` — readiness per layer and per community, counted over `clause_coverage`, memoised per request and never stored
 - [ ] 6.2 Artifact completeness over `authoredSections()` only, ignoring local definitions
 - [ ] 6.3 Compliance: binary, false while any MUST-satisfying definition is provisional, module figures never summed into core
 - [ ] 6.4 `invalidate('community:readiness')` and the matching `depends()`, so a freeze refreshes every panel that shows a number
@@ -80,5 +89,5 @@
 
 - [ ] 10.1 The e2e spec from 0.1 passes end to end on a fresh community, and readiness moves by exactly the right amount
 - [ ] 10.2 The same spec passes at 375px, including drafting, responding to a consent round and freezing
-- [ ] 10.3 The cross-tenant suite covers every service added here, because each is registered
+- [ ] 10.3 Every service added in groups 2–7 is registered in `services/registry.ts`, so the parameterised cross-tenant suite covers it — a forgotten registration is the failure that suite exists to catch, and it fails the build rather than passing quietly
 - [ ] 10.4 `docs/03-data-model.md`, `docs/06-testing-strategy.md` and the UI spec updated wherever the build taught us something the documents did not say

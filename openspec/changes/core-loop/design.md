@@ -60,26 +60,48 @@ surprising enough to be worth saying out loud in the register's own help text �
 the alternative, resetting each year, makes `DEC-2027-001` ambiguous with a
 migrated or imported record and makes "our fourteenth decision" unanswerable.
 
-### Idempotency is a unique index, not a check
+### Two different duplicates, and one key does not stop both
 
-`UNIQUE(community_id, idempotency_key)`. The freeze inserts; on conflict it
-**returns the existing decision** rather than raising. A check-then-insert would
-have a window in which two people hitting Freeze on the same proposal produce two
-decisions, which is the exact failure this key exists to prevent. The key is
-generated when the modal renders, so a re-submit of the same form is idempotent
-while a genuinely new freeze is not.
+The idempotency key stops **one person submitting twice**:
+`UNIQUE(community_id, idempotency_key)`, insert-on-conflict, returning the
+existing decision rather than raising. The key is minted when the modal renders,
+so a double-click or a browser retry is idempotent.
 
-### Readiness is computed on every read
+It does **not** stop **two people freezing the same proposal**, because two
+renders mint two keys. That needs its own guard, and the review that wrote this
+document first stated the outcome as a scenario without noticing the mechanism
+could not deliver it.
 
-No materialised readiness column, no cache table. Core 0.1 has 173 countable
-clauses and 94 authored sections; the whole computation is two indexed queries
-and a join over a few hundred rows. A stored number is a number that can be wrong,
-and "the dashboard said 41% but the artifact list disagrees" is precisely the bug
-that would destroy trust in every other number the product shows.
+The guard: **a proposal can be frozen once.** `post.frozen_decision_id` is set
+inside the freeze transaction and the freeze refuses a proposal that already has
+one. It is the honest constraint anyway — the second freeze has nothing to adopt,
+because the definition already carries that text as its adopted version, and
+producing a second decision saying the same thing would put two references on one
+act.
 
-Memoised **per request** (one community, one computation, several panels read it),
-and invalidated across requests by `invalidate('community:readiness')` with a
-matching `depends()` — the mechanism `docs/01` §3 already specifies.
+So: same key → the same decision back. Different keys, same proposal → the second
+is refused, naming the decision that already exists.
+
+### The number is computed; the edge it counts is materialised
+
+Two different things, and conflating them is easy.
+
+**No stored readiness number.** No percentage column, no compliance flag. A
+stored number is a number that can be wrong, and "the dashboard said 41% but the
+artifact list disagrees" is precisely the bug that would destroy trust in every
+other figure the product shows. Readiness is counted on each read, memoised per
+request (several panels ask for it), and invalidated across requests by
+`invalidate('community:readiness')` with a matching `depends()` (`docs/01` §3).
+
+**But `clause_coverage` is materialised**, and must be. It is the clause →
+definition edge, rebuilt when a version is adopted, unique on
+`(community_standard_id, clause_key)`. That unique key is the
+one-owning-definition-per-clause rule made physical — `docs/03` §4 calls it the
+single most important invariant in the pipeline — and it is what makes readiness
+a `count` over an indexed table rather than a walk over every definition asking
+the standard what it owns.
+
+So: the edge is a row, the number never is.
 
 ### A Ratification Record has no definition row
 
@@ -95,18 +117,31 @@ every query over definitions would need to remember that.
 Rejected — it makes the ratification record editable, which invites a community
 to change a tally after the fact, and it puts a fake author on the permalink.
 
-### Local definitions attach to the artifact, not to a section
+### Local definitions attach to an artifact, and the database enforces how
 
-`definition.section_key` is nullable; `scope` is `standard | local`. A local
-definition carries `local_artifact_id` **or** an `attached_to_artifact` key when
-it extends an RCOS artifact (`UI Spec` §1.4b kind 2), and neither makes it
-countable. The partial unique index — `UNIQUE(community_standard_id, section_key)
-WHERE section_key IS NOT NULL` — is what lets a community hold many local
-definitions while still permitting only one answer per standard section.
+`definition.section_key` is nullable and `scope` is `standard | local`. A local
+definition carries `attach_kind` — `rcos_artifact` or `community_artifact` — with
+exactly one of `attach_rcos_artifact_key` and `attach_community_artifact_id` set,
+which is how `UI Spec` §1.4b's "local rule" and "local extension" are told apart
+without a second table.
 
-Every community gets a *Community Agreements* local artifact at creation, in the
-same transaction as the community. A community that has to create a container
-before writing its first house rule will write the house rule somewhere else.
+Three constraints, in the schema rather than in a service, because they must hold
+against a bad migration as well as against a bad caller:
+
+```
+PARTIAL UNIQUE (community_standard_id, section_key) WHERE section_key IS NOT NULL
+CHECK  (scope = 'standard') = (section_key IS NOT NULL)
+CHECK  exactly one attach_* is set when scope = 'local'
+```
+
+The partial index is what lets a community hold many local definitions while
+still permitting only one answer per standard section — the ordinary unique index
+would allow exactly one row with a null section key.
+
+Every community gets a *Community Agreements* `community_artifact` at creation,
+in the same transaction as the community. A community that has to create a
+container before writing its first house rule will write the house rule
+somewhere else.
 
 ### `VotingProvider` is an interface with one implementation
 
@@ -140,6 +175,24 @@ out of the room. It reaches the same Freeze modal with the same required fields.
 The only difference is that the tally is typed rather than tallied — and the
 decision records *how* it was reached, so a reader can tell.
 
+### Bodies are Markdown, rendered server-side, and never trusted
+
+This is the first phase that renders text a member wrote, so the decision cannot
+be deferred: definition bodies, plain-language blocks, proposals and posts are
+**Markdown**, rendered on the server to a sanitised subtree, and no component
+passes external text to `{@html}`.
+
+Markdown rather than rich text because governance text is quoted, diffed between
+versions, and exported to a git mirror in P6 — all three are worse against HTML.
+Sanitised on the server rather than trusted because a community's own member is
+still an untrusted author here: the person who writes the Membership Agreement is
+not necessarily the person the Membership Agreement is about.
+
+`docs/06` §6.6's XSS suite therefore belongs in this phase and not in hardening —
+it is the phase that introduces the risk, and a grep test asserting that no
+`{@html}` receives external data is worth more the day the first one is written
+than a year later.
+
 ### Drafts: one per definition, `edit_token` rotated on save
 
 One live draft per definition, autosaved on a 2s debounce. Every save carries the
@@ -155,6 +208,32 @@ to a read table: a member's notification list is then a single indexed read, and
 "mark all read" is one update. The weekly digest is a job that reads the same
 rows, and — like every mail this product sends — carries a link and no content
 (`docs/04` §4).
+
+### A re-freeze supersedes rather than edits
+
+Freezing a definition that already has an adopted version marks the previous
+decision `superseded` and sets `superseded_by_id`. The old decision keeps its
+reference, its text and its tally, and its permalink keeps resolving — it says
+what was true then, and points at what replaced it.
+
+Nothing is rewritten and nothing is deleted. A register that quietly updates the
+past is a register whose old references are lies, and every quotation of one in a
+mailing list becomes wrong without anyone being told.
+
+### A decision quotes a clause reference and keeps quoting it
+
+`decision_clause` stores the standard, the version and the reference **as they
+were at decision time**. No migration rewrites it, ever.
+
+This is the whole reason clause identity is the triple `(standard, version, ref)`
+rather than a bare number. A decision recorded against core 0.1's `3.6.3` must
+still say `3.6.3` after 0.2 renumbers it — the community decided about the clause
+that had that number in the version they had adopted, and silently updating the
+reference would rewrite what they decided about.
+
+The stable `clause_key` is stored alongside it, so the application can still find
+the same obligation across versions when it needs to. Which one is shown is a
+display choice; which one is stored is not.
 
 ## Risks / Trade-offs
 

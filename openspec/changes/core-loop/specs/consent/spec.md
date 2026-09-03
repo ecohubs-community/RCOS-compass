@@ -35,9 +35,10 @@ decision is shown.
 
 ### Requirement: A consent round collects one response per member and closes
 
-A consent round MUST have a deadline and a set of eligible members, MUST accept at
-most one response per member of `consent`, `objection` or `abstain`, and MUST
-close at its deadline or when every eligible member has responded.
+A consent round MUST have a deadline and a set of eligible members captured when
+the round opens, MUST accept at most one response per eligible member of
+`consent`, `objection` or `abstain`, and MUST close at its deadline or when every
+eligible member has responded.
 
 #### Scenario: A member responds twice
 - **WHEN** a member submits a second response to the same round
@@ -46,6 +47,16 @@ close at its deadline or when every eligible member has responded.
 #### Scenario: Someone outside the community responds
 - **WHEN** a member of another community submits a response
 - **THEN** it is refused and nothing is recorded
+
+#### Scenario: Someone joins after the round opened
+- **WHEN** a new member joins while a round is open
+- **THEN** they are not eligible, because eligibility was captured when the round opened
+- **AND** the round's denominator is unchanged
+
+#### Scenario: Someone leaves while the round is open
+- **WHEN** an eligible member's membership ends mid-round
+- **THEN** their response, if any, remains counted
+- **AND** the round can still close
 
 #### Scenario: The deadline passes
 - **WHEN** the deadline is reached with some members not having responded

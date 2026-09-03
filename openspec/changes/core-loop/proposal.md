@@ -79,12 +79,31 @@ This is the phase that makes the product the sentence it claims to be
 
 ## Impact
 
-**Schema** (new tables): `definition`, `definition_version`, `draft`,
-`discussion`, `post`, `proposal`, `objection`, `consent_round`,
-`consent_response`, `decision`, `change_log_entry`, `notification`,
-`standard_feedback`, `local_artifact`. Plus the partial unique index on
-`(community_standard_id, section_key) WHERE section_key IS NOT NULL` that lets a
-community hold more than one local definition.
+**Schema**, using the names `docs/03-data-model.md` §3 already gives them —
+`definition`, `definition_draft`, `definition_version`, `clause_coverage`,
+`community_artifact`, `standard_feedback`, `discussion`, `post`, `objection`,
+`consent_round`, `consent_eligible`, `consent_response`, `decision`,
+`decision_attendee`, `decision_clause`, `change_log`. Note that a proposal is a
+`post` with `kind = 'proposal'` and a `proposal_version`, not a table of its own.
+
+Two structures carry more weight than their size suggests:
+
+- **`clause_coverage`**, unique on `(community_standard_id, clause_key)`. It is
+  the one-owning-definition-per-clause rule made physical (§4, "the single most
+  important invariant"), and it is what turns readiness into a count rather than
+  a scan.
+- **`decision_clause`**, which stores the clause reference **as quoted at
+  decision time** and is never rewritten by a migration. A decision that cited
+  `3.6.3` under core 0.1 must still say `3.6.3` after 0.2 renumbers, or every
+  minute of the versioning work in P1 was wasted.
+
+Plus the partial unique index `UNIQUE(community_standard_id, section_key) WHERE
+section_key IS NOT NULL`, and the two CHECK constraints §3 specifies, so the
+scope rules hold against a bad migration and not only against a service.
+
+**`notification` has no table in `docs/03` §3.** The UI spec (§4.11) specifies
+notifications and the roadmap puts them in this phase, but the data model never
+grew the table. Adding it is part of this change.
 
 **Services**: the first tenant-scoped services with real content, so each must
 register in `services/registry.ts` — the cross-tenant suite is parameterised over
@@ -100,6 +119,13 @@ decisions once a Decision Matrix is adopted.
 **Existing code**: `standard/index.ts` gains no new loading, but
 `authoredSections()` becomes load-bearing — it is the denominator of artifact
 completeness. `services/tenancy.ts` gains the default-artifact creation.
+
+**First user-authored text the application renders.** Every phase so far rendered
+its own strings; this one renders bodies people wrote. So the XSS suite from
+`docs/06-testing-strategy.md` §6.6 belongs here rather than in hardening — a
+definition body, a discussion post and a proposal each carrying `<img onerror>`,
+a `javascript:` URL and a Markdown image payload, plus the grep test that no
+`{@html}` receives external data.
 
 **Docs relied on**: `UI Spec` §1.4b, §4 (screens), §5.1, §6; `docs/03-data-model.md`
 §3, §3a, §3b, §7; `docs/01-server-client-contract.md` §1; `docs/11-definition-linter.md`;

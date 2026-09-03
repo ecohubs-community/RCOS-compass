@@ -73,3 +73,34 @@ MUST NOT be persisted in a column that could disagree with them.
 #### Scenario: A membership changes
 - **WHEN** anything unrelated to definitions changes
 - **THEN** readiness is unchanged
+
+### Requirement: One definition answers a clause, and the database says so
+
+Clause coverage MUST be materialised with a unique key on the standard version and
+the clause, rebuilt when a version is adopted, so a clause can never be answered
+by two definitions at once.
+
+#### Scenario: A second definition claims an answered clause
+- **WHEN** adopting a version would make two definitions answer one clause
+- **THEN** the adoption is refused
+
+#### Scenario: A definition is re-adopted
+- **WHEN** a new version of the same definition is adopted
+- **THEN** coverage still holds exactly one row for that clause
+
+#### Scenario: A cross-reference
+- **WHEN** a section references a clause another section owns
+- **THEN** no coverage row is created for it, and readiness is unchanged
+
+### Requirement: Readiness is reported per layer as well as overall
+
+Readiness MUST be available for each layer of the standard, computed over that
+layer's countable clauses only.
+
+#### Scenario: A layer is fully answered
+- **WHEN** every countable clause of one layer is satisfied
+- **THEN** that layer reads 100% while the community total does not
+
+#### Scenario: A layer has no countable clauses
+- **WHEN** a layer's clauses are all non-countable
+- **THEN** it is reported as having nothing to answer rather than as 0%

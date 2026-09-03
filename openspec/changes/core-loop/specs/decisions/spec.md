@@ -49,9 +49,93 @@ NOT create a second one or consume a second number.
 - **THEN** one decision exists
 - **AND** the second submission returns that same decision
 
-#### Scenario: Two people freeze the same proposal
-- **WHEN** two stewards submit different freeze forms for one proposal at the same time
+#### Scenario: A key from a different form
+- **WHEN** a freeze is submitted with a key no decision carries
+- **THEN** it is treated as a new freeze
+
+### Requirement: A proposal can be frozen once
+
+Freezing MUST record the decision on the proposal, and MUST refuse a proposal
+that has already been frozen, naming the decision that exists.
+
+#### Scenario: Two stewards freeze the same proposal
+- **WHEN** two stewards submit separate freeze forms for one proposal
 - **THEN** exactly one decision is created
+- **AND** the second is refused with the reference of the first
+
+#### Scenario: A superseding decision is wanted
+- **WHEN** a community wants to change what it decided
+- **THEN** it must produce a new proposal, because the old one is spent
+
+### Requirement: A decision quotes a clause reference and keeps quoting it
+
+A decision MUST record, for each clause it answers, the standard, the version and
+the reference **as they stood at decision time**, alongside the stable clause key.
+No migration or standard upgrade MUST rewrite a stored reference.
+
+#### Scenario: A decision is recorded
+- **WHEN** a decision answering clause `3.6.3` of core 0.1 is frozen
+- **THEN** it stores the standard, the version `0.1`, the reference `3.6.3` and the clause key
+
+#### Scenario: The standard renumbers the clause
+- **WHEN** a later version of the standard gives that obligation a different reference
+- **THEN** the existing decision still reads `3.6.3` at version 0.1
+- **AND** the clause key still resolves it to the same obligation
+
+### Requirement: Re-freezing supersedes rather than rewrites
+
+Freezing a definition that already has an adopted version MUST mark the previous
+decision superseded and record what replaced it. The superseded decision's
+reference, text and tally MUST remain unchanged and its permalink MUST keep
+resolving.
+
+#### Scenario: A definition is decided a second time
+- **WHEN** a new decision adopts a new version of a definition
+- **THEN** the previous decision is marked superseded and names the new one
+- **AND** its own reference, text and tally are unchanged
+
+#### Scenario: An old reference is quoted
+- **WHEN** someone opens the superseded decision's permalink
+- **THEN** it resolves, says it was superseded, and links to the decision that replaced it
+
+### Requirement: Who was present is recorded, and so is their consent to be named
+
+A freeze MUST record who was present, and for each named person MUST record
+whether they consented to being named outside the community.
+
+#### Scenario: A decision is frozen with attendees
+- **WHEN** a steward records who was present
+- **THEN** each attendee is stored with their consent-to-publish flag
+
+#### Scenario: Nobody consented
+- **WHEN** no attendee consented to being named
+- **THEN** the decision still records the count, so a tally is possible without names
+
+### Requirement: The change log is append-only
+
+Every change-log entry MUST be immutable once written. No interface MUST offer to
+edit or remove one.
+
+#### Scenario: A freeze writes an entry
+- **WHEN** a decision is frozen
+- **THEN** a change-log entry records the actor, the time and what changed
+
+#### Scenario: Editing is attempted
+- **WHEN** a write is attempted against an existing entry
+- **THEN** it is refused
+
+### Requirement: A suspended community records nothing new
+
+While a community is suspended it MUST refuse writes, including freezing, while
+continuing to serve reads and exports.
+
+#### Scenario: A steward freezes in a suspended community
+- **WHEN** the freeze is submitted
+- **THEN** it is refused and no decision is created
+
+#### Scenario: The register is read
+- **WHEN** a member of a suspended community opens the decision register
+- **THEN** it is served
 
 ### Requirement: A decision is findable a year later
 

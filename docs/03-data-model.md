@@ -175,6 +175,11 @@ evidence           id | community_id | passage_id | clause_key | state suggested
                    | confidence | suggested_by ai|human | confirmed_by? | confirmed_at?
 transparency_exception id | community_id | subject_type | subject_id | justification
                    | expires_at | decision_id | created_by
+notification       id | community_id | recipient_membership_id | kind | subject_type | subject_id
+                   | created_at | read_at?
+                   -- one row per recipient, not an event joined to a read table:
+                   -- a member's list is then one indexed read and "mark all read"
+                   -- is one update. Never written for the actor's own action.
 change_log         id | community_id | at | actor_id | kind | subject_type | subject_id | summary | payload(json)  -- append-only
 learning_entry     id | community_id | … (Layer 6 log)
 audit_event        id | at | actor_id? | actor_email | community_id? | action | target | ip | user_agent | meta(json)  -- append-only, platform-wide

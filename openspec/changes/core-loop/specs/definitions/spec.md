@@ -80,3 +80,31 @@ and that record MUST NOT be sent anywhere without a deliberate act.
 #### Scenario: Nothing leaves the instance
 - **WHEN** a standard-feedback entry exists
 - **THEN** no request is made to any external service
+
+### Requirement: Text a member wrote is rendered inert
+
+Text a member authors MUST render without executing anything it contains, and no
+component MUST pass externally-sourced text to a raw-HTML sink. This covers a
+definition body, a plain-language block, a proposal and a post alike.
+
+#### Scenario: A body carries a script payload
+- **WHEN** a definition body contains an image tag with an error handler, a `javascript:` link, and a Markdown image whose source is a script URL
+- **THEN** the rendered page executes none of them
+- **AND** the visible text is still readable
+
+#### Scenario: The codebase is swept
+- **WHEN** the source is searched for raw-HTML rendering
+- **THEN** no occurrence receives text that came from a request, a database row, or a model
+
+### Requirement: A version records how it was written
+
+A definition version MUST record whether it was drafted with AI assistance and the
+linter result at the time it was frozen.
+
+#### Scenario: A version is frozen
+- **WHEN** a definition version is adopted
+- **THEN** it stores its linter result and whether AI assisted it
+
+#### Scenario: The linter disagrees with the community
+- **WHEN** a definition with unresolved linter warnings is frozen
+- **THEN** the freeze succeeds and the warnings are stored with the version
