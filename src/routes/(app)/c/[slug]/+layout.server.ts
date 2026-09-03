@@ -2,6 +2,7 @@ import { error, redirect } from '@sveltejs/kit';
 import { systemClock } from '$lib/server/clock';
 import { getDb } from '$lib/server/db';
 import { resolveCommunity, resolveSlugRedirect } from '$lib/server/services/tenancy';
+import { READINESS_DEPENDS } from '$lib/server/services/readiness';
 import { requirePermission, type Ctx } from '$lib/server/auth/guard';
 import type { LayoutServerLoad } from './$types';
 
@@ -13,7 +14,13 @@ import type { LayoutServerLoad } from './$types';
  * reported exactly as one that does not exist — telling a stranger that a
  * community exists is itself a disclosure.
  */
-export const load: LayoutServerLoad = async ({ params, locals, url }) => {
+export const load: LayoutServerLoad = async ({ params, locals, url, depends }) => {
+	// Every panel below this shows a number derived from the same rows, so they
+	// refresh together: a freeze calls `invalidate(READINESS_DEPENDS)` and the
+	// dashboard, the artifact list and the standard browser all reload. Declaring
+	// it here rather than in each page means a new screen inherits it.
+	depends(READINESS_DEPENDS);
+
 	const resolution = resolveCommunity(getDb(), params.slug, locals.user?.id ?? null);
 
 	if (resolution.kind === 'not_found') {

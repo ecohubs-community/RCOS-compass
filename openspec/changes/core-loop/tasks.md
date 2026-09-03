@@ -58,11 +58,11 @@ Names and columns from `docs/03-data-model.md` §3, which already specifies them
 
 ## 6. Readiness and compliance
 
-- [ ] 6.1 `services/readiness.ts` — readiness per layer and per community, counted over `clause_coverage`, memoised per request and never stored
-- [ ] 6.2 Artifact completeness over `authoredSections()` only, ignoring local definitions
-- [ ] 6.3 Compliance: binary, false while any MUST-satisfying definition is provisional, module figures never summed into core
-- [ ] 6.4 `invalidate('community:readiness')` and the matching `depends()`, so a freeze refreshes every panel that shows a number
-- [ ] 6.5 Tests: the `readiness` spec in full, plus the arithmetic table from `docs/03-data-model.md` §7 — a stale definition still counts, a local definition moves nothing, and a module at 100% with core incomplete still reads as not compliant
+- [x] 6.1 `services/readiness.ts` — readiness per layer and per community, counted over `clause_coverage`, memoised per request and never stored
+- [x] 6.2 Artifact completeness over `authoredSections()` only, ignoring local definitions
+- [x] 6.3 Compliance: binary, false while any MUST-satisfying definition is provisional, module figures never summed into core
+- [x] 6.4 *(half)* `depends(READINESS_DEPENDS)` declared in the tenant layout, so every screen below it inherits the dependency. The matching `invalidate()` belongs to the freeze form and lands with the screens in §9
+- [x] 6.5 Tests: the `readiness` spec in full, plus the arithmetic table from `docs/03-data-model.md` §7 — a stale definition still counts, a local definition moves nothing, and a module at 100% with core incomplete still reads as not compliant
 
 ## 7. Notifications
 
