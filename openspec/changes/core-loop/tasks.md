@@ -37,10 +37,10 @@ Names and columns from `docs/03-data-model.md` §3, which already specifies them
 
 ## 4. Objections and consent rounds
 
-- [ ] 4.1 Objections with the `open → withdrawn | addressed | overruled` lifecycle, attributable, and not deletable
-- [ ] 4.2 `VotingProvider` interface — `openRound`, `respond`, `tally` — with the built-in consent round as the default provider
-- [ ] 4.3 Round closing: at the deadline, or when the last eligible member responds
-- [ ] 4.4 Tests: the `consent` spec in full — a second response replaces the first, an outsider's response is refused, closing a round creates no decision, and the freeze path depends on a `Tally` and on no provider-specific type
+- [x] 4.1 Objections with the `open → withdrawn | addressed | overruled` lifecycle, attributable, and not deletable
+- [x] 4.2 `VotingProvider` interface — `openRound`, `respond`, `tally` — with the built-in consent round as the default provider
+- [x] 4.3 Round closing: at the deadline, or when the last eligible member responds
+- [x] 4.4 Tests: the `consent` spec in full — a second response replaces the first, an outsider's response is refused, closing a round creates no decision, and the freeze path depends on a `Tally` and on no provider-specific type
 
 ## 5. Freeze and the decision register
 

@@ -18,7 +18,15 @@ export type TenantService = {
 	call: (ctx: Ctx, subjectId: string) => unknown;
 	/** What this service addresses, so the suite knows what to seed. */
 	subject:
-		'membership' | 'community' | 'invitation' | 'definition' | 'communityArtifact' | 'discussion';
+		| 'membership'
+		| 'community'
+		| 'invitation'
+		| 'definition'
+		| 'communityArtifact'
+		| 'discussion'
+		| 'proposal'
+		| 'objection'
+		| 'consentRound';
 };
 
 const services: TenantService[] = [];
