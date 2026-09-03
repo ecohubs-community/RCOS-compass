@@ -47,6 +47,50 @@ hold.
 - **WHEN** a section cross-references a clause owned elsewhere
 - **THEN** that is permitted, and the reference contributes nothing to ownership
 
+### Requirement: Every section says whether a community writes it
+
+Every section MUST carry a disposition of `authored`, `filled_from_decision`,
+`derived` or `instance_record`. A section that references no clause MUST carry an
+explicit one, and a section that owns a clause MUST be `authored`. The build MUST
+fail when this does not hold.
+
+#### Scenario: A section references no clause and says nothing about itself
+- **WHEN** a section has no clause reference and no disposition
+- **THEN** validation fails, naming the section
+
+#### Scenario: A Ratification Record
+- **WHEN** a section records that an artifact was ratified
+- **THEN** it is `filled_from_decision`, and carries an explanation of where its
+  content comes from
+
+#### Scenario: A section that answers a clause
+- **WHEN** a section owns one or more clauses
+- **THEN** its disposition is `authored`, because a clause cannot be answered by
+  text nobody is asked to write
+
+#### Scenario: A non-authored section claims a clause
+- **WHEN** a `derived` or `filled_from_decision` section owns a clause
+- **THEN** validation fails, naming the section and how many clauses it claims
+
+#### Scenario: A mandatory artifact with nothing to write
+- **WHEN** a mandatory artifact has no authored section at all
+- **THEN** validation fails, because the artifact would be complete on creation
+
+### Requirement: Completeness counts only the sections a community writes
+
+The loaded standard MUST expose the authored sections separately from all
+sections, so artifact completeness is computed over what a community is actually
+asked for.
+
+#### Scenario: The authored set is requested
+- **WHEN** the loaded standard is asked for its authored sections
+- **THEN** every returned section is `authored`
+- **AND** no Ratification Record, derived view or specimen entry is included
+
+#### Scenario: An artifact's outstanding work is listed
+- **WHEN** the unanswered sections of a mandatory artifact are listed
+- **THEN** no section the platform fills or generates appears among them
+
 ### Requirement: Only community-answerable MUST clauses are countable
 
 Readiness denominators MUST count only clauses whose normativity is `MUST` and
