@@ -64,14 +64,19 @@ export default ts.config(
 		// and validated. Everywhere else reads the parsed config object.
 		//
 		// The exemptions are deliberately short and visible: the config module
-		// itself, and the two tool configs that run outside the application (and so
-		// cannot import it).
+		// itself, the tool configs that run outside the application (and so cannot
+		// import it), and the Vite config, which is what puts `.env` into
+		// process.env in the first place.
 		files: ['**/*.ts', '**/*.js', '**/*.svelte'],
 		ignores: [
 			'src/lib/server/config.ts',
 			'drizzle.config.ts',
 			'playwright.config.ts',
-			'playwright.gallery.config.ts'
+			'playwright.gallery.config.ts',
+			// The one file whose job is to *fill* process.env: Vite loads `.env`
+			// into import.meta.env and never into process.env, which is where
+			// config.ts reads. See docs/00-architecture.md §10.
+			'vite.config.ts'
 		],
 		rules: {
 			'no-restricted-properties': [

@@ -1,6 +1,6 @@
 import type { Handle, HandleServerError } from '@sveltejs/kit';
 import { randomUUID } from 'node:crypto';
-import { assertConfigOrExit } from '$lib/server/config';
+import { assertConfigOrExit, getConfig } from '$lib/server/config';
 import { initDatabase } from '$lib/server/db';
 import { getLogger } from '$lib/server/logger';
 import { securityHeaders } from '$lib/server/http/security-headers';
@@ -15,8 +15,15 @@ import { systemClock } from '$lib/server/clock';
  * Validated before the server accepts a single request. A misconfigured instance
  * must fail loudly at boot rather than quietly at the first freeze.
  * docs/00-architecture.md §10.
+ *
+ * In development it throws instead of exiting. Both say the same thing, but a
+ * process that dies takes the dev server with it, so every attempt to fix the
+ * `.env` costs a restart — and the message scrolls away behind the restart.
+ * Throwing puts it on the error overlay and leaves the server running to pick up
+ * the fix. In production, exiting non-zero is the whole point: an instance that
+ * boots misconfigured is one that loses records later.
  */
-const config = assertConfigOrExit();
+const config = import.meta.env.DEV ? getConfig() : assertConfigOrExit();
 const log = getLogger();
 
 // Single-instance only — see initDatabase().

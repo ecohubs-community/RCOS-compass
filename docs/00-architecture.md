@@ -279,14 +279,29 @@ MAX_UPLOAD_MB=25
 LOG_LEVEL=info
 ```
 
-**A plain `node` invocation reads no `.env`.** Vite loads it for `pnpm dev` and
-`pnpm build`; `adapter-node`'s output is an ordinary Node server that sees only
-the real environment. So `pnpm preview` and `pnpm db:migrate` pass
-`--env-file-if-exists=.env`, and the container does not — an image expecting a
-bundled `.env` would either ship secrets or start misconfigured. Without the
-flag the failure is a configuration error that reads exactly like a missing
-variable, which is how an hour goes into a `.env` that was correct all along.
-A test asserts it for every script (`tests/unit/package-scripts.test.ts`).
+**Nothing populates `process.env` for free.** The config module reads it
+deliberately — scripts and tests that never boot SvelteKit read the same module —
+but Vite loads `.env` into `import.meta.env`, SvelteKit exposes it through
+`$env/*`, and neither writes to `process.env`. Only Node's own `--env-file`
+does. So both kinds of entry point are told explicitly:
+
+- **Vite** (`pnpm dev`, `pnpm build`) — a small plugin in `vite.config.ts` reads
+  `.env` and fills any key `process.env` does not already have. It runs before
+  SvelteKit's plugin, because SvelteKit reads configuration while resolving.
+- **Plain node** (`pnpm preview`, `pnpm db:migrate`) — `--env-file-if-exists=.env`.
+- **The container** — neither. Its configuration comes from the environment, and
+  an image expecting a bundled `.env` would either ship secrets or start
+  misconfigured.
+
+All three let a real environment variable win over the file, which is what
+`--env-file` does. Without any of this the failure reads exactly like a missing
+variable, which is how an hour goes into a `.env` that was correct all along —
+it happened twice. `tests/unit/env-loading.test.ts` and
+`tests/unit/package-scripts.test.ts` hold each half.
+
+In development the boot check throws rather than exiting: a process that dies
+takes the dev server with it, so every attempt to fix the `.env` would cost a
+restart. In production it exits non-zero, which is the whole point.
 
 **`ORIGIN` is not optional in production.** `adapter-node` builds `event.url`
 from it, and left unset it assumes `http://localhost`. SvelteKit then compares
