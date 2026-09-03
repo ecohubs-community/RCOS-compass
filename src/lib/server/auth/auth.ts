@@ -4,6 +4,13 @@ import { magicLink, twoFactor } from 'better-auth/plugins';
 import { getConfig } from '../config.js';
 import { getDb, type Db } from '../db/index.js';
 import * as schema from '../db/schema/index.js';
+import { getLogger } from '../logger.js';
+import {
+	getMailTransport,
+	magicLinkMessage,
+	verificationMessage,
+	type MailTransport
+} from '../mail/index.js';
 
 /**
  * Identity. docs/04-security.md §3.
@@ -18,6 +25,26 @@ import * as schema from '../db/schema/index.js';
  * migrated file. Application code always uses {@link getAuth}, which binds the
  * singleton.
  */
+/**
+ * Send, and let a failure be visible without taking the request down with it.
+ *
+ * better-auth calls these callbacks inside its own endpoints; throwing from one
+ * turns a successful sign-up into a 500 after the account already exists. The
+ * address and the reason are logged instead, which is what an operator needs to
+ * answer "why did nobody get the link" — and the subject line names the kind, so
+ * no message body reaches the log.
+ */
+async function send(message: Parameters<MailTransport['send']>[0], kind: string): Promise<void> {
+	try {
+		await getMailTransport().send(message);
+	} catch (error) {
+		getLogger().error(
+			{ kind, to: message.to, err: error instanceof Error ? error.message : String(error) },
+			'mail not sent'
+		);
+	}
+}
+
 export function createAuth(db: Db = getDb()) {
 	const config = getConfig();
 
@@ -39,7 +66,13 @@ export function createAuth(db: Db = getDb()) {
 
 		emailVerification: {
 			sendOnSignUp: true,
-			autoSignInAfterVerification: true
+			autoSignInAfterVerification: true,
+			// Without this nothing is sent, and `requireEmailVerification` above
+			// turns every new account into a dead end. The body is composed in
+			// mail/messages.ts, which is the only place a body is written.
+			sendVerificationEmail: async ({ user, url }) => {
+				await send(verificationMessage(user.email, url), 'verification');
+			}
 		},
 
 		session: {
@@ -59,8 +92,8 @@ export function createAuth(db: Db = getDb()) {
 		plugins: [
 			// A link is friendlier than a password for a group that signs in rarely.
 			magicLink({
-				sendMagicLink: async () => {
-					// Wired to the mail transport in task 6.3, with the invitation mail.
+				sendMagicLink: async ({ email, url }) => {
+					await send(magicLinkMessage(email, url), 'magic-link');
 				}
 			}),
 			// Available to everyone; required for platform admins (docs/04 §6).
