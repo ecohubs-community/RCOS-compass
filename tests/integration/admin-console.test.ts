@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { fixedClock } from '../../src/lib/server/clock.js';
 import { setDbForTests, type Db } from '../../src/lib/server/db/index.js';
 import { claim, enqueue, fail as failJob } from '../../src/lib/server/jobs/index.js';
@@ -12,8 +12,10 @@ import {
 	type AdminActor
 } from '../../src/lib/server/services/admin/communities.js';
 import { instanceStatus } from '../../src/lib/server/services/admin/status.js';
+import { adminStatus } from '../../src/lib/server/auth/admin.js';
+import { resetConfigForTests } from '../../src/lib/server/config.js';
 import { createTestDb } from '../support/db.js';
-import { makeUser } from '../support/factories.js';
+import { makeMembership, makeUser } from '../support/factories.js';
 
 /**
  * The two read-only screens: the platform audit log (§3.4) and instance status
@@ -37,6 +39,8 @@ beforeEach(() => {
 
 afterEach(() => {
 	setDbForTests(null);
+	vi.unstubAllEnvs();
+	resetConfigForTests();
 	cleanup();
 });
 
@@ -173,5 +177,40 @@ describe('instance status', () => {
 		// The vitest environment leaves SMTP_URL unset, which is exactly the state
 		// an operator needs the page to shout about.
 		expect(instanceStatus(db).subsystems.mail).toBe('unconfigured');
+	});
+});
+
+describe('being important inside a community grants nothing here', () => {
+	/**
+	 * docs/05-admin-console.md §6, first bullet. Worth asserting rather than
+	 * assuming, because it is the assumption someone would break while adding a
+	 * convenience: platform admin is decided by a *verified email in the
+	 * environment*, and a membership — any membership, in every community on the
+	 * instance — is not an input to it.
+	 */
+	it('refuses the owner of a community, and a steward of every community', () => {
+		const a = tenant('valle-verde', 'Valle Verde');
+		const b = tenant('other-place', 'Other Place');
+		const person = makeUser(db, { email: 'ana@example.org' });
+		makeMembership(db, a, person.id, { role: 'steward', isOwner: true });
+		makeMembership(db, b, person.id, { role: 'steward', isOwner: true });
+
+		const account = { ...person, emailVerified: true };
+		// `not_admin`, which the guard turns into a 404 — not a 403, which would
+		// confirm the console is there.
+		expect(adminStatus(account)).toBe('not_admin');
+	});
+
+	it('refuses an unverified address even when it is listed', () => {
+		// The check compares against a *verified* email: an unverified address is
+		// a claim about a mailbox, not proof of holding it, and the whole admin
+		// gate rests on that difference.
+		vi.stubEnv('ADMIN_EMAILS', 'newops@example.org');
+		resetConfigForTests();
+		const person = makeUser(db, { email: 'newops@example.org', verified: false });
+
+		expect(adminStatus(person)).toBe('not_admin');
+		// The same address, verified, gets as far as needing a second factor.
+		expect(adminStatus({ ...person, emailVerified: true })).toBe('needs_two_factor');
 	});
 });
