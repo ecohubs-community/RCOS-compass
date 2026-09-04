@@ -1,5 +1,6 @@
 import { error } from '@sveltejs/kit';
 import { getConfig } from '$lib/server/config';
+import { lint } from '$lib/server/linter';
 import { parseMarkdown } from '$lib/server/markdown';
 
 /**
@@ -18,6 +19,14 @@ export function load() {
 	// there, and there is no reason to ship a Markdown parser to the browser to
 	// render text the server has already parsed.
 	return {
+		// A definition with something wrong with it, and something right: the panel
+		// shows both, because one that only ever complains gets closed.
+		linter: lint({
+			type: 'enforceable',
+			body: 'Candidates attend the assembly regularly and are admitted by consent of the assembly.',
+			plainLanguage: 'In practice: come to meetings, and the assembly says yes or no.',
+			locale: 'en'
+		}).findings,
 		markdown: parseMarkdown(
 			[
 				'A member **may** leave at any time, with *notice* where practical.',

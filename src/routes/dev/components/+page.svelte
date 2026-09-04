@@ -9,6 +9,7 @@
 	import HelpTip from '$lib/components/ui/HelpTip.svelte';
 	import TextField from '$lib/components/ui/TextField.svelte';
 	import Markdown from '$lib/components/ui/Markdown.svelte';
+	import LinterPanel from '$lib/components/ui/LinterPanel.svelte';
 	import { HELP, type HelpId } from '$lib/help/registry';
 
 	let { data } = $props();
@@ -114,6 +115,16 @@
 		</p>
 		<div class="border-border mt-4 rounded-(--radius-card) border p-4">
 			<Markdown blocks={data.markdown} />
+		</div>
+	</section>
+
+	<section class="mt-10" aria-labelledby="linter">
+		<h2 id="linter" class="text-section font-medium">Definition linter</h2>
+		<p class="text-fg-muted text-meta mt-1">
+			Warnings, notes and passing checks together. Nothing here can stop a freeze.
+		</p>
+		<div class="border-border mt-4 rounded-(--radius-card) border p-4">
+			<LinterPanel findings={data.linter} />
 		</div>
 	</section>
 

@@ -73,8 +73,8 @@ Names and columns from `docs/03-data-model.md` §3, which already specifies them
 
 ## 8. The linter
 
-- [ ] 8.1 The rule-based checks from `docs/11-definition-linter.md`: subject, process, consequence, vague-word detection, and the three type chips
-- [ ] 8.2 Tests: each check against a definition that passes and one that fails; the panel never blocks a freeze
+- [x] 8.1 The rule-based checks from `docs/11-definition-linter.md`: subject, process, consequence, vague-word detection, and the three type chips
+- [x] 8.2 Tests: each check against a definition that passes and one that fails; the panel never blocks a freeze
 
 ## 9. Screens
 
