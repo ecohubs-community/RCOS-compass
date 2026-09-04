@@ -13,12 +13,12 @@
 
 ## 2. Upload
 
-- [ ] 2.1 The upload route: stream with a byte ceiling, sniff magic bytes from the first chunk, refuse the moment extension and content disagree — all before the file reaches its final location
-- [ ] 2.2 Write to a temp path, move into `UPLOAD_DIR/<communityId>/<uuid>` as the last step of the transaction that creates the row, so neither a failed write nor a failed insert leaves an orphan
-- [ ] 2.3 Per-user and per-community upload limits and the community storage ceiling, each refusing with the limit named
-- [ ] 2.4 The authorised file route: tenant resolved by the pipeline, membership re-checked, streamed from disk. No public path and no signed URL
-- [ ] 2.5 The upload control states who will be able to read the file — every member — before a file is chosen, and deleting a document removes its row, its passages and the file itself
-- [ ] 2.6 Tests — the upload-abuse suite from `06` §6.8: oversized, mislabelled MIME, zip bomb, executable-as-PDF, encrypted PDF. Each fails cleanly, names the reason, and leaves no file and no row. Plus: another community's file is not served
+- [x] 2.1 The upload route: stream with a byte ceiling, sniff magic bytes from the first chunk, refuse the moment extension and content disagree — all before the file reaches its final location
+- [x] 2.2 Write to a temp path, move into `UPLOAD_DIR/<communityId>/<uuid>` as the last step of the transaction that creates the row, so neither a failed write nor a failed insert leaves an orphan
+- [x] 2.3 Per-user and per-community upload limits and the community storage ceiling, each refusing with the limit named
+- [x] 2.4 The authorised file route: tenant resolved by the pipeline, membership re-checked, streamed from disk. No public path and no signed URL
+- [x] 2.5 The upload control states who will be able to read the file — every member — before a file is chosen, and deleting a document removes its row, its passages and the file itself
+- [x] 2.6 Tests — the upload-abuse suite from `06` §6.8: oversized, mislabelled MIME, zip bomb, executable-as-PDF, encrypted PDF. Each fails cleanly, names the reason, and leaves no file and no row. Plus: another community's file is not served
 
 ## 3. Extraction
 

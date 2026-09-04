@@ -19,6 +19,9 @@ export const links = {
 		resolve('/(app)/c/[slug]/discussions/[id]', { slug, id }),
 	definition: (slug: string, id: string) =>
 		resolve('/(app)/c/[slug]/definitions/[id]', { slug, id }),
+	documents: (slug: string) => resolve('/(app)/c/[slug]/documents', { slug }),
+	documentFile: (slug: string, id: string) =>
+		resolve('/(app)/c/[slug]/documents/[id]/file', { slug, id }),
 	decisions: (slug: string) => resolve('/(app)/c/[slug]/decisions', { slug }),
 	decision: (slug: string, ref: string) => resolve('/(app)/c/[slug]/d/[ref]', { slug, ref })
 };

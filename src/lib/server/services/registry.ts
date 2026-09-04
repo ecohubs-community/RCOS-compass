@@ -26,6 +26,9 @@ export type TenantService = {
 		| 'proposal'
 		| 'objection'
 		| 'consentRound'
+		| 'document'
+		| 'passage'
+		| 'evidence'
 		| 'decision'
 		/**
 		 * A decision's human reference rather than its id. Refs are per-community
