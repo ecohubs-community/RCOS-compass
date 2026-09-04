@@ -5,7 +5,10 @@ import { definitionOrigin } from '$lib/server/services/evidence';
 import { activeStandardView } from '$lib/server/services/completeness';
 import { lint } from '$lib/server/linter';
 import { parseMarkdown } from '$lib/server/markdown';
-import type { PageServerLoad } from './$types';
+import { fail } from '@sveltejs/kit';
+import { aiAvailability } from '$lib/server/ai/run';
+import { lintWithAssist } from '$lib/server/services/linting';
+import type { Actions, PageServerLoad } from './$types';
 
 /**
  * The definition detail — the hero screen. UI spec §4.3.
@@ -85,6 +88,49 @@ export const load: PageServerLoad = ({ locals, params }) => {
 			},
 		/** The passage this began as, when it began as one. */
 		origin: definitionOrigin(ctx, params.id, { db }),
+		/**
+		 * Whether the two assisted checks can be offered.
+		 *
+		 * They are **not** run here. Each one costs a member a task from their
+		 * daily allowance, and spending that because somebody opened a page would
+		 * empty an allowance nobody chose to use.
+		 */
+		assist: aiAvailability(ctx, { db }) === null,
 		can: { propose: ctxCan(ctx, 'proposal.create') }
 	};
+};
+
+export const actions: Actions = {
+	/**
+	 * The two questions a word list cannot answer, asked on request.
+	 *
+	 * docs/11 §8: they degrade to silence, never to a guess — so what comes back
+	 * when they cannot run is a finding saying they did not run, which the panel
+	 * shows like any other.
+	 */
+	assist: async (event) => {
+		const ctx = event.locals.ctx!;
+		const db = getDb();
+
+		const found = getDefinition(ctx, event.params.id, { db });
+		const version = adoptedVersion(ctx, event.params.id, { db });
+		const draft = version ? null : getDraft(ctx, event.params.id, { db });
+		const body = version?.body ?? draft?.body ?? '';
+
+		if (!body.trim()) return fail(409, { error: 'There is nothing written here yet.' });
+
+		const result = await lintWithAssist(
+			ctx,
+			{
+				body,
+				plainLanguage: version?.plainLanguage ?? draft?.plainLanguage ?? null,
+				type: version?.type ?? draft?.type ?? null,
+				locale: ctx.community.locale,
+				layer: found.layer
+			},
+			{ db }
+		);
+
+		return { linter: result.findings, assisted: result.assisted };
+	}
 };

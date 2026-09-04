@@ -69,11 +69,11 @@
 
 ## 8. The linter's assisted half
 
-- [ ] 8.1 `lintWithAssist(input, options)` — async, runs the rule set first, adds the assisted findings when a provider is available and in budget. `lint()` keeps its signature and stays synchronous, because the freeze path calls it on every render
-- [ ] 8.2 `enf.auditable` (RCOS §2.4.3) and the full `type.mismatch` as AI tasks with their own prompts and schemas
-- [ ] 8.3 Without a provider, in budget or otherwise, the panel says the assisted checks were **not run** — the shape `all.vague.unavailable` already established, for the same reason
-- [ ] 8.4 Remove the cross-community statistic from the linter panel (spec review log #28)
-- [ ] 8.5 Tests: the rule-based findings are identical with and without a provider; the unavailable finding appears on `null`; an assisted warning still cannot stop a freeze
+- [x] 8.1 `lintWithAssist(input, options)` — async, runs the rule set first, adds the assisted findings when a provider is available and in budget. `lint()` keeps its signature and stays synchronous, because the freeze path calls it on every render
+- [x] 8.2 `enf.auditable` (RCOS §2.4.3) and the full `type.mismatch` as AI tasks with their own prompts and schemas
+- [x] 8.3 Without a provider, in budget or otherwise, the panel says the assisted checks were **not run** — the shape `all.vague.unavailable` already established, for the same reason
+- [x] 8.4 The cross-community statistic is absent from the linter panel (spec review log #28) — it was never implemented, so this is a test pinning it out rather than a removal
+- [x] 8.5 Tests: the rule-based findings are identical with and without a provider; the unavailable finding appears on `null`; an assisted warning still cannot stop a freeze
 
 ## 9. Closing it
 

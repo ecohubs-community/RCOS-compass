@@ -223,3 +223,27 @@ describe('the linter is advice', () => {
 		expect(source).not.toMatch(/getAiProvider|generate\(/);
 	});
 });
+
+describe('what the linter must never claim', () => {
+	it('says nothing about how other communities read a word', () => {
+		// UI spec §8, and spec review log #28. The mockup's panel read:
+		//   ⚠ Vague word: "regularly" — three of eleven communities read this as
+		//     monthly, eight as weekly
+		//
+		// Producing that needs many communities, their definitions pooled, and
+		// their consent to the pooling — the opt-in pattern library, deliberately
+		// post-MVP. At MVP the sentence could only be invented, and a developer
+		// implementing the mockup literally would be tempted to invent it. This
+		// is here so that temptation fails a test rather than reaching a screen.
+		const result = lint({
+			...clean,
+			type: 'enforceable',
+			body: 'Candidates attend the assembly regularly. Otherwise they remain candidates.'
+		});
+		const messages = result.findings.map((finding) => finding.message).join(' ');
+
+		expect(messages).toMatch(/vague word/i);
+		expect(messages).not.toMatch(/communities/i);
+		expect(messages).not.toMatch(/\b\d+ of \d+\b/);
+	});
+});

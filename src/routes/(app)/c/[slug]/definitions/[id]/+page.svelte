@@ -1,10 +1,12 @@
 <script lang="ts">
+	import { enhance } from '$app/forms';
+	import Button from '$lib/components/ui/Button.svelte';
 	import LinterPanel from '$lib/components/ui/LinterPanel.svelte';
 	import Markdown from '$lib/components/ui/Markdown.svelte';
 	import StatusChip from '$lib/components/ui/StatusChip.svelte';
 	import { links } from '$lib/links';
 
-	let { data } = $props();
+	let { data, form } = $props();
 	const slug = $derived(data.community.slug);
 
 	/**
@@ -113,7 +115,21 @@
 					</div>
 				{/if}
 
-				<LinterPanel findings={data.version.linter} class="mt-6" />
+				<!--
+					The assisted findings replace the panel's contents once they have been
+					asked for — never on load, which would spend a member's daily
+					allowance because they opened a page.
+				-->
+				<LinterPanel findings={form?.linter ?? data.version.linter} class="mt-6" />
+				{#if data.assist && !form?.linter}
+					<form method="POST" action="?/assist" class="mt-3" use:enhance>
+						<Button type="submit" variant="secondary">Check it more closely</Button>
+						<p class="text-fg-muted text-meta mt-2">
+							Two more questions, answered with AI assistance: whether an auditor could verify this,
+							and whether it reads as the type it is labelled.
+						</p>
+					</form>
+				{/if}
 			{:else if data.draft}
 				<h3 class="text-fg-muted text-meta mt-1">Draft — not adopted</h3>
 				{#if data.origin}
