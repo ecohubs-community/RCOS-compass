@@ -1,5 +1,8 @@
-## ADDED Requirements
+# evidence Specification
 
+## Purpose
+Covers the claim that a community already has language about a clause: how a person maps a passage to a clause by hand, the states evidence moves through and the human act of confirming it, why confirmed evidence moves no number, how it becomes a definition draft in the community's own words, and why it goes stale rather than disappearing.
+## Requirements
 ### Requirement: A passage is mapped to a clause by a person
 
 The application MUST allow a member to map a passage to a clause by hand, without
@@ -75,13 +78,23 @@ freeze path rather than becoming an adopted definition.
 ### Requirement: Evidence goes stale rather than disappearing
 
 Evidence MUST become `stale` and remain readable when the passage behind it is
-superseded or the community's adopted standard version changes. It MUST NOT be
+gone — its document destroyed, or the passage itself replaced. It MUST NOT be
 deleted or silently repointed.
 
-#### Scenario: A document is replaced by a newer upload
-- **WHEN** a passage's document is superseded
-- **THEN** evidence pointing at that passage becomes `stale`
+Evidence records the standard version it was claimed against, so that a community
+adopting a later version can be told which claims were made about the old one.
+Acting on that is part of standard-version migration and is not required here;
+what is required now is that the version is recorded rather than reconstructed
+later, because it cannot be.
+
+#### Scenario: A document is deleted
+- **WHEN** a document and its passages are removed
+- **THEN** evidence pointing at those passages becomes `stale`
 - **AND** it is still visible, with what it said and who confirmed it
+
+#### Scenario: A claim records what it was claimed against
+- **WHEN** evidence is confirmed
+- **THEN** it records the community's adopted standard version at that moment
 
 #### Scenario: Stale evidence is re-confirmed
 - **WHEN** a member re-confirms stale evidence against the current passage

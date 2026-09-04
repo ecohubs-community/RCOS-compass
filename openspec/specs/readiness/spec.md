@@ -11,6 +11,11 @@ Clauses the standard marks as satisfied by the platform or as not a definition
 MUST be excluded from both the numerator and the denominator, and the denominator
 MUST be computed from the loaded standard rather than written down.
 
+A clause is satisfied only by an adopted definition. Confirmed evidence — the
+claim that a community has language about a clause somewhere in a document it
+uploaded — MUST NOT satisfy a clause, and MUST NOT appear in either part of the
+fraction.
+
 #### Scenario: A community answers a clause
 - **WHEN** a definition owning a countable clause gains an adopted version
 - **THEN** readiness rises by exactly one clause's worth
@@ -27,6 +32,11 @@ MUST be computed from the loaded standard rather than written down.
 - **WHEN** an adopted definition's review date has passed
 - **THEN** it still counts as satisfied
 - **AND** it is reported as needing review
+
+#### Scenario: A community confirms evidence for a clause it has not defined
+- **WHEN** evidence for a countable clause is confirmed and no definition is adopted for it
+- **THEN** readiness does not move
+- **AND** the outward compliance claim does not move
 
 ### Requirement: An artifact is complete when its authored sections are answered
 

@@ -30,10 +30,11 @@ MUST NOT report the definition as having passed a check nobody performed.
 
 ### Requirement: A version records how it was written
 
-A definition version MUST record whether it was drafted with AI assistance, the
-linter result at the time it was frozen, and whether its text began as a passage
-from a document the community uploaded. Where it came from is part of what a
-reader a year later needs, and it cannot be reconstructed afterwards.
+A definition version MUST record whether it was drafted with AI assistance and
+the linter result at the time it was frozen. Where a definition's text began —
+a passage from a document the community uploaded, or nothing — MUST also be
+recorded, because it is part of what a reader a year later needs and cannot be
+reconstructed afterwards.
 
 #### Scenario: A version is frozen
 - **WHEN** a definition version is adopted
@@ -45,9 +46,9 @@ reader a year later needs, and it cannot be reconstructed afterwards.
 
 #### Scenario: A definition began as the community's own document
 - **WHEN** a draft pre-filled from confirmed evidence is frozen
-- **THEN** the version records the evidence it came from
+- **THEN** the definition still records the evidence its text came from
 - **AND** the reader can reach the passage and the document behind it
 
 #### Scenario: A definition was typed from nothing
 - **WHEN** a draft written by hand is frozen
-- **THEN** the version records no evidence origin, rather than an empty one
+- **THEN** no origin is recorded, rather than an empty one

@@ -21,6 +21,7 @@ import {
 } from '../../src/lib/server/services/documents.js';
 import {
 	confirmEvidence,
+	definitionOrigin,
 	dismissEvidence,
 	evidenceForDocument,
 	getEvidence,
@@ -29,6 +30,8 @@ import {
 	turnIntoDefinition
 } from '../../src/lib/server/services/evidence.js';
 import { readiness, compliance } from '../../src/lib/server/services/readiness.js';
+import { freeze } from '../../src/lib/server/services/decisions.js';
+import { addProposal, openDiscussion } from '../../src/lib/server/services/discussions.js';
 import { getStandard } from '../../src/lib/server/standard/index.js';
 import { createTestDb } from '../support/db.js';
 import { catchRefusal, catchRefusalAsync } from '../support/errors.js';
@@ -264,6 +267,38 @@ describe('the community-s own words, on their way to becoming binding', () => {
 		// A reader a year later can get from the definition back to the 2019 bylaws.
 		expect(source.evidenceId).toBe(claim.id);
 		expect(source.passageId).toBe(exitPassage().id);
+	});
+
+	it('still says where an adopted definition-s words came from', () => {
+		// `recordSource` runs when a definition is created or an empty draft is
+		// filled, and `turnIntoDefinition` opens a discussion for anything already
+		// written — so the record cannot be rewritten under an adopted version.
+		// This is the guard on that: freezing must not lose the provenance.
+		const claim = mapPassage(ctx, { passageId: exitPassage().id, clause: COUNTABLE.key }, { db });
+		const made = turnIntoDefinition(ctx, claim.id, { db });
+		const definitionId = made.kind === 'draft' ? made.definitionId : '';
+
+		const thread = openDiscussion(
+			ctx,
+			{ title: 'Exit', about: { kind: 'definition', definitionId } },
+			{ db }
+		);
+		addProposal(ctx, { discussionId: thread.id, body: 'A member may leave at any time.' }, { db });
+		freeze(
+			ctx,
+			{
+				discussionId: thread.id,
+				idempotencyKey: 'provenance',
+				title: 'Exit',
+				type: 'operational',
+				mechanism: 'consent'
+			},
+			{ db }
+		);
+
+		const origin = definitionOrigin(ctx, definitionId, { db })!;
+		expect(origin.page).toBe(exitPassage().page);
+		expect(origin.filename).toBe('valle-verde-bylaws.pdf');
 	});
 
 	it('proposes rather than overwrites when the section already says something', () => {
