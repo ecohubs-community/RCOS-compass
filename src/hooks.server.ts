@@ -7,7 +7,7 @@ import { securityHeaders } from '$lib/server/http/security-headers';
 import { rateLimitRequest } from '$lib/server/http/rate-limit-request';
 import { resolveActor } from '$lib/server/auth/session';
 import { requirePlatformAdmin } from '$lib/server/auth/admin';
-import { handlers } from '$lib/server/jobs/handlers';
+import { DIGEST_INTERVAL_MS, handlers } from '$lib/server/jobs/handlers';
 import { enqueue, startWorker } from '$lib/server/jobs';
 import { systemClock } from '$lib/server/clock';
 
@@ -34,6 +34,13 @@ const db = initDatabase();
 if (!config.isTest) {
 	startWorker(db, handlers, { intervalMs: 5_000 });
 	enqueue(db, systemClock, { kind: 'prune-rate-limits' });
+	// Both re-arm themselves; enqueueing at boot is what starts the chain. The
+	// digest waits a week before its first run rather than mailing everyone the
+	// moment an instance restarts.
+	enqueue(db, systemClock, {
+		kind: 'weekly-digest',
+		runAfter: systemClock.now() + DIGEST_INTERVAL_MS
+	});
 }
 
 /**

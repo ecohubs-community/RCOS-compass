@@ -5,6 +5,7 @@ import { getDb, type Db } from '../db/index.js';
 import { newId } from '../db/id.js';
 import { definition } from '../db/schema/definitions.js';
 import { discussion, post, type Discussion, type Post } from '../db/schema/discussions.js';
+import { discussionParticipants, notify } from './notifications.js';
 import { registerTenantService } from './registry.js';
 
 /**
@@ -179,13 +180,25 @@ export function addProposal(
 		.orderBy(desc(post.proposalVersion))
 		.get();
 
-	return writePost(ctx, options, {
+	const written = writePost(ctx, options, {
 		discussionId: input.discussionId,
 		body,
 		kind: 'proposal',
 		// v1, v2, v3 … and every earlier one stays readable.
 		proposalVersion: (previous?.proposalVersion ?? 0) + 1
 	});
+
+	// The people who have written in this thread, not everyone: a notification
+	// everybody gets is a notification nobody reads.
+	notify(db, ctx, {
+		kind: 'proposal.posted',
+		subjectType: 'discussion',
+		subjectId: input.discussionId,
+		summary: found.title,
+		recipients: discussionParticipants(db, ctx.community.id, input.discussionId)
+	});
+
+	return written;
 }
 
 /**

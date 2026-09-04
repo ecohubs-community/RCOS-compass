@@ -20,6 +20,7 @@ import { discussion, post } from '../db/schema/discussions.js';
 import { countUnresolved } from './objections.js';
 import { proposalToFreeze } from './discussions.js';
 import { activeStandardView, DECISION_MATRIX, isArtifactComplete } from './completeness.js';
+import { activeMemberships, notify } from './notifications.js';
 import { registerTenantService } from './registry.js';
 
 /**
@@ -354,6 +355,18 @@ export function freeze(ctx: Ctx, input: FreezeInput, options: { db?: Db } = {}):
 				}
 			})
 			.run();
+
+		// Written inside the transaction, not enqueued after it: a decision that
+		// exists and told nobody is one half the community finds out about by
+		// accident. These are local rows and cost nothing; mail is the weekly
+		// digest, which is a job precisely so it never holds this write lock.
+		notify(tx as unknown as Db, ctx, {
+			kind: 'decision.frozen',
+			subjectType: 'decision',
+			subjectId: decisionId,
+			summary: input.title.trim(),
+			recipients: activeMemberships(tx as unknown as Db, ctx.community.id)
+		});
 
 		return tx.select().from(decision).where(eq(decision.id, decisionId)).get()!;
 	});

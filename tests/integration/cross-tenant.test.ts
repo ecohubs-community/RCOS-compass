@@ -9,6 +9,7 @@ import '../../src/lib/server/services/definitions.js';
 import '../../src/lib/server/services/discussions.js';
 import '../../src/lib/server/services/objections.js';
 import '../../src/lib/server/services/decisions.js';
+import '../../src/lib/server/services/notifications.js';
 import { inviteMember } from '../../src/lib/server/services/invitations.js';
 import { createDefinition } from '../../src/lib/server/services/definitions.js';
 import { addProposal, openDiscussion } from '../../src/lib/server/services/discussions.js';
@@ -18,6 +19,7 @@ import { getStandard } from '../../src/lib/server/standard/index.js';
 import { newId } from '../../src/lib/server/db/id.js';
 import { communityArtifact } from '../../src/lib/server/db/schema/definitions.js';
 import { communityStandard } from '../../src/lib/server/db/schema/tenancy.js';
+import { notification } from '../../src/lib/server/db/schema/notifications.js';
 import { createTestDb } from '../support/db.js';
 import { makeCommunity, makeMembership, makeUser } from '../support/factories.js';
 
@@ -115,6 +117,12 @@ beforeEach(() => {
 		{ db }
 	);
 
+	// A second member of A, so the freeze below has somebody to notify: `notify`
+	// skips the actor, and Alice acting alone would produce no rows at all.
+	makeMembership(db, communityA.id, makeUser(db, { email: 'dave@example.org' }).id, {
+		role: 'member'
+	});
+
 	// A decision in A, so `decisions.get` has a subject to be refused.
 	const countable = getStandard('rcos-core', '0.1').countableClauses()[0]!;
 	const decidable = openDiscussion(
@@ -135,6 +143,10 @@ beforeEach(() => {
 		{ db }
 	);
 
+	// A notification in A, addressed to Alice, so `notifications.markRead` has a
+	// subject that is genuinely not Bob's.
+	const notificationInA = db.select().from(notification).all()[0];
+
 	world = {
 		// Bob is a steward — the most privileged ordinary role — of B. If the
 		// boundary held only for members, it would not be a boundary.
@@ -153,7 +165,8 @@ beforeEach(() => {
 			discussion: discussionInA.id,
 			proposal: proposalInA.id,
 			objection: objectionInA.id,
-			decision: decisionInA.id
+			decision: decisionInA.id,
+			notification: notificationInA?.id ?? ''
 		}
 	};
 });

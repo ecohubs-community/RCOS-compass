@@ -66,10 +66,10 @@ Names and columns from `docs/03-data-model.md` §3, which already specifies them
 
 ## 7. Notifications
 
-- [ ] 7.1 `notification` rows written per recipient as events occur, never for the actor themselves
-- [ ] 7.2 In-app list and read state, scoped per community and withheld from an ended membership
-- [ ] 7.3 The weekly digest job, enqueued rather than sent in-request, carrying counts and a link and no content
-- [ ] 7.4 Tests: the `notifications` spec in full — a former member gets nothing, a quiet week sends nothing, and a digest body contains no definition or discussion text
+- [x] 7.1 `notification` rows written per recipient as events occur, never for the actor themselves
+- [x] 7.2 In-app list and read state, scoped per community and withheld from an ended membership
+- [x] 7.3 The weekly digest job, enqueued rather than sent in-request, carrying counts and a link and no content
+- [x] 7.4 Tests: the `notifications` spec in full — a former member gets nothing, a quiet week sends nothing, and a digest body contains no definition or discussion text
 
 ## 8. The linter
 

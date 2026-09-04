@@ -12,6 +12,7 @@ import {
 } from '../db/schema/discussions.js';
 import { membership } from '../db/schema/tenancy.js';
 import { countUnresolved, raiseObjection } from '../services/objections.js';
+import { notify } from '../services/notifications.js';
 import type { OpenRoundInput, ResponseValue, Round, Tally, VotingProvider } from './provider.js';
 
 /**
@@ -155,6 +156,14 @@ export const consentRoundProvider: VotingProvider = {
 			for (const membershipId of eligibleIds) {
 				tx.insert(consentEligible).values({ roundId, membershipId }).run();
 			}
+
+			notify(tx as unknown as Db, ctx, {
+				kind: 'consent.opened',
+				subjectType: 'discussion',
+				subjectId: proposal.post.discussionId,
+				summary: 'A consent round is open',
+				recipients: eligibleIds
+			});
 
 			return toRound(
 				tx.select().from(consentRound).where(eq(consentRound.id, roundId)).get()!,

@@ -1,5 +1,19 @@
 ## ADDED Requirements
 
+### Requirement: Notifications are written with the act that caused them
+
+Notification rows MUST be written inside the transaction that caused them, and
+sending mail MUST NOT happen during that transaction.
+
+#### Scenario: A decision is frozen
+- **WHEN** the freeze transaction commits
+- **THEN** every recipient's notification exists
+- **AND** no mail was sent during it
+
+#### Scenario: The transaction rolls back
+- **WHEN** a freeze fails
+- **THEN** no notification about it exists
+
 ### Requirement: A member is told what happened where they can act on it
 
 The application MUST record a notification for each recipient of an event that
@@ -49,6 +63,8 @@ decision rationale.
 - **WHEN** the job runs for a community with no activity
 - **THEN** no message is sent
 
-#### Scenario: Freezing does not wait for mail
+#### Scenario: Freezing sends no mail
 - **WHEN** a decision is frozen
-- **THEN** the notification work is enqueued and the freeze does not wait for it
+- **THEN** its notification rows are written in the same transaction
+- **AND** no message is sent, because mail is the digest's work and nothing that
+  slow may hold the write lock a freeze holds
