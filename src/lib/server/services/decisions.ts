@@ -564,4 +564,70 @@ export function awaitingRatification(ctx: Ctx, options: { db?: Db } = {}): Decis
 		.all();
 }
 
+export type DecisionDetail = {
+	decision: Decision;
+	clauses: { standardId: string; version: string; ref: string; clauseKey: string }[];
+	attendees: { name: string | null; consentedToPublish: boolean }[];
+	supersededBy: string | null;
+	supersedes: string | null;
+};
+
+/** One decision, with everything a reader a year later needs around it. */
+export function decisionDetail(ctx: Ctx, ref: string, options: { db?: Db } = {}): DecisionDetail {
+	const db = options.db ?? getDb();
+	const found = getDecisionByRef(ctx, ref, options);
+
+	const replacement = found.supersededById
+		? (db.select().from(decision).where(eq(decision.id, found.supersededById)).get() ?? null)
+		: null;
+	const replaced =
+		db
+			.select()
+			.from(decision)
+			.where(and(eq(decision.communityId, ctx.community.id), eq(decision.supersededById, found.id)))
+			.get() ?? null;
+
+	return {
+		decision: found,
+		clauses: db.select().from(decisionClause).where(eq(decisionClause.decisionId, found.id)).all(),
+		// Only the people who agreed to be named are named; the rest are a count.
+		attendees: db
+			.select()
+			.from(decisionAttendee)
+			.where(eq(decisionAttendee.decisionId, found.id))
+			.all()
+			.map((row) => ({
+				name: row.consentedToPublish ? row.externalName : null,
+				consentedToPublish: row.consentedToPublish
+			})),
+		supersededBy: replacement?.ref ?? null,
+		supersedes: replaced?.ref ?? null
+	};
+}
+
+/**
+ * Reverse lookup: find a decision by what it says, not by its number.
+ *
+ * A member a year later remembers the question — "can we spend €800 on the water
+ * pump?" — and not `DEC-2026-014`. So the search reads the adopted text and the
+ * title, which is where the answer actually lives.
+ *
+ * Substring matching over one community's decisions, which is a few hundred rows
+ * at most; the typeahead index in P5 replaces it without changing this signature.
+ */
+export function searchDecisions(ctx: Ctx, query: string, options: { db?: Db } = {}): Decision[] {
+	const all = listDecisions(ctx, options);
+	const needle = query.trim().toLowerCase();
+	if (!needle) return all;
+
+	const words = needle.split(/\s+/).filter((word) => word.length > 2);
+	return all.filter((decision) => {
+		const haystack =
+			`${decision.title} ${decision.proposalText} ${decision.rationale ?? ''}`.toLowerCase();
+		return words.length === 0
+			? haystack.includes(needle)
+			: words.some((word) => haystack.includes(word));
+	});
+}
+
 registerTenantService({ name: 'decisions.get', subject: 'decision', call: getDecision });

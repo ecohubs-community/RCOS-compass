@@ -78,11 +78,11 @@ Names and columns from `docs/03-data-model.md` §3, which already specifies them
 
 ## 9. Screens
 
-- [ ] 9.1 Dashboard — readiness by layer, *Your next 5* from the vendored annotation edges, needs-attention, recently decided
-- [ ] 9.2 Standard browser — the community's status woven into the spec, filters, "show only gaps"
-- [ ] 9.3 Definition detail — the three-column hero, tabs below 1024px, the linter panel, *In plain words*, the local-additions block
-- [ ] 9.4 Discussions list and thread, with the proposal block and the Freeze modal including the provisional notice
-- [ ] 9.5 Decision register — the dense table, an expanded row, and the reverse-lookup question box
+- [x] 9.1 Dashboard — readiness by layer, *Your next 5* from the vendored annotation edges, needs-attention, recently decided
+- [x] 9.2 Standard browser — the community's status woven into the spec, filters, "show only gaps"
+- [x] 9.3 Definition detail — the three-column hero, tabs below 1024px, the linter panel, *In plain words*, the local-additions block
+- [x] 9.4 Discussions list and thread, with the proposal block and the Freeze modal including the provisional notice
+- [x] 9.5 Decision register — the dense table, an expanded row, and the reverse-lookup question box
 - [ ] 9.6 Tests: the gallery gains every new primitive; the a11y pass covers each screen at 375 / 768 / 1024 / 1440; a keyboard-only pass and a `prefers-reduced-motion` pass of the loop
 
 ## 10. Closing the loop

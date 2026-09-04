@@ -1,6 +1,7 @@
 import type { Logger } from 'pino';
 import type { User } from '$lib/server/db/schema/auth';
 import type { Community, Membership } from '$lib/server/db/schema/tenancy';
+import type { Ctx } from '$lib/server/auth/guard';
 
 declare global {
 	namespace App {
@@ -18,6 +19,11 @@ declare global {
 			 */
 			community?: Community;
 			membership?: Membership;
+			/**
+			 * The context every service takes, built once by the tenant layout so a
+			 * page never assembles one from parts and never invents a community id.
+			 */
+			ctx?: Ctx;
 		}
 		interface Error {
 			message: string;

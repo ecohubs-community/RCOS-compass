@@ -2,7 +2,12 @@ import { error, redirect } from '@sveltejs/kit';
 import { systemClock } from '$lib/server/clock';
 import { getDb } from '$lib/server/db';
 import { resolveCommunity, resolveSlugRedirect } from '$lib/server/services/tenancy';
-import { READINESS_DEPENDS } from '$lib/server/services/readiness';
+import { READINESS_DEPENDS, readiness } from '$lib/server/services/readiness';
+import {
+	activeStandardView,
+	incompleteMandatoryArtifacts
+} from '$lib/server/services/completeness';
+import { unreadCount } from '$lib/server/services/notifications';
 import { requirePermission, type Ctx } from '$lib/server/auth/guard';
 import type { LayoutServerLoad } from './$types';
 
@@ -57,10 +62,27 @@ export const load: LayoutServerLoad = async ({ params, locals, url, depends }) =
 		now: systemClock.now
 	};
 	requirePermission(ctx, 'community.read');
+	locals.ctx = ctx;
 
 	locals.log = locals.log.child({ communityId: resolution.community.id });
 
+	const figures = readiness(ctx);
+
 	return {
+		readiness: figures && {
+			percent: figures.percent,
+			satisfied: figures.satisfied,
+			countable: figures.countable,
+			layers: figures.layers
+		},
+		artifacts: (() => {
+			const view = activeStandardView(getDb(), ctx);
+			if (!view) return { complete: 0, total: 0 };
+			const mandatory = view.view.mandatoryArtifacts();
+			const incomplete = incompleteMandatoryArtifacts(ctx).length;
+			return { complete: mandatory.length - incomplete, total: mandatory.length };
+		})(),
+		unread: unreadCount(ctx),
 		community: {
 			id: resolution.community.id,
 			slug: resolution.community.slug,

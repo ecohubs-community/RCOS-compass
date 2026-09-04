@@ -391,3 +391,18 @@ registerTenantService({
 	subject: 'communityArtifact',
 	call: listLocalDefinitions
 });
+
+/** Every standard definition this community holds, keyed by section. */
+export function definitionsBySection(ctx: Ctx, options: { db?: Db } = {}): Map<string, Definition> {
+	requirePermission(ctx, 'community.read');
+	const db = options.db ?? getDb();
+
+	return new Map(
+		db
+			.select()
+			.from(definition)
+			.where(and(eq(definition.communityId, ctx.community.id), eq(definition.scope, 'standard')))
+			.all()
+			.map((row) => [row.sectionKey!, row])
+	);
+}
