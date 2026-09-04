@@ -60,12 +60,12 @@
 
 ## 7. AI mapping suggestions
 
-- [ ] 7.1 The mapping task: extracted text to the model inside a delimited data block, with a system prompt stating it is data and never instructions
-- [ ] 7.2 Suggestions written only as `evidence` in `suggested` state, by an ordinary service with a `Ctx` and a permission check — the task returns data and writes nothing
-- [ ] 7.3 Output validated against the task's schema; unparseable output discarded and logged, never retried indefinitely; a suggested clause outside the community's adopted standard discarded
-- [ ] 7.4 A run is capped by the page ceiling, resumable, and charged to the member who started it; a run that stops mid-way keeps what it produced and says so
-- [ ] 7.5 **Tests: the prompt-injection fixture (`06` §6.7) — the document telling the model to mark every clause satisfied and confirm all mappings produces at most suggestion rows and changes no state.** This passes before any of group 7 is considered done
-- [ ] 7.6 Tests: a mapping run on the `fixture` provider produces suggestions a human then confirms; nothing reaches `confirmed` without a person
+- [x] 7.1 The mapping task: extracted text to the model inside a delimited data block, with a system prompt stating it is data and never instructions
+- [x] 7.2 Suggestions written only as `evidence` in `suggested` state, by an ordinary service with a `Ctx` and a permission check — the task returns data and writes nothing
+- [x] 7.3 Output validated against the task's schema; unparseable output discarded and logged, never retried indefinitely; a suggested clause outside the community's adopted standard discarded
+- [x] 7.4 A run is capped by the page ceiling, resumable, and charged to the member who started it; a run that stops mid-way keeps what it produced and says so
+- [x] 7.5 **Tests: the prompt-injection fixture (`06` §6.7) — the document telling the model to mark every clause satisfied and confirm all mappings produces at most suggestion rows and changes no state.** This passes before any of group 7 is considered done
+- [x] 7.6 Tests: a mapping run on the `fixture` provider produces suggestions a human then confirms; nothing reaches `confirmed` without a person
 
 ## 8. The linter's assisted half
 

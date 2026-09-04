@@ -80,19 +80,22 @@ export default ts.config(
 				{
 					patterns: [
 						{
-							group: ['../services/*', '**/server/services/*', '$lib/server/services/*'],
+							// Any depth: `ai/tasks/x.ts` reaches a service as `../../services/…`,
+							// which a `../services/*` pattern does not match — and a boundary
+							// with a hole in it is worse than none, because it is trusted.
+							group: [
+								'**/services/*',
+								'**/services/**',
+								'$lib/server/services/*',
+								'$lib/server/services/**'
+							],
 							message:
 								'The AI module may not reach a service that writes. A task returns data; a service with a Ctx and a permission check turns it into a suggestion a person confirms — docs/00-architecture.md §4 rule 7.'
 						},
 						{
 							// Everything under db/schema *except* its own log, which is the
 							// only state an AI task is allowed to produce.
-							group: [
-								'../db/schema/*',
-								'**/db/schema/*',
-								'!../db/schema/ai.js',
-								'!**/db/schema/ai.js'
-							],
+							group: ['**/db/schema/*', '**/db/schema/**', '!**/db/schema/ai.js'],
 							message:
 								'The AI module may only touch `db/schema/ai` — the call log and the usage counter. Anything else is state a model would be writing.'
 						}

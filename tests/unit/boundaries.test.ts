@@ -52,8 +52,13 @@ describe('the AI module writes nothing but its own log', () => {
 	 * say from there. The shared helper roots its files under `src/lib/`, which
 	 * would put the probe outside the rule and quietly pass everything.
 	 */
-	function inAiModule(contents: string): string {
-		const file = join(repoRoot, 'src/lib/server/ai', `probe-${process.pid}.ts`);
+	function probe(depth: 'top' | 'nested', contents: string): string {
+		const dir =
+			depth === 'top'
+				? join(repoRoot, 'src/lib/server/ai')
+				: join(repoRoot, 'src/lib/server/ai/probe-nested');
+		mkdirSync(dir, { recursive: true });
+		const file = join(dir, `probe-${process.pid}.ts`);
 		writeFileSync(file, contents);
 		try {
 			execFileSync('pnpm', ['exec', 'eslint', '--no-warn-ignored', '--format', 'json', file], {
@@ -64,9 +69,11 @@ describe('the AI module writes nothing but its own log', () => {
 		} catch (error) {
 			return (error as { stdout?: string }).stdout ?? '';
 		} finally {
-			rmSync(file, { force: true });
+			rmSync(depth === 'top' ? file : dir, { recursive: true, force: true });
 		}
 	}
+
+	const inAiModule = (contents: string) => probe('top', contents);
 
 	it('refuses a service that writes', () => {
 		const output = inAiModule(
@@ -89,6 +96,33 @@ describe('the AI module writes nothing but its own log', () => {
 			"import { evidence } from '../db/schema/documents.js';\nexport const x = evidence;\n"
 		);
 		expect(output).toContain('may only touch');
+	});
+
+	it('refuses a service from a subdirectory too', () => {
+		// The hole this closes was real: `ai/tasks/x.ts` reaches a service as
+		// `../../services/…`, which the first version of the rule did not match.
+		// A boundary with a hole in it is worse than none, because it is trusted.
+		const output = probe(
+			'nested',
+			"import { mapPassage } from '../../services/evidence.js';\nexport const x = mapPassage;\n"
+		);
+		expect(output).toContain('may not reach a service that writes');
+	});
+
+	it('refuses a content table from a subdirectory too', () => {
+		const output = probe(
+			'nested',
+			"import { evidence } from '../../db/schema/documents.js';\nexport const x = evidence;\n"
+		);
+		expect(output).toContain('may only touch');
+	});
+
+	it('allows its own log from a subdirectory', () => {
+		const output = probe(
+			'nested',
+			"import { aiUsage } from '../../db/schema/ai.js';\nexport const x = aiUsage;\n"
+		);
+		expect(output).toBe('');
 	});
 
 	it('allows its own call log and usage counter', () => {

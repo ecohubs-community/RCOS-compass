@@ -4,11 +4,14 @@ import { getDb } from '$lib/server/db';
 import { parseMarkdown } from '$lib/server/markdown';
 import { getDocument, listPassages } from '$lib/server/services/documents';
 import {
+	confirmEvidence,
 	dismissEvidence,
 	evidenceForDocument,
 	mapPassage,
 	turnIntoDefinition
 } from '$lib/server/services/evidence';
+import { aiAvailability } from '$lib/server/ai/run';
+import { runMapping } from '$lib/server/services/mapping';
 import { links } from '$lib/links';
 import { redirect } from '@sveltejs/kit';
 import type { Actions, PageServerLoad } from './$types';
@@ -53,7 +56,24 @@ export const load: PageServerLoad = ({ locals, params }) => {
 					suggestedBy: item.suggestedBy
 				}))
 		})),
-		can: { map: ctxCan(ctx, 'mapping.confirm'), draft: ctxCan(ctx, 'definition.draft') }
+		can: { map: ctxCan(ctx, 'mapping.confirm'), draft: ctxCan(ctx, 'definition.draft') },
+		/**
+		 * Whether to offer the AI run, and — when not — why in a sentence.
+		 *
+		 * Unavailable is a state the screen is designed for rather than an error it
+		 * reports: no provider, a community that has not switched it on, and a
+		 * member who has spent today's budget all read the same way, and all of
+		 * them leave the manual path exactly where it was.
+		 */
+		ai:
+			found.status === 'extracted' && ctxCan(ctx, 'ai.run')
+				? (() => {
+						const refusal = aiAvailability(ctx, { db });
+						return refusal?.ok === false
+							? { offer: false, reason: refusal.reason }
+							: { offer: true, reason: null };
+					})()
+				: { offer: false, reason: null }
 	};
 };
 
@@ -61,7 +81,9 @@ const CORRECTABLE = new Set([400, 409, 422]);
 
 async function run<T>(step: string, act: () => T) {
 	try {
-		return { step, result: act() };
+		// Awaited inside the try: a mapping run is async, and a rejection that
+		// escapes this would be an error page instead of a sentence on the screen.
+		return { step, result: await act() };
 	} catch (problem) {
 		const http = problem as { status?: number; body?: { message?: string } };
 		if (typeof http.status === 'number' && CORRECTABLE.has(http.status)) {
@@ -83,6 +105,21 @@ export const actions: Actions = {
 				},
 				{ db: getDb() }
 			)
+		);
+	},
+
+	suggest: async (event) => {
+		const outcome = await run('suggest', async () =>
+			runMapping(event.locals.ctx!, event.params.id, { db: getDb() })
+		);
+		if ('status' in outcome) return outcome;
+		return { step: 'suggest', mapping: await outcome.result };
+	},
+
+	confirm: async (event) => {
+		const form = await event.request.formData();
+		return run('confirm', () =>
+			confirmEvidence(event.locals.ctx!, String(form.get('evidenceId') ?? ''), { db: getDb() })
 		);
 	},
 

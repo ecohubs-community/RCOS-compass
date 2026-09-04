@@ -43,6 +43,34 @@
 		</p>
 	{/if}
 
+	{#if data.ai.offer}
+		<form method="POST" action="?/suggest" class="mt-6" use:enhance>
+			<Button type="submit" variant="secondary">Suggest mappings</Button>
+			<p class="text-fg-muted text-meta mt-2">
+				Compass reads the passages and points at requirements they might answer. Every suggestion is
+				yours to confirm or dismiss — nothing is recorded until you say so.
+			</p>
+		</form>
+	{:else if data.ai.reason}
+		<!-- Not an error. Unavailable is a state this screen is designed for. -->
+		<p class="text-fg-secondary mt-6">{data.ai.reason}</p>
+	{/if}
+
+	{#if form?.step === 'suggest' && form.mapping}
+		<p
+			role="status"
+			class="border-border bg-raised text-fg mt-4 rounded-(--radius-card) border p-3"
+		>
+			{form.mapping.suggested}
+			{form.mapping.suggested === 1 ? 'suggestion' : 'suggestions'} from {form.mapping
+				.passagesConsidered} passages.
+			{#if form.mapping.stoppedBecause}
+				<br />It stopped there: {form.mapping.stoppedBecause} What it found is kept, and
+				{form.mapping.passagesRemaining} passages are still to look at.
+			{/if}
+		</p>
+	{/if}
+
 	{#if data.document.status === 'uploaded' || data.document.status === 'extracting'}
 		<p role="status" class="text-fg-secondary mt-6">
 			Compass is reading this document. The passages appear here when it is done.
@@ -87,6 +115,17 @@
 											</form>
 										{/if}
 										{#if claim.state === 'suggested' && data.can.map}
+											{#if claim.suggestedBy === 'ai'}
+												<span class="text-fg-muted">suggested</span>
+											{/if}
+											<form method="POST" action="?/confirm" use:enhance>
+												<input type="hidden" name="evidenceId" value={claim.id} />
+												<button
+													type="submit"
+													class="text-accent-fg cursor-pointer underline underline-offset-2"
+													>Confirm</button
+												>
+											</form>
 											<form method="POST" action="?/dismiss" use:enhance>
 												<input type="hidden" name="evidenceId" value={claim.id} />
 												<button
