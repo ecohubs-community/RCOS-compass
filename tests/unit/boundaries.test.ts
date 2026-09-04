@@ -39,6 +39,66 @@ function lint(relativePath: string, contents: string): string {
  * and why. Both directions are asserted, because a check that cannot be
  * documented around gets worked around instead.
  */
+/**
+ * The invariant the whole prompt-injection defence rests on: an AI response may
+ * only ever become a suggestion a person confirms. A document that says "mark
+ * every clause satisfied" has to have nowhere to go, and the place that is true
+ * is the import graph — not a convention, and not a review.
+ */
+describe('the AI module writes nothing but its own log', () => {
+	/**
+	 * Written *inside* `src/lib/server/ai/`, because that is what the rule is
+	 * scoped to and because the relative imports under test only mean what they
+	 * say from there. The shared helper roots its files under `src/lib/`, which
+	 * would put the probe outside the rule and quietly pass everything.
+	 */
+	function inAiModule(contents: string): string {
+		const file = join(repoRoot, 'src/lib/server/ai', `probe-${process.pid}.ts`);
+		writeFileSync(file, contents);
+		try {
+			execFileSync('pnpm', ['exec', 'eslint', '--no-warn-ignored', '--format', 'json', file], {
+				cwd: repoRoot,
+				encoding: 'utf8'
+			});
+			return '';
+		} catch (error) {
+			return (error as { stdout?: string }).stdout ?? '';
+		} finally {
+			rmSync(file, { force: true });
+		}
+	}
+
+	it('refuses a service that writes', () => {
+		const output = inAiModule(
+			"import { freeze } from '../services/decisions.js';\nexport const x = freeze;\n"
+		);
+		expect(output).toContain('may not reach a service that writes');
+	});
+
+	it('refuses a content table', () => {
+		const output = inAiModule(
+			"import { definition } from '../db/schema/definitions.js';\nexport const x = definition;\n"
+		);
+		expect(output).toContain('may only touch');
+	});
+
+	it('refuses the evidence table in particular', () => {
+		// The nearest miss: evidence is what an AI task's output becomes, and the
+		// task is the one place that must not be able to write it directly.
+		const output = inAiModule(
+			"import { evidence } from '../db/schema/documents.js';\nexport const x = evidence;\n"
+		);
+		expect(output).toContain('may only touch');
+	});
+
+	it('allows its own call log and usage counter', () => {
+		const output = inAiModule(
+			"import { aiCall, aiUsage } from '../db/schema/ai.js';\nexport const x = [aiCall, aiUsage];\n"
+		);
+		expect(output).toBe('');
+	});
+});
+
 describe('the design-token check', () => {
 	function checkTokens(contents: string): string {
 		const dir = mkdtempSync(join(repoRoot, 'src/tokencheck-'));

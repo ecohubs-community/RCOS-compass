@@ -60,6 +60,48 @@ export default ts.config(
 		}
 	},
 	{
+		/**
+		 * The AI module writes nothing but its own log.
+		 * docs/00-architecture.md §4 rule 7, docs/04-security.md §5.2.
+		 *
+		 * "An AI response may only produce a suggestion a human confirms" is the
+		 * invariant the whole prompt-injection defence rests on — a document that
+		 * says "mark every clause satisfied" has to have nowhere to go. It is also
+		 * exactly the kind of rule that survives three phases and then dies
+		 * quietly in a hurry, so it is a build failure rather than a habit.
+		 *
+		 * An AI task therefore *returns* data. An ordinary service, with a `Ctx`
+		 * and a permission check, turns that into a suggestion row.
+		 */
+		files: ['src/lib/server/ai/**/*.ts'],
+		rules: {
+			'no-restricted-imports': [
+				'error',
+				{
+					patterns: [
+						{
+							group: ['../services/*', '**/server/services/*', '$lib/server/services/*'],
+							message:
+								'The AI module may not reach a service that writes. A task returns data; a service with a Ctx and a permission check turns it into a suggestion a person confirms — docs/00-architecture.md §4 rule 7.'
+						},
+						{
+							// Everything under db/schema *except* its own log, which is the
+							// only state an AI task is allowed to produce.
+							group: [
+								'../db/schema/*',
+								'**/db/schema/*',
+								'!../db/schema/ai.js',
+								'!**/db/schema/ai.js'
+							],
+							message:
+								'The AI module may only touch `db/schema/ai` — the call log and the usage counter. Anything else is state a model would be writing.'
+						}
+					]
+				}
+			]
+		}
+	},
+	{
 		// docs/00-architecture.md §10: configuration is read once, in one module,
 		// and validated. Everywhere else reads the parsed config object.
 		//

@@ -1,9 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import {
-	fixtureProvider,
-	nullProvider,
-	AiUnavailableError
-} from '../../src/lib/server/ai/index.js';
+import { fixtureProvider, nullProvider, NO_PROVIDER } from '../../src/lib/server/ai/index.js';
 import { memoryTransport, unconfiguredTransport } from '../../src/lib/server/mail/index.js';
 
 const request = {
@@ -13,30 +9,48 @@ const request = {
 	maxOutputTokens: 100
 } as const;
 
+/**
+ * The seam's contract changed in P4, and these tests changed with it.
+ *
+ * It used to reject with `AiUnavailableError`, which was right while the only
+ * way to be unavailable was "no provider configured" — a boot-time fact.
+ * Budgets made unavailability *ordinary*: the most engaged member in a
+ * community reaches their daily allowance mid-afternoon, and what they should
+ * meet is a sentence about the manual path, not a 500 from a `catch` somebody
+ * forgot. So it is a result now, and the type makes the case unskippable.
+ */
 describe('the null AI provider', () => {
-	it('is what CI runs with, and reports itself unavailable', () => {
-		expect(nullProvider.available).toBe(false);
+	it('answers with a result rather than throwing', async () => {
+		const result = await nullProvider.complete(request);
+		expect(result.ok).toBe(false);
 	});
 
-	it('refuses loudly rather than returning an empty result a caller might trust', async () => {
-		await expect(nullProvider.complete(request)).rejects.toBeInstanceOf(AiUnavailableError);
+	it('names the manual path, because that is what the member should do next', async () => {
+		const result = await nullProvider.complete(request);
+		expect(result.ok === false && result.reason).toBe(NO_PROVIDER);
+		expect(NO_PROVIDER).toMatch(/by hand/);
 	});
 
-	it('names the manual path in its message', async () => {
-		await expect(nullProvider.complete(request)).rejects.toThrow(/manual path/);
+	it('reports no tokens spent, because none were', async () => {
+		const result = await nullProvider.complete(request);
+		expect(result.usage).toEqual({ in: 0, out: 0 });
 	});
 });
 
 describe('the fixture AI provider', () => {
 	it('replays a recorded response', async () => {
 		const provider = fixtureProvider({
-			'lint-definition': { text: 'ok', usage: { in: 1, out: 1 }, model: 'fixture' }
+			'lint-definition': { ok: true, text: 'ok', usage: { in: 1, out: 1 }, model: 'fixture' }
 		});
-		await expect(provider.complete(request)).resolves.toMatchObject({ text: 'ok' });
+		await expect(provider.complete(request)).resolves.toMatchObject({ ok: true, text: 'ok' });
 	});
 
 	it('refuses an unrecorded task rather than inventing one', async () => {
-		await expect(fixtureProvider({}).complete(request)).rejects.toThrow(/No fixture recorded/);
+		const result = await fixtureProvider({}).complete(request);
+		expect(result.ok).toBe(false);
+		expect(result.ok === false && result.reason).toMatch(/No fixture recorded/);
+		// Not retryable: running it again replays the same absence.
+		expect(result.ok === false && result.retryable).toBe(false);
 	});
 });
 

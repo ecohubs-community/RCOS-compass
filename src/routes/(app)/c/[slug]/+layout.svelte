@@ -38,7 +38,10 @@
 			 * destinations that were the same screen.
 			 */
 			label: 'Reference',
-			items: [{ href: links.standard(slug), label: 'Standard & definitions' }]
+			items: [
+				{ href: links.standard(slug), label: 'Standard & definitions' },
+				{ href: links.aiSettings(slug), label: 'AI assistance' }
+			]
 		}
 	]);
 

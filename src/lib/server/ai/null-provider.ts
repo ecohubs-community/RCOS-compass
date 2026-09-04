@@ -1,21 +1,15 @@
-import { AiUnavailableError, type AiProvider, type AiRequest } from './provider.js';
+import { NO_PROVIDER, unavailable, type AiProvider } from './provider.js';
 
 /**
  * The provider CI runs with, and the default for a new instance.
  *
- * Every AI feature must degrade to a manual path (docs/00-architecture.md §4), so
- * this refuses loudly rather than returning an empty result that a caller might
- * mistake for an answer.
+ * A first-class option rather than a degraded mode: every AI feature must have
+ * a manual path (docs/00-architecture.md §4 rule 3), and the way to keep that
+ * true is for the no-provider case to be the one exercised on every commit.
  */
 export const nullProvider: AiProvider = {
 	id: 'null',
-	available: false,
-	complete(request: AiRequest) {
-		return Promise.reject(
-			new AiUnavailableError(
-				`AI is disabled on this instance, so "${request.task}" cannot run. ` +
-					'The manual path does the same job.'
-			)
-		);
+	complete() {
+		return Promise.resolve(unavailable(NO_PROVIDER));
 	}
 };

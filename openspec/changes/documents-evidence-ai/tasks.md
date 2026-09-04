@@ -48,15 +48,15 @@
 
 ## 6. The provider seam
 
-- [ ] 6.1 `AiProvider` and `AiResult` per `00-architecture.md` §4, with the `null` provider returning a documented "unavailable" result rather than throwing — one code path for no provider, a failed provider, and an exhausted budget
-- [ ] 6.2 The `fixture` provider, replaying `tests/fixtures/ai/*.json`
-- [ ] 6.3 The Google AI Studio adapter as `fetch` against the REST endpoint — no SDK, so the seam stays one file
-- [ ] 6.4 Prompts as versioned constants under `src/lib/server/ai/prompts/`; a task owns its prompt, its valibot schema and its output ceiling; no prompt is built inline in a service
-- [ ] 6.5 `ai_call` logging with a hash of the input and never the input; `ai_usage` rolled up per member per day and month
-- [ ] 6.6 Budgets checked before the call and reconciled after it — per-user day and month first, community month as the backstop; a refusal returns "unavailable", not an error
-- [ ] 6.7 AI off by default on a new community; enabling it is an owner-or-steward act on a screen naming the provider and its data terms; per-member usage visible to the member and to stewards
-- [ ] 6.8 **The boundary**: nothing under `src/lib/server/ai/` may import a service that writes. An ESLint rule plus a test that lints a file breaking it, the way the admin boundary and the component boundary are proved
-- [ ] 6.9 Tests: `null` and `fixture` behave identically to callers; a budget refusal is indistinguishable from no provider; the call log holds a hash and not the text; the boundary rule fails a file that breaks it
+- [x] 6.1 `AiProvider` and `AiResult` per `00-architecture.md` §4, with the `null` provider returning a documented "unavailable" result rather than throwing — one code path for no provider, a failed provider, and an exhausted budget
+- [x] 6.2 The `fixture` provider, replaying `tests/fixtures/ai/*.json`
+- [x] 6.3 The Google AI Studio adapter as `fetch` against the REST endpoint — no SDK, so the seam stays one file
+- [x] 6.4 Prompts as versioned constants under `src/lib/server/ai/prompts/`; a task owns its prompt, its valibot schema and its output ceiling; no prompt is built inline in a service
+- [x] 6.5 `ai_call` logging with a hash of the input and never the input; `ai_usage` rolled up per member per day and month
+- [x] 6.6 Budgets checked before the call and reconciled after it — per-user day and month first, community month as the backstop; a refusal returns "unavailable", not an error
+- [x] 6.7 AI off by default on a new community; enabling it is an owner-or-steward act on a screen naming the provider and its data terms; per-member usage visible to the member and to stewards
+- [x] 6.8 **The boundary**: nothing under `src/lib/server/ai/` may import a service that writes. An ESLint rule plus a test that lints a file breaking it, the way the admin boundary and the component boundary are proved
+- [x] 6.9 Tests: `null` and `fixture` behave identically to callers; a budget refusal is indistinguishable from no provider; the call log holds a hash and not the text; the boundary rule fails a file that breaks it
 
 ## 7. AI mapping suggestions
 

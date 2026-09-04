@@ -23,6 +23,7 @@ export const links = {
 	document: (slug: string, id: string) => resolve('/(app)/c/[slug]/documents/[id]', { slug, id }),
 	documentFile: (slug: string, id: string) =>
 		resolve('/(app)/c/[slug]/documents/[id]/file', { slug, id }),
+	aiSettings: (slug: string) => resolve('/(app)/c/[slug]/settings/ai', { slug }),
 	decisions: (slug: string) => resolve('/(app)/c/[slug]/decisions', { slug }),
 	decision: (slug: string, ref: string) => resolve('/(app)/c/[slug]/d/[ref]', { slug, ref })
 };
