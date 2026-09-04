@@ -1,6 +1,7 @@
 import { getConfig } from '../config.js';
 import { getLogger } from '../logger.js';
 import { pruneRateLimits } from '../rate-limit.js';
+import { runExtraction } from '../documents/extract-job.js';
 import { sendWeeklyDigests } from './digest.js';
 import { enqueue } from './queue.js';
 import type { HandlerRegistry } from './worker.js';
@@ -33,6 +34,20 @@ export const handlers: HandlerRegistry = {
 				kind: 'prune-rate-limits',
 				runAfter: clock.now() + PRUNE_INTERVAL_MS
 			});
+		}
+	},
+
+	/**
+	 * Document extraction. The handler enforces its own reading deadline and
+	 * writes every outcome — including failure — onto the document row, so the
+	 * job completing is not the same thing as the extraction succeeding. This
+	 * outer timeout is only the backstop for the process-death case.
+	 */
+	'extract-document': {
+		timeoutMs: 180_000,
+		run: async (payload, { db, clock }) => {
+			const { documentId } = payload as { documentId?: string };
+			if (typeof documentId === 'string') await runExtraction(db, clock, documentId);
 		}
 	},
 

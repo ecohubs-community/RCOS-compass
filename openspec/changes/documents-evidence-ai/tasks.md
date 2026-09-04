@@ -22,13 +22,13 @@
 
 ## 3. Extraction
 
-- [ ] 3.1 `unpdf` for PDF text and `mammoth` for docx, in a job with the wall-clock ceiling; status moves `uploaded → extracting → extracted | reference_only | failed`
-- [ ] 3.2 ODT read by unzipping `content.xml` ourselves (`design.md`): the decompressed-size ceiling `.docx` already uses, an XML parser with DTD and external entities switched off, and a hostile fixture proving both
-- [ ] 3.3 Scanned-PDF detection → `reference_only` with the plain message, never zero passages presented as an empty document
-- [ ] 3.4 The page ceiling: extract up to it, report the remainder as not extracted
-- [ ] 3.5 Passages with page and ordinal; `bbox` left null and the column kept
-- [ ] 3.6 Failure is visible on the document, not only in the log — the first job whose outcome a member has to read
-- [ ] 3.7 Tests: each fixture document lands in the right status; a timeout leaves no partial passages; the 400-page PDF reports what it did not read; the scan says it is a scan
+- [x] 3.1 `unpdf` for PDF text and `mammoth` for docx, in a job with the wall-clock ceiling; status moves `uploaded → extracting → extracted | reference_only | failed`
+- [x] 3.2 ODT read by unzipping `content.xml` ourselves (`design.md`): the decompressed-size ceiling `.docx` already uses, an XML parser with DTD and external entities switched off, and a hostile fixture proving both
+- [x] 3.3 Scanned-PDF detection → `reference_only` with the plain message, never zero passages presented as an empty document
+- [x] 3.4 The page ceiling: extract up to it, report the remainder as not extracted
+- [x] 3.5 Passages with page and ordinal; `bbox` left null and the column kept
+- [x] 3.6 Failure is visible on the document, not only in the log — the first job whose outcome a member has to read
+- [x] 3.7 Tests: each fixture document lands in the right status; a timeout leaves no partial passages; the 400-page PDF reports what it did not read; the scan says it is a scan
 
 ## 4. Passages and the viewer
 

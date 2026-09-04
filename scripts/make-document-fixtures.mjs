@@ -238,6 +238,29 @@ write(
 	])
 );
 
+// An ODT whose content.xml opens with a DTD declaring recursive entities — the
+// billion-laughs shape. The reader refuses any DOCTYPE outright: there is no
+// legitimate reason for one in a content.xml, and expanding these ~50 bytes of
+// declarations costs gigabytes.
+write(
+	'hostile.odt',
+	zip([
+		{ name: 'mimetype', data: 'application/vnd.oasis.opendocument.text', deflate: false },
+		{
+			name: 'content.xml',
+			data:
+				'<?xml version="1.0"?><!DOCTYPE office:document-content [' +
+				'<!ENTITY a "ha"><!ENTITY b "&a;&a;&a;&a;&a;&a;&a;&a;&a;&a;">' +
+				'<!ENTITY c "&b;&b;&b;&b;&b;&b;&b;&b;&b;&b;">' +
+				'<!ENTITY d "&c;&c;&c;&c;&c;&c;&c;&c;&c;&c;">]>' +
+				'<office:document-content xmlns:office="urn:oasis:names:tc:opendocument:xmlns:office:1.0" ' +
+				'xmlns:text="urn:oasis:names:tc:opendocument:xmlns:text:1.0">' +
+				'<office:body><office:text><text:p>&d;&d;&d;&d;</text:p></office:text></office:body>' +
+				'</office:document-content>'
+		}
+	])
+);
+
 // An executable wearing a PDF's name. Extension and sniffed content disagree,
 // which is the whole check.
 write('not-really.pdf', Buffer.from('MZ\x90\x00\x03\x00\x00\x00' + '\x00'.repeat(120), 'latin1'));

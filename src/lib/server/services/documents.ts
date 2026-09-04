@@ -7,6 +7,7 @@ import { getConfig } from '../config.js';
 import { document, evidence, passage, type Document } from '../db/schema/documents.js';
 import { MIME } from '../documents/sniff.js';
 import { removeFile, type StoredFile } from '../documents/storage.js';
+import { enqueue } from '../jobs/queue.js';
 import { registerTenantService } from './registry.js';
 
 /**
@@ -163,6 +164,12 @@ export async function createDocument(
 				extractedAt: null
 			})
 			.run();
+
+		// Enqueued before the move: if the move then fails, the row is deleted
+		// below and the handler finds nothing to do, which it treats as a no-op.
+		// The other order can lose the job entirely, leaving a document that says
+		// "waiting to be read" forever.
+		enqueue(db, { now: ctx.now }, { kind: 'extract-document', payload: { documentId: id } });
 
 		// Last. A row without its file is recoverable; a file nothing references is
 		// a document nobody can delete.

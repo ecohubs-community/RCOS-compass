@@ -21,6 +21,8 @@ export const DOCUMENTS = {
 	tooLong: 'four-hundred-pages.pdf',
 	/** ~219 KB on disk, 220 MB unpacked. */
 	zipBomb: 'zip-bomb.docx',
+	/** An ODT whose XML declares recursive entities — the billion-laughs shape. */
+	hostileOdt: 'hostile.odt',
 	/** A Windows executable wearing a PDF's name. */
 	wrongType: 'not-really.pdf',
 	/** Tells the model to mark every clause satisfied. `docs/06` §6.7. */
