@@ -17,12 +17,13 @@
 - [ ] 2.2 Write to a temp path, move into `UPLOAD_DIR/<communityId>/<uuid>` as the last step of the transaction that creates the row, so neither a failed write nor a failed insert leaves an orphan
 - [ ] 2.3 Per-user and per-community upload limits and the community storage ceiling, each refusing with the limit named
 - [ ] 2.4 The authorised file route: tenant resolved by the pipeline, membership re-checked, streamed from disk. No public path and no signed URL
-- [ ] 2.5 Tests — the upload-abuse suite from `06` §6.8: oversized, mislabelled MIME, zip bomb, executable-as-PDF, encrypted PDF. Each fails cleanly, names the reason, and leaves no file and no row. Plus: another community's file is not served
+- [ ] 2.5 The upload control states who will be able to read the file — every member — before a file is chosen, and deleting a document removes its row, its passages and the file itself
+- [ ] 2.6 Tests — the upload-abuse suite from `06` §6.8: oversized, mislabelled MIME, zip bomb, executable-as-PDF, encrypted PDF. Each fails cleanly, names the reason, and leaves no file and no row. Plus: another community's file is not served
 
 ## 3. Extraction
 
 - [ ] 3.1 `unpdf` for PDF text and `mammoth` for docx, in a job with the wall-clock ceiling; status moves `uploaded → extracting → extracted | reference_only | failed`
-- [ ] 3.2 ODT: resolve the open question in `design.md` — a maintained, correctly-licensed reader, or unzip and read `content.xml` with its own ceiling and a fuzz case. Decide and record which, and why
+- [ ] 3.2 ODT read by unzipping `content.xml` ourselves (`design.md`): the decompressed-size ceiling `.docx` already uses, an XML parser with DTD and external entities switched off, and a hostile fixture proving both
 - [ ] 3.3 Scanned-PDF detection → `reference_only` with the plain message, never zero passages presented as an empty document
 - [ ] 3.4 The page ceiling: extract up to it, report the remainder as not extracted
 - [ ] 3.5 Passages with page and ordinal; `bbox` left null and the column kept

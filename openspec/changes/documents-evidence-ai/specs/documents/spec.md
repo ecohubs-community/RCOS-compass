@@ -81,6 +81,26 @@ contained nothing.
 - **AND** the member is told the file looks like a scan and cannot be read
 - **AND** the file remains downloadable by members of that community
 
+### Requirement: Every member can read an uploaded document, and the upload says so
+
+A document MUST be readable by every member of the community that owns it,
+because any member may map its passages. The upload control MUST state that
+before a file is chosen. Deleting a document MUST remove its row, its passages
+and the file itself.
+
+#### Scenario: A member opens a document somebody else uploaded
+- **WHEN** a member who did not upload a document opens it
+- **THEN** its passages and its file are served
+
+#### Scenario: A member is about to upload
+- **WHEN** the upload control is shown
+- **THEN** it states that every member of the community will be able to read the file
+
+#### Scenario: A document is deleted
+- **WHEN** a document is deleted
+- **THEN** its row, its passages and the stored file are all gone
+- **AND** evidence that pointed at its passages is `stale` rather than dangling
+
 ### Requirement: A document belongs to one community
 
 A document, its passages and its file MUST be reachable only from inside the

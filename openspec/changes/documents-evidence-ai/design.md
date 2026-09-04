@@ -241,20 +241,46 @@ default and the one CI runs.
 Rollback is the migration down plus deleting `UPLOAD_DIR`; nothing in P1–P3
 depends on any of it.
 
-## Open Questions
+## Questions Resolved Before Implementation
 
-- **ODT extraction has no obvious well-maintained library.** RCOS publishes its
-  templates in `.odt`, so the format matters. If nothing suitable and correctly
-  licensed exists, the fallback is to unzip and read `content.xml` directly —
-  which is a small amount of code but is XML parsing on hostile input, so it
-  needs its own ceiling and its own fuzz case. Decide during group 2.
-- **Where "turn this into a definition" lands when the clause's section already
-  has a definition.** Pre-filling a draft over an adopted definition would be a
-  proposal, not a draft. Likely answer: it opens a discussion with the passage's
-  text as the first proposal, which is the P3 path for changing something already
-  adopted — but that should be confirmed against the UI spec before group 5.
-- **Whether a document is visible to every member or only to stewards.**
-  `04-security.md` §2 says any member may upload and confirm mappings, which
-  implies member-visible. Uploaded bylaws can contain names and addresses, though,
-  and the transparency exception machinery is P6. Assume member-visible for MVP
-  and note it.
+These were open when the design was written and were decided before any code was
+written, so the reasoning is here rather than in a commit message.
+
+### ODT is read by unzipping it ourselves
+
+`.odt` has no well-maintained, correctly-licensed reader on npm, and it matters:
+RCOS publishes its templates in that format, so a community that downloaded one
+and filled it in has exactly this file. Turning that community away at the door
+is the opposite of what this phase is for.
+
+An `.odt` is a zip with `content.xml` inside, so this is roughly sixty lines —
+but it is XML parsing of a file a stranger uploaded, which is its own small
+attack surface. It reuses the decompressed-size ceiling `.docx` already needs, is
+parsed with external entities and DTD processing switched off, and carries a
+hostile fixture in the test suite from the day it lands.
+
+*Alternative rejected:* asking members to convert to `.docx` first. That is
+friction at the exact moment the product is trying to remove it.
+
+### An adopted definition is never pre-filled over
+
+"Turn this into a definition" pre-fills a draft. Where the clause's section
+already has an **adopted** definition, it opens a discussion with the passage as
+its first proposal instead.
+
+That is the P3 path for changing something already agreed, and it means the
+document route has no power the ordinary route does not: adopted text changes by
+decision, never by upload. The evidence spec already states it; this records why.
+
+### A document is visible to every member, and the upload screen says so
+
+`04-security.md` §2 gives any member the right to upload and to confirm mappings,
+which only works if members can read the documents. Steward-only visibility would
+contradict the permission model and stop members doing the work they are
+explicitly allowed to do.
+
+Uploaded bylaws can carry names, addresses and member lists, and the machinery
+for restricting sensitive content is P6. So the honest answer for MVP is not a
+hidden default but a stated one: the upload control says *"every member of your
+community will be able to read this"* before the file is chosen, and deleting a
+document is easy and complete. Revisited when transparency exceptions land.
