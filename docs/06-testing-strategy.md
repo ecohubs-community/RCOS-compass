@@ -212,6 +212,12 @@ fails until the matrix is updated.
    service, call it as a B member with an A resource id and assert 404/throw.
    This test is parameterised over the service registry, so a new service is
    automatically covered — a new service with no entry fails the suite.
+   The registry has one hole the parameterisation cannot see on its own: a
+   *subject kind* nobody registers a service for. `consentRound` sat in the
+   union unused, and the entire voting surface was uncovered while the suite
+   reported green. So the suite also asserts that **every subject it seeds has at
+   least one registered service**, which is what caught it — and, in the same
+   breath, that `community` was a subject no service had ever taken.
 2. **Route guard sweep** — walk the route tree; every `+page.server.ts` and
    `+server.ts` under `(app)` and `(admin)` must call `requirePermission`. Static
    check plus a runtime probe that hits each route unauthenticated and asserts
@@ -269,14 +275,53 @@ linting, responding to a consent round and freezing, since mobile is a supported
 surface rather than a read-only one. Viewport matrix for the a11y pass:
 375 / 768 / 1024 / 1440.
 
+Two things the first run of this suite taught, both about the suite rather than
+the product:
+
+- **The whole matrix runs from one loopback address**, so the credential ceiling
+  (10 per 15 min) and the general ceiling (300/min) are spent by the specs
+  themselves rather than by anything under test. Both are raised in the
+  Playwright environment, and both are proved where they can be proved properly —
+  `tests/integration/rate-limit-request.test.ts`, against a clock that does not
+  move on its own.
+- **A test types faster than the page hydrates.** Every form works server-side,
+  so a page is usable the moment it arrives and hydration then replaces the DOM
+  under whatever has already been typed. No person is quick enough to collide
+  with that; a Playwright test is, and it surfaced as a sign-in posted with an
+  empty email — five seconds later, as a redirect that never came. Retrying the
+  typing is not a fix, because the wipe can land *after* the value has been
+  checked. The root layout sets `html[data-hydrated]` and `visit()` in
+  `tests/e2e/support.ts` waits for it. Any spec that types into a
+  freshly-loaded page uses `visit`, not `page.goto`.
+- **The seeded a11y tests are `test.slow()`.** Seeding runs real sign-ups, and
+  better-auth hashes passwords at production cost deliberately; four projects
+  doing that at once are slow for an honest reason. Trimming the work to fit the
+  default timeout would mean checking less than the matrix promises.
+
 ---
 
 ## 8. Fixtures and seeds
 
-- `tests/fixtures/valle-verde.ts` builds the mockup's community deterministically
-  (fixed clock, fixed ids) and is used by e2e, screenshots, and the `/dev` gallery.
-- A second fixture, `fresh-community`, is a day-one tenant at 0% — the state most
-  real users start in and the one most likely to be broken by an empty-state bug.
+- **Built as a route, not a module.** `POST /__test/seed` builds Valle Verde
+  through the application's own paths — better-auth's `signUpEmail`,
+  `createTenant`, a real invitation, a real acceptance — and is gated on
+  `ALLOW_TEST_ROUTES`, which is asserted off by default in the config suite. A
+  module writing rows directly would be faster and could seed a shape no user is
+  able to reach, at which point the e2e suite tests a fiction. Each call makes
+  its own community, so four browser projects running in parallel never share
+  one fixture.
+- **Two shapes, one route.** `shape: 'fresh'` (the default) is a day-one tenant
+  at 0% — the state most real users start in, the one most likely to be broken
+  by an empty-state bug, and what the loop spec starts from. `shape:
+  'valle-verde'` is the mockups' community as the mockups show it: 27 members,
+  Layer 0 complete, Layer 1 part-written, one discussion still open. The second
+  is built by opening a discussion, posting a proposal and freezing it, once per
+  section — slower than writing the definitions, and the only way the register
+  and the change log show what the product would really have produced.
+- `tests/e2e/fixture.spec.ts` asserts that shape **through the screens**. A
+  fixture that has drifted from this description is worse than no fixture at all,
+  because screenshots taken from it are read as evidence of what the product
+  does.
 - AI fixtures are recorded provider responses in `tests/fixtures/ai/*.json`,
   replayed by the `fixture` provider. Re-recording is a deliberate, reviewed act.
 

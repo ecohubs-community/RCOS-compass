@@ -27,6 +27,11 @@ export function load() {
 			plainLanguage: 'In practice: come to meetings, and the assembly says yes or no.',
 			locale: 'en'
 		}).findings,
+		// A title: inline marks with no block structure around them, which is what
+		// headings, thread titles and decision titles render with.
+		inline: parseMarkdown(
+			'Exit and separation — **notice**, *settlement*, and the `DEC-2026-004` that agreed it.'
+		)[0],
 		markdown: parseMarkdown(
 			[
 				'A member **may** leave at any time, with *notice* where practical.',

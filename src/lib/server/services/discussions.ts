@@ -343,3 +343,24 @@ registerTenantService({
 	subject: 'discussion',
 	call: latestProposal
 });
+registerTenantService({
+	name: 'discussions.addMessage',
+	subject: 'discussion',
+	call: (ctx, subjectId) => addMessage(ctx, { discussionId: subjectId, body: 'x' })
+});
+registerTenantService({
+	name: 'discussions.addProposal',
+	subject: 'discussion',
+	call: (ctx, subjectId) => addProposal(ctx, { discussionId: subjectId, body: 'x' })
+});
+registerTenantService({
+	name: 'discussions.takeOffline',
+	subject: 'discussion',
+	call: (ctx, subjectId) =>
+		takeOffline(ctx, { discussionId: subjectId, summary: 'x', proposal: 'x' })
+});
+registerTenantService({
+	name: 'discussions.proposalToFreeze',
+	subject: 'discussion',
+	call: proposalToFreeze
+});

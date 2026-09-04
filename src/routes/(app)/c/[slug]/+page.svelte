@@ -77,6 +77,28 @@
 				<h2 id="readiness" class="text-section font-medium">Readiness</h2>
 				<HelpTip id="readiness" />
 			</div>
+			<!--
+				The overall figure, repeated from the sidebar because the sidebar block
+				is `lg:` only: below 1024px the product's headline number was on no
+				screen at all, which the loop spec caught at 768 and 375.
+			-->
+			<div class="mt-3 flex items-center gap-3">
+				<span class="text-fg-secondary w-44 flex-none">Overall</span>
+				<span
+					class="bg-border h-1.5 flex-1 overflow-hidden rounded-full"
+					role="progressbar"
+					aria-valuenow={data.readiness.percent}
+					aria-valuemin="0"
+					aria-valuemax="100"
+					aria-label="Readiness"
+				>
+					<span class="bg-accent block h-full" style:width="{data.readiness.percent}%"></span>
+				</span>
+				<span class="text-fg text-meta w-24 flex-none text-right" data-tabular
+					>{data.readiness.percent}%</span
+				>
+			</div>
+
 			<ul class="mt-3 flex flex-col gap-2">
 				{#each data.readiness.layers as layer (layer.layer)}
 					<li class="flex items-center gap-3">

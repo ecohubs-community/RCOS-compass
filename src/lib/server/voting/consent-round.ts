@@ -13,6 +13,7 @@ import {
 import { membership } from '../db/schema/tenancy.js';
 import { countUnresolved, raiseObjection } from '../services/objections.js';
 import { notify } from '../services/notifications.js';
+import { registerTenantService } from '../services/registry.js';
 import type { OpenRoundInput, ResponseValue, Round, Tally, VotingProvider } from './provider.js';
 
 /**
@@ -267,6 +268,23 @@ export const consentRoundProvider: VotingProvider = {
 		};
 	}
 };
+
+/**
+ * A round is addressed by id like anything else, and the registry is the reason
+ * the cross-tenant suite covers it. The provider seam does not exempt it: a
+ * VoteCast provider slotted in post-MVP registers its own, or it is not covered.
+ */
+registerTenantService({
+	name: 'consent.tally',
+	subject: 'consentRound',
+	call: (ctx, subjectId) => consentRoundProvider.tally(ctx, subjectId)
+});
+registerTenantService({
+	name: 'consent.respond',
+	subject: 'consentRound',
+	call: (ctx, subjectId) =>
+		consentRoundProvider.respond(ctx, { roundId: subjectId, value: 'consent' })
+});
 
 /** Which round, if any, is open on a proposal. */
 export function openRoundFor(

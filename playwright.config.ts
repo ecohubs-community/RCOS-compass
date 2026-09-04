@@ -55,6 +55,11 @@ export default defineConfig({
 			 * controlled; here it only needs to be out of the way.
 			 */
 			AUTH_ATTEMPTS_PER_15MIN: '500',
+			// Same reasoning for the general ceiling: 145 specs across four projects
+			// come from one loopback address inside a minute, so 300/min is spent by
+			// the suite rather than by anything under test. Proved in the same
+			// integration test, against a clock that does not move on its own.
+			REQUESTS_PER_MINUTE: '20000',
 			LOG_LEVEL: 'silent',
 			BUILD_SHA: 'e2e'
 		}

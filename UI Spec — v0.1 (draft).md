@@ -454,7 +454,11 @@ move controls — are in `docs/02-component-guidelines.md` §7.
 
 Not a wall of statistics. Four blocks:
 
-1. **Readiness** — 7 layer bars, one line: *"14 of 21 artifacts complete."*
+1. **Readiness** — the overall figure, then 7 layer bars, then one line:
+   *"14 of 21 artifacts complete."* The overall figure belongs **here** and not
+   only in the sidebar: the sidebar's readiness block is desktop-only, and while
+   the dashboard showed layers alone, the product's headline number was on no
+   screen at all below 1024px. The e2e loop found it at 768 and at 375.
 2. **Your next 5** — the ordered open clauses (see §4.4). Each a one-line
    question in plain language, not clause text: *"Can someone leave at any
    time, and what happens to their stuff?"*
@@ -463,6 +467,12 @@ Not a wall of statistics. Four blocks:
    affected by a new RCOS version.
 4. **Recently decided** — last 5 decisions, one line each. This block is the
    anti-forgetting feature: decisions stay visible after they are made.
+
+**One correction from the mockups.** The community badge in the sidebar is
+`#10B981` on `#064E3B` — 2.6:1, which fails WCAG AA and which the automated
+accessibility pass rejects. It is built with the ordinary foreground colour on
+that same green field. This is the second such pairing (see the accent button in
+`docs/07-spec-review-log.md` #32); the design files should take both back.
 
 ### 4.2 Standard browser — RCOS with your answers in it
 

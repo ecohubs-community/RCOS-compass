@@ -10,11 +10,13 @@ import '../../src/lib/server/services/discussions.js';
 import '../../src/lib/server/services/objections.js';
 import '../../src/lib/server/services/decisions.js';
 import '../../src/lib/server/services/notifications.js';
+import '../../src/lib/server/voting/consent-round.js';
 import { inviteMember } from '../../src/lib/server/services/invitations.js';
 import { createDefinition } from '../../src/lib/server/services/definitions.js';
 import { addProposal, openDiscussion } from '../../src/lib/server/services/discussions.js';
 import { raiseObjection } from '../../src/lib/server/services/objections.js';
 import { freeze } from '../../src/lib/server/services/decisions.js';
+import { consentRoundProvider } from '../../src/lib/server/voting/consent-round.js';
 import { getStandard } from '../../src/lib/server/standard/index.js';
 import { newId } from '../../src/lib/server/db/id.js';
 import { communityArtifact } from '../../src/lib/server/db/schema/definitions.js';
@@ -143,6 +145,15 @@ beforeEach(() => {
 		{ db }
 	);
 
+	// A consent round in A, so the voting services have a round to be refused.
+	// It goes through the provider rather than an insert: a round B can reach by
+	// id is the thing under test, and a hand-built row could be the wrong shape.
+	const roundInA = consentRoundProvider.openRound(
+		ctxA,
+		{ proposalPostId: proposalInA.id, closesAt: Date.UTC(2026, 8, 9, 12, 0, 0) },
+		{ db }
+	);
+
 	// A notification in A, addressed to Alice, so `notifications.markRead` has a
 	// subject that is genuinely not Bob's.
 	const notificationInA = db.select().from(notification).all()[0];
@@ -158,7 +169,6 @@ beforeEach(() => {
 		},
 		subjectInA: {
 			membership: aliceInA.id,
-			community: communityA.id,
 			invitation: invitationInA.id,
 			definition: definitionInA.id,
 			communityArtifact: artifactInA,
@@ -166,6 +176,10 @@ beforeEach(() => {
 			proposal: proposalInA.id,
 			objection: objectionInA.id,
 			decision: decisionInA.id,
+			// The reference rather than the id, and that is the whole point: B is
+			// asked for a string it could have guessed.
+			decisionRef: decisionInA.ref,
+			consentRound: roundInA.id,
 			notification: notificationInA?.id ?? ''
 		}
 	};
@@ -184,6 +198,15 @@ describe('the service registry', () => {
 	it('gives every service a distinct name', () => {
 		const names = tenantServices().map((s) => s.name);
 		expect(new Set(names).size).toBe(names.length);
+	});
+
+	it('has a registered service for every kind of subject it declares', () => {
+		// Declaring a subject and registering nothing that takes one is how a whole
+		// class of service goes untested: `consentRound` sat in the union unused
+		// until this assertion existed, and the voting services were uncovered.
+		const declared = new Set(Object.keys(world.subjectInA));
+		const covered = new Set(tenantServices().map((s) => s.subject));
+		expect([...declared].filter((subject) => !covered.has(subject as never))).toEqual([]);
 	});
 });
 

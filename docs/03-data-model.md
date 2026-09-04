@@ -409,6 +409,13 @@ attention* and does not count toward "you already have language for N of 187".
   `/c/{slug}/d/{ref}`.
 - Freeze carries an idempotency key (`01-server-client-contract.md` §1); a
   duplicate submit returns the existing decision rather than burning a number.
+- **Refs are guessable, and that is fine only because every ref-addressed query
+  filters by community.** Being per-community and sequential, another community's
+  `DEC-2026-001` is a string anyone can type — so `getDecisionByRef` and
+  `decisionDetail` are registered in `services/registry.ts` under a `decisionRef`
+  subject, and the cross-tenant suite hands each of them a neighbour's real
+  reference. An id at least has to be stolen; a reference only has to be
+  imagined.
 
 ---
 
@@ -545,3 +552,26 @@ The register is append-only; GDPR erasure is a right. Both hold, this way:
 `ai_call(community_id, created_at)`. FTS5 virtual tables for definitions,
 decisions, and passages, each carrying `community_id` and `visibility` as
 filterable columns.
+
+---
+
+## 12. What the database enforces, and one thing it does not
+
+Three rules about definitions are held by the database itself, because they are
+the ones an application bug would otherwise break quietly:
+
+- `definition_section_idx` — unique on `(community_standard_id, section_key)`
+  **where `section_key is not null`**, so a community cannot answer one section
+  twice while local definitions stay unconstrained.
+- `definition_scope_section_ck` — `(scope = 'standard') = (section_key is not
+  null)`, so scope and attachment can never disagree.
+- `definition_local_attach_ck` — exactly one `attach_*` key is set when the scope
+  is local.
+
+**Drizzle's `text({ enum })` is not one of these.** It narrows the TypeScript
+type and emits a plain `text` column: no `CHECK`, nothing at the database. A
+decision written with a type outside `DECISION_TYPES` was accepted and stored,
+and the type appeared in the register. So `freeze()` validates the decision type
+in the service, and the test that used to rely on a bad enum value to force a
+rollback now uses a foreign-key violation instead — the constraint that is
+genuinely there.

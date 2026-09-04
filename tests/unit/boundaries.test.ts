@@ -31,6 +31,43 @@ function lint(relativePath: string, contents: string): string {
 	}
 }
 
+/**
+ * `scripts/check-tokens.mjs` is the other half of the same rule: ESLint cannot
+ * see inside Svelte template attributes, so the hex-colour ban is enforced by a
+ * grep. A grep has one characteristic failure — it reads comments as code — and
+ * this one refused a comment explaining which mockup colour had been replaced
+ * and why. Both directions are asserted, because a check that cannot be
+ * documented around gets worked around instead.
+ */
+describe('the design-token check', () => {
+	function checkTokens(contents: string): string {
+		const dir = mkdtempSync(join(repoRoot, 'src/tokencheck-'));
+		writeFileSync(join(dir, 'sample.svelte'), contents);
+		try {
+			execFileSync('node', ['scripts/check-tokens.mjs'], { cwd: repoRoot, encoding: 'utf8' });
+			return '';
+		} catch (error) {
+			return (error as { stderr?: string }).stderr ?? 'failed';
+		} finally {
+			rmSync(dir, { recursive: true, force: true });
+		}
+	}
+
+	it('fails on a hex colour in markup', () => {
+		expect(checkTokens('<p style="color: #10B981">x</p>\n')).toContain('hex colour');
+	});
+
+	it('allows a comment that names the colour it replaced', () => {
+		expect(
+			checkTokens("<!-- text-fg, not the mockup's #10B981 on #064E3B: 2.6:1 -->\n<p>x</p>\n")
+		).toBe('');
+	});
+
+	it('fails on the Tailwind 3 variable form that Tailwind 4 silently drops', () => {
+		expect(checkTokens('<p class="rounded-[--radius-card]">x</p>\n')).toContain('radius-card');
+	});
+});
+
 describe('lint boundaries', () => {
 	it('fails when a source file reads process.env outside the config module', () => {
 		const output = lint('reads-env.ts', 'export const x = process.env.SOME_VALUE;\n');

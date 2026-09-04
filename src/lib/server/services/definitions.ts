@@ -391,6 +391,14 @@ registerTenantService({
 	subject: 'communityArtifact',
 	call: listLocalDefinitions
 });
+registerTenantService({
+	name: 'definitions.saveDraft',
+	subject: 'definition',
+	// A foreign definition has to be refused before the edit token is even looked
+	// at, so the token here is deliberately one that could never be right.
+	call: (ctx, subjectId) =>
+		saveDraft(ctx, { definitionId: subjectId, editToken: 'not-a-token', body: 'x' })
+});
 
 /** Every standard definition this community holds, keyed by section. */
 export function definitionsBySection(ctx: Ctx, options: { db?: Db } = {}): Map<string, Definition> {

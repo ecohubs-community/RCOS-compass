@@ -23,6 +23,29 @@ const hex = /#[0-9a-fA-F]{3}(?:[0-9a-fA-F]{3})?\b/;
  */
 const bareVariable = /[a-z-]+-\[--[a-z][a-z0-9-]*\]/;
 
+/**
+ * Blank out comments, keeping every line and column so the reported line number
+ * still points at the right place.
+ *
+ * A comment explaining *why* a colour was changed necessarily quotes the colour,
+ * and the check refused the explanation while the code was already correct. That
+ * is the second grep-based rule to fail this way — the `{@html}` test flagged its
+ * own note about not using `{@html}`. A rule that punishes documenting itself
+ * teaches people to stop documenting.
+ *
+ * @param {string} source @returns {string}
+ */
+function stripComments(source) {
+	const blank = (/** @type {string} */ match) => match.replace(/[^\n]/g, ' ');
+	return (
+		source
+			.replace(/<!--[\s\S]*?-->/g, blank)
+			.replace(/\/\*[\s\S]*?\*\//g, blank)
+			// Not `https://…`: a line comment starts at a `//` that no colon precedes.
+			.replace(/(^|[^:])\/\/[^\n]*/g, (match, before) => before + blank(match.slice(before.length)))
+	);
+}
+
 /** @param {string} dir @returns {string[]} */
 function walk(dir) {
 	return readdirSync(dir).flatMap((entry) => {
@@ -36,7 +59,7 @@ const problems = [];
 for (const file of walk(scanRoot)) {
 	if (allowed.has(file)) continue;
 	if (!/\.(svelte|ts|js|css|html)$/.test(file)) continue;
-	readFileSync(file, 'utf8')
+	stripComments(readFileSync(file, 'utf8'))
 		.split('\n')
 		.forEach((line, index) => {
 			const where = `${relative(root, file)}:${index + 1}`;

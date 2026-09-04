@@ -19,7 +19,6 @@ export type TenantService = {
 	/** What this service addresses, so the suite knows what to seed. */
 	subject:
 		| 'membership'
-		| 'community'
 		| 'invitation'
 		| 'definition'
 		| 'communityArtifact'
@@ -28,6 +27,13 @@ export type TenantService = {
 		| 'objection'
 		| 'consentRound'
 		| 'decision'
+		/**
+		 * A decision's human reference rather than its id. Refs are per-community
+		 * and sequential, so another community's `DEC-2026-001` is not a secret
+		 * anyone has to steal — it is a string you can guess. The services that
+		 * take one are the ones most worth pointing at a neighbour's register.
+		 */
+		| 'decisionRef'
 		| 'notification';
 };
 

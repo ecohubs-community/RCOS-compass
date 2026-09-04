@@ -58,8 +58,13 @@
 		class="border-border bg-surface flex flex-none flex-col border-b lg:h-screen lg:w-60 lg:border-r lg:border-b-0"
 	>
 		<div class="border-border flex items-center gap-2 border-b px-3 py-3">
+			<!--
+				`text-fg` rather than the mockup's `#10B981` on `#064E3B`: that pairing
+				is 2.6:1 and fails AA, which the a11y suite caught. Same finding as
+				the accent button in review pass #32 — the mockups should adopt it.
+			-->
 			<span
-				class="bg-accent-deep text-accent-fg text-meta flex h-6 w-6 flex-none items-center justify-center rounded-md font-semibold"
+				class="bg-accent-deep text-fg text-meta flex h-6 w-6 flex-none items-center justify-center rounded-md font-semibold"
 				aria-hidden="true">{initials}</span
 			>
 			<span class="text-fg truncate font-medium">{data.community.name}</span>

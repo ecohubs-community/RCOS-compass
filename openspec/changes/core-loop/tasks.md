@@ -1,7 +1,7 @@
 ## 0. The target, written first
 
 - [x] 0.1 The e2e loop spec from `docs/06-testing-strategy.md` §7, written against the seeded Valle Verde fixture and left failing — see the gap → discuss → decide → find it again. It is the definition of done for this change, and "nearly there" stays visible rather than asserted
-- [ ] 0.2 The Valle Verde seed (`docs/06` §8) — 27 members, Layer 0 complete, Layer 1 part-written, one open discussion, one adopted decision. Written after §1, since it needs the tables, but listed here because it is part of the target rather than of the schema
+- [x] 0.2 The Valle Verde seed (`docs/06` §8) — 27 members, Layer 0 complete, Layer 1 part-written, one open discussion, one adopted decision. Written after §1, since it needs the tables, but listed here because it is part of the target rather than of the schema
 
 ## 1. Schema
 
@@ -83,11 +83,11 @@ Names and columns from `docs/03-data-model.md` §3, which already specifies them
 - [x] 9.3 Definition detail — the three-column hero, tabs below 1024px, the linter panel, *In plain words*, the local-additions block
 - [x] 9.4 Discussions list and thread, with the proposal block and the Freeze modal including the provisional notice
 - [x] 9.5 Decision register — the dense table, an expanded row, and the reverse-lookup question box
-- [ ] 9.6 Tests: the gallery gains every new primitive; the a11y pass covers each screen at 375 / 768 / 1024 / 1440; a keyboard-only pass and a `prefers-reduced-motion` pass of the loop
+- [x] 9.6 Tests: the gallery gains every new primitive; the a11y pass covers each screen at 375 / 768 / 1024 / 1440; a keyboard-only pass and a `prefers-reduced-motion` pass of the loop
 
 ## 10. Closing the loop
 
-- [ ] 10.1 The e2e spec from 0.1 passes end to end on a fresh community, and readiness moves by exactly the right amount
-- [ ] 10.2 The same spec passes at 375px, including drafting, responding to a consent round and freezing
-- [ ] 10.3 Every service added in groups 2–7 is registered in `services/registry.ts`, so the parameterised cross-tenant suite covers it — a forgotten registration is the failure that suite exists to catch, and it fails the build rather than passing quietly
-- [ ] 10.4 `docs/03-data-model.md`, `docs/06-testing-strategy.md` and the UI spec updated wherever the build taught us something the documents did not say
+- [x] 10.1 The e2e spec from 0.1 passes end to end on a fresh community, and readiness moves by exactly the right amount
+- [x] 10.2 The same spec passes at 375px, including drafting, responding to a consent round and freezing
+- [x] 10.3 Every service added in groups 2–7 is registered in `services/registry.ts`, so the parameterised cross-tenant suite covers it — a forgotten registration is the failure that suite exists to catch, and it fails the build rather than passing quietly
+- [x] 10.4 `docs/03-data-model.md`, `docs/06-testing-strategy.md` and the UI spec updated wherever the build taught us something the documents did not say

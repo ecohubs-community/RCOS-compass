@@ -11,3 +11,8 @@ playwright-report/
 coverage/
 *.md
 standard/
+
+# Written by drizzle-kit, which does not format them and rewrites them on every
+# generate. Formatting them once produces nine thousand lines of churn that the
+# next migration silently undoes.
+drizzle/meta/

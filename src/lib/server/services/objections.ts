@@ -154,3 +154,13 @@ export function countUnresolved(db: Db, proposalPostId: string): number {
 
 registerTenantService({ name: 'objections.get', subject: 'objection', call: getObjection });
 registerTenantService({ name: 'objections.list', subject: 'proposal', call: listObjections });
+registerTenantService({
+	name: 'objections.raise',
+	subject: 'proposal',
+	call: (ctx, subjectId) => raiseObjection(ctx, { proposalPostId: subjectId, reason: 'x' })
+});
+registerTenantService({
+	name: 'objections.resolve',
+	subject: 'objection',
+	call: (ctx, subjectId) => resolveObjection(ctx, { objectionId: subjectId, state: 'withdrawn' })
+});

@@ -65,7 +65,15 @@ export default defineConfig({
 					include: ['tests/integration/**/*.test.ts'],
 					setupFiles: ['tests/setup/integration.ts'],
 					// Each suite owns its own database file; they may still run in parallel.
-					fileParallelism: true
+					fileParallelism: true,
+					/**
+					 * The auth suites hash passwords at production cost, on purpose —
+					 * a sign-up and a sign-in inside one test, several suites at once,
+					 * and the default five seconds is a coin toss on a busy machine.
+					 * Raised rather than made cheaper: a fast hash would pass this
+					 * suite and weaken the thing it is testing.
+					 */
+					testTimeout: 30_000
 				}
 			}
 		]

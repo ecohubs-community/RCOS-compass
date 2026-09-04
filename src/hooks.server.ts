@@ -7,6 +7,7 @@ import { securityHeaders } from '$lib/server/http/security-headers';
 import { rateLimitRequest } from '$lib/server/http/rate-limit-request';
 import { resolveActor } from '$lib/server/auth/session';
 import { requirePlatformAdmin } from '$lib/server/auth/admin';
+import { resolveTenant } from '$lib/server/http/resolve-tenant';
 import { DIGEST_INTERVAL_MS, handlers } from '$lib/server/jobs/handlers';
 import { enqueue, startWorker } from '$lib/server/jobs';
 import { systemClock } from '$lib/server/clock';
@@ -78,6 +79,10 @@ export const handle: Handle = async ({ event, resolve }) => {
 	if (event.url.pathname.startsWith('/admin')) {
 		requirePlatformAdmin(event.locals.user);
 	}
+
+	// Tenant resolution, before the route runs — so an action and a load get the
+	// same answer. docs/01 §5.
+	resolveTenant(event, db, systemClock);
 
 	const refusal = rateLimitRequest({
 		db,

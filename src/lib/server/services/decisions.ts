@@ -631,3 +631,5 @@ export function searchDecisions(ctx: Ctx, query: string, options: { db?: Db } = 
 }
 
 registerTenantService({ name: 'decisions.get', subject: 'decision', call: getDecision });
+registerTenantService({ name: 'decisions.byRef', subject: 'decisionRef', call: getDecisionByRef });
+registerTenantService({ name: 'decisions.detail', subject: 'decisionRef', call: decisionDetail });

@@ -9,6 +9,7 @@
 	import HelpTip from '$lib/components/ui/HelpTip.svelte';
 	import TextField from '$lib/components/ui/TextField.svelte';
 	import Markdown from '$lib/components/ui/Markdown.svelte';
+	import InlineText from '$lib/components/ui/InlineText.svelte';
 	import LinterPanel from '$lib/components/ui/LinterPanel.svelte';
 	import { HELP, type HelpId } from '$lib/help/registry';
 
@@ -116,6 +117,19 @@
 		<div class="border-border mt-4 rounded-(--radius-card) border p-4">
 			<Markdown blocks={data.markdown} />
 		</div>
+	</section>
+
+	<section class="mt-10" aria-labelledby="inline">
+		<h2 id="inline" class="text-section font-medium">Inline text</h2>
+		<p class="text-fg-muted text-meta mt-1">
+			The same node tree without block structure, for the places a title is a member's own text — a
+			thread title, a decision title, a section heading.
+		</p>
+		<p class="text-fg mt-4">
+			{#if data.inline?.type === 'paragraph'}
+				<InlineText nodes={data.inline.children} />
+			{/if}
+		</p>
 	</section>
 
 	<section class="mt-10" aria-labelledby="linter">

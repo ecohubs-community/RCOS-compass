@@ -24,6 +24,8 @@ declare global {
 			 * page never assembles one from parts and never invents a community id.
 			 */
 			ctx?: Ctx;
+			/** Set when the community is suspended: reads and exports only. */
+			readOnly?: string | null;
 		}
 		interface Error {
 			message: string;
