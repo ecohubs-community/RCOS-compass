@@ -6,3 +6,4 @@ export * from './definitions.js';
 export * from './discussions.js';
 export * from './decisions.js';
 export * from './notifications.js';
+export * from './documents.js';

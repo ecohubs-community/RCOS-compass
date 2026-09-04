@@ -81,6 +81,58 @@ describe('parseConfig', () => {
 	});
 });
 
+describe('an AI provider that reaches the network needs its settings', () => {
+	const problems = (env: Record<string, string>) => {
+		try {
+			parseConfig({ ...validEnv(), ...env });
+			return '';
+		} catch (error) {
+			return (error as ConfigError).message;
+		}
+	};
+
+	it('refuses a remote provider with no key', () => {
+		// Caught at boot rather than at the first mapping run, where a missing key
+		// looks like the model failing and gets diagnosed as the model failing.
+		const message = problems({ AI_PROVIDER: 'google', AI_MODEL: 'gemini-2.0-flash' });
+		expect(message).toContain('AI_API_KEY');
+		expect(message).toContain('AI_PROVIDER=null');
+	});
+
+	it('refuses a remote provider with no model', () => {
+		const message = problems({ AI_PROVIDER: 'google', AI_API_KEY: 'k'.repeat(20) });
+		expect(message).toContain('AI_MODEL');
+	});
+
+	it('refuses an OpenAI-compatible provider with no endpoint', () => {
+		const message = problems({
+			AI_PROVIDER: 'openai-compatible',
+			AI_API_KEY: 'k'.repeat(20),
+			AI_MODEL: 'llama'
+		});
+		expect(message).toContain('AI_BASE_URL');
+	});
+
+	it('accepts a fully configured remote provider', () => {
+		const config = parseConfig({
+			...validEnv(),
+			AI_PROVIDER: 'google',
+			AI_API_KEY: 'k'.repeat(20),
+			AI_MODEL: 'gemini-2.0-flash'
+		});
+		expect(config.aiEnabled).toBe(true);
+	});
+
+	it('asks nothing of the providers that never leave the process', () => {
+		// `null` and `fixture` are first-class, not degraded modes, so neither may
+		// require a key it has no use for.
+		for (const provider of ['null', 'fixture']) {
+			const config = parseConfig({ ...validEnv(), AI_PROVIDER: provider });
+			expect(config.AI_PROVIDER).toBe(provider);
+		}
+	});
+});
+
 describe('isPlatformAdmin', () => {
 	const adminsFrom = (raw: string) => parseConfig({ ...validEnv(), ADMIN_EMAILS: raw }).adminEmails;
 

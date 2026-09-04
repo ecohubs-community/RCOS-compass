@@ -1,15 +1,15 @@
 ## 0. The target
 
-- [ ] 0.1 The e2e spec for the exit criteria, written first and marked `fixme` while it cannot pass: upload bylaws → extract → map a passage by hand → confirm → turn it into a definition pre-filled with the community's own words. It runs with `AI_PROVIDER=null` and never stops running there
-- [ ] 0.2 Fixture documents committed once and reused throughout: a readable PDF of plausible bylaws, a docx, an odt, a scanned PDF with no text layer, a 400-page PDF, a docx zip bomb, an executable named `.pdf`, and the injection document from `06` §6.7
+- [x] 0.1 The e2e spec for the exit criteria, written first and marked `fixme` while it cannot pass: upload bylaws → extract → map a passage by hand → confirm → turn it into a definition pre-filled with the community's own words. It runs with `AI_PROVIDER=null` and never stops running there
+- [x] 0.2 Fixture documents committed once and reused throughout: a readable PDF of plausible bylaws, a docx, an odt, a scanned PDF with no text layer, a 400-page PDF, a docx zip bomb, an executable named `.pdf`, and the injection document from `06` §6.7
 
 ## 1. Schema and configuration
 
-- [ ] 1.1 `document`, `passage`, `evidence`, `ai_call`, `ai_usage` (`03-data-model.md` §3), each `(community_id, …)`-first, with `evidence` unique per `(community_id, passage_id, clause_key)` so one passage cannot be mapped to one clause twice
-- [ ] 1.2 Evidence state as a DB-level constraint, not a drizzle enum — P3 proved `text({ enum })` is a TypeScript narrowing and nothing more
-- [ ] 1.3 Config: `UPLOAD_DIR`, `MAX_UPLOAD_MB`, `MAX_UNZIP_MB`, `MAX_EXTRACT_PAGES`, `EXTRACT_TIMEOUT_S`, the upload rate and storage limits, and the `AI_*` set — including the cross-field rule that a provider other than `null` requires a key
-- [ ] 1.4 Migration generated and applied
-- [ ] 1.5 Tests: the constraints refuse what they exist to refuse; config refuses a provider with no key and starts clean on `null`; a foreign community's evidence is invisible
+- [x] 1.1 `document`, `passage`, `evidence`, `ai_call`, `ai_usage` (`03-data-model.md` §3), each `(community_id, …)`-first, with `evidence` unique per `(community_id, passage_id, clause_key)` so one passage cannot be mapped to one clause twice
+- [x] 1.2 Evidence state as a DB-level constraint, not a drizzle enum — P3 proved `text({ enum })` is a TypeScript narrowing and nothing more
+- [x] 1.3 Config: `UPLOAD_DIR`, `MAX_UPLOAD_MB`, `MAX_UNZIP_MB`, `MAX_EXTRACT_PAGES`, `EXTRACT_TIMEOUT_S`, the upload rate and storage limits, and the `AI_*` set — including the cross-field rule that a provider other than `null` requires a key
+- [x] 1.4 Migration generated and applied
+- [x] 1.5 Tests: the constraints refuse what they exist to refuse, and config refuses a remote provider with no key or model while asking nothing of `null` and `fixture`. (The cross-tenant assertion moved to 5.6, where there is a service to make it against — at schema level it would only be testing SQL.)
 
 ## 2. Upload
 

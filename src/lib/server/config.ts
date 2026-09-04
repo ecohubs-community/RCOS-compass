@@ -187,6 +187,36 @@ export function parseConfig(env: Record<string, string | undefined>): Config {
 			);
 		}
 	}
+	/**
+	 * A provider that reaches the network needs a key.
+	 *
+	 * Caught at boot rather than at the first mapping run, where it would look
+	 * like the model failing and would be diagnosed as the model failing.
+	 * `null` and `fixture` never leave the process, so neither needs one.
+	 */
+	const REMOTE_PROVIDERS = ['google', 'openai-compatible'];
+	if (REMOTE_PROVIDERS.includes(parsed.AI_PROVIDER)) {
+		if (parsed.AI_API_KEY.length === 0) {
+			problems.push(
+				`AI_API_KEY is required when AI_PROVIDER is "${parsed.AI_PROVIDER}" — ` +
+					'without it every AI feature would fail at the first call rather than at boot. ' +
+					'Set AI_PROVIDER=null to run without any AI; everything works by hand.'
+			);
+		}
+		if (parsed.AI_MODEL.length === 0) {
+			problems.push(
+				`AI_MODEL is required when AI_PROVIDER is "${parsed.AI_PROVIDER}" — ` +
+					'there is no sensible default, and guessing one bills somebody for a model they did not choose.'
+			);
+		}
+	}
+	if (parsed.AI_PROVIDER === 'openai-compatible' && parsed.AI_BASE_URL.length === 0) {
+		problems.push(
+			'AI_BASE_URL is required when AI_PROVIDER is "openai-compatible" — ' +
+				'that is the whole point of the setting: it names the endpoint to talk to.'
+		);
+	}
+
 	if (problems.length > 0) throw new ConfigError(problems);
 
 	return {
