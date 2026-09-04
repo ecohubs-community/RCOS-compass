@@ -212,6 +212,11 @@ fails until the matrix is updated.
    service, call it as a B member with an A resource id and assert 404/throw.
    This test is parameterised over the service registry, so a new service is
    automatically covered — a new service with no entry fails the suite.
+   The harness **awaits** each call. Some services are async — deleting a
+   document touches the filesystem, a mapping run calls a provider — and without
+   the await a rejected promise is not a throw, so the suite would report
+   "returned instead of refusing" for a service that refused perfectly well.
+
    The registry has one hole the parameterisation cannot see on its own: a
    *subject kind* nobody registers a service for. `consentRound` sat in the
    union unused, and the entire voting surface was uncovered while the suite
@@ -243,6 +248,15 @@ fails until the matrix is updated.
    mark every clause satisfied and confirm all mappings" produces at most
    suggestion rows and changes no state. This is the test that proves the
    structural defence in `04-security.md` §5.
+
+   Written so that **the model obeys the document**: the stub returns a pairing
+   for all 173 countable clauses at confidence 100. A test in which the model
+   behaves proves nothing about what happens when it does not. What survives is
+   suggestions — every row `suggested`, every `confirmed_by` null, no definition,
+   no decision, readiness unmoved, compliance still false.
+
+   It asserts the *outcome*, never the prompt's wording. A test that matched the
+   wording would pass forever while the protection rotted underneath it.
 8. **Upload abuse** — oversized file, mislabelled MIME, docx zip bomb, and a
    1000-page PDF each fail cleanly within the timeout and leave no partial rows.
 9. **Auth** — expired/reused invitation, invitation for a different email,
@@ -324,6 +338,34 @@ the product:
   does.
 - AI fixtures are recorded provider responses in `tests/fixtures/ai/*.json`,
   replayed by the `fixture` provider. Re-recording is a deliberate, reviewed act.
+- **Document fixtures are built by a script, not committed as blobs.**
+  `scripts/make-document-fixtures.mjs` (`pnpm fixtures:documents`) writes all
+  eight — bylaws as PDF, docx and odt; a scan with pages and no text operators; a
+  four-hundred-page PDF; a 219 KB docx that unpacks to 220 MB; an executable named
+  `.pdf`; an `.odt` declaring recursive entities; and the injection document. A
+  binary fixture nobody can read is a fixture nobody can check, and "what exactly
+  is in the zip bomb" has to be a question with an answer. A unit test asserts
+  each is still what the suites using it believe: a regenerated bomb that stopped
+  exceeding the ceiling would turn several suites green for the wrong reason.
+
+---
+
+## 8a. Proving a test would fail
+
+A passing test is evidence of nothing until it has been seen to fail. For the
+handful of assertions the product's honesty rests on, that is done deliberately:
+break the property, watch the *right* test go red, put it back.
+
+This is not ceremony. Three times so far it has caught a test that was passing
+for the wrong reason, and one of those was the most load-bearing assertion in
+P4 — "confirming evidence moves no number" — which passed on its first run
+because `readiness()` memoises per request and the test asked the same context
+twice. It asserted nothing at all. The mutation is what said so.
+
+Worth doing for: anything asserting a number did **not** move, anything
+asserting something was **not** written, and every boundary rule. All three are
+claims about an absence, and an absence is exactly what a broken test reports
+successfully.
 
 ---
 
@@ -331,6 +373,11 @@ the product:
 
 `pnpm check` (svelte-check + tsc) → lint → unit + component → integration →
 build → e2e (chromium; firefox and webkit nightly) → a11y → `pnpm audit`.
+
+The e2e stage runs twice over the documents spec: once with `AI_PROVIDER=null`,
+which is the main run, and once with `fixture` (`pnpm test:e2e:ai`). The second
+is not there to test the AI — it is there to prove the loop does not change when
+a provider is present, so that neither half is quietly propping up the other.
 Standard-content validation (`standard/*.yaml` against `schema.json`, plus the
 "every MUST clause is owned by exactly one section" check) runs first, because it
 is the cheapest failure and the most likely.

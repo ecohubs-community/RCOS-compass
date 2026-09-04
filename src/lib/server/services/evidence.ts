@@ -12,6 +12,7 @@ import {
 } from '../db/schema/documents.js';
 import { definition, definitionDraft } from '../db/schema/definitions.js';
 import { activeStandardView } from './completeness.js';
+import { getDefinition } from './definitions.js';
 import { getDocument } from './documents.js';
 import { newEditToken } from './definitions.js';
 import { addProposal, openDiscussion } from './discussions.js';
@@ -403,6 +404,11 @@ export function staleEvidenceForDocument(db: Db, documentId: string): void {
 }
 
 registerTenantService({ name: 'evidence.get', subject: 'evidence', call: getEvidence });
+registerTenantService({
+	name: 'evidence.definitionOrigin',
+	subject: 'definition',
+	call: definitionOrigin
+});
 registerTenantService({ name: 'evidence.confirm', subject: 'evidence', call: confirmEvidence });
 registerTenantService({ name: 'evidence.dismiss', subject: 'evidence', call: dismissEvidence });
 registerTenantService({
@@ -436,8 +442,11 @@ export function definitionOrigin(
 	definitionId: string,
 	options: { db?: Db } = {}
 ): DefinitionOrigin | null {
-	requirePermission(ctx, 'community.read');
 	const db = options.db ?? getDb();
+	// Refuses for a definition that is not this community's, and returns null for
+	// one that is but has no origin. Two different questions, and answering both
+	// with null would make "not yours" and "typed by hand" indistinguishable.
+	getDefinition(ctx, definitionId, { db });
 
 	const found = db
 		.select({ passage, document })

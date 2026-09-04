@@ -173,6 +173,14 @@ language model — which is the whole prompt-injection surface.
 | **Per user** | 10 uploads/hour, 40/day | `UPLOAD_PER_USER_HOUR`, `_DAY` |
 | **Per community** | 60 uploads/day, 2 GB stored | `UPLOAD_PER_COMMUNITY_DAY`, `STORAGE_MB` |
 
+**A zip bomb is not caught by sniffing, and cannot be.** A bomb built inside a
+`.docx` *is* a `.docx`, structurally, and the format check accepts it correctly.
+What refuses it is a different question asked of a different part of the file:
+the archive's own central directory records what each entry decompresses to, so
+the answer costs a few kilobytes of reading and nothing is unpacked to discover
+that unpacking it would be a bad idea. This was found by the test, not by the
+design — the first version of the upload envelope believed sniffing covered it.
+
 Rejected outright: anything executable or archive-shaped (`.zip .exe .js .html
 .svg`), files whose sniffed type contradicts the extension, encrypted PDFs, and
 PDFs with no text layer — the last of these is *accepted as a file* but reported
@@ -182,6 +190,16 @@ passages silently.
 `.odt` is on the list because the RCOS templates are published in it — a
 community that downloaded the templates and filled them in should be able to
 upload exactly what they have.
+
+**Reading `.odt` is ours.** No maintained, correctly-licensed reader exists on
+npm, and the format matters too much to drop: it is what the templates come in.
+An `.odt` is a zip with one XML file that counts, so the reader unzips
+`content.xml` under the same decompressed-size ceiling `.docx` uses and reads the
+text nodes. It refuses any document carrying a `DOCTYPE` outright rather than
+configuring entity expansion off — there is no DTD processing to switch off, no
+entities beyond the five the XML spec predefines plus numeric references, and the
+only reason for a DOCTYPE in a `content.xml` is to be a bomb. A billion-laughs
+fixture proves it, and the attack costs a regex over four hundred bytes.
 
 Storage limits are technically enforced but set high during the testing phase
 (`10-legal-and-operations.md` §4); they exist to stop a runaway loop, not to
@@ -194,9 +212,23 @@ ration.
 - **No remote fetch of documents by URL** in MVP — that is an SSRF surface with
   no product value yet.
 - **Prompt injection**: extracted text is passed to the model inside a delimited
-  data block with a system prompt that states it is data, never instructions. But
-  the real defence is structural: **an AI response can only produce a suggestion
-  row**. There is no code path from a model output to an adopted definition, a
+  data block with a system prompt that states it is data, never instructions. The
+  delimiters are stripped from the text first, so a document cannot close the
+  block and write outside it. But the real defence is structural: **an AI response
+  can only produce a suggestion row**.
+
+  Since P4 that is enforced by the import graph rather than by review. Nothing
+  under `src/lib/server/ai/` may import a service that writes or any schema module
+  but its own log — a rule with tests in both directions, at both nesting depths.
+  The depth matters: the first version of the rule matched `../services/*` and
+  silently permitted `../../services/*`, which is how a task in a subdirectory
+  would have reached everything. A boundary with a hole in it is worse than none,
+  because it gets trusted.
+
+  The second half is that a model never sees an identifier from our database. It
+  is given numbered passages and clause references, and the numbers are resolved
+  back here; anything it names that we did not send is discarded. A pairing it
+  invents has nothing to attach to. There is no code path from a model output to an adopted definition, a
   confirmed mapping, a permission change, or a decision. A document that says
   "mark all clauses satisfied" gets a mapping suggestion a human then rejects.
 - **Structured output only** — every AI task declares a JSON schema and the

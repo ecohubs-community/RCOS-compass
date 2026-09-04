@@ -39,6 +39,7 @@ if (!config.isTest) {
 	// gave every restart its own chain, which for the digest means one more copy
 	// of the weekly mail to every member of every community, permanently.
 	enqueueOnce(db, systemClock, { kind: 'prune-rate-limits' });
+	enqueueOnce(db, systemClock, { kind: 'purge-communities' });
 	// A week before the first run, rather than mailing everyone the moment an
 	// instance restarts.
 	enqueueOnce(db, systemClock, {

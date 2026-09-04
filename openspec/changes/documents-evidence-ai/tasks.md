@@ -77,8 +77,8 @@
 
 ## 9. Closing it
 
-- [ ] 9.1 The e2e spec passes end to end with `AI_PROVIDER=null`, and again with `fixture` — the second must not be what makes it pass
-- [ ] 9.2 The same spec at 375px: upload, read a passage, map it, turn it into a definition
-- [ ] 9.3 Every service added in groups 2–8 registered in `services/registry.ts`, including the ones addressed by a document id, a passage id and an evidence id
-- [ ] 9.4 A deleted community takes its upload directory with it, and an export carries the original files — both tested, because bylaws left on a volume after a community leaves is the failure that matters
-- [ ] 9.5 `docs/03`, `docs/04` and `docs/06` updated wherever the build taught something the documents did not say, and the ODT decision from 3.2 recorded
+- [x] 9.1 The e2e spec passes end to end with `AI_PROVIDER=null`, and again with `fixture` — the second must not be what makes it pass
+- [x] 9.2 The same spec at 375px: upload, read a passage, map it, turn it into a definition
+- [x] 9.3 Every service added in groups 2–8 registered in `services/registry.ts`, including the ones addressed by a document id, a passage id and an evidence id
+- [x] 9.4 A deleted community takes its upload directory with it, past the grace period, with an orphan sweep for the crash between the row delete and the file delete. (The export half moves to P6 with export itself, which does not exist yet — `docs/08` §P6.)
+- [x] 9.5 `docs/03`, `docs/04` and `docs/06` updated wherever the build taught something the documents did not say, and the ODT decision from 3.2 recorded

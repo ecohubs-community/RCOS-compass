@@ -220,4 +220,5 @@ export async function deleteDocument(
 }
 
 registerTenantService({ name: 'documents.get', subject: 'document', call: getDocument });
+registerTenantService({ name: 'documents.delete', subject: 'document', call: deleteDocument });
 registerTenantService({ name: 'documents.passages', subject: 'document', call: listPassages });

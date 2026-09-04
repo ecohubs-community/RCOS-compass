@@ -13,6 +13,7 @@ import '../../src/lib/server/services/notifications.js';
 import '../../src/lib/server/voting/consent-round.js';
 import '../../src/lib/server/services/documents.js';
 import '../../src/lib/server/services/evidence.js';
+import '../../src/lib/server/services/mapping.js';
 import { inviteMember } from '../../src/lib/server/services/invitations.js';
 import { createDefinition } from '../../src/lib/server/services/definitions.js';
 import { addProposal, openDiscussion } from '../../src/lib/server/services/discussions.js';
@@ -274,13 +275,19 @@ describe('the service registry', () => {
 
 describe('a steward of one community cannot reach another', () => {
 	for (const service of tenantServices()) {
-		it(`${service.name} refuses a subject from another community`, () => {
+		it(`${service.name} refuses a subject from another community`, async () => {
 			const subjectId = world.subjectInA[service.subject];
 			expect(subjectId, `no seeded subject of kind "${service.subject}"`).toBeTruthy();
 
 			let threw = false;
 			try {
-				service.call(world.ctxB, subjectId!);
+				// Awaited, because some services are async — deleting a document
+				// touches the filesystem, a mapping run calls a provider. Without the
+				// await, a rejected promise is not a throw, and this suite would
+				// report "returned instead of refusing" for a service that refused
+				// perfectly well. The wrong answer either way, and the harness is the
+				// last place that should be lying.
+				await service.call(world.ctxB, subjectId!);
 			} catch (error) {
 				threw = true;
 				// 404, not 403: existence is not disclosed across the boundary.
@@ -297,6 +304,8 @@ describe('the same services work inside their own community', () => {
 		const ownMembershipId = world.ctxB.membership.id;
 		for (const service of tenantServices()) {
 			if (service.subject !== 'membership') continue;
+			// These are all synchronous; an async one would need the same await as
+			// the loop above.
 			// members.end and members.setRole refuse on the owner by design, so the
 			// assertion is only that they do not 404 — the subject is found.
 			try {

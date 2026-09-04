@@ -14,8 +14,14 @@ import type { Ctx } from '../auth/guard.js';
  */
 export type TenantService = {
 	name: string;
-	/** Reads or writes something addressed by id within the community. */
-	call: (ctx: Ctx, subjectId: string) => unknown;
+	/**
+	 * Reads or writes something addressed by id within the community.
+	 *
+	 * May be async: deleting a document touches the filesystem and a mapping run
+	 * calls a provider. The suite awaits, so a rejected promise is a refusal like
+	 * any other.
+	 */
+	call: (ctx: Ctx, subjectId: string) => unknown | Promise<unknown>;
 	/** What this service addresses, so the suite knows what to seed. */
 	subject:
 		| 'membership'

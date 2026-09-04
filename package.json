@@ -27,7 +27,8 @@
 		"check:tokens": "node scripts/check-tokens.mjs",
 		"test:gallery": "playwright test --config playwright.gallery.config.ts",
 		"check:standard": "node scripts/check-standard.mjs",
-		"fixtures:documents": "node scripts/make-document-fixtures.mjs"
+		"fixtures:documents": "node scripts/make-document-fixtures.mjs",
+		"test:e2e:ai": "playwright test --config playwright.ai.config.ts"
 	},
 	"devDependencies": {
 		"@axe-core/playwright": "4.13.0",

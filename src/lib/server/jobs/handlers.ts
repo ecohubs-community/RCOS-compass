@@ -2,12 +2,15 @@ import { getConfig } from '../config.js';
 import { getLogger } from '../logger.js';
 import { pruneRateLimits } from '../rate-limit.js';
 import { runExtraction } from '../documents/extract-job.js';
+import { purgeDeletedCommunities } from './purge.js';
 import { sendWeeklyDigests } from './digest.js';
 import { enqueue } from './queue.js';
 import type { HandlerRegistry } from './worker.js';
 
 /** How often the housekeeping job re-arms itself. */
 export const PRUNE_INTERVAL_MS = 6 * 60 * 60_000;
+/** Daily is often enough for something with a thirty-day grace period. */
+export const PURGE_INTERVAL_MS = 24 * 60 * 60_000;
 /** Weekly, and re-armed by the handler rather than by a scheduler. */
 export const DIGEST_INTERVAL_MS = 7 * 24 * 60 * 60_000;
 const RATE_LIMIT_RETENTION_MS = 24 * 60 * 60_000;
@@ -48,6 +51,21 @@ export const handlers: HandlerRegistry = {
 		run: async (payload, { db, clock }) => {
 			const { documentId } = payload as { documentId?: string };
 			if (typeof documentId === 'string') await runExtraction(db, clock, documentId);
+		}
+	},
+
+	/**
+	 * Hard deletion after the grace period, including the upload directory —
+	 * the part no database cascade can do. Re-arms itself like the others.
+	 */
+	'purge-communities': {
+		timeoutMs: 120_000,
+		run: (_payload, { db, clock }) => {
+			const result = purgeDeletedCommunities(db, clock);
+			if (result.purged > 0 || result.orphansRemoved > 0) {
+				getLogger().info(result, 'purged deleted communities');
+			}
+			enqueue(db, clock, { kind: 'purge-communities', runAfter: clock.now() + PURGE_INTERVAL_MS });
 		}
 	},
 

@@ -568,6 +568,28 @@ the ones an application bug would otherwise break quietly:
 - `definition_local_attach_ck` — exactly one `attach_*` key is set when the scope
   is local.
 
+Documents and evidence added three more in P4:
+
+- `document_status_ck` and `evidence_state_ck` — the same lesson applied
+  immediately, rather than discovered again.
+- `evidence_settled_ck` — a settled state has somebody behind it:
+  `confirmed` and `dismissed` both require a confirmer and a time, `suggested`
+  forbids them, and `stale` keeps whatever it had. Confirming and dismissing are
+  equally attributable acts; staleness is something that *happens to* a row, not
+  something anybody did.
+
+Two shapes in `evidence` are worth explaining, because both look redundant:
+
+- **`quote`** holds the passage's text at the moment the claim was made. It is
+  what lets evidence outlive the document behind it: destroying a document nulls
+  `passage_id` and leaves the claim — what the community said it had, and who
+  said so — readable and re-confirmable against a future upload.
+- **`ai_call` and `ai_usage` live in `db/schema/ai.ts`, alone.** Not tidiness:
+  everything under `src/lib/server/ai/` may import that one schema module and no
+  other, which is how "no model output writes state" becomes a build failure
+  rather than a habit. The boundary could not be *stated* while those tables sat
+  beside the content ones.
+
 **Drizzle's `text({ enum })` is not one of these.** It narrows the TypeScript
 type and emits a plain `text` column: no `CHECK`, nothing at the database. A
 decision written with a type outside `DECISION_TYPES` was accepted and stored,

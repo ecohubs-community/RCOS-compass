@@ -118,6 +118,7 @@ export default ts.config(
 			'drizzle.config.ts',
 			'playwright.config.ts',
 			'playwright.gallery.config.ts',
+			'playwright.ai.config.ts',
 			// The one file whose job is to *fill* process.env: Vite loads `.env`
 			// into import.meta.env and never into process.env, which is where
 			// config.ts reads. See docs/00-architecture.md §10.

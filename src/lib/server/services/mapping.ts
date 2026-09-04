@@ -8,6 +8,7 @@ import { evidence } from '../db/schema/documents.js';
 import { suggestMappings } from '../ai/tasks/map-document.js';
 import { activeStandardView } from './completeness.js';
 import { getDocument, listPassages } from './documents.js';
+import { registerTenantService } from './registry.js';
 
 /**
  * A mapping run: the AI half of "you're further along than you think".
@@ -187,3 +188,5 @@ function write(
 
 	return written;
 }
+
+registerTenantService({ name: 'mapping.run', subject: 'document', call: runMapping });
