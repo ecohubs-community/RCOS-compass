@@ -77,6 +77,17 @@ export function budgetFor(ctx: Ctx, options: { db?: Db } = {}): Budget {
 			eq(aiUsage.periodMonth, month)
 		)
 	);
+	/**
+	 * The community's total is the sum of its members'.
+	 *
+	 * There used to be a community-wide row alongside them, written with a null
+	 * actor. Two things were wrong with it. SQLite treats nulls as distinct in a
+	 * unique index, so it never upserted — one new row per call, forever. And
+	 * this sum counted it *as well as* the member rows, which put every community
+	 * over its ceiling at half the tokens it had actually spent.
+	 *
+	 * Every call has an actor, so the row was redundant in the first place.
+	 */
 	const community = sum(
 		and(eq(aiUsage.communityId, ctx.community.id), eq(aiUsage.periodMonth, month))
 	);
@@ -217,27 +228,26 @@ function record(
 			})
 			.run();
 
-		// Two rows: the member's, and the community's. The community row carries a
-		// null actor, which is what makes "everyone's spending" a sum over one
-		// column rather than a join.
-		for (const actorId of [ctx.user.id, null]) {
-			tx.insert(aiUsage)
-				.values({
-					communityId: ctx.community.id,
-					actorId,
-					periodDay: day,
-					periodMonth: month,
-					tasks: 1,
-					tokens
-				})
-				.onConflictDoUpdate({
-					target: [aiUsage.communityId, aiUsage.actorId, aiUsage.periodDay, aiUsage.periodMonth],
-					set: {
-						tasks: sql`${aiUsage.tasks} + 1`,
-						tokens: sql`${aiUsage.tokens} + ${tokens}`
-					}
-				})
-				.run();
-		}
+		// One row, for the member. The community's spending is the sum of these —
+		// a separate community-wide row would need a null actor, which a unique
+		// index does not constrain, and would then be counted twice by anything
+		// summing the column.
+		tx.insert(aiUsage)
+			.values({
+				communityId: ctx.community.id,
+				actorId: ctx.user.id,
+				periodDay: day,
+				periodMonth: month,
+				tasks: 1,
+				tokens
+			})
+			.onConflictDoUpdate({
+				target: [aiUsage.communityId, aiUsage.actorId, aiUsage.periodDay, aiUsage.periodMonth],
+				set: {
+					tasks: sql`${aiUsage.tasks} + 1`,
+					tokens: sql`${aiUsage.tokens} + ${tokens}`
+				}
+			})
+			.run();
 	});
 }

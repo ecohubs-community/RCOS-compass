@@ -60,8 +60,8 @@ export const handlers: HandlerRegistry = {
 	 */
 	'purge-communities': {
 		timeoutMs: 120_000,
-		run: (_payload, { db, clock }) => {
-			const result = purgeDeletedCommunities(db, clock);
+		run: async (_payload, { db, clock }) => {
+			const result = await purgeDeletedCommunities(db, clock);
 			if (result.purged > 0 || result.orphansRemoved > 0) {
 				getLogger().info(result, 'purged deleted communities');
 			}

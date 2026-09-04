@@ -164,18 +164,41 @@ describe('what a call costs, and what is written down', () => {
 		expect(logged!.detail).toMatch(/No fixture recorded/);
 	});
 
-	it('counts against the member and the community together', async () => {
+	it('counts what was actually spent, once', async () => {
 		const on = enableAi(ana);
 		setAiProviderForTests(spender(100));
 
 		await runAiTask(on, REQUEST, { db });
+		await runAiTask(on, REQUEST, { db });
+		await runAiTask(on, REQUEST, { db });
 
+		// One row per member per period, incremented — not a row per call, and no
+		// community-wide row. A null actor is not constrained by the unique index,
+		// so such a row never upserted and was then counted a second time by the
+		// community sum: 300 tokens spent, 600 reported, and every community cut
+		// off at half its budget.
 		const rows = db.select().from(aiUsage).all();
-		// One row for the member, one for the community — which makes "everyone's
-		// spending" a sum over a column rather than a join.
-		expect(rows).toHaveLength(2);
-		expect(rows.every((row) => row.tokens === 100)).toBe(true);
-		expect(rows.filter((row) => row.actorId === null)).toHaveLength(1);
+		expect(rows).toHaveLength(1);
+		expect(rows[0]!.tokens).toBe(300);
+		expect(rows[0]!.tasks).toBe(3);
+
+		const budget = budgetFor(on, { db });
+		expect(budget.tokensThisMonth).toBe(300);
+		expect(budget.communityTokensThisMonth).toBe(300);
+	});
+
+	it('sums every member into the community total', async () => {
+		const anaOn = enableAi(ana);
+		const lenaOn = { ...lena, community: anaOn.community };
+		setAiProviderForTests(spender(100));
+
+		await runAiTask(anaOn, REQUEST, { db });
+		await runAiTask(lenaOn, REQUEST, { db });
+
+		expect(budgetFor(anaOn, { db }).communityTokensThisMonth).toBe(200);
+		// And each member sees only their own.
+		expect(budgetFor(anaOn, { db }).tokensThisMonth).toBe(100);
+		expect(budgetFor(lenaOn, { db }).tokensThisMonth).toBe(100);
 	});
 });
 
@@ -211,9 +234,14 @@ describe('one member cannot spend everybody else-s month', () => {
 		const lenaOn = { ...lena, community: anaOn.community };
 		setAiProviderForTests(spender(100));
 
-		await runAiTask(anaOn, REQUEST, { db });
+		// One call is under the ceiling, and must be allowed. This is the half the
+		// old arithmetic got wrong: it reported 200 spent after 100, so this second
+		// call was refused and the test passed for the wrong reason.
+		expect((await runAiTask(anaOn, REQUEST, { db })).ok).toBe(true);
+		expect((await runAiTask(lenaOn, REQUEST, { db })).ok).toBe(true);
 
-		const refused = await runAiTask(lenaOn, REQUEST, { db });
+		// Now 200 of 150 really is spent, by two different people.
+		const refused = await runAiTask(anaOn, REQUEST, { db });
 		expect(refused.ok).toBe(false);
 		expect(refused.ok === false && refused.reason).toMatch(/community has used its AI budget/);
 	});

@@ -129,6 +129,43 @@ describe('a document a community can actually use', () => {
 	});
 });
 
+describe('a slow connection is still a valid upload', () => {
+	/** A file whose stream arrives in pieces, the way a real network delivers one. */
+	function trickled(name: string, size: number) {
+		const bytes = readFileSync(join(FIXTURES, name));
+		return {
+			name,
+			stream: () =>
+				new ReadableStream<Uint8Array>({
+					start(controller) {
+						for (let at = 0; at < bytes.length; at += size) {
+							controller.enqueue(new Uint8Array(bytes.subarray(at, at + size)));
+						}
+						controller.close();
+					}
+				})
+		};
+	}
+
+	it.each([64, 512, 4096, 65536])('identifies a docx arriving in %i-byte pieces', async (size) => {
+		// The format decision has to be made on the sniff *window*, not on
+		// whatever the first chunk happened to contain. At 64 bytes the first
+		// chunk of a docx has not reached `word/document.xml` yet, and an earlier
+		// version refused the file as "an archive of some other kind" — the same
+		// document accepted over a fast connection and rejected over a slow one.
+		const stored = await receiveUpload(trickled('valle-verde-bylaws.docx', size), ctx.community.id);
+		expect(stored.type).toBe('docx');
+	});
+
+	it('identifies a file smaller than the sniff window', async () => {
+		const stored = await receiveUpload(
+			new File(['Minutes of the assembly.\n'], 'notes.txt'),
+			ctx.community.id
+		);
+		expect(stored.type).toBe('txt');
+	});
+});
+
 describe('the tenant boundary', () => {
 	it('answers for another community-s document as if it does not exist', async () => {
 		const stored = await upload(ctx, 'valle-verde-bylaws.pdf');

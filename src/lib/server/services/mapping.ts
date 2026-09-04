@@ -164,7 +164,8 @@ function write(
 			const quote = quoteOf.get(suggestion.passageId);
 			if (!quote) continue;
 
-			tx.insert(evidence)
+			const outcome = tx
+				.insert(evidence)
 				.values({
 					id: newId(),
 					communityId: ctx.community.id,
@@ -182,7 +183,10 @@ function write(
 				})
 				.onConflictDoNothing()
 				.run();
-			written += 1;
+			// `changes`, not an unconditional increment: `onConflictDoNothing`
+			// writes nothing when a pair already exists, and two runs started at
+			// once would otherwise report suggestions the member never receives.
+			written += outcome.changes;
 		}
 	});
 

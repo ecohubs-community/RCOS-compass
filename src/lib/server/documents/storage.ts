@@ -1,6 +1,6 @@
 import { createHash } from 'node:crypto';
 import { createWriteStream } from 'node:fs';
-import { mkdir, rename, rm, stat } from 'node:fs/promises';
+import { mkdir, rename, rm } from 'node:fs/promises';
 import { dirname, join, resolve } from 'node:path';
 import { pipeline } from 'node:stream/promises';
 import { Readable } from 'node:stream';
@@ -107,10 +107,20 @@ export async function receiveUpload(
 
 			// Decide what it is from the first few kilobytes, before the rest of it
 			// is worth writing.
+			//
+			// The window is what matters, not the chunk. An earlier version also
+			// decided as soon as `bytes === chunk.length`, meaning to catch "the
+			// whole file arrived at once" — but that is true of the *first* chunk
+			// of every upload, so the verdict was reached on whatever the first
+			// chunk happened to contain. A `.docx` delivered in 64-byte pieces was
+			// refused as "an archive of some other kind" because
+			// `word/document.xml` had not appeared yet, and the same file over a
+			// faster connection was accepted. A short file is identified after the
+			// loop instead.
 			if (head === null) {
 				seen.push(bit);
 				seenBytes += bit.length;
-				if (seenBytes >= SNIFF_BYTES || bytes === chunk.length) {
+				if (seenBytes >= SNIFF_BYTES) {
 					head = Buffer.concat(seen).subarray(0, SNIFF_BYTES);
 					const verdict = sniff(file.name, head);
 					if (!verdict.ok) throw new UploadRefused(verdict.reason);
@@ -181,15 +191,6 @@ export async function receiveUpload(
 			await rename(temporary, destination);
 		}
 	};
-}
-
-/** Total bytes a community is holding, for the storage ceiling. */
-export async function sizeOnDisk(storageKey: string): Promise<number> {
-	try {
-		return (await stat(absolutePathOf(storageKey))).size;
-	} catch {
-		return 0;
-	}
 }
 
 /** Remove a stored file. Deleting a document has to delete the document. */

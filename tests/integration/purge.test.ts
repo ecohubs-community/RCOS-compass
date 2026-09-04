@@ -72,12 +72,12 @@ afterEach(() => {
 const storageKey = () => db.select().from(document).all()[0]!.storageKey;
 
 describe('a deleted community takes its documents with it', () => {
-	it('keeps everything during the grace period', () => {
+	it('keeps everything during the grace period', async () => {
 		const key = storageKey();
 		deleteTenant(db, fixedClock(NOW), admin, ctx.community.id, 'asked to leave');
 
 		// Recoverable for thirty days, which means the files have to still be here.
-		const result = purgeDeletedCommunities(db, fixedClock(NOW + 1000));
+		const result = await purgeDeletedCommunities(db, fixedClock(NOW + 1000));
 
 		expect(result.purged).toBe(0);
 		expect(db.select().from(community).all()).toHaveLength(1);
@@ -89,8 +89,7 @@ describe('a deleted community takes its documents with it', () => {
 		deleteTenant(db, fixedClock(NOW), admin, ctx.community.id, 'asked to leave');
 
 		const after = fixedClock(NOW + DELETE_GRACE_MS + 1000);
-		const result = purgeDeletedCommunities(db, after);
-		await new Promise((resolve) => setTimeout(resolve, 20));
+		const result = await purgeDeletedCommunities(db, after);
 
 		expect(result.purged).toBe(1);
 		expect(db.select().from(community).all()).toHaveLength(0);
@@ -102,11 +101,30 @@ describe('a deleted community takes its documents with it', () => {
 
 	it('leaves an active community entirely alone', async () => {
 		const key = storageKey();
-		const result = purgeDeletedCommunities(db, fixedClock(NOW + DELETE_GRACE_MS * 2));
-		await new Promise((resolve) => setTimeout(resolve, 20));
+		const result = await purgeDeletedCommunities(db, fixedClock(NOW + DELETE_GRACE_MS * 2));
 
 		expect(result.purged).toBe(0);
 		expect(existsSync(absolutePathOf(key))).toBe(true);
+	});
+});
+
+describe('a document whose file has gone', () => {
+	it('is a 404 rather than a download that fails halfway', async () => {
+		// The state the orphan sweep exists for, seen from the reader's side. The
+		// route used to wrap `createReadStream` in a try/catch, which catches
+		// nothing — the stream reports a missing file as an event — so this
+		// answered 200 with a body that errored mid-download.
+		const { GET } = await import('../../src/routes/(app)/c/[slug]/documents/[id]/file/+server.js');
+		const documentId = db.select().from(document).all()[0]!.id;
+		rmSync(join(uploadDir, ctx.community.id), { recursive: true, force: true });
+
+		let status = 0;
+		try {
+			await GET({ locals: { ctx }, params: { id: documentId } } as never);
+		} catch (problem) {
+			status = (problem as { status?: number }).status ?? 0;
+		}
+		expect(status).toBe(404);
 	});
 });
 
@@ -118,8 +136,7 @@ describe('the crash between the two halves heals itself', () => {
 		mkdirSync(orphan, { recursive: true });
 		writeFileSync(join(orphan, 'bylaws.pdf'), 'their governance');
 
-		const result = purgeDeletedCommunities(db, fixedClock(NOW));
-		await new Promise((resolve) => setTimeout(resolve, 20));
+		const result = await purgeDeletedCommunities(db, fixedClock(NOW));
 
 		expect(result.orphansRemoved).toBe(1);
 		expect(existsSync(orphan)).toBe(false);
@@ -130,8 +147,7 @@ describe('the crash between the two halves heals itself', () => {
 		mkdirSync(incoming, { recursive: true });
 		writeFileSync(join(incoming, 'half-written'), 'x');
 
-		const result = purgeDeletedCommunities(db, fixedClock(NOW));
-		await new Promise((resolve) => setTimeout(resolve, 20));
+		const result = await purgeDeletedCommunities(db, fixedClock(NOW));
 
 		expect(result.orphansRemoved).toBe(0);
 		expect(existsSync(incoming)).toBe(true);

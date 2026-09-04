@@ -22,10 +22,10 @@ import { getLogger } from '../logger.js';
  * survived — which is the same event seen from the wrong side, except that this
  * one is not recoverable.
  */
-export function purgeDeletedCommunities(
+export async function purgeDeletedCommunities(
 	db: Db,
 	clock: Clock
-): { purged: number; orphansRemoved: number } {
+): Promise<{ purged: number; orphansRemoved: number }> {
 	const now = clock.now();
 
 	const due = db
@@ -41,7 +41,7 @@ export function purgeDeletedCommunities(
 		db.delete(community).where(eq(community.id, row.id)).run();
 	}
 
-	return { purged: due.length, orphansRemoved: sweepOrphanDirectories(db) };
+	return { purged: due.length, orphansRemoved: await sweepOrphanDirectories(db) };
 }
 
 /**
@@ -51,7 +51,7 @@ export function purgeDeletedCommunities(
  * leaves exactly this, and so does any older bug that forgot the files. Run on
  * every purge, so the untidy state is temporary rather than permanent.
  */
-function sweepOrphanDirectories(db: Db): number {
+async function sweepOrphanDirectories(db: Db): Promise<number> {
 	const root = getConfig().UPLOAD_DIR;
 
 	let entries: string[];
@@ -75,10 +75,15 @@ function sweepOrphanDirectories(db: Db): number {
 			.get();
 		if (exists) continue;
 
-		void removeCommunityFiles(communityId).catch((error) => {
+		// Awaited: the job's return value says these are gone, and a fire-and-
+		// forget removal makes that a claim rather than a fact — a worker killed
+		// straight after would have logged a removal that never happened.
+		try {
+			await removeCommunityFiles(communityId);
+			removed += 1;
+		} catch (error) {
 			getLogger().error({ communityId, err: error }, 'could not remove orphaned upload directory');
-		});
-		removed += 1;
+		}
 	}
 
 	return removed;

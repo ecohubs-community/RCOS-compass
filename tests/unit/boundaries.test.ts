@@ -1,7 +1,15 @@
 import { execFileSync } from 'node:child_process';
 import { mkdtempSync, rmSync, writeFileSync, mkdirSync } from 'node:fs';
 import { join } from 'node:path';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
+
+/**
+ * Every test in this file spawns ESLint, which takes a second or two on its own
+ * and considerably longer when the rest of the suite is running beside it. The
+ * default five seconds is a coin toss once there are fifteen of them, and a
+ * boundary test that flakes is a boundary test people start ignoring.
+ */
+vi.setConfig({ testTimeout: 60_000 });
 
 /**
  * The boundary rules in eslint.config.js are documented architecture rules

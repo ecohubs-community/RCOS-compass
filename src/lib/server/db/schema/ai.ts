@@ -55,7 +55,12 @@ export const aiUsage = sqliteTable(
 		communityId: text('community_id')
 			.notNull()
 			.references(() => community.id, { onDelete: 'cascade' }),
-		/** Null for the community-wide row. */
+		/**
+		 * Whose spending this is. Always set in practice: there is no
+		 * community-wide row, because a null here would not be constrained by the
+		 * unique index below and would be double-counted by anything summing the
+		 * column. A community's total is the sum of its members'.
+		 */
 		actorId: text('actor_id').references(() => user.id, { onDelete: 'cascade' }),
 		/** `YYYY-MM-DD` in the community's timezone; empty for a month-only row. */
 		periodDay: text('period_day').notNull(),
