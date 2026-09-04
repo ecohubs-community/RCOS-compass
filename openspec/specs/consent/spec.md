@@ -1,5 +1,8 @@
-## ADDED Requirements
+# consent Specification
 
+## Purpose
+Covers how a community registers dissent and agreement: an objection is a durable record with a reason and a lifecycle, a consent round captures its eligible members when it opens and collects one response from each, and the tally a closed round produces informs a freeze without ever performing one.
+## Requirements
 ### Requirement: An objection is a record with a reason and a lifecycle
 
 An objection MUST carry a reason and a state of `open`, `withdrawn`, `addressed`
@@ -17,6 +20,20 @@ attributable.
 #### Scenario: Deletion is attempted
 - **WHEN** a request tries to remove an objection
 - **THEN** it is refused
+
+#### Scenario: The objector changes their response
+- **WHEN** a member who objected in a consent round responds again with consent
+- **THEN** their objection is withdrawn rather than left open or deleted
+- **AND** the reason they gave stays readable
+- **AND** the round reports no unresolved objection
+
+#### Scenario: A member objects twice
+- **WHEN** a member replaces their objection with a differently-worded one
+- **THEN** exactly one objection of theirs is open
+
+#### Scenario: The community is suspended
+- **WHEN** a steward tries to address or overrule an objection
+- **THEN** it is refused, because a suspended community reads and exports only
 
 ### Requirement: A decision frozen over an open objection says so, permanently
 

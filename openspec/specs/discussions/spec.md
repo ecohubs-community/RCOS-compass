@@ -1,14 +1,34 @@
-## ADDED Requirements
+# discussions Specification
 
-### Requirement: A discussion belongs to one community and one subject
+## Purpose
+Covers where a community argues before it decides: a discussion belongs to one community and to at most one subject, a proposal is a first-class object rather than a post that looks different, deciding in a room reaches the same freeze as deciding in a thread, and any member may propose while only a steward may record.
+## Requirements
+### Requirement: A discussion belongs to one community, and to at most one subject
 
-A discussion MUST name the clause or definition it is about, and MUST be
-reachable only from inside the community that owns it.
+A discussion MUST be reachable only from inside the community that owns it. It
+MAY name the clause or definition it is about, and MAY name neither — the field
+is offered as optional and has to mean it. A clause it names MUST exist in the
+standard the community adopted, and MUST be stored by the clause's stable key
+whichever of the clause's two names was typed.
 
 #### Scenario: A member opens a discussion on a clause with no definition
 - **WHEN** a member starts a discussion from a clause
 - **THEN** the discussion is created against that clause
 - **AND** it appears in that community's discussion list
+
+#### Scenario: A member types the reference rather than the key
+- **WHEN** a member enters the clause reference the standard browser shows them
+- **THEN** the discussion is stored against that clause's stable key
+- **AND** the community's outstanding work shows the discussion as already open
+
+#### Scenario: A member leaves the clause field empty
+- **WHEN** a member starts a discussion without naming a clause
+- **THEN** the discussion is created about nothing in the standard
+- **AND** it can be discussed and proposed on like any other
+
+#### Scenario: A member names a clause the standard does not have
+- **WHEN** a member enters a clause that is in neither name
+- **THEN** the discussion is refused at that point, where the typing happened
 
 #### Scenario: A member of another community requests it
 - **WHEN** a member of community B requests a discussion belonging to A
