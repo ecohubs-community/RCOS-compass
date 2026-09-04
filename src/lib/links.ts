@@ -20,6 +20,7 @@ export const links = {
 	definition: (slug: string, id: string) =>
 		resolve('/(app)/c/[slug]/definitions/[id]', { slug, id }),
 	documents: (slug: string) => resolve('/(app)/c/[slug]/documents', { slug }),
+	document: (slug: string, id: string) => resolve('/(app)/c/[slug]/documents/[id]', { slug, id }),
 	documentFile: (slug: string, id: string) =>
 		resolve('/(app)/c/[slug]/documents/[id]/file', { slug, id }),
 	decisions: (slug: string) => resolve('/(app)/c/[slug]/decisions', { slug }),

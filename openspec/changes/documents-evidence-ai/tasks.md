@@ -32,19 +32,19 @@
 
 ## 4. Passages and the viewer
 
-- [ ] 4.1 The document list and the document screen: status, what was extracted, what was not
-- [ ] 4.2 The passage viewer — passages in place, readable, with the document downloadable
-- [ ] 4.3 Passage text rendered through the P3 markdown pipeline, never as HTML. Document text is the most hostile text in the product and the rule is the same one: no `{@html}`, anywhere
-- [ ] 4.4 Tests: an XSS payload in a passage renders as words; the a11y pass covers the viewer at 375 / 768 / 1024 / 1440
+- [x] 4.1 The document list and the document screen: status, what was extracted, what was not
+- [x] 4.2 The passage viewer — passages in place, readable, with the document downloadable
+- [x] 4.3 Passage text rendered through the P3 markdown pipeline, never as HTML. Document text is the most hostile text in the product and the rule is the same one: no `{@html}`, anywhere
+- [x] 4.4 Tests: an XSS payload in a passage renders as words; the a11y pass covers the viewer at 375 / 768 / 1024 / 1440
 
 ## 5. Mapping by hand — the exit criteria, without any AI
 
-- [ ] 5.1 Manual passage → clause mapping, writing `evidence` as `confirmed` with its actor and time
-- [ ] 5.2 Confirm and dismiss on suggestions; a dismissed suggestion is not offered again and is not deleted
-- [ ] 5.3 "Turn this into a definition" — pre-fills a draft with the passage text; where the section already has an adopted definition, it opens a discussion with that text as the first proposal instead
-- [ ] 5.4 Evidence goes `stale` when its passage is superseded or the standard version changes; stale evidence stays readable and can be re-confirmed
-- [ ] 5.5 "You already have language for N of M requirements" — counted from confirmed evidence and shown **separately from readiness**, never as progress toward compliance
-- [ ] 5.6 Tests: confirmed evidence moves neither readiness nor the compliance claim; the version records the evidence it came from; a foreign passage is refused as nonexistent; **`fixme` comes off the 0.1 spec and it passes end to end on `AI_PROVIDER=null`**
+- [x] 5.1 Manual passage → clause mapping, writing `evidence` as `confirmed` with its actor and time
+- [x] 5.2 Confirm and dismiss on suggestions; a dismissed suggestion is not offered again and is not deleted
+- [x] 5.3 "Turn this into a definition" — pre-fills a draft with the passage text; where the section already has an adopted definition, it opens a discussion with that text as the first proposal instead
+- [x] 5.4 Evidence goes `stale` when its passage is superseded or the standard version changes; stale evidence stays readable and can be re-confirmed
+- [x] 5.5 "You already have language for N of M requirements" — counted from confirmed evidence and shown **separately from readiness**, never as progress toward compliance
+- [x] 5.6 Tests: confirmed evidence moves neither readiness nor the compliance claim; the version records the evidence it came from; a foreign passage is refused as nonexistent; **`fixme` comes off the 0.1 spec and it passes end to end on `AI_PROVIDER=null`**
 
 ## 6. The provider seam
 

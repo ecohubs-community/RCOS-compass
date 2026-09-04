@@ -11,6 +11,8 @@ import '../../src/lib/server/services/objections.js';
 import '../../src/lib/server/services/decisions.js';
 import '../../src/lib/server/services/notifications.js';
 import '../../src/lib/server/voting/consent-round.js';
+import '../../src/lib/server/services/documents.js';
+import '../../src/lib/server/services/evidence.js';
 import { inviteMember } from '../../src/lib/server/services/invitations.js';
 import { createDefinition } from '../../src/lib/server/services/definitions.js';
 import { addProposal, openDiscussion } from '../../src/lib/server/services/discussions.js';
@@ -22,6 +24,11 @@ import { newId } from '../../src/lib/server/db/id.js';
 import { communityArtifact } from '../../src/lib/server/db/schema/definitions.js';
 import { communityStandard } from '../../src/lib/server/db/schema/tenancy.js';
 import { notification } from '../../src/lib/server/db/schema/notifications.js';
+import {
+	document as documentTable,
+	evidence as evidenceTable,
+	passage as passageTable
+} from '../../src/lib/server/db/schema/documents.js';
 import { createTestDb } from '../support/db.js';
 import { makeCommunity, makeMembership, makeUser } from '../support/factories.js';
 
@@ -145,6 +152,58 @@ beforeEach(() => {
 		{ db }
 	);
 
+	// A document, a passage and a piece of evidence in A. Written directly rather
+	// than uploaded: this suite is about the boundary, and a real upload would
+	// drag a filesystem into every one of its cases.
+	const documentInA = newId();
+	db.insert(documentTable)
+		.values({
+			id: documentInA,
+			communityId: communityA.id,
+			filename: 'bylaws.pdf',
+			mime: 'application/pdf',
+			bytes: 1024,
+			sha256: 'a'.repeat(64),
+			storageKey: `${communityA.id}/${newId()}`,
+			status: 'extracted',
+			statusDetail: null,
+			pagesExtracted: 1,
+			pagesTotal: 1,
+			uploadedBy: alice.id,
+			uploadedAt: new Date(Date.UTC(2026, 8, 2, 12, 0, 0)),
+			extractedAt: new Date(Date.UTC(2026, 8, 2, 12, 0, 0))
+		})
+		.run();
+	const passageInA = newId();
+	db.insert(passageTable)
+		.values({
+			id: passageInA,
+			documentId: documentInA,
+			page: 1,
+			ordinal: 0,
+			text: 'A member may leave at any time.',
+			textHash: 'b'.repeat(64),
+			bbox: null
+		})
+		.run();
+	const evidenceInA = newId();
+	db.insert(evidenceTable)
+		.values({
+			id: evidenceInA,
+			communityId: communityA.id,
+			passageId: passageInA,
+			quote: 'A member may leave at any time.',
+			communityStandardId: db.select().from(communityStandard).all()[0]!.id,
+			clauseKey: getStandard('rcos-core', '0.1').countableClauses()[0]!.key,
+			state: 'confirmed',
+			confidence: null,
+			suggestedBy: 'human',
+			confirmedBy: alice.id,
+			confirmedAt: new Date(Date.UTC(2026, 8, 2, 12, 0, 0)),
+			createdAt: new Date(Date.UTC(2026, 8, 2, 12, 0, 0))
+		})
+		.run();
+
 	// A consent round in A, so the voting services have a round to be refused.
 	// It goes through the provider rather than an insert: a round B can reach by
 	// id is the thing under test, and a hand-built row could be the wrong shape.
@@ -180,6 +239,9 @@ beforeEach(() => {
 			// asked for a string it could have guessed.
 			decisionRef: decisionInA.ref,
 			consentRound: roundInA.id,
+			document: documentInA,
+			passage: passageInA,
+			evidence: evidenceInA,
 			notification: notificationInA?.id ?? ''
 		}
 	};

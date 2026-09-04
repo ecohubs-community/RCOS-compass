@@ -73,7 +73,7 @@
 					class="border-border flex flex-wrap items-baseline gap-x-3 gap-y-1 rounded-(--radius-card) border p-3"
 				>
 					<a
-						href={links.documentFile(slug, entry.id)}
+						href={links.document(slug, entry.id)}
 						class="text-fg font-medium underline underline-offset-2">{entry.filename}</a
 					>
 					<span class="text-fg-muted text-meta" data-tabular>{size(entry.bytes)}</span>

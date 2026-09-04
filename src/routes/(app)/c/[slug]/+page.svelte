@@ -83,6 +83,19 @@
 		{/if}
 	</section>
 
+	{#if data.language.have > 0}
+		<p class="border-border text-fg-secondary mt-8 rounded-(--radius-card) border p-3">
+			You already have language for <strong class="text-fg" data-tabular
+				>{data.language.have} of {data.language.of}</strong
+			>
+			requirements, in documents you uploaded.
+			<a href={links.documents(slug)} class="hover:text-fg underline underline-offset-2"
+				>Review it</a
+			>
+			— turning it into a definition is what makes it count.
+		</p>
+	{/if}
+
 	{#if data.readiness}
 		<section class="mt-10" aria-labelledby="readiness">
 			<div class="flex items-center gap-2">

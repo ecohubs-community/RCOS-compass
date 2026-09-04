@@ -87,6 +87,7 @@ const evidenceRow = (overrides: Partial<typeof evidence.$inferInsert> = {}) => (
 	id: newId(),
 	communityId,
 	passageId,
+	quote: 'A member may leave at any time by telling a steward.',
 	communityStandardId: standardId,
 	clauseKey: 'l0.purpose-definition.1',
 	state: 'suggested' as const,
@@ -143,7 +144,7 @@ describe('the database refuses a state nobody defined', () => {
 	});
 });
 
-describe('confirmed evidence has somebody behind it', () => {
+describe('a settled state has somebody behind it', () => {
 	it('refuses confirmed with nobody who confirmed it', () => {
 		// The state and the person travel together, or the row is a claim with no
 		// author — and "who said we have language about this?" is the question the
@@ -156,13 +157,37 @@ describe('confirmed evidence has somebody behind it', () => {
 		).toThrow(/CHECK constraint/i);
 	});
 
-	it('refuses a confirmer on something not confirmed', () => {
+	it('refuses dismissed with nobody who dismissed it', () => {
+		// Dismissing is as attributable as confirming: "who said this was wrong?"
+		// is asked in the same breath as "who said it was right?".
+		expect(() =>
+			db
+				.insert(evidence)
+				.values(evidenceRow({ state: 'dismissed' }))
+				.run()
+		).toThrow(/CHECK constraint/i);
+	});
+
+	it('refuses a confirmer on a mere suggestion', () => {
 		expect(() =>
 			db
 				.insert(evidence)
 				.values(evidenceRow({ state: 'suggested', confirmedBy: userId, confirmedAt: NOW }))
 				.run()
 		).toThrow(/CHECK constraint/i);
+	});
+
+	it('lets stale keep the confirmer it had, or none', () => {
+		// Confirmed evidence that goes stale keeps its confirmer; a suggestion
+		// that goes stale never had one. Both are legal, because staleness is
+		// something that happens to a row, not something somebody did to it.
+		db.insert(evidence)
+			.values(evidenceRow({ state: 'stale', confirmedBy: userId, confirmedAt: NOW }))
+			.run();
+		db.insert(evidence)
+			.values(evidenceRow({ state: 'stale', clauseKey: 'l1.other.1' }))
+			.run();
+		expect(db.select().from(evidence).all()).toHaveLength(2);
 	});
 
 	it('accepts confirmed with its author and time', () => {
@@ -213,16 +238,19 @@ describe('a passage has one position in its document', () => {
 	});
 });
 
-describe('a document takes its passages and evidence with it', () => {
-	it('deletes passages when the document goes', () => {
+describe('a document takes its passages with it, and evidence survives them', () => {
+	it('nulls the passage pointer and keeps the claim', () => {
 		db.insert(evidence).values(evidenceRow()).run();
 		const documentId = db.select().from(document).all()[0]!.id;
 
 		db.delete(document).where(eq(document.id, documentId)).run();
 
 		expect(db.select().from(passage).all()).toHaveLength(0);
-		// Evidence cascades with the passage it points at: a claim about a passage
-		// that no longer exists is not a claim, it is a dangling row.
-		expect(db.select().from(evidence).all()).toHaveLength(0);
+		// The claim outlives the passage: the quote, the clause and the attribution
+		// stay readable. The *service* also marks it stale; at this level the FK
+		// guarantees it cannot dangle.
+		const [row] = db.select().from(evidence).all();
+		expect(row!.passageId).toBeNull();
+		expect(row!.quote).toContain('may leave at any time');
 	});
 });

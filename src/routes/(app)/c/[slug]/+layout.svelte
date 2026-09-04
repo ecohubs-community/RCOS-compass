@@ -22,7 +22,8 @@
 		{
 			label: 'Working on',
 			items: [
-				{ href: links.discussions(slug), label: 'Discussions', badge: data.unread || undefined }
+				{ href: links.discussions(slug), label: 'Discussions', badge: data.unread || undefined },
+				{ href: links.documents(slug), label: 'Documents' }
 			]
 		},
 		{

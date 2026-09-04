@@ -1,6 +1,7 @@
 import { getDb } from '$lib/server/db';
 import { ctxCan } from '$lib/server/auth/guard';
-import { adoptedVersion, getDefinition } from '$lib/server/services/definitions';
+import { adoptedVersion, getDefinition, getDraft } from '$lib/server/services/definitions';
+import { definitionOrigin } from '$lib/server/services/evidence';
 import { activeStandardView } from '$lib/server/services/completeness';
 import { lint } from '$lib/server/linter';
 import { parseMarkdown } from '$lib/server/markdown';
@@ -21,6 +22,14 @@ export const load: PageServerLoad = ({ locals, params }) => {
 	const found = getDefinition(ctx, params.id, { db });
 	const version = adoptedVersion(ctx, params.id, { db });
 	const standard = activeStandardView(db, ctx);
+	/**
+	 * The draft, when nothing is adopted yet.
+	 *
+	 * Without this the middle column says "nothing has been adopted" over text a
+	 * member has already written — and a definition pre-filled from their own
+	 * document would be invisible on the one screen that exists to show it.
+	 */
+	const draft = version ? null : getDraft(ctx, params.id, { db });
 
 	const section =
 		found.sectionKey && standard ? standard.view.section(found.sectionKey) : undefined;
@@ -69,6 +78,13 @@ export const load: PageServerLoad = ({ locals, params }) => {
 				locale: ctx.community.locale
 			}).findings
 		},
+		draft: draft &&
+			draft.body.trim() !== '' && {
+				body: parseMarkdown(draft.body),
+				updatedAt: draft.updatedAt
+			},
+		/** The passage this began as, when it began as one. */
+		origin: definitionOrigin(ctx, params.id, { db }),
 		can: { propose: ctxCan(ctx, 'proposal.create') }
 	};
 };

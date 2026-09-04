@@ -1,4 +1,5 @@
 import { listDecisions } from '$lib/server/services/decisions';
+import { languageCoverage } from '$lib/server/services/evidence';
 import { needsAttention, path } from '$lib/server/services/path';
 import type { PageServerLoad } from './$types';
 
@@ -18,6 +19,14 @@ export const load: PageServerLoad = ({ locals }) => {
 		// The hero block: five plain-language questions, not clause text.
 		next: remaining.slice(0, 5),
 		remaining: remaining.length,
+		/**
+		 * "You already have language for N of M requirements."
+		 *
+		 * The adoption-unlock number (UI spec §4.5), kept deliberately apart from
+		 * readiness: having written something about a clause is not having decided
+		 * it, and a community must never read this as progress toward compliance.
+		 */
+		language: languageCoverage(ctx),
 		attention: needsAttention(ctx),
 		recent: listDecisions(ctx)
 			.slice(0, 5)

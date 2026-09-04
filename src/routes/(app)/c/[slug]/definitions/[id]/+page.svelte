@@ -114,6 +114,21 @@
 				{/if}
 
 				<LinterPanel findings={data.version.linter} class="mt-6" />
+			{:else if data.draft}
+				<h3 class="text-fg-muted text-meta mt-1">Draft — not adopted</h3>
+				{#if data.origin}
+					<p class="text-fg-secondary text-meta mt-1">
+						From your own <a
+							href={links.document(slug, data.origin.documentId)}
+							class="underline underline-offset-2">{data.origin.filename}</a
+						>, page {data.origin.page}.
+					</p>
+				{/if}
+				<Markdown blocks={data.draft.body} class="mt-3" />
+				<p class="text-fg-secondary mt-4">
+					Nothing here binds anyone yet. Take it to a discussion, propose it, and freeze it — that
+					is what makes it the community's answer.
+				</p>
 			{:else}
 				<p class="text-fg-secondary mt-3">
 					Nothing has been adopted yet. A proposal in a discussion becomes the first version.

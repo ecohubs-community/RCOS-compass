@@ -106,6 +106,11 @@ export const passage = sqliteTable(
  * are not interchangeable: a model may only ever produce `suggested`. Nothing
  * reaches `confirmed` without a person, which is enforced in the service and
  * asserted by a test, and the AI module cannot reach a writing service at all.
+ *
+ * `quote` is the passage's text at the moment the claim was made. It is what
+ * keeps stale evidence *readable*: when the document behind it is destroyed the
+ * passage goes, `passage_id` goes null, and what the community said it had —
+ * and who said so — survives, per the change's `evidence` spec.
  */
 export const evidence = sqliteTable(
 	'evidence',
@@ -114,9 +119,9 @@ export const evidence = sqliteTable(
 		communityId: text('community_id')
 			.notNull()
 			.references(() => community.id, { onDelete: 'cascade' }),
-		passageId: text('passage_id')
-			.notNull()
-			.references(() => passage.id, { onDelete: 'cascade' }),
+		/** Null once the passage is gone; the evidence is then `stale`. */
+		passageId: text('passage_id').references(() => passage.id, { onDelete: 'set null' }),
+		quote: text('quote').notNull(),
 		/** Which standard version this claim was made against. */
 		communityStandardId: text('community_standard_id')
 			.notNull()
@@ -142,11 +147,18 @@ export const evidence = sqliteTable(
 			sql`${table.state} in ('suggested', 'confirmed', 'dismissed', 'stale')`
 		),
 		check('evidence_source_ck', sql`${table.suggestedBy} in ('ai', 'human')`),
-		// Confirmed means somebody confirmed it. The two fields travel together or
-		// the row is a claim with nobody behind it.
+		/**
+		 * A settled state has somebody behind it. Confirming and dismissing are
+		 * both human acts and both attributable; a suggestion has no confirmer by
+		 * definition; and stale keeps whatever it had — evidence that was confirmed
+		 * keeps its confirmer when it goes stale, and a suggestion that went stale
+		 * never had one.
+		 */
 		check(
-			'evidence_confirmed_ck',
-			sql`(${table.state} = 'confirmed') = (${table.confirmedBy} is not null and ${table.confirmedAt} is not null)`
+			'evidence_settled_ck',
+			sql`(${table.state} = 'suggested' and ${table.confirmedBy} is null and ${table.confirmedAt} is null)
+				or (${table.state} in ('confirmed', 'dismissed') and ${table.confirmedBy} is not null and ${table.confirmedAt} is not null)
+				or (${table.state} = 'stale')`
 		)
 	]
 );

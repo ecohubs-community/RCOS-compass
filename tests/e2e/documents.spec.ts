@@ -17,8 +17,6 @@ import { fixturePath } from './fixtures.js';
  */
 
 test.describe('a community that already wrote it down', () => {
-	test.fixme(true, 'P4 group 5 — nothing is built yet');
-
 	test('upload bylaws, map a passage, and get a definition in their own words', async ({
 		page
 	}) => {
@@ -30,17 +28,21 @@ test.describe('a community that already wrote it down', () => {
 		// --- upload -------------------------------------------------------------
 		await visit(page, `/c/${slug}/documents`);
 		await page.getByLabel('Upload a document').setInputFiles(fixturePath('valle-verde-bylaws.pdf'));
-		await page.getByRole('button', { name: 'Upload' }).click();
+		await page.getByRole('button', { name: 'Upload', exact: true }).click();
 
 		// The list says what it is doing rather than going quiet: extraction is a
 		// job, and a member watching a spinner with no words is a member who
 		// assumes it broke.
 		const document = page.getByRole('listitem').filter({ hasText: 'valle-verde-bylaws.pdf' });
 		await expect(document).toBeVisible();
-		await expect(document).toContainText(/extracting|extracted/i);
+		await expect(document).toContainText(/waiting to be read|reading it|extracted/i);
 
 		// --- extraction ---------------------------------------------------------
-		await expect(document).toContainText('extracted', { timeout: 30_000 });
+		// The worker polls; the page is reloaded until the status it wrote appears.
+		await expect(async () => {
+			await page.reload();
+			await expect(document).toContainText('Extracted', { timeout: 2_000 });
+		}).toPass({ timeout: 30_000 });
 		await document.getByRole('link', { name: /valle-verde-bylaws/ }).click();
 
 		// The passages are the community's own text, not a summary of it.
@@ -70,13 +72,19 @@ test.describe('a community that already wrote it down', () => {
 		// --- their own words, in a draft ----------------------------------------
 		await visit(page, `/c/${slug}/documents`);
 		await page.getByRole('link', { name: /valle-verde-bylaws/ }).click();
-		await passage.getByRole('button', { name: 'Turn this into a definition' }).click();
+		await page
+			.getByRole('article')
+			.filter({ hasText: 'may leave at any time' })
+			.getByRole('button', { name: 'Turn this into a definition' })
+			.click();
 
 		// A draft, pre-filled with what they wrote years ago — and still a draft:
-		// nothing is adopted until somebody freezes it.
-		await expect(page.getByRole('heading', { name: /Draft/ })).toBeVisible();
-		await expect(page.getByLabel('Definition')).toHaveValue(/may leave at any time/);
-		await expect(page.getByText('Not started')).toBeVisible();
+		// nothing is adopted until somebody freezes it, and the screen says where
+		// the words came from.
+		await expect(page.getByRole('heading', { name: /Draft — not adopted/ })).toBeVisible();
+		await expect(page.getByText(/may leave at any time/)).toBeVisible();
+		await expect(page.getByText(/From your own valle-verde-bylaws\.pdf/)).toBeVisible();
+		await expect(page.getByText('Drafting')).toBeVisible();
 	});
 
 	test('the whole flow works with no AI provider configured', async ({ page }) => {
@@ -92,9 +100,14 @@ test.describe('a community that already wrote it down', () => {
 
 		await visit(page, `/c/${slug}/documents`);
 		await page.getByLabel('Upload a document').setInputFiles(fixturePath('valle-verde-bylaws.pdf'));
-		await page.getByRole('button', { name: 'Upload' }).click();
+		await page.getByRole('button', { name: 'Upload', exact: true }).click();
 
 		await expect(page.getByRole('alert')).toHaveCount(0);
-		await expect(page.getByText(/AI|provider|model/i)).toHaveCount(0);
+		// Nothing complains about the absence. Deliberately a phrase match rather
+		// than /AI/i, which matches "W-ai-ting to be read" and half the alphabet
+		// besides — the first draft of this line did exactly that.
+		await expect(
+			page.getByText(/no (AI )?provider|AI is (not|un)available|not configured/i)
+		).toHaveCount(0);
 	});
 });

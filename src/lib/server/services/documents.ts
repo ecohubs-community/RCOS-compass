@@ -4,9 +4,10 @@ import { requirePermission, requireWritableCommunity, type Ctx } from '../auth/g
 import { getDb, type Db } from '../db/index.js';
 import { newId } from '../db/id.js';
 import { getConfig } from '../config.js';
-import { document, evidence, passage, type Document } from '../db/schema/documents.js';
+import { document, passage, type Document } from '../db/schema/documents.js';
 import { MIME } from '../documents/sniff.js';
 import { removeFile, type StoredFile } from '../documents/storage.js';
+import { staleEvidenceForDocument } from './evidence.js';
 import { enqueue } from '../jobs/queue.js';
 import { registerTenantService } from './registry.js';
 
@@ -190,9 +191,10 @@ export async function createDocument(
  * people's confirmed evidence, which is why `04-security.md` §1 splits upload and
  * destroy across the two roles.
  *
- * Evidence pointing at its passages goes with them. The alternative — keeping
- * evidence whose passage no longer exists — is a claim about a document nobody
- * can read, which is worse than no claim.
+ * Evidence pointing at its passages goes `stale`, not away. Each row keeps its
+ * quote, its clause and whoever confirmed it — the claim the community made
+ * stays readable and re-confirmable against a future upload, per the change's
+ * `evidence` spec. Only the passages and the file are actually destroyed.
  */
 export async function deleteDocument(
 	ctx: Ctx,
@@ -206,16 +208,10 @@ export async function deleteDocument(
 	const found = getDocument(ctx, documentId, { db });
 
 	db.transaction((tx) => {
-		// Explicit rather than relying on the cascade, so the intent is readable
-		// here and the behaviour does not depend on `foreign_keys` being on.
-		const passages = tx
-			.select({ id: passage.id })
-			.from(passage)
-			.where(eq(passage.documentId, documentId))
-			.all();
-		for (const row of passages) {
-			tx.delete(evidence).where(eq(evidence.passageId, row.id)).run();
-		}
+		const scoped = tx as unknown as Db;
+		// Stale first, while the passage ids still exist to find the rows by;
+		// deleting the passages then nulls each survivor's passage_id via the FK.
+		staleEvidenceForDocument(scoped, documentId);
 		tx.delete(passage).where(eq(passage.documentId, documentId)).run();
 		tx.delete(document).where(eq(document.id, documentId)).run();
 	});

@@ -53,6 +53,14 @@ test.describe('accessibility', () => {
 		}
 	});
 
+	test('the document screens have no violations', async ({ page }) => {
+		test.slow();
+		const fixture = await seedWithProposal(page);
+
+		await visit(page, `/c/${fixture.slug}/documents`);
+		expect((await scan(page).analyze()).violations).toEqual([]);
+	});
+
 	test('the freeze form has no violations, open', async ({ page }) => {
 		test.slow();
 		await seedWithProposal(page);

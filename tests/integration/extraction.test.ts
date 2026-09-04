@@ -11,9 +11,9 @@ import { setDbForTests, type Db } from '../../src/lib/server/db/index.js';
 import { document, passage } from '../../src/lib/server/db/schema/documents.js';
 import { runExtraction } from '../../src/lib/server/documents/extract-job.js';
 import {
-	extract,
 	ExtractionFailed,
-	odtParagraphs
+	odtParagraphs,
+	withDeadline
 } from '../../src/lib/server/documents/extract.js';
 import { receiveUpload } from '../../src/lib/server/documents/storage.js';
 import { claim, deadLetters } from '../../src/lib/server/jobs/queue.js';
@@ -170,11 +170,18 @@ describe('a hostile document fails, visibly and completely', () => {
 	});
 
 	it('stops at the deadline, with a message about the deadline', async () => {
-		// One millisecond is not enough to read four hundred pages; the member is
-		// told Compass stopped, not handed a stack trace.
-		await expect(extract(join(FIXTURES, 'four-hundred-pages.pdf'), 'pdf', 1)).rejects.toMatchObject(
-			{ reason: expect.stringMatching(/took longer|stopped/) }
-		);
+		// Work that never finishes, so the deadline is the only thing that can end
+		// this. Racing a one-millisecond deadline against a real parse is a coin
+		// toss — the first version of this test passed, then failed on a warm
+		// module cache, then passed again. The member is told Compass stopped, not
+		// handed a stack trace.
+		await expect(withDeadline(new Promise(() => {}), 5)).rejects.toMatchObject({
+			reason: expect.stringMatching(/took longer than .* seconds, so Compass stopped/)
+		});
+	});
+
+	it('lets work that finishes in time through untouched', async () => {
+		await expect(withDeadline(Promise.resolve('done'), 1_000)).resolves.toBe('done');
 	});
 
 	it('leaves no partial passages behind a failure', async () => {
@@ -232,5 +239,37 @@ describe('the job around it', () => {
 		expect(after.status).toBe('failed');
 		expect(claim(db, clock)).toHaveLength(0);
 		expect(deadLetters(db)).toHaveLength(0);
+	});
+});
+
+describe('a document is text, never markup', () => {
+	it('keeps a payload as words all the way to the node tree', async () => {
+		// Document text is the most hostile text in the product: it did not even
+		// come from a member typing into a form. It goes through the same parser
+		// as everything else, which has no HTML sink for a payload to reach.
+		const { parseMarkdown } = await import('../../src/lib/server/markdown.js');
+		const file = new File(
+			[
+				'Quiet hours apply.\n\n<img src=x onerror="alert(1)">\n\n' +
+					'[click me](javascript:alert(1)) and <script>alert(2)</script>\n'
+			],
+			'hostile.md'
+		);
+		const created = await createDocument(
+			ctx,
+			{ filename: 'hostile.md', file: await receiveUpload(file, ctx.community.id) },
+			{ db }
+		);
+		await runExtraction(db, clock, created.id);
+
+		const nodes = listPassages(ctx, created.id, { db }).flatMap((row) => parseMarkdown(row.text));
+		const flat = JSON.stringify(nodes);
+
+		// No node type carries raw markup, and the dangerous href never became one.
+		expect(flat).not.toMatch(/"type":"html"/);
+		expect(flat).not.toMatch(/javascript:/);
+		// The words themselves survive — a member's text disappearing is its own bug.
+		expect(flat).toContain('onerror');
+		expect(flat).toContain('click me');
 	});
 });

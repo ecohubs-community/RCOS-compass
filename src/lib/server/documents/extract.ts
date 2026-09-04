@@ -225,6 +225,18 @@ export async function extract(
 	type: AcceptedType,
 	deadlineMs: number
 ): Promise<Extraction> {
+	return withDeadline(EXTRACTORS[type](path), deadlineMs);
+}
+
+/**
+ * Exported so the deadline can be tested for what it is.
+ *
+ * Racing a real one-millisecond deadline against a real parse is a coin toss —
+ * the first version of that test passed and then failed on a warm module cache.
+ * The mechanism is what matters, and a promise that never settles proves it
+ * every time.
+ */
+export async function withDeadline<T>(work: Promise<T>, deadlineMs: number): Promise<T> {
 	let timer: ReturnType<typeof setTimeout> | undefined;
 	const deadline = new Promise<never>((_, reject) => {
 		timer = setTimeout(
@@ -239,7 +251,7 @@ export async function extract(
 	});
 
 	try {
-		return await Promise.race([EXTRACTORS[type](path), deadline]);
+		return await Promise.race([work, deadline]);
 	} finally {
 		clearTimeout(timer);
 	}
