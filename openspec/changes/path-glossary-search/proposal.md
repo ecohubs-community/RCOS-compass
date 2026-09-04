@@ -33,6 +33,13 @@ the work was done and the value did not arrive.
 - The four inputs from UI spec §4.4, each contributing a visible score:
   structural dependency, gap severity, risk profile, and what the community
   already has.
+- **Gap severity is how much of the standard a gap holds up, not MUST-vs-SHOULD.**
+  The spec's phrasing assumes both exist; RCOS-Core 0.1 has 185 MUST clauses, 18
+  MAY, and **no SHOULD at all**, and the path only ever walks sections that own
+  countable MUSTs — so the input as written would rank nothing. What does
+  discriminate is how many clauses a section answers: they range from one to
+  eight, and a section holding up eight requirements is a bigger gap than one
+  holding up one. Same intent, against the content that exists.
 - **Weights are a stored, editable, versioned settings object.** Changing them is
   an ordinary recorded act with an actor and a time, and the previous weights
   stay readable — the same treatment every other governance decision gets.
@@ -57,9 +64,14 @@ the work was done and the value did not arrive.
 
 - `SearchIndex` (`00-architecture.md` §5), with FTS5 behind it and nothing else
   in the application knowing how search works.
-- Indexed: adopted definitions, decisions, discussion titles, and clause text.
-  Every row carries `community_id`, and the boundary is enforced in the query
-  rather than filtered afterwards.
+- Indexed: adopted definitions, decisions, discussion titles, and **document
+  passages** — everything a community wrote. Every row carries `community_id`,
+  and the boundary is enforced in the query rather than filtered afterwards.
+- **Clause text is not indexed.** It is the same 213 rows for every community, so
+  putting it in a per-tenant index would store the standard once per community
+  and add a tenant-leak surface to data that is not tenant data. Clauses are
+  matched against the already-loaded standard in memory and merged into the
+  results.
 - **Reverse lookup** — the plain-language question, answered with clauses and
   decision references and nothing else. It cites; it does not summarise, and it
   does not answer a governance question in its own words (UI spec §1.3).
@@ -69,6 +81,13 @@ the work was done and the value did not arrive.
 
 - Every RCOS Appendix A term beside *this community's* definition where one has
   been adopted, from the glossary already vendored with the standard.
+- **This needs an upstream content change first.** The vendored `glossary.yaml`
+  carries 37 terms with nothing but their translations — no link from a term to
+  the section that defines it. Without that link the community column is empty
+  for every term and the page is a reprint of the standard. The mapping belongs
+  in the standard's own annotation data, added upstream and re-vendored, exactly
+  as P1 did for section dispositions (`docs/12`); the vendored copy is not a
+  place to edit the standard, and a hash check enforces that.
 - A page and a slide-over panel, because terms get hit while reading anything.
 - **Auto-populated from adopted definitions.** A glossary somebody has to keep in
   step by hand is a glossary that stops being true.
@@ -101,6 +120,12 @@ the work was done and the value did not arrive.
 `risk_profile`, and the FTS5 virtual tables with their triggers. One migration.
 The FTS tables are the first thing in the product that is not plain Drizzle, and
 they live behind the seam for exactly that reason.
+
+**Upstream content** — a term-to-section mapping in the RCOS standard data, added
+in the website repository and re-vendored. This is a dependency on work outside
+this repository and is the first task, because the glossary group cannot be
+finished without it and finding that out in group 7 would be finding it out
+late.
 
 **No new dependencies.** FTS5 ships with SQLite; the ordering is arithmetic.
 

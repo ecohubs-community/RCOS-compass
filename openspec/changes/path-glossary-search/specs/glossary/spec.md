@@ -15,9 +15,14 @@ the community's adopted definition where one exists.
 - **AND** it says plainly that this community has not defined it
 
 #### Scenario: A term whose mapping is unknown
-- **WHEN** no reliable link exists between a term and a section
+- **WHEN** no link exists between a term and a section
 - **THEN** the standard's definition is shown alone
 - **AND** nothing is guessed on the community's behalf
+
+#### Scenario: The standard carries the mapping
+- **WHEN** the vendored standard is loaded
+- **THEN** its glossary terms name the sections that define them
+- **AND** a term naming a section the standard does not have fails the content check
 
 ### Requirement: The glossary is derived, never maintained
 

@@ -101,6 +101,19 @@ left to assume the list is personalised.
 version of hidden logic than a scoring function, because it feels like it was
 the community's own choice.
 
+### 4a. The default weights have to reproduce a lexicographic sort
+
+P3 orders by unblocked-first, then layer, then document order — a lexicographic
+comparator. A weighted sum reproduces that only if the dependency contribution
+dominates every other term put together, so the defaults are not four balanced
+numbers: dependency is an order of magnitude above the rest, and the settings
+screen says so.
+
+*Why it matters that this is written down:* "a community that changes nothing
+sees no change" is a requirement, and it is only satisfiable for a particular
+shape of default. Someone tuning the defaults to look tidier would break it
+silently.
+
 ### 5. `SearchIndex` is an interface with one implementation
 
 ```
@@ -119,6 +132,14 @@ then filters is one refactor away from not filtering.
 *Alternative considered:* one FTS table per community. It makes isolation
 structural, and it makes "how many tables does this database have" a function of
 how many communities signed up. Rejected as the wrong trade at this scale.
+
+**Clauses are not in the index.** The standard's text is identical for every
+community, so indexing it per tenant would store 213 rows once per community and
+put non-tenant data inside a structure whose whole discipline is tenant
+isolation. Clauses are matched against the loaded standard in memory — it is
+already there, it is 213 rows, and the merge happens in the result. What goes in
+FTS5 is only what a community wrote: definitions, decisions, discussion titles
+and document passages.
 
 *The raw-SQL boundary:* an ESLint rule confines FTS5 SQL to
 `src/lib/server/search/`, the way the AI module is confined. Same reasoning —
@@ -151,16 +172,28 @@ addresses, minus the one behaviour the product promises never to have. A member
 asking about the water pump wants to know which rule applies; being told what the
 rule *should* be is a different and much worse product.
 
-### 8. The glossary is a join, not a table
+### 8. The glossary is a join, and the join does not exist yet
 
 RCOS terms come from the vendored `glossary.yaml`; the community's own column
 comes from adopted definitions whose section maps to that term. Nothing is
 stored, so nothing can be stale.
 
-*The mapping problem:* the standard's glossary keys and the section keys are not
-the same vocabulary. Where the annotation data does not already connect them, the
-term shows the RCOS definition alone and says the community has not defined it —
-rather than guessing a match, which would put words in a community's mouth.
+**There is no mapping today.** The vendored glossary carries 37 terms, and each
+one has exactly one field: its translations. Nothing connects a term to a
+section. Every hedge about "where the mapping is missing" would therefore apply
+to every term, and the page would be a reprint of the standard with an empty
+column — the feature delivered and the value absent, which is the failure this
+whole phase exists to avoid.
+
+So the mapping is added **upstream and re-vendored**, in the standard's own
+annotation data, and it is the first task rather than a discovery in group 7.
+That is the same route P1 took for section dispositions (`docs/12`): the
+vendored copy is not a place to edit the standard, and `meta.yaml`'s hash check
+makes sure of it.
+
+*Alternative rejected:* matching a term to a section by name similarity. It would
+be wrong quietly, and being wrong quietly about which of a community's rules
+defines "Member" is worse than showing nothing.
 
 ## Risks / Trade-offs
 

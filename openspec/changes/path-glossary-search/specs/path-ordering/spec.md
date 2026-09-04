@@ -30,6 +30,12 @@ An item's position MUST be a weighted sum of four contributions — structural
 dependency, gap severity, risk profile, and what the community already has — and
 each contribution MUST be available separately, not folded into one score.
 
+Gap severity MUST be measured by how many countable clauses a section answers.
+The standard the MVP ships against has no SHOULD clauses, and the path only ever
+walks sections owning countable MUSTs, so ranking MUST above SHOULD would rank
+nothing; the number of requirements a gap holds up is the same intent applied to
+the content that exists.
+
 #### Scenario: An item carries its own arithmetic
 - **WHEN** the path is computed
 - **THEN** each item reports what each of the four inputs contributed to it
@@ -38,6 +44,10 @@ each contribution MUST be available separately, not folded into one score.
 - **WHEN** the risk weight is zero
 - **THEN** the risk profile changes nothing about the order
 - **AND** the other three inputs still order the list
+
+#### Scenario: One gap holds up more of the standard than another
+- **WHEN** two sections are otherwise equal and one answers more countable clauses
+- **THEN** the one answering more ranks higher
 
 ### Requirement: An item's stated reason comes from the same computation as its rank
 

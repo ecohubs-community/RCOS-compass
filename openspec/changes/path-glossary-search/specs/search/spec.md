@@ -18,13 +18,24 @@ query language MUST NOT appear anywhere else in the application.
 Every indexed row MUST carry its community, and the filter MUST be part of the
 query rather than applied to its results.
 
+What is indexed is what a community wrote: adopted definitions, decisions,
+discussion titles, and document passages. Clause text MUST NOT be indexed per
+community — it is identical for every one of them, and putting non-tenant data
+inside a structure whose whole discipline is tenant isolation invites the leak it
+exists to prevent. Clauses are matched against the loaded standard instead.
+
 #### Scenario: Two communities use the same words
 - **WHEN** two communities each have a decision about water
 - **THEN** a member of one searching for water sees only their own
 
-#### Scenario: A community with nothing indexed
-- **WHEN** a member of a community with no decisions searches
-- **THEN** they get no results, rather than another community's
+#### Scenario: A community that has written nothing
+- **WHEN** a member of a community with no decisions or definitions searches
+- **THEN** nothing of any community's is returned
+
+#### Scenario: The standard is searched by every community
+- **WHEN** two communities search for a word that appears only in the standard
+- **THEN** both find the same clause
+- **AND** the index holds no copy of the standard for either of them
 
 ### Requirement: What is findable matches what exists
 

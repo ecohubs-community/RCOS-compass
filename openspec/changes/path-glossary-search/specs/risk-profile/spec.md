@@ -11,9 +11,10 @@ without saying so MUST NOT ship.
 - **THEN** they are told which requirements this moves up, and why
 - **AND** the path reflects it
 
-#### Scenario: An answer that changes nothing
-- **WHEN** an answer moves no requirement
-- **THEN** it is not asked, because a question with no consequence is noise
+#### Scenario: Every question earns its place
+- **WHEN** the interview's questions are enumerated
+- **THEN** each one has at least one answer that changes the ordering
+- **AND** a question with no such answer fails the build, because it is noise
 
 ### Requirement: The interview is skippable, and says what skipping means
 
