@@ -8,12 +8,14 @@ import {
 	consentResponse,
 	consentRound,
 	discussion,
+	objection,
 	post
 } from '../db/schema/discussions.js';
 import { membership } from '../db/schema/tenancy.js';
 import { countUnresolved, raiseObjection } from '../services/objections.js';
 import { notify } from '../services/notifications.js';
 import { registerTenantService } from '../services/registry.js';
+import { RESPONSE_VALUES } from './provider.js';
 import type { OpenRoundInput, ResponseValue, Round, Tally, VotingProvider } from './provider.js';
 
 /**
@@ -143,14 +145,20 @@ export const consentRoundProvider: VotingProvider = {
 			 * twelfth person arrived. The denominator a community was told about at
 			 * the start is the one it is held to at the end.
 			 */
-			const eligibleIds =
-				input.membershipIds ??
-				db
-					.select({ id: membership.id })
-					.from(membership)
-					.where(and(eq(membership.communityId, ctx.community.id), isNull(membership.endedAt)))
-					.all()
-					.map((m) => m.id);
+			const current = db
+				.select({ id: membership.id })
+				.from(membership)
+				.where(and(eq(membership.communityId, ctx.community.id), isNull(membership.endedAt)))
+				.all()
+				.map((m) => m.id);
+
+			// A named subset is intersected with this community's own memberships
+			// rather than trusted. The boundary is not "the only caller passes the
+			// right ids" — an id from elsewhere would otherwise become an
+			// eligibility row and a notification delivered into another community.
+			const eligibleIds = input.membershipIds
+				? input.membershipIds.filter((id) => current.includes(id))
+				: current;
 
 			if (eligibleIds.length === 0) error(409, 'There is nobody to ask.');
 
@@ -180,6 +188,14 @@ export const consentRoundProvider: VotingProvider = {
 	): Round {
 		requirePermission(ctx, 'consent.respond');
 		requireWritableCommunity(ctx);
+
+		// Checked here because the database will not — drizzle's `text({ enum })`
+		// is a TypeScript constraint. A value outside these three would be stored,
+		// counted in `responded`, counted toward "everyone has answered", and
+		// appear in none of the three totals the freeze is pre-filled from.
+		if (!RESPONSE_VALUES.includes(input.value)) {
+			error(400, 'A response is consent, objection or abstain.');
+		}
 		const db = options.db ?? getDb();
 		const now = ctx.now();
 
@@ -204,6 +220,38 @@ export const consentRoundProvider: VotingProvider = {
 		if (!eligible) error(404, 'Not found');
 
 		return db.transaction((tx) => {
+			/**
+			 * Whatever this person said last time, withdrawn.
+			 *
+			 * An objection is never deleted (`services/objections.ts`), but it must
+			 * stop counting when the person who raised it stops making it —
+			 * otherwise changing your mind to consent leaves the round reporting no
+			 * objections while the freeze permanently records "1 unresolved
+			 * objection", and objecting twice leaves two.
+			 */
+			const previous = tx
+				.select()
+				.from(consentResponse)
+				.where(
+					and(
+						eq(consentResponse.roundId, round.id),
+						eq(consentResponse.membershipId, ctx.membership.id)
+					)
+				)
+				.get();
+
+			if (previous?.objectionId) {
+				tx.update(objection)
+					.set({
+						state: 'withdrawn',
+						resolvedBy: ctx.user.id,
+						resolvedAt: new Date(now),
+						resolutionNote: 'Withdrawn: the response to the round changed.'
+					})
+					.where(and(eq(objection.id, previous.objectionId), eq(objection.state, 'open')))
+					.run();
+			}
+
 			let objectionId: string | null = null;
 			if (input.value === 'objection') {
 				const reason = input.reason?.trim();

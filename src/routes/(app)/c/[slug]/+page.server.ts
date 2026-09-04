@@ -10,11 +10,14 @@ import type { PageServerLoad } from './$types';
  */
 export const load: PageServerLoad = ({ locals }) => {
 	const ctx = locals.ctx!;
+	// Ordered once and sliced. Asking twice ran the dependency ordering over
+	// every authored section twice, to show five of them and a count.
+	const remaining = path(ctx);
 
 	return {
 		// The hero block: five plain-language questions, not clause text.
-		next: path(ctx, { limit: 5 }),
-		remaining: path(ctx).length,
+		next: remaining.slice(0, 5),
+		remaining: remaining.length,
 		attention: needsAttention(ctx),
 		recent: listDecisions(ctx)
 			.slice(0, 5)

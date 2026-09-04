@@ -319,11 +319,18 @@ export function saveDraft(
 			throw new StaleDraftError({ ...current, updatedAt: current.updatedAt.getTime() });
 		}
 
+		// Absent means "unchanged"; an explicit null means "cleared". `??` read
+		// them as the same thing, so deleting the plain-language mirror wrote the
+		// old one straight back and it reappeared on the next load.
+		const plainLanguage =
+			'plainLanguage' in input ? (input.plainLanguage ?? null) : current.plainLanguage;
+		const type = 'type' in input ? (input.type ?? null) : current.type;
+
 		tx.update(definitionDraft)
 			.set({
 				body: input.body,
-				plainLanguage: input.plainLanguage ?? current.plainLanguage,
-				type: input.type ?? current.type,
+				plainLanguage,
+				type,
 				editToken: nextToken,
 				updatedBy: ctx.user.id,
 				updatedAt: new Date(now)
@@ -339,8 +346,8 @@ export function saveDraft(
 		return {
 			definitionId: input.definitionId,
 			body: input.body,
-			plainLanguage: input.plainLanguage ?? current.plainLanguage,
-			type: input.type ?? current.type,
+			plainLanguage,
+			type,
 			editToken: nextToken,
 			updatedBy: ctx.user.id,
 			updatedAt: now

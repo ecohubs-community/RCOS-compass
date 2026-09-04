@@ -12,6 +12,9 @@ export const links = {
 	dashboard: (slug: string) => resolve('/(app)/c/[slug]', { slug }),
 	standard: (slug: string) => resolve('/(app)/c/[slug]/standard', { slug }),
 	discussions: (slug: string) => resolve('/(app)/c/[slug]/discussions', { slug }),
+	/** The same page with the clause already in the box. */
+	startDiscussion: (slug: string, clauseKey: string) =>
+		`${resolve('/(app)/c/[slug]/discussions', { slug })}?clause=${encodeURIComponent(clauseKey)}`,
 	discussion: (slug: string, id: string) =>
 		resolve('/(app)/c/[slug]/discussions/[id]', { slug, id }),
 	definition: (slug: string, id: string) =>

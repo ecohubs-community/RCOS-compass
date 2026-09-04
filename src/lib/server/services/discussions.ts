@@ -5,6 +5,7 @@ import { getDb, type Db } from '../db/index.js';
 import { newId } from '../db/id.js';
 import { definition } from '../db/schema/definitions.js';
 import { discussion, post, type Discussion, type Post } from '../db/schema/discussions.js';
+import { activeStandardView } from './completeness.js';
 import { discussionParticipants, notify } from './notifications.js';
 import { registerTenantService } from './registry.js';
 
@@ -47,8 +48,18 @@ export function getDiscussion(
 
 export type OpenDiscussion = {
 	title: string;
-	/** Exactly one: a clause with no definition yet, or an existing definition. */
-	about: { kind: 'clause'; clauseKey: string } | { kind: 'definition'; definitionId: string };
+	/**
+	 * A clause with no definition yet, an existing definition, or neither.
+	 *
+	 * `open_question` is a real thread about nothing in the standard — the field
+	 * on the form says "Clause (optional)" and has to mean it. It was previously
+	 * faked with the clause key `'unassigned'`, which produced a thread that
+	 * could be discussed, proposed on, and never frozen.
+	 */
+	about:
+		| { kind: 'clause'; clauseKey: string }
+		| { kind: 'definition'; definitionId: string }
+		| { kind: 'open_question' };
 	/** `offline` marks a thread opened to record a decision already taken. */
 	origin?: 'clause' | 'offline';
 };
@@ -65,6 +76,32 @@ export function openDiscussion(
 
 	const title = input.title.trim();
 	if (!title) error(400, 'Give the discussion a title.');
+
+	/**
+	 * A clause names itself two ways, and members see the second.
+	 *
+	 * The standard browser shows references — "2.1.1" — so that is what gets
+	 * typed into "Clause (optional)", while the stable key is
+	 * `l0.purpose-definition.1`. Both are accepted and **the key is stored**:
+	 * everything downstream matches on the key, and a thread filed under the
+	 * reference was invisible to the dashboard, which then went on inviting
+	 * people to start the discussion that already existed.
+	 */
+	let clauseKey: string | null = null;
+	if (input.about.kind === 'clause') {
+		const standard = activeStandardView(db, ctx);
+		if (!standard) error(409, 'This community has not adopted a standard yet.');
+
+		const typed = input.about.clauseKey;
+		// Refused now, plainly, rather than at the freeze — where it surfaces as
+		// "that clause is not part of the standard" on a thread somebody has
+		// already spent a week on.
+		const clause = standard.view.clause(typed) ?? standard.view.clauseByRef(typed);
+		if (!clause) {
+			error(400, `There is no clause ${typed} in the standard this community adopted.`);
+		}
+		clauseKey = clause.key;
+	}
 
 	if (input.about.kind === 'definition') {
 		// The definition must be this community's; otherwise the thread would be a
@@ -86,7 +123,7 @@ export function openDiscussion(
 		id: newId(),
 		communityId: ctx.community.id,
 		definitionId: input.about.kind === 'definition' ? input.about.definitionId : null,
-		clauseKey: input.about.kind === 'clause' ? input.about.clauseKey : null,
+		clauseKey,
 		title,
 		status: 'open' as const,
 		origin: input.origin ?? ('clause' as const),

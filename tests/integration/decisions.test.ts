@@ -450,6 +450,44 @@ describe('the platform writes the Ratification Record', () => {
 		expect(ratificationRecord(ctx, view.section(COUNTABLE.owner!)!.artifact, { db })).toBeNull();
 	});
 
+	it('names the decision that completed *this* artifact, not the latest anywhere', () => {
+		// Read across the whole community standard, the newest adoption is whichever
+		// section anyone answered most recently — so a finished artifact cited a
+		// decision from an entirely different one, and every Ratification Record
+		// filled from it pointed at the wrong week.
+		const owners = new Set(
+			view
+				.countableClauses()
+				.map((clause) => clause.owner)
+				.filter((owner): owner is string => owner !== null)
+		);
+		const small = view.artifacts.find((artifact) => {
+			const authored = view.authoredSectionsOf(artifact.key);
+			return authored.length === 1 && authored.every((section) => owners.has(section.key));
+		})!;
+		const section = view.authoredSectionsOf(small.key)[0]!;
+		const clause = view.countableClauses().find((c) => c.owner === section.key)!;
+
+		// Complete the small artifact…
+		const thread = openDiscussion(
+			ctx,
+			{ title: 'The one section', about: { kind: 'clause', clauseKey: clause.key } },
+			{ db }
+		);
+		addProposal(ctx, { discussionId: thread.id, body: 'What we decided.' }, { db });
+		const completing = freezeIt(ctx, thread.id);
+		expect(ratificationRecord(ctx, small.key, { db })?.ref).toBe(completing.ref);
+
+		// …then answer something belonging to a different artifact, later.
+		const later: Ctx = { ...ctx, now: () => NOW + 86_400_000 };
+		const elsewhere = freezeIt(later, threadWithProposal(later).id);
+		expect(view.section(COUNTABLE.owner!)!.artifact).not.toBe(small.key);
+		expect(elsewhere.ref).not.toBe(completing.ref);
+
+		// The record still points at what actually completed it.
+		expect(ratificationRecord(ctx, small.key, { db })?.ref).toBe(completing.ref);
+	});
+
 	it('creates no definition row for it', () => {
 		freezeIt(ctx, threadWithProposal().id);
 		// Every row in `definition` is text a person wrote. A synthesised one would

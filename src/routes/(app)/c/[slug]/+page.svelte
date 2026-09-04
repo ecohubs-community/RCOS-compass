@@ -56,14 +56,26 @@
 								class="border-border text-fg-secondary text-meta rounded-full border px-2 py-0.5"
 								>{EFFORT[item.effort]}</span
 							>
+							<!--
+								eslint-disable svelte/no-navigation-without-resolve --
+								"Start discussion" starts one: it used to land on the standard
+								browser, which has no form on it — the first step of the loop,
+								pointed at a reference page. Every branch below is a `links.*`
+								call, which is `resolve`; the rule reads the attribute rather
+								than the value, so a `resolve` with a query string appended is
+								not something it can see through.
+							-->
 							<a
 								href={item.discussionId
 									? links.discussion(slug, item.discussionId)
-									: links.standard(slug)}
+									: item.clauseKey
+										? links.startDiscussion(slug, item.clauseKey)
+										: links.discussions(slug)}
 								class="border-border hover:border-border-strong text-fg rounded-(--radius-control) border px-2.5 py-1"
 							>
 								{item.discussionId ? 'Open discussion' : 'Start discussion'}
 							</a>
+							<!-- eslint-enable svelte/no-navigation-without-resolve -->
 						</div>
 					</li>
 				{/each}

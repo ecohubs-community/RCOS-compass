@@ -8,6 +8,7 @@ import {
 	complete,
 	deadLetters,
 	enqueue,
+	enqueueOnce,
 	fail,
 	findJob
 } from '../../src/lib/server/jobs/queue.js';
@@ -61,6 +62,32 @@ describe('a job is enqueued and runs', () => {
 		expect(handlerRuns).toBe(0);
 		expect(findJob(db, queued.id)?.status).toBe('pending');
 		expect(handlers.greet).toBeDefined();
+	});
+});
+
+describe('a self-re-arming job is started once, however often the process boots', () => {
+	it('does not start a second chain', () => {
+		// The digest re-arms itself after each run, so booting only has to start
+		// the chain. Enqueueing unconditionally at boot gave every restart its own
+		// chain: five deploys, five weekly mails to every member, permanently.
+		expect(enqueueOnce(db, clock, { kind: 'weekly-digest' })).not.toBeNull();
+		expect(enqueueOnce(db, clock, { kind: 'weekly-digest' })).toBeNull();
+		expect(enqueueOnce(db, clock, { kind: 'weekly-digest' })).toBeNull();
+	});
+
+	it('starts one again once the pending job has been taken and completed', async () => {
+		enqueueOnce(db, clock, { kind: 'weekly-digest' });
+		const [claimed] = claim(db, clock);
+		// A claimed job is still in flight, and still counts.
+		expect(enqueueOnce(db, clock, { kind: 'weekly-digest' })).toBeNull();
+
+		complete(db, clock, claimed!.id);
+		expect(enqueueOnce(db, clock, { kind: 'weekly-digest' })).not.toBeNull();
+	});
+
+	it('leaves a different kind alone', () => {
+		enqueueOnce(db, clock, { kind: 'weekly-digest' });
+		expect(enqueueOnce(db, clock, { kind: 'prune-rate-limits' })).not.toBeNull();
 	});
 });
 

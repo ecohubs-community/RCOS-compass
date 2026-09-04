@@ -1,10 +1,11 @@
 <script lang="ts">
+	import Markdown from '$lib/components/ui/Markdown.svelte';
 	import StatusChip from '$lib/components/ui/StatusChip.svelte';
 	import { links } from '$lib/links';
 
 	let { data } = $props();
 	const slug = $derived(data.community.slug);
-	const d = $derived(data.detail.decision);
+	const d = $derived(data.decision);
 	const day = (ms: number | null) =>
 		ms === null
 			? '—'
@@ -25,15 +26,20 @@
 	<h1 class="text-page mt-1 font-medium">{d.title}</h1>
 
 	<div class="mt-3 flex flex-wrap items-center gap-2">
-		<StatusChip status="adopted" />
+		<!-- What it is *now*. An "Adopted" chip beside "Superseded by DEC-…" is a
+		     record contradicting itself on the page people quote, and there is no
+		     chip for "superseded" — the status vocabulary describes definitions —
+		     so the sentence beside it carries that case on its own. -->
+		{#if d.status !== 'superseded'}
+			<StatusChip status="adopted" />
+		{/if}
 		{#if d.provisional}<StatusChip modifier="provisional" />{/if}
 		{#if d.status === 'superseded'}
 			<span class="text-fg-secondary">
-				Superseded{#if data.detail.supersededBy}
+				Superseded{#if data.supersededBy}
 					by
-					<a
-						href={links.decision(slug, data.detail.supersededBy)}
-						class="underline underline-offset-2">{data.detail.supersededBy}</a
+					<a href={links.decision(slug, data.supersededBy)} class="underline underline-offset-2"
+						>{data.supersededBy}</a
 					>{/if}. It still says what was true then.
 			</span>
 		{/if}
@@ -51,8 +57,8 @@
 
 	<section class="mt-6" aria-labelledby="as-adopted">
 		<h2 id="as-adopted" class="text-title font-medium">The proposal, as adopted</h2>
-		<blockquote class="border-border text-fg mt-2 border-l-2 pl-3 whitespace-pre-wrap">
-			{d.proposalText}
+		<blockquote class="border-border text-fg mt-2 border-l-2 pl-3">
+			<Markdown blocks={d.proposalText} />
 		</blockquote>
 	</section>
 
@@ -84,11 +90,11 @@
 		</div>
 		<div>
 			<dt class="text-fg-muted text-meta">Decided</dt>
-			<dd data-tabular>{day(d.decidedAt.getTime?.() ?? d.decidedAt)}</dd>
+			<dd data-tabular>{day(d.decidedAt)}</dd>
 		</div>
 		<div>
 			<dt class="text-fg-muted text-meta">Review due</dt>
-			<dd data-tabular>{day(d.reviewDueAt ? new Date(d.reviewDueAt).getTime() : null)}</dd>
+			<dd data-tabular>{day(d.reviewDueAt)}</dd>
 		</div>
 		<div>
 			<dt class="text-fg-muted text-meta">Reached</dt>
@@ -96,11 +102,11 @@
 		</div>
 	</dl>
 
-	{#if data.detail.attendees.length > 0}
+	{#if data.attendees.length > 0}
 		<p class="text-fg-muted text-meta mt-3">
-			{data.detail.attendees.length} present.
-			{#if data.detail.attendees.some((a) => a.name)}
-				Named with their consent: {data.detail.attendees
+			{data.attendees.length} present.
+			{#if data.attendees.some((a) => a.name)}
+				Named with their consent: {data.attendees
 					.filter((a) => a.name)
 					.map((a) => a.name)
 					.join(', ')}.
@@ -110,7 +116,7 @@
 		</p>
 	{/if}
 
-	{#if data.detail.clauses.length > 0}
+	{#if data.clauses.length > 0}
 		<section class="mt-8" aria-labelledby="clauses">
 			<h2 id="clauses" class="text-title font-medium">What it answers</h2>
 			<p class="text-fg-muted text-meta mt-1">
@@ -118,7 +124,7 @@
 				renumber them here.
 			</p>
 			<ul class="mt-2 flex flex-wrap gap-2">
-				{#each data.detail.clauses as clause (clause.clauseKey)}
+				{#each data.clauses as clause (clause.clauseKey)}
 					<li
 						class="border-border text-fg-secondary rounded-full border px-2.5 py-0.5"
 						data-tabular

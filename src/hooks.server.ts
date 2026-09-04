@@ -9,7 +9,7 @@ import { resolveActor } from '$lib/server/auth/session';
 import { requirePlatformAdmin } from '$lib/server/auth/admin';
 import { resolveTenant } from '$lib/server/http/resolve-tenant';
 import { DIGEST_INTERVAL_MS, handlers } from '$lib/server/jobs/handlers';
-import { enqueue, startWorker } from '$lib/server/jobs';
+import { enqueueOnce, startWorker } from '$lib/server/jobs';
 import { systemClock } from '$lib/server/clock';
 
 /**
@@ -34,11 +34,14 @@ const db = initDatabase();
 // here is correct; a second instance would need this moved out.
 if (!config.isTest) {
 	startWorker(db, handlers, { intervalMs: 5_000 });
-	enqueue(db, systemClock, { kind: 'prune-rate-limits' });
-	// Both re-arm themselves; enqueueing at boot is what starts the chain. The
-	// digest waits a week before its first run rather than mailing everyone the
-	// moment an instance restarts.
-	enqueue(db, systemClock, {
+	// Both re-arm themselves, so booting only has to *start* each chain — and
+	// must start it only if it is not already running. Enqueueing unconditionally
+	// gave every restart its own chain, which for the digest means one more copy
+	// of the weekly mail to every member of every community, permanently.
+	enqueueOnce(db, systemClock, { kind: 'prune-rate-limits' });
+	// A week before the first run, rather than mailing everyone the moment an
+	// instance restarts.
+	enqueueOnce(db, systemClock, {
 		kind: 'weekly-digest',
 		runAfter: systemClock.now() + DIGEST_INTERVAL_MS
 	});
@@ -80,10 +83,6 @@ export const handle: Handle = async ({ event, resolve }) => {
 		requirePlatformAdmin(event.locals.user);
 	}
 
-	// Tenant resolution, before the route runs — so an action and a load get the
-	// same answer. docs/01 §5.
-	resolveTenant(event, db, systemClock);
-
 	const refusal = rateLimitRequest({
 		db,
 		clock: systemClock,
@@ -100,6 +99,12 @@ export const handle: Handle = async ({ event, resolve }) => {
 		event.locals.log.warn({ path: event.url.pathname }, 'rate limited');
 		return refusal;
 	}
+
+	// Tenant resolution, before the route runs — so an action and a load get the
+	// same answer. docs/01 §5. After the limiter rather than before it: this does
+	// database work and can answer 404, and a slug guess that never reaches the
+	// limiter is a slug guess nothing meters.
+	resolveTenant(event, db, systemClock);
 
 	const startedAt = performance.now();
 

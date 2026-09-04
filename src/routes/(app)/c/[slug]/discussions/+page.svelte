@@ -34,7 +34,13 @@
 				placeholder="What happens when someone stops showing up?"
 				required
 			/>
-			<TextField id="clauseKey" name="clauseKey" label="Clause (optional)" class="w-44" />
+			<TextField
+				id="clauseKey"
+				name="clauseKey"
+				label="Clause (optional)"
+				value={data.clauseKey}
+				class="w-44"
+			/>
 			<Button type="submit" variant="primary">Start</Button>
 		</form>
 		{#if form?.error}

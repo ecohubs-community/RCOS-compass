@@ -226,6 +226,32 @@ describe('reading and marking read', () => {
 		expect(unreadCount(marco, { db })).toBe(0);
 	});
 
+	it('counts and marks beyond the page a list shows', () => {
+		// `listNotifications` is capped at 200 because a list is. The badge is not,
+		// and ownership is not: reading either off that page told a member with 250
+		// unread that they had 200, and answered 404 when they marked an older one
+		// of their own read.
+		const rows = Array.from({ length: 250 }, (_, i) => ({
+			id: newId(),
+			communityId: marco.community.id,
+			recipientMembershipId: marco.membership.id,
+			kind: 'decision.frozen' as const,
+			subjectType: 'decision' as const,
+			subjectId: newId(),
+			summary: `Decision ${i}`,
+			createdAt: new Date(marco.now() + i),
+			readAt: null
+		}));
+		for (const row of rows) db.insert(notification).values(row).run();
+
+		expect(unreadCount(marco, { db })).toBe(250);
+
+		// The oldest one, which no page of the list reaches.
+		const oldest = rows[0]!.id;
+		expect(markRead(marco, [oldest], { db })).toBe(1);
+		expect(unreadCount(marco, { db })).toBe(249);
+	});
+
 	it('reports someone else-s notification as one that does not exist', () => {
 		const thread = threadWith(ana, [marco]);
 		addProposal(ana, { discussionId: thread.id, body: 'The rule.' }, { db });

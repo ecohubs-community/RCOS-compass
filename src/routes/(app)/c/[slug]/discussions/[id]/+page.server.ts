@@ -176,7 +176,13 @@ export const actions: Actions = {
 
 	openRound: async (event) => {
 		const form = await event.request.formData();
-		const days = Number(form.get('days') ?? 7);
+		// Validated rather than coerced: `Number('seven')` is NaN, `NaN <= now` is
+		// false so the service's future-deadline guard does not fire, and the
+		// Invalid Date that follows hits a NOT NULL column as a 500.
+		const days = Number(String(form.get('days') ?? '7').trim());
+		if (!Number.isInteger(days) || days < 1 || days > 90) {
+			return fail(400, { step: 'round', error: 'Give a number of days between 1 and 90.' });
+		}
 		return run('round', () =>
 			getVotingProvider().openRound(
 				event.locals.ctx!,
@@ -206,10 +212,29 @@ export const actions: Actions = {
 
 	freeze: async (event: RequestEvent) => {
 		const form = await event.request.formData();
+		// A blank field means "no tally". Anything else has to be a count: NaN
+		// binds as NULL, so "twenty-one" was silently recorded as no tally at all,
+		// on a decision that keeps its numbers forever.
+		const bad: string[] = [];
 		const number = (name: string) => {
 			const raw = String(form.get(name) ?? '').trim();
-			return raw === '' ? null : Number(raw);
+			if (raw === '') return null;
+			const parsed = Number(raw);
+			if (!Number.isInteger(parsed) || parsed < 0) {
+				bad.push(name);
+				return null;
+			}
+			return parsed;
 		};
+
+		const counts = {
+			tallyPresent: number('tallyPresent'),
+			tallyFor: number('tallyFor'),
+			tallyAgainst: number('tallyAgainst')
+		};
+		if (bad.length > 0) {
+			return fail(400, { step: 'freeze', error: 'A tally is a whole number of people.' });
+		}
 
 		const outcome = await run('freeze', () =>
 			freeze(
@@ -221,9 +246,7 @@ export const actions: Actions = {
 					type: String(form.get('type') ?? 'operational') as 'operational',
 					mechanism: String(form.get('mechanism') ?? ''),
 					threshold: String(form.get('threshold') ?? '') || null,
-					tallyPresent: number('tallyPresent'),
-					tallyFor: number('tallyFor'),
-					tallyAgainst: number('tallyAgainst'),
+					...counts,
 					rationale: String(form.get('rationale') ?? '') || null
 				},
 				{ db: getDb() }

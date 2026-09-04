@@ -76,8 +76,23 @@ export function artifactProgress(
 		return { artifactKey, authored: 0, answered: 0, complete: false, missing: [] };
 	}
 
+	return progressOf(standard, artifactKey, answeredSections(db, standard.row.id));
+}
+
+/**
+ * The arithmetic, given a set somebody has already read.
+ *
+ * Exported because `compliance()` is deliberately about **core** and not about
+ * whichever standard `activeStandardView` happens to return — so it resolves its
+ * own standard and hands it here, rather than calling a helper that would go
+ * looking for one.
+ */
+export function progressOf(
+	standard: NonNullable<ReturnType<typeof activeStandardView>>,
+	artifactKey: string,
+	answered: Set<string>
+): ArtifactProgress {
 	const authored = standard.view.authoredSectionsOf(artifactKey);
-	const answered = answeredSections(db, standard.row.id);
 	const missing = authored.filter((section) => !answered.has(section.key)).map((s) => s.key);
 
 	return {
@@ -109,9 +124,13 @@ export function incompleteMandatoryArtifacts(
 	const standard = activeStandardView(db, ctx);
 	if (!standard) return [];
 
+	// One query, not one per artifact: `artifactProgress` would re-read the same
+	// answered set and re-resolve the same standard twenty-one times, on every
+	// page in the application, because the shell shows the count.
+	const answered = answeredSections(db, standard.row.id);
 	return standard.view
 		.mandatoryArtifacts()
-		.map((artifact) => artifactProgress(ctx, artifact.key, { db }))
+		.map((artifact) => progressOf(standard, artifact.key, answered))
 		.filter((progress) => !progress.complete);
 }
 

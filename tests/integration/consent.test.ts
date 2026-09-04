@@ -129,6 +129,28 @@ describe('an objection is a record with a reason and a lifecycle', () => {
 		expect(resolved.resolutionNote).toBe('Added a clause about assets.');
 	});
 
+	it('cannot be resolved while the community is suspended', () => {
+		// Read-and-export only. The state of an objection is part of the governance
+		// record like anything else, and this was the one write in the module that
+		// did not say so.
+		const raised = raiseObjection(
+			members[1]!,
+			{ proposalPostId: proposalId, reason: 'Assets.' },
+			{ db }
+		);
+		const suspended: Ctx = {
+			...ctx,
+			community: { ...ctx.community, status: 'suspended', suspendedReason: 'Non-payment.' }
+		};
+
+		expect(
+			catchRefusal(() =>
+				resolveObjection(suspended, { objectionId: raised.id, state: 'overruled' }, { db })
+			)?.status
+		).toBe(409);
+		expect(listObjections(ctx, proposalId, { db })[0]!.state).toBe('open');
+	});
+
 	it('lets only the objector withdraw, and only a steward address or overrule', () => {
 		const raised = () =>
 			raiseObjection(members[1]!, { proposalPostId: proposalId, reason: 'Assets.' }, { db });
@@ -200,6 +222,61 @@ describe('a consent round collects one response per member and closes', () => {
 			.all();
 		expect(rows).toHaveLength(1);
 		expect(rows[0]!.value).toBe('abstain');
+	});
+
+	it('withdraws the objection when the objector changes their mind', () => {
+		// The bug this is here for: `objectionId` was cleared from the response and
+		// the objection row was left open, so the tally reported no objections
+		// while the freeze recorded "1 unresolved objection" forever.
+		const round = openRound();
+		provider().respond(
+			members[1]!,
+			{ roundId: round.id, value: 'objection', reason: 'Nothing about assets.' },
+			{ db }
+		);
+		expect(provider().tally(ctx, round.id, { db }).unresolvedObjections).toBe(1);
+
+		provider().respond(members[1]!, { roundId: round.id, value: 'consent' }, { db });
+
+		const tally = provider().tally(ctx, round.id, { db });
+		expect(tally.objection).toBe(0);
+		expect(tally.unresolvedObjections).toBe(0);
+
+		// Withdrawn, never deleted: what they said is still readable.
+		const raised = listObjections(ctx, proposalId, { db });
+		expect(raised).toHaveLength(1);
+		expect(raised[0]!.state).toBe('withdrawn');
+		expect(raised[0]!.reason).toBe('Nothing about assets.');
+	});
+
+	it('leaves one live objection when somebody objects twice', () => {
+		const round = openRound();
+		provider().respond(
+			members[1]!,
+			{ roundId: round.id, value: 'objection', reason: 'First reason.' },
+			{ db }
+		);
+		provider().respond(
+			members[1]!,
+			{ roundId: round.id, value: 'objection', reason: 'Second, better reason.' },
+			{ db }
+		);
+
+		expect(provider().tally(ctx, round.id, { db }).unresolvedObjections).toBe(1);
+		const raised = listObjections(ctx, proposalId, { db });
+		expect(raised.map((row) => row.state).sort()).toEqual(['open', 'withdrawn']);
+	});
+
+	it('refuses a response that is not one of the three', () => {
+		// drizzle's enum is a TypeScript constraint; SQLite stores what it is
+		// handed. A fourth value would be counted in `responded`, counted toward
+		// "everyone has answered", and appear in none of the three totals.
+		const round = openRound();
+		const refusal = catchRefusal(() =>
+			provider().respond(members[1]!, { roundId: round.id, value: 'banana' as 'consent' }, { db })
+		);
+		expect(refusal?.status).toBe(400);
+		expect(provider().tally(ctx, round.id, { db }).responded).toBe(0);
 	});
 
 	it('refuses someone from another community, telling them nothing', () => {

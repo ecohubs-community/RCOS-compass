@@ -1,4 +1,4 @@
-import { and, asc, desc, eq, lte, or, sql } from 'drizzle-orm';
+import { and, asc, desc, eq, inArray, lte, or, sql } from 'drizzle-orm';
 import type { Clock } from '../clock.js';
 import type { Db } from '../db/index.js';
 import { newId } from '../db/id.js';
@@ -23,6 +23,30 @@ export type EnqueueOptions = {
 	runAfter?: number;
 	maxAttempts?: number;
 };
+
+/**
+ * Is a job of this kind already waiting?
+ *
+ * The self-re-arming jobs are enqueued at boot to start their chain, and each
+ * boot would otherwise start *another* one: five restarts, five chains, and
+ * every member gets five weekly digests instead of one. Delivery is
+ * at-least-once by design, but that is about a job running twice — not about
+ * the schedule quietly multiplying.
+ */
+export function hasPending(db: Db, kind: string): boolean {
+	return (
+		db
+			.select({ id: job.id })
+			.from(job)
+			.where(and(eq(job.kind, kind), inArray(job.status, ['pending', 'running'])))
+			.get() !== undefined
+	);
+}
+
+/** Start a chain only if one is not already running. */
+export function enqueueOnce(db: Db, clock: Clock, options: EnqueueOptions): Job | null {
+	return hasPending(db, options.kind) ? null : enqueue(db, clock, options);
+}
 
 export function enqueue(db: Db, clock: Clock, options: EnqueueOptions): Job {
 	const now = clock.now();

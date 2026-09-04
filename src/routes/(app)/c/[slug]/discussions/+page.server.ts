@@ -5,10 +5,13 @@ import { ctxCan } from '$lib/server/auth/guard';
 import type { Actions, PageServerLoad } from './$types';
 
 /** Every thread, newest activity first. UI spec §4.5. */
-export const load: PageServerLoad = ({ locals }) => {
+export const load: PageServerLoad = ({ locals, url }) => {
 	const ctx = locals.ctx!;
 	return {
 		canStart: ctxCan(ctx, 'discussion.create'),
+		// Arrived from the dashboard's "Start discussion": the question is already
+		// chosen, so the clause should not have to be typed again.
+		clauseKey: url.searchParams.get('clause') ?? '',
 		discussions: listDiscussions(ctx).map((thread) => ({
 			id: thread.id,
 			title: thread.title,
@@ -27,11 +30,27 @@ export const actions: Actions = {
 
 		if (!title) return fail(400, { error: 'Give the discussion a title.' });
 
-		const thread = openDiscussion(
-			event.locals.ctx!,
-			{ title, about: { kind: 'clause', clauseKey: clauseKey || 'unassigned' } },
-			{ db: getDb() }
-		);
+		let thread;
+		try {
+			thread = openDiscussion(
+				event.locals.ctx!,
+				{
+					title,
+					// The field says optional, so an empty one opens a thread about an
+					// open question rather than one about a clause called "unassigned"
+					// — which no standard contains, and which no freeze could resolve.
+					about: clauseKey ? { kind: 'clause', clauseKey } : { kind: 'open_question' }
+				},
+				{ db: getDb() }
+			);
+		} catch (problem) {
+			// A clause that does not exist is a typo in the box in front of them.
+			const http = problem as { status?: number; body?: { message?: string } };
+			if (http.status === 400 || http.status === 409) {
+				return fail(http.status, { error: http.body?.message ?? 'That did not work.' });
+			}
+			throw problem;
+		}
 
 		redirect(303, `/c/${event.params.slug}/discussions/${thread.id}`);
 	}

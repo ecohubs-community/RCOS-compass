@@ -96,6 +96,11 @@ export function resolveObjection(
 	input: { objectionId: string; state: Exclude<ObjectionState, 'open'>; note?: string },
 	options: { db?: Db } = {}
 ): Objection {
+	// A suspended community is read-and-export only, and the state of an
+	// objection is part of the governance record like anything else. This was the
+	// one write in the module that did not say so.
+	requireWritableCommunity(ctx);
+
 	const db = options.db ?? getDb();
 	const found = getObjection(ctx, input.objectionId, options);
 

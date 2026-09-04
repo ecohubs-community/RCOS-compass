@@ -7,7 +7,6 @@ import { getDb } from '$lib/server/db';
 import { newId } from '$lib/server/db/id';
 import { user } from '$lib/server/db/schema/auth';
 import { community, communityStandard, membership } from '$lib/server/db/schema/tenancy';
-import { seedCommunityDefaults } from '$lib/server/services/community-setup';
 import { createTenant } from '$lib/server/services/admin/communities';
 import { acceptInvitation, inviteMember } from '$lib/server/services/invitations';
 import { getStandard } from '$lib/server/standard';
@@ -66,7 +65,10 @@ export const POST: RequestHandler = async ({ request }) => {
 	// The owner becomes a member by accepting, exactly as they would by email.
 	acceptInvitation(db, systemClock, { token: invitationToken, userId: person.id });
 
-	seedCommunityDefaults(db, { communityId, now: systemClock.now() });
+	// `createTenant` already seeds the community's defaults inside its own
+	// transaction. Asking again here gave every seeded community two identical
+	// "Community Agreements" shelves — a shape the product cannot produce, which
+	// is the one thing this route exists to avoid.
 
 	db.insert(communityStandard)
 		.values({

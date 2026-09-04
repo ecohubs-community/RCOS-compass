@@ -1,4 +1,4 @@
-import { and, desc, eq, isNotNull, sql } from 'drizzle-orm';
+import { and, desc, eq, inArray, isNotNull, sql } from 'drizzle-orm';
 import { error } from '@sveltejs/kit';
 import { requirePermission, requireWritableCommunity, type Ctx } from '../auth/guard.js';
 import { getDb, type Db } from '../db/index.js';
@@ -506,37 +506,34 @@ export function ratificationRecord(
 	const authored = standard.view.authoredSectionsOf(artifactKey).map((s) => s.key);
 	if (authored.length === 0) return null;
 
+	// Restricted to *this artifact's* sections. Read across the whole community
+	// standard, the latest adoption is whichever section anyone answered most
+	// recently — so a finished Governance Charter would cite the Treasury
+	// decision that happened to come after it.
 	const adopted = db
-		.select({ decisionId: definitionVersion.decisionId, adoptedAt: definitionVersion.adoptedAt })
+		.select({
+			sectionKey: definition.sectionKey,
+			decisionId: definitionVersion.decisionId,
+			adoptedAt: definitionVersion.adoptedAt
+		})
 		.from(definition)
 		.innerJoin(definitionVersion, eq(definitionVersion.id, definition.adoptedVersionId))
 		.where(
 			and(
 				eq(definition.communityStandardId, standard.row.id),
-				isNotNull(definition.adoptedVersionId)
+				isNotNull(definition.adoptedVersionId),
+				inArray(definition.sectionKey, authored)
 			)
 		)
-		.all()
-		.filter((row) => row.decisionId !== null);
-
-	const answered = db
-		.select({ sectionKey: definition.sectionKey })
-		.from(definition)
-		.where(
-			and(
-				eq(definition.communityStandardId, standard.row.id),
-				isNotNull(definition.adoptedVersionId)
-			)
-		)
-		.all()
-		.map((row) => row.sectionKey);
+		.all();
 
 	// Incomplete artifacts have no ratification record, because they were never
 	// ratified.
-	if (!authored.every((key) => answered.includes(key))) return null;
+	const answered = new Set(adopted.map((row) => row.sectionKey));
+	if (!authored.every((key) => answered.has(key))) return null;
 
 	const latest = adopted
-		.filter((row) => row.adoptedAt !== null)
+		.filter((row) => row.decisionId !== null && row.adoptedAt !== null)
 		.sort((a, b) => b.adoptedAt!.getTime() - a.adoptedAt!.getTime())[0];
 	if (!latest?.decisionId) return null;
 

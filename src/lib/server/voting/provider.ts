@@ -34,7 +34,8 @@ export type Round = {
 	eligible: number;
 };
 
-export type ResponseValue = 'consent' | 'objection' | 'abstain';
+export const RESPONSE_VALUES = ['consent', 'objection', 'abstain'] as const;
+export type ResponseValue = (typeof RESPONSE_VALUES)[number];
 
 /**
  * What a freeze is pre-filled from.

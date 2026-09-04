@@ -233,6 +233,48 @@ describe('concurrent editing does not silently lose work', () => {
 		expect(getDraft(ctx, created.id, { db }).body).toBe('abc');
 	});
 
+	it('clears a field the editor emptied, and leaves an absent one alone', () => {
+		// `??` read "cleared" and "unchanged" as the same thing, so deleting the
+		// plain-language mirror wrote the old one straight back and it reappeared
+		// on the next load.
+		const created = local();
+		let token = getDraft(ctx, created.id, { db }).editToken;
+
+		token = saveDraft(
+			ctx,
+			{
+				definitionId: created.id,
+				editToken: token,
+				body: 'Quiet from 22:00.',
+				plainLanguage: 'Be quiet after ten.',
+				type: 'enforceable'
+			},
+			{ db }
+		).editToken;
+
+		// Absent: untouched.
+		token = saveDraft(
+			ctx,
+			{ definitionId: created.id, editToken: token, body: 'Quiet from 22:30.' },
+			{ db }
+		).editToken;
+		expect(getDraft(ctx, created.id, { db }).plainLanguage).toBe('Be quiet after ten.');
+
+		// Explicitly null: gone, and it stays gone.
+		saveDraft(
+			ctx,
+			{
+				definitionId: created.id,
+				editToken: token,
+				body: 'Quiet from 22:30.',
+				plainLanguage: null
+			},
+			{ db }
+		);
+		expect(getDraft(ctx, created.id, { db }).plainLanguage).toBeNull();
+		expect(getDraft(ctx, created.id, { db }).type).toBe('enforceable');
+	});
+
 	it('refuses a stale token and says what is actually there', () => {
 		const created = local();
 		const loadedByBoth = getDraft(ctx, created.id, { db }).editToken;

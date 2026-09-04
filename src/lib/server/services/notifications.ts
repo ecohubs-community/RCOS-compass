@@ -1,4 +1,4 @@
-import { and, desc, eq, inArray, isNull } from 'drizzle-orm';
+import { and, count, desc, eq, inArray, isNull } from 'drizzle-orm';
 import { error } from '@sveltejs/kit';
 import { requirePermission, type Ctx } from '../auth/guard.js';
 import { getDb, type Db } from '../db/index.js';
@@ -141,8 +141,28 @@ export function listNotifications(ctx: Ctx, options: { db?: Db } = {}): Notifica
 		.all();
 }
 
+/**
+ * Counted in the database, not over the page of rows a screen shows.
+ *
+ * `listNotifications` is capped at 200 because a list is; the badge is not, and
+ * a member with 250 unread would have been told 200.
+ */
 export function unreadCount(ctx: Ctx, options: { db?: Db } = {}): number {
-	return listNotifications(ctx, options).filter((row) => row.readAt === null).length;
+	requirePermission(ctx, 'community.read');
+	const db = options.db ?? getDb();
+
+	const [row] = db
+		.select({ n: count() })
+		.from(notification)
+		.where(
+			and(
+				eq(notification.communityId, ctx.community.id),
+				eq(notification.recipientMembershipId, ctx.membership.id),
+				isNull(notification.readAt)
+			)
+		)
+		.all();
+	return row?.n ?? 0;
 }
 
 /**
@@ -159,7 +179,24 @@ export function markRead(ctx: Ctx, ids: string[], options: { db?: Db } = {}): nu
 	if (ids.length === 0) return 0;
 
 	const db = options.db ?? getDb();
-	const mine = new Set(listNotifications(ctx, options).map((row) => row.id));
+
+	// Asked of the named rows rather than of the newest 200: reading ownership
+	// off a capped list means a member's own older notification is reported as
+	// not existing, which is the boundary's answer fired at the owner.
+	const mine = new Set(
+		db
+			.select({ id: notification.id })
+			.from(notification)
+			.where(
+				and(
+					eq(notification.communityId, ctx.community.id),
+					eq(notification.recipientMembershipId, ctx.membership.id),
+					inArray(notification.id, ids)
+				)
+			)
+			.all()
+			.map((row) => row.id)
+	);
 	for (const id of ids) {
 		if (!mine.has(id)) error(404, 'Not found');
 	}

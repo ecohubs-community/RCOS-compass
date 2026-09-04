@@ -29,6 +29,8 @@ export type PathItem = {
 	effort: Effort;
 	/** Why this one is here, in the community's own terms. */
 	reason: string;
+	/** The clause a new discussion about this should be filed against. */
+	clauseKey: string | null;
 	/** An open discussion already exists for it. */
 	discussionId: string | null;
 };
@@ -67,6 +69,21 @@ export function path(ctx: Ctx, options: { db?: Db; limit?: number } = {}): PathI
 			.map((thread) => [thread.clauseKey!, thread.id])
 	);
 
+	/**
+	 * Every clause a section owns, not only its first.
+	 *
+	 * A thread is filed against one clause; a section usually owns several, and
+	 * looking at the first alone meant a discussion opened on any of the others
+	 * did not exist as far as this list was concerned. One pass, because
+	 * `countableClauses()` re-filters every clause on each call and this loop
+	 * runs once per authored section.
+	 */
+	const clausesByOwner = new Map<string, string[]>();
+	for (const clause of standard.view.countableClauses()) {
+		if (!clause.owner) continue;
+		clausesByOwner.set(clause.owner, [...(clausesByOwner.get(clause.owner) ?? []), clause.key]);
+	}
+
 	const items = standard.view
 		.authoredSections()
 		.filter((section) => !answered.has(section.key))
@@ -74,7 +91,6 @@ export function path(ctx: Ctx, options: { db?: Db; limit?: number } = {}): PathI
 			const annotation = standard.view.annotation(section.key);
 			const artifact = standard.view.artifact(section.artifact);
 			const blocking = (annotation?.dependsOn ?? []).filter((key) => !answered.has(key));
-			const owned = standard.view.countableClauses().find((c) => c.owner === section.key);
 
 			return {
 				sectionKey: section.key,
@@ -85,7 +101,12 @@ export function path(ctx: Ctx, options: { db?: Db; limit?: number } = {}): PathI
 					standard.view.localise(section.i18n, ctx.community.locale as 'en').value.title,
 				effort: annotation?.effort ?? ('one_meeting' as Effort),
 				reason: reasonFor(standard.view, blocking, artifact?.i18n.en?.title ?? section.artifact),
-				discussionId: owned ? (openThreads.get(owned.key) ?? null) : null,
+				// What a "Start discussion" link should file the thread against.
+				clauseKey: clausesByOwner.get(section.key)?.[0] ?? null,
+				discussionId:
+					(clausesByOwner.get(section.key) ?? [])
+						.map((key) => openThreads.get(key))
+						.find((id) => id !== undefined) ?? null,
 				blocking: blocking.length
 			};
 		});

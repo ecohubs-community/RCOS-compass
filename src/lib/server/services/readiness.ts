@@ -4,7 +4,7 @@ import { getDb, type Db } from '../db/index.js';
 import { clauseCoverage, definition } from '../db/schema/definitions.js';
 import { communityStandard } from '../db/schema/tenancy.js';
 import { getStandard, type StandardView } from '../standard/index.js';
-import { artifactProgress, type ArtifactProgress } from './completeness.js';
+import { answeredSections, progressOf, type ArtifactProgress } from './completeness.js';
 
 /**
  * The two numbers, and their exact arithmetic. docs/03-data-model.md §7.
@@ -211,9 +211,12 @@ export function compliance(ctx: Ctx, options: { db?: Db } = {}): Compliance | nu
 	const core = activeStandards(db, ctx).find((s) => s.row.standardId === CORE_STANDARD_ID);
 	if (!core) return null;
 
+	// Core's own answered set, read once — and core's, explicitly, because a
+	// module at 100% must never be able to complete a core artifact.
+	const answeredInCore = answeredSections(db, core.row.id);
 	const incompleteArtifacts = core.view
 		.mandatoryArtifacts()
-		.map((artifact) => artifactProgress(ctx, artifact.key, { db }))
+		.map((artifact) => progressOf(core, artifact.key, answeredInCore))
 		.filter((progress) => !progress.complete);
 
 	const provisionalDefinitions = db

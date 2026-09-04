@@ -22,8 +22,7 @@
 		{
 			label: 'Working on',
 			items: [
-				{ href: links.discussions(slug), label: 'Discussions', badge: data.unread || undefined },
-				{ href: links.standard(slug), label: 'Definitions' }
+				{ href: links.discussions(slug), label: 'Discussions', badge: data.unread || undefined }
 			]
 		},
 		{
@@ -31,8 +30,14 @@
 			items: [{ href: links.decisions(slug), label: 'Decisions' }]
 		},
 		{
+			/**
+			 * One entry, because there is one page. "Definitions" and "Standard"
+			 * both pointed here, so both lit up as the current page at once and a
+			 * screen reader announced two — and the two labels promised two
+			 * destinations that were the same screen.
+			 */
 			label: 'Reference',
-			items: [{ href: links.standard(slug), label: 'Standard' }]
+			items: [{ href: links.standard(slug), label: 'Standard & definitions' }]
 		}
 	]);
 

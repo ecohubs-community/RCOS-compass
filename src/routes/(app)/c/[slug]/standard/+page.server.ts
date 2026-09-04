@@ -21,20 +21,25 @@ export const load: PageServerLoad = ({ locals, url }) => {
 	const byId = definitionsBySection(ctx, { db });
 	const gapsOnly = url.searchParams.get('gaps') === '1';
 
+	// Built once. `countableClauses()` re-filters all 213 clauses on every call,
+	// and this page has 94 sections to render.
+	const refsBySection = new Map<string, string[]>();
+	for (const clause of standard.view.countableClauses()) {
+		if (!clause.owner) continue;
+		refsBySection.set(clause.owner, [...(refsBySection.get(clause.owner) ?? []), clause.ref]);
+	}
+
 	const artifacts = standard.view.artifacts
 		.map((artifact) => {
 			const authored = standard.view.authoredSectionsOf(artifact.key);
 			const sections = authored
 				.map((section) => {
-					const owned = standard.view
-						.countableClauses()
-						.filter((clause) => clause.owner === section.key);
 					const definition = byId.get(section.key);
 
 					return {
 						key: section.key,
 						title: standard.view.localise(section.i18n, ctx.community.locale as 'en').value.title,
-						refs: owned.map((clause) => clause.ref),
+						refs: refsBySection.get(section.key) ?? [],
 						definitionId: definition?.id ?? null,
 						status: definition?.adoptedVersionId
 							? ('adopted' as const)

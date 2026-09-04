@@ -18,6 +18,7 @@ import {
 	proposalToFreeze,
 	takeOffline
 } from '../../src/lib/server/services/discussions.js';
+import { getStandard } from '../../src/lib/server/standard/index.js';
 import { createTestDb } from '../support/db.js';
 import { catchRefusal } from '../support/errors.js';
 import { makeCommunity, makeMembership, makeUser } from '../support/factories.js';
@@ -98,9 +99,32 @@ const open = (title = 'Exit and separation') =>
 describe('a discussion belongs to one community and one subject', () => {
 	it('opens against a clause that has no definition yet', () => {
 		const opened = open();
-		expect(opened.clauseKey).toBe('3.6.1');
 		expect(opened.definitionId).toBeNull();
 		expect(opened.status).toBe('open');
+	});
+
+	it('stores the stable key, whichever of a clause-s two names was typed', () => {
+		// Members are shown references — the standard browser prints "3.6.1" — and
+		// everything downstream matches on the key. Storing what was typed left a
+		// thread the dashboard could not see, so it kept inviting people to start
+		// the discussion that already existed.
+		const view = getStandard('rcos-core', '0.1');
+		const clause = view.clauseByRef('3.6.1')!;
+		expect(clause.key).not.toBe(clause.ref);
+
+		const byRef = openDiscussion(
+			ctx,
+			{ title: 'Typed the reference', about: { kind: 'clause', clauseKey: clause.ref } },
+			{ db }
+		);
+		const byKey = openDiscussion(
+			ctx,
+			{ title: 'Typed the key', about: { kind: 'clause', clauseKey: clause.key } },
+			{ db }
+		);
+
+		expect(byRef.clauseKey).toBe(clause.key);
+		expect(byKey.clauseKey).toBe(clause.key);
 	});
 
 	it('opens against an existing definition', () => {
@@ -118,6 +142,30 @@ describe('a discussion belongs to one community and one subject', () => {
 			{ db }
 		);
 		expect(opened.definitionId).toBe(created.id);
+	});
+
+	it('opens a thread about nothing in the standard', () => {
+		// The form says "Clause (optional)". It used to be faked with the clause key
+		// "unassigned", which no standard contains — so the thread could be
+		// discussed and proposed on, and the freeze then refused it forever.
+		const opened = openDiscussion(
+			ctx,
+			{ title: 'Should we keep chickens?', about: { kind: 'open_question' } },
+			{ db }
+		);
+		expect(opened.clauseKey).toBeNull();
+		expect(opened.definitionId).toBeNull();
+	});
+
+	it('refuses a clause the standard does not have, at the point of typing it', () => {
+		const refusal = catchRefusal(() =>
+			openDiscussion(
+				ctx,
+				{ title: 'About nothing', about: { kind: 'clause', clauseKey: 'unassigned' } },
+				{ db }
+			)
+		);
+		expect(refusal?.status).toBe(400);
 	});
 
 	it('refuses a definition belonging to another community', () => {
