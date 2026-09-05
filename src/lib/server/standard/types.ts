@@ -95,6 +95,13 @@ export type Artifact = {
 export type GlossaryTerm = {
 	key: string;
 	i18n: Record<Locale, { term: string; definition: string }>;
+	/**
+	 * The section a community writes its own answer to this term in, where one
+	 * exists. Absent for the terms that describe the standard rather than the
+	 * community — `layer`, `compliance`, `artifact` — which is most of them, and
+	 * is the correct answer rather than a gap.
+	 */
+	definedBy?: string;
 };
 
 export type StandardMeta = {

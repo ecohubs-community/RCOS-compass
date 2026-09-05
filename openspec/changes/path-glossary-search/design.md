@@ -232,18 +232,57 @@ and safe to run twice.
 Rollback is the migration down. Nothing in P1–P4 depends on any of it; `path()`
 keeps its current behaviour when no weights row exists.
 
-## Open Questions
+## Questions Resolved Before Implementation
 
-- **Whether decision *bodies* are indexed, or only titles and rationales.** The
-  proposal text is the community's own words and is what somebody would search
-  for; it is also the longest text in the table and the most likely to make FTS5
-  relevance noisy. Decide in the search group, with the water-pump question as
-  the test.
-- **What the risk profile asks, exactly.** The UI spec gives four examples, not a
-  list. The questions have to be answerable by somebody who has not read RCOS,
-  and each has to earn its place by moving something — a question that changes no
-  ordering is a question that should not be asked.
-- **Whether an override survives a weights change.** A community that reorders by
-  hand and then retunes the weights has expressed two opinions that may conflict.
-  Keeping the override is the conservative answer; asking is more honest and more
-  work. Decide before the override lands.
+Decided before any code, so the reasoning is here rather than in a commit
+message — the same treatment P4's three got.
+
+### The interview asks five questions, and each one moves something
+
+| Question | Moves up when yes |
+|---|---|
+| Do you hold land or buildings together? | Commons classification, asset separation, exit settlement |
+| Do you hold money together? | Internal economy, treasury reporting, spending authority |
+| Are there children living on site? | Safeguarding duties, conflict escalation, external reporting |
+| Does one person own the property, or hold a founder's veto? | Authority registry, power concentration limits, exit rules |
+| Do you meet in person, or only online? | In person: meeting and quorum rules. Online: identity, participation, asynchronous consent |
+
+Five, because each earns its place by moving something a community would
+otherwise reach late, and the spec makes that testable: a question with no
+answer that changes the ordering fails the build.
+
+The last one is deliberately not a yes/no. "Only online" is not the absence of
+meeting in person — it moves a *different* set up, and asking it as a negative
+would have made the online community's ordering the default community's
+ordering minus some things, which is not what it needs.
+
+*What was left out:* how many members, and how long the community has existed.
+Both are interesting and neither moves a requirement — the standard asks the
+same things of a group of six as of sixty. A question that changes nothing is a
+question that teaches people the interview is decoration.
+
+### Decision bodies are indexed; titles and rationales are not enough
+
+The water-pump question is answered by the *text a community adopted* — "any
+spend over €500 needs a consent decision" — and that lives in `proposal_text`.
+A title is "Spending authority" and would match nothing a member actually types.
+
+The cost is real: proposal text is the longest column in the table and makes
+FTS5 relevance noisier. The mitigation is that titles and rationales are
+weighted above bodies, so a decision whose *title* matches ranks above one that
+merely mentions the words. The exit criteria are the arbiter, not an opinion
+about relevance.
+
+### An override survives a weights change, and says it might be stale
+
+A community that reorders by hand and later retunes the weights has expressed
+two opinions that can conflict. Three options were open: drop the override, keep
+it silently, or keep it and say so.
+
+Keeping it silently is the trap — the community's own instruction disappearing
+because they adjusted a slider is the worst of the three, and dropping it makes
+a deliberate act of theirs evaporate. So the override survives, and after a
+weights change the item carries a note that the ordering has changed underneath
+it and offers to release it. The community decides; the tool does not decide
+for them, and it does not pretend nothing happened.
+

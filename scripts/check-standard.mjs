@@ -65,7 +65,22 @@ for (const { id, version } of manifest.standards ?? []) {
 	const sections = load(id, version, 'sections');
 	const artifacts = load(id, version, 'artifacts');
 
+	const glossary = load(id, version, 'glossary');
 	const sectionKeys = new Set(sections.map((s) => s.key));
+
+	/**
+	 * A glossary term may name the section a community defines it in. The link
+	 * is authored upstream and cannot be extracted, so a typo in it would show
+	 * as an empty column on the glossary page rather than as an error — which
+	 * is exactly the failure the mapping exists to prevent.
+	 */
+	for (const term of glossary) {
+		if (term.definedBy && !sectionKeys.has(term.definedBy)) {
+			note(
+				`${id}@${version} glossary "${term.key}": names section "${term.definedBy}", which does not exist.`
+			);
+		}
+	}
 	const mandatoryArtifacts = new Set(artifacts.filter((a) => a.mandatory).map((a) => a.key));
 
 	const ownerCount = new Map();

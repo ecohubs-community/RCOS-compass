@@ -1,9 +1,9 @@
 ## 0. The target
 
-- [ ] 0.1 The e2e spec for the exit criteria, written first and marked `fixme`: a day-one community answers the interview, gets an order it can see the reasons for, and the water-pump question returns the clauses and decisions that govern it. It runs with `AI_PROVIDER=null`, because none of this is an AI feature
-- [ ] 0.2 The three questions from `design.md`, answered before anything is built and recorded with their reasoning the way P4's were: what the interview actually asks (each question earning its place by moving something), whether decision *bodies* are indexed or only titles and rationales, and whether a manual override survives a weights change
-- [ ] 0.3 **Upstream: the glossary's term-to-section mapping.** The vendored `glossary.yaml` has 37 terms and no link to the sections that define them, so the community column would be empty for every one and the page a reprint of the standard. Added in the RCOS website repository and re-vendored, the way P1 did section dispositions — the vendored copy is not a place to edit the standard, and `meta.yaml`'s hash check enforces that. First, because group 7 cannot finish without it
-- [ ] 0.4 The content check learns the new field: a term naming a section the standard does not have fails `scripts/check-standard.mjs`, so a bad mapping is a failed build rather than an empty column
+- [x] 0.1 The e2e spec for the exit criteria, written first and marked `fixme`: a day-one community answers the interview, gets an order it can see the reasons for, and the water-pump question returns the clauses and decisions that govern it. It runs with `AI_PROVIDER=null`, because none of this is an AI feature
+- [x] 0.2 The three questions from `design.md`, answered before anything is built and recorded with their reasoning the way P4's were: what the interview actually asks (each question earning its place by moving something), whether decision *bodies* are indexed or only titles and rationales, and whether a manual override survives a weights change
+- [x] 0.3 **Upstream: the glossary's term-to-section mapping.** The vendored `glossary.yaml` has 37 terms and no link to the sections that define them, so the community column would be empty for every one and the page a reprint of the standard. Added in the RCOS website repository and re-vendored, the way P1 did section dispositions — the vendored copy is not a place to edit the standard, and `meta.yaml`'s hash check enforces that. First, because group 7 cannot finish without it
+- [x] 0.4 The content check learns the new field: a term naming a section the standard does not have fails `scripts/check-standard.mjs`, so a bad mapping is a failed build rather than an empty column
 
 ## 1. Schema
 

@@ -464,3 +464,45 @@ describe('the cache is keyed by where the content came from', () => {
 		}
 	});
 });
+
+describe('a glossary term names where a community defines it', () => {
+	it('carries the mapping the standard now ships', () => {
+		// Added upstream for P5: the glossary page shows the RCOS definition beside
+		// the community's own, and without this link there is nothing to look the
+		// community's up by. 37 terms; 15 have a section a community writes.
+		const view = getStandard('rcos-core', '0.1');
+		const mapped = view.glossary.filter((term) => term.definedBy);
+
+		expect(mapped.length).toBeGreaterThan(10);
+		expect(view.glossary.find((term) => term.key === 'commons')?.definedBy).toBe(
+			'internal-economy-protocol.commons-vs-private-classification'
+		);
+		expect(view.glossary.find((term) => term.key === 'member')?.definedBy).toBe(
+			'membership-state-registry.defined-membership-states'
+		);
+	});
+
+	it('names only sections that exist, and only authored ones', () => {
+		// A term pointing at a section nobody writes would show a community a
+		// column it can never fill. The content check catches a missing section;
+		// this catches the subtler case of a real section that is not authored.
+		const view = getStandard('rcos-core', '0.1');
+		const authored = new Set(view.authoredSections().map((section) => section.key));
+
+		for (const term of view.glossary) {
+			if (!term.definedBy) continue;
+			expect(view.section(term.definedBy), `${term.key} → ${term.definedBy}`).toBeDefined();
+			expect(authored.has(term.definedBy), `${term.key} → ${term.definedBy}`).toBe(true);
+		}
+	});
+
+	it('leaves the standard-s own vocabulary unmapped', () => {
+		// `layer`, `compliance`, `artifact` describe the standard, not a community.
+		// A link for them would invite a page that asks a community to define a
+		// rule that is ours.
+		const view = getStandard('rcos-core', '0.1');
+		for (const key of ['layer', 'compliance', 'artifact', 'reference-implementation']) {
+			expect(view.glossary.find((term) => term.key === key)?.definedBy, key).toBeUndefined();
+		}
+	});
+});
