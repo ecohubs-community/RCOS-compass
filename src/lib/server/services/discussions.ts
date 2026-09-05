@@ -7,6 +7,7 @@ import { definition } from '../db/schema/definitions.js';
 import { discussion, post, type Discussion, type Post } from '../db/schema/discussions.js';
 import { activeStandardView } from './completeness.js';
 import { discussionParticipants, notify } from './notifications.js';
+import { indexDiscussion } from './search.js';
 import { registerTenantService } from './registry.js';
 
 /**
@@ -133,7 +134,13 @@ export function openDiscussion(
 		frozenDecisionId: null
 	};
 
-	db.insert(discussion).values(row).run();
+	// A transaction for two writes, because a thread that exists and cannot be
+	// found is the failure this indexing strategy exists to prevent, and half of
+	// it succeeding is worse than neither.
+	db.transaction((tx) => {
+		tx.insert(discussion).values(row).run();
+		indexDiscussion(tx as unknown as Db, ctx.community.id, row.id);
+	});
 	return db.select().from(discussion).where(eq(discussion.id, row.id)).get()!;
 }
 

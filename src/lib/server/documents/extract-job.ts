@@ -6,6 +6,7 @@ import type { Db } from '../db/index.js';
 import { newId } from '../db/id.js';
 import { document, passage } from '../db/schema/documents.js';
 import { getLogger } from '../logger.js';
+import { indexDocument, removeDocumentFromIndex } from '../services/search.js';
 import { extract, ExtractionFailed } from './extract.js';
 import { MIME, type AcceptedType } from './sniff.js';
 import { absolutePathOf } from './storage.js';
@@ -89,7 +90,9 @@ export async function runExtraction(db: Db, clock: Clock, documentId: string): P
 
 	db.transaction((tx) => {
 		// Wholesale replacement, so an interrupted earlier run leaves no prefix
-		// mixed into this one.
+		// mixed into this one. The index rows go first, while the passage ids they
+		// are addressed by still exist to look up.
+		removeDocumentFromIndex(tx as unknown as Db, found.communityId, documentId);
 		tx.delete(passage).where(eq(passage.documentId, documentId)).run();
 		for (const item of outcome.passages) {
 			tx.insert(passage)
@@ -104,6 +107,7 @@ export async function runExtraction(db: Db, clock: Clock, documentId: string): P
 				})
 				.run();
 		}
+		indexDocument(tx as unknown as Db, found.communityId, documentId);
 		tx.update(document)
 			.set({
 				status: 'extracted',

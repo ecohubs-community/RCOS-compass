@@ -5,6 +5,59 @@ import globals from 'globals';
 import ts from 'typescript-eslint';
 import svelteConfig from './svelte.config.js';
 
+/**
+ * `no-restricted-syntax` does not accumulate across flat-config blocks: the last
+ * block matching a file replaces the rule's options entirely. Two boundaries
+ * both spelled with this rule would therefore silently disable each other for
+ * every file they share, which is the shape of failure P4 already paid for — a
+ * boundary with a hole in it is worse than none, because it is trusted. So the
+ * selectors are named here and composed per scope below.
+ */
+
+/**
+ * docs/04-security.md §1: one permission matrix, read by one function. A handler
+ * that compares a role directly is a second copy of the matrix that will drift
+ * from it, and the drift is a security bug.
+ */
+const NO_ROLE_COMPARISON = {
+	selector: 'BinaryExpression[operator=/^[!=]==?$/] > Literal[value=/^(steward|member|owner)$/]',
+	message:
+		'Do not compare roles. Ask for a capability: requirePermission(ctx, …) or can(actor, …) — docs/04-security.md §1.'
+};
+
+/**
+ * Full-text search is FTS5 in exactly one directory. docs/00-architecture.md §5.
+ *
+ * That document forbids raw SQL outside the database layer and names full-text
+ * search as the exception that lives behind an interface, one file per engine.
+ * The interface is only worth having while the engine stays behind it — a
+ * `MATCH` in a service is the seam already leaking, and the day somebody swaps
+ * FTS5 for `tsvector` they would find every such place by grepping rather than
+ * by the build failing.
+ *
+ * `MATCH` is caught only in something that also reads as SQL, so that prose
+ * about a search finding no match is not an architecture violation. The engine's
+ * own names need no such hedge: nothing outside the module has a reason to say
+ * `bm25`, `fts5`, or the virtual table's name.
+ */
+const FTS5_MESSAGE =
+	'Full-text query syntax belongs in src/lib/server/search — everything else goes through the SearchIndex interface (docs/00-architecture.md §5).';
+const NO_FTS5_SYNTAX = [
+	{
+		selector: `TemplateElement[value.raw=/\\b(bm25|fts5|search_document)\\b/i]`,
+		message: FTS5_MESSAGE
+	},
+	{ selector: `Literal[value=/\\b(bm25|fts5|search_document)\\b/i]`, message: FTS5_MESSAGE },
+	{
+		selector: `TemplateElement[value.raw=/(select|insert|update|delete|from|where)[^]*\\bmatch\\b/i]`,
+		message: FTS5_MESSAGE
+	},
+	{
+		selector: `Literal[value=/(select|insert|update|delete|from|where)[^]*\\bmatch\\b/i]`,
+		message: FTS5_MESSAGE
+	}
+];
+
 export default ts.config(
 	js.configs.recommended,
 	...ts.configs.recommended,
@@ -137,27 +190,27 @@ export default ts.config(
 		}
 	},
 	{
-		// docs/04-security.md §1: one permission matrix, read by one function.
-		// A handler that compares a role directly is a second copy of the matrix
-		// that will drift from it, and the drift is a security bug.
+		// Both boundaries, everywhere they both apply. Scoped to any depth, for
+		// the reason P4 learned the hard way: the first version of the AI boundary
+		// matched one level and silently permitted a subdirectory.
 		files: ['src/**/*.ts', 'src/**/*.svelte'],
-		ignores: ['src/lib/server/auth/permissions.ts'],
-		rules: {
-			'no-restricted-syntax': [
-				'error',
-				{
-					selector:
-						'BinaryExpression[operator=/^[!=]==?$/] > Literal[value=/^(steward|member|owner)$/]',
-					message:
-						'Do not compare roles. Ask for a capability: requirePermission(ctx, …) or can(actor, …) — docs/04-security.md §1.'
-				}
-			]
-		}
+		ignores: ['src/lib/server/auth/permissions.ts', 'src/lib/server/search/**'],
+		rules: { 'no-restricted-syntax': ['error', NO_ROLE_COMPARISON, ...NO_FTS5_SYNTAX] }
+	},
+	{
+		// The matrix itself is the one file allowed to know what a role is.
+		files: ['src/lib/server/auth/permissions.ts'],
+		rules: { 'no-restricted-syntax': ['error', ...NO_FTS5_SYNTAX] }
+	},
+	{
+		// The search module is the one place allowed to know what the engine is.
+		files: ['src/lib/server/search/**/*.ts'],
+		rules: { 'no-restricted-syntax': ['error', NO_ROLE_COMPARISON] }
 	},
 
 	{
 		// Build and check scripts are command-line tools; printing is their job.
-		files: ['scripts/**/*.mjs', 'scripts/**/*.js'],
+		files: ['scripts/**/*.mjs', 'scripts/**/*.js', 'scripts/**/*.ts'],
 		rules: { 'no-console': 'off' }
 	},
 

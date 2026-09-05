@@ -33,14 +33,26 @@ export function activeStandardView(
 	db: Db,
 	ctx: Ctx
 ): { row: typeof communityStandard.$inferSelect; view: StandardView } | null {
+	return standardViewFor(db, ctx.community.id);
+}
+
+/**
+ * The same, for the callers that have a community id and no request.
+ *
+ * Indexing runs inside a transaction started by a service that already checked
+ * the permission, and a background rebuild has no `Ctx` at all — neither has a
+ * request to borrow one from, and inventing a `Ctx` to satisfy a signature is
+ * how a permission check ends up bypassed by something that looked like one.
+ */
+export function standardViewFor(
+	db: Db,
+	communityId: string
+): { row: typeof communityStandard.$inferSelect; view: StandardView } | null {
 	const row = db
 		.select()
 		.from(communityStandard)
 		.where(
-			and(
-				eq(communityStandard.communityId, ctx.community.id),
-				eq(communityStandard.status, 'active')
-			)
+			and(eq(communityStandard.communityId, communityId), eq(communityStandard.status, 'active'))
 		)
 		.get();
 	if (!row) return null;

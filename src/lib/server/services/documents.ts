@@ -8,6 +8,7 @@ import { document, passage, type Document } from '../db/schema/documents.js';
 import { MIME } from '../documents/sniff.js';
 import { removeFile, type StoredFile } from '../documents/storage.js';
 import { staleEvidenceForDocument } from './evidence.js';
+import { removeDocumentFromIndex } from './search.js';
 import { enqueue } from '../jobs/queue.js';
 import { registerTenantService } from './registry.js';
 
@@ -212,6 +213,9 @@ export async function deleteDocument(
 		// Stale first, while the passage ids still exist to find the rows by;
 		// deleting the passages then nulls each survivor's passage_id via the FK.
 		staleEvidenceForDocument(scoped, documentId);
+		// Before the rows go: a passage is addressed in the index by its own id,
+		// and the ids only exist while the rows do.
+		removeDocumentFromIndex(scoped, ctx.community.id, documentId);
 		tx.delete(passage).where(eq(passage.documentId, documentId)).run();
 		tx.delete(document).where(eq(document.id, documentId)).run();
 	});

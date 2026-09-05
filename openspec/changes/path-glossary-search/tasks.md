@@ -7,22 +7,22 @@
 
 ## 1. Schema
 
-- [ ] 1.1 `path_weights` — one active row per community plus its history, each with its actor and time; defaults written as a real row rather than left as nulls
-- [ ] 1.2 `path_override` — per community, per section, with the position a member placed it at
-- [ ] 1.3 `risk_profile` — the answers, editable, with a record of when they last changed
-- [ ] 1.4 States as DB-level CHECKs, not drizzle enums — the same lesson P3 and P4 both had to learn once
-- [ ] 1.5 Migration generated and applied
-- [ ] 1.6 Tests: the constraints refuse what they exist to refuse; a second active weights row for one community is impossible; another community's override is invisible
+- [x] 1.1 `path_weights` — one active row per community plus its history, each with its actor and time; defaults written as a real row rather than left as nulls
+- [x] 1.2 `path_override` — per community, per section, with the position a member placed it at
+- [x] 1.3 `risk_profile` — the answers, editable, with a record of when they last changed
+- [x] 1.4 States as DB-level CHECKs, not drizzle enums — the same lesson P3 and P4 both had to learn once
+- [x] 1.5 Migration generated and applied
+- [x] 1.6 Tests: the constraints refuse what they exist to refuse; a second active weights row for one community is impossible; another community's override is invisible
 
 ## 2. Search — the seam, before anything uses it
 
-- [ ] 2.1 `SearchIndex` (`docs/00` §5): `index`, `remove`, `query`, and nothing about an engine in the signature
-- [ ] 2.2 The FTS5 implementation in `src/lib/server/search/`, with `community_id` a column inside the virtual table and every query filtering on it
-- [ ] 2.2a Indexed: definitions, decisions, discussion titles and document passages — what a community wrote. **Clause text is not indexed**: it is identical for all of them, and per-tenant copies of non-tenant data inside the isolation structure is the leak that structure exists to prevent. Clauses are matched against the loaded standard and merged into the results
-- [ ] 2.3 **The boundary**: an ESLint rule confining full-text query syntax to that directory, proved in both directions the way the AI module's is — including from a subdirectory, which is where the AI rule had its hole
-- [ ] 2.4 Indexing written inside the transaction that causes it: freeze, adopt, open a discussion, delete a document. Not a job — a decision that is unfindable for thirty seconds is one a member concludes did not save
-- [ ] 2.5 A rebuild command, idempotent, for the deploy step and for when drift happens anyway
-- [ ] 2.6 Tests: two communities with the same words see only their own; a rebuilt index answers identically to an incrementally-built one; a superseded definition is findable by its current text and not its replaced text; the boundary rule fails a file that breaks it
+- [x] 2.1 `SearchIndex` (`docs/00` §5): `index`, `remove`, `query`, and nothing about an engine in the signature
+- [x] 2.2 The FTS5 implementation in `src/lib/server/search/`, with `community_id` a column inside the virtual table and every query filtering on it
+- [x] 2.2a Indexed: definitions, decisions, discussion titles and document passages — what a community wrote. **Clause text is not indexed**: it is identical for all of them, and per-tenant copies of non-tenant data inside the isolation structure is the leak that structure exists to prevent. Clauses are matched against the loaded standard and merged into the results
+- [x] 2.3 **The boundary**: an ESLint rule confining full-text query syntax to that directory, proved in both directions the way the AI module's is — including from a subdirectory, which is where the AI rule had its hole
+- [x] 2.4 Indexing written inside the transaction that causes it: freeze, adopt, open a discussion, delete a document. Not a job — a decision that is unfindable for thirty seconds is one a member concludes did not save
+- [x] 2.5 A rebuild command, idempotent, for the deploy step and for when drift happens anyway
+- [x] 2.6 Tests: two communities with the same words see only their own; a rebuilt index answers identically to an incrementally-built one; a superseded definition is findable by its current text and not its replaced text; the boundary rule fails a file that breaks it
 
 ## 3. Reverse lookup
 

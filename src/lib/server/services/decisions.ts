@@ -21,6 +21,7 @@ import { countUnresolved } from './objections.js';
 import { proposalToFreeze } from './discussions.js';
 import { activeStandardView, DECISION_MATRIX, isArtifactComplete } from './completeness.js';
 import { activeMemberships, notify } from './notifications.js';
+import { indexDecision, indexDefinition } from './search.js';
 import { registerTenantService } from './registry.js';
 
 /**
@@ -360,6 +361,14 @@ export function freeze(ctx: Ctx, input: FreezeInput, options: { db?: Db } = {}):
 		// exists and told nobody is one half the community finds out about by
 		// accident. These are local rows and cost nothing; mail is the weekly
 		// digest, which is a job precisely so it never holds this write lock.
+		// Findable in the same transaction that made it exist, for the same reason
+		// the notification is written here rather than enqueued: a decision that is
+		// unfindable for thirty seconds is one a member concludes did not save.
+		// The definition is re-indexed too — it now says something different, and
+		// the version it stopped saying must stop being findable by its old text.
+		indexDecision(tx as unknown as Db, ctx.community.id, decisionId);
+		indexDefinition(tx as unknown as Db, ctx.community.id, target.definitionRow.id);
+
 		notify(tx as unknown as Db, ctx, {
 			kind: 'decision.frozen',
 			subjectType: 'decision',

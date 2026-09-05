@@ -141,6 +141,68 @@ describe('the AI module writes nothing but its own log', () => {
 	});
 });
 
+/**
+ * The other half of the raw-SQL exception. `docs/00-architecture.md` §5 names
+ * full-text search as the one thing allowed to write SQL outside the database
+ * layer, on the condition that it lives behind an interface with one file per
+ * engine. The condition is what makes the exception safe, so it is the part
+ * worth proving.
+ */
+describe('only the search module knows the engine', () => {
+	function probe(where: 'service' | 'service-nested' | 'search' | 'search-nested', body: string) {
+		const dirs = {
+			service: 'src/lib/server/services',
+			'service-nested': 'src/lib/server/services/probe-nested',
+			search: 'src/lib/server/search',
+			'search-nested': 'src/lib/server/search/probe-nested'
+		};
+		const dir = join(repoRoot, dirs[where]);
+		mkdirSync(dir, { recursive: true });
+		const file = join(dir, `probe-${process.pid}.ts`);
+		writeFileSync(file, body);
+		try {
+			execFileSync('pnpm', ['exec', 'eslint', '--no-warn-ignored', '--format', 'json', file], {
+				cwd: repoRoot,
+				encoding: 'utf8'
+			});
+			return '';
+		} catch (error) {
+			return (error as { stdout?: string }).stdout ?? '';
+		} finally {
+			rmSync(where.endsWith('nested') ? dir : file, { recursive: true, force: true });
+		}
+	}
+
+	const QUERY = 'export const q = `select ref from search_document where x match ?`;\n';
+
+	it('refuses a service that queries the index directly', () => {
+		expect(probe('service', QUERY)).toContain('SearchIndex interface');
+	});
+
+	it('refuses it from a subdirectory too', () => {
+		// The AI rule shipped with exactly this hole, and a boundary with a hole
+		// in it is worse than none, because it is trusted.
+		expect(probe('service-nested', QUERY)).toContain('SearchIndex interface');
+	});
+
+	it('refuses the ranking function by name', () => {
+		expect(probe('service', "export const r = 'bm25(search_document, 1.0)';\n")).toContain(
+			'SearchIndex interface'
+		);
+	});
+
+	it('allows the search module itself, at any depth', () => {
+		expect(probe('search', QUERY)).toBe('');
+		expect(probe('search-nested', QUERY)).toBe('');
+	});
+
+	it('says nothing about prose that happens to contain the word match', () => {
+		// A rule that fires on "no match found" is a rule people disable. `MATCH`
+		// is only an architecture violation in something that also reads as SQL.
+		expect(probe('service', "export const empty = 'No match found for those words.';\n")).toBe('');
+	});
+});
+
 describe('the design-token check', () => {
 	function checkTokens(contents: string): string {
 		const dir = mkdtempSync(join(repoRoot, 'src/tokencheck-'));
