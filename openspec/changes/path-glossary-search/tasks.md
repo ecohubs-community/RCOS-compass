@@ -45,11 +45,11 @@
 
 ## 5. Weights and overrides, as governance
 
-- [ ] 5.1 Changing weights writes a new active row and supersedes the old, with the actor and time — a steward's act, refused for a member
-- [ ] 5.2 The settings screen: the four weights, their current values, whether they are the defaults, and who last changed them
-- [ ] 5.3 Drag override, surviving re-computation, showing both where the community put an item and where the ordering would have
-- [ ] 5.4 Clearing an override returns the item to its computed position
-- [ ] 5.5 Tests: a member cannot retune; the previous weights stay readable; an override survives recomputation and shows both positions; one community's override changes nothing for another
+- [x] 5.1 Changing weights writes a new active row and supersedes the old, with the actor and time — a steward's act, refused for a member
+- [x] 5.2 The settings screen: the four weights, their current values, whether they are the defaults, and who last changed them
+- [x] 5.3 Drag override, surviving re-computation, showing both where the community put an item and where the ordering would have
+- [x] 5.4 Clearing an override returns the item to its computed position
+- [x] 5.5 Tests: a member cannot retune; the previous weights stay readable; an override survives recomputation and shows both positions; one community's override changes nothing for another
 
 ## 6. The risk profile
 

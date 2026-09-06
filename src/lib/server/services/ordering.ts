@@ -1,8 +1,12 @@
-import { and, eq, inArray } from 'drizzle-orm';
-import type { Db } from '../db/index.js';
+import { and, desc, eq, inArray } from 'drizzle-orm';
+import { error } from '@sveltejs/kit';
+import { requirePermission, requireWritableCommunity, type Ctx } from '../auth/guard.js';
+import { getDb, type Db } from '../db/index.js';
+import { newId } from '../db/id.js';
+import { changeLog } from '../db/schema/decisions.js';
 import { discussion } from '../db/schema/discussions.js';
 import { evidence } from '../db/schema/documents.js';
-import { DEFAULT_WEIGHTS, pathWeights, type PathWeights } from '../db/schema/path.js';
+import { DEFAULT_WEIGHTS, pathOverride, pathWeights, type PathWeights } from '../db/schema/path.js';
 import type { StandardView } from '../standard/index.js';
 import { raisedSections, MAX_RAISES } from './risk-profile.js';
 
@@ -331,4 +335,220 @@ function maxDependsOn(view: StandardView): number {
 		0,
 		...view.annotatedSectionKeys.map((key) => view.annotation(key)?.dependsOn.length ?? 0)
 	);
+}
+
+/**
+ * Changing the weights, which is a governance act rather than a preference.
+ *
+ * Supersede rather than update: the ordering is an opinion the community
+ * adopted, the rest of the product treats those as append-only, and an ordering
+ * that can be silently retuned is one nobody can audit — including the person
+ * who retuned it and forgot. So the path screen can say "reordered by Ana on 3
+ * September" and show what the numbers were before.
+ */
+export function setWeights(ctx: Ctx, next: Weights, options: { db?: Db } = {}): PathWeights {
+	requirePermission(ctx, 'settings.manage');
+	requireWritableCommunity(ctx);
+
+	for (const [name, value] of Object.entries(next)) {
+		// Refused here as well as by the CHECK, so a member sees a sentence rather
+		// than a constraint name. A negative weight would invert an input rather
+		// than silence it, which is not something the screen offers.
+		if (!Number.isInteger(value) || value < 0) {
+			error(400, `${name} has to be zero or more.`);
+		}
+	}
+
+	const db = options.db ?? getDb();
+	const now = new Date(ctx.now());
+	const id = newId();
+
+	return db.transaction((tx) => {
+		const previous = tx
+			.select()
+			.from(pathWeights)
+			.where(and(eq(pathWeights.communityId, ctx.community.id), eq(pathWeights.active, true)))
+			.get();
+
+		// Deactivate first: the partial unique index allows exactly one active row
+		// per community, so inserting before superseding is refused by the database
+		// rather than producing two answers.
+		if (previous) {
+			tx.update(pathWeights).set({ active: false }).where(eq(pathWeights.id, previous.id)).run();
+		}
+
+		tx.insert(pathWeights)
+			.values({
+				id,
+				communityId: ctx.community.id,
+				...next,
+				isDefault: false,
+				active: true,
+				changedBy: ctx.user.id,
+				changedAt: now
+			})
+			.run();
+
+		tx.insert(changeLog)
+			.values({
+				id: newId(),
+				communityId: ctx.community.id,
+				at: now,
+				actorId: ctx.user.id,
+				kind: 'path.reweighted',
+				subjectType: 'path_weights',
+				subjectId: id,
+				summary: 'Changed how the path is ordered',
+				payload: { from: previous ? weightsOf(previous) : DEFAULT_WEIGHTS, to: next }
+			})
+			.run();
+
+		return tx.select().from(pathWeights).where(eq(pathWeights.id, id)).get()!;
+	});
+}
+
+const weightsOf = (row: Weights): Weights => ({
+	dependency: row.dependency,
+	severity: row.severity,
+	risk: row.risk,
+	attention: row.attention
+});
+
+/** The active row if a community has tuned the weights, and the history behind it. */
+export function weightsHistory(ctx: Ctx, options: { db?: Db } = {}): PathWeights[] {
+	requirePermission(ctx, 'community.read');
+	const db = options.db ?? getDb();
+	return db
+		.select()
+		.from(pathWeights)
+		.where(eq(pathWeights.communityId, ctx.community.id))
+		.orderBy(desc(pathWeights.changedAt))
+		.all();
+}
+
+/**
+ * Where a community put something by hand.
+ *
+ * The computed position is kept beside it rather than replaced. An override
+ * that erases the computation makes the list unfalsifiable — nobody can tell
+ * afterwards whether the ordering was wrong or the community simply disagreed —
+ * and keeping both is what lets somebody revisit it later.
+ */
+export function placeOverride(
+	ctx: Ctx,
+	sectionKey: string,
+	position: number,
+	options: { db?: Db } = {}
+): void {
+	requirePermission(ctx, 'settings.manage');
+	requireWritableCommunity(ctx);
+	if (!Number.isInteger(position) || position < 0) error(400, 'That is not a position.');
+
+	const db = options.db ?? getDb();
+	const active = db
+		.select({ id: pathWeights.id })
+		.from(pathWeights)
+		.where(and(eq(pathWeights.communityId, ctx.community.id), eq(pathWeights.active, true)))
+		.get();
+
+	const row = {
+		communityId: ctx.community.id,
+		sectionKey,
+		position,
+		// What the ordering was when they placed it. The item can then say its
+		// placement may be stale rather than the tool quietly discarding a
+		// deliberate act or pretending nothing happened.
+		weightsIdAtPlacement: active?.id ?? null,
+		placedBy: ctx.user.id,
+		placedAt: new Date(ctx.now())
+	};
+
+	db.insert(pathOverride)
+		.values(row)
+		.onConflictDoUpdate({
+			target: [pathOverride.communityId, pathOverride.sectionKey],
+			set: row
+		})
+		.run();
+}
+
+/** Release an item back to wherever the ordering puts it. */
+export function clearOverride(ctx: Ctx, sectionKey: string, options: { db?: Db } = {}): void {
+	requirePermission(ctx, 'settings.manage');
+	requireWritableCommunity(ctx);
+	const db = options.db ?? getDb();
+	db.delete(pathOverride)
+		.where(
+			and(eq(pathOverride.communityId, ctx.community.id), eq(pathOverride.sectionKey, sectionKey))
+		)
+		.run();
+}
+
+export type Override = {
+	/** Where the community put it. */
+	position: number;
+	/** Where the ordering would have put it. Both, always. */
+	computedPosition: number;
+	/**
+	 * The weights have changed since it was placed.
+	 *
+	 * Not a reason to drop the override — the community's own instruction
+	 * disappearing because they adjusted a slider is the worst of the three
+	 * options — but the item says so and offers to release it. The community
+	 * decides; the tool does not decide for them.
+	 */
+	stale: boolean;
+};
+
+/**
+ * Apply the community's own placements over the computed order.
+ *
+ * Items without an override keep their computed sequence and close up around
+ * the placed ones, so the result is dense and every position is real.
+ */
+export function applyOverrides<T extends { sectionKey: string }>(
+	db: Db,
+	communityId: string,
+	computed: T[]
+): (T & { override: Override | null })[] {
+	const overrides = db
+		.select()
+		.from(pathOverride)
+		.where(eq(pathOverride.communityId, communityId))
+		.all();
+	if (overrides.length === 0) return computed.map((item) => ({ ...item, override: null }));
+
+	const activeId =
+		db
+			.select({ id: pathWeights.id })
+			.from(pathWeights)
+			.where(and(eq(pathWeights.communityId, communityId), eq(pathWeights.active, true)))
+			.get()?.id ?? null;
+
+	const byKey = new Map(overrides.map((row) => [row.sectionKey, row]));
+	const computedPosition = new Map(computed.map((item, at) => [item.sectionKey, at]));
+
+	const placed = computed
+		.filter((item) => byKey.has(item.sectionKey))
+		.sort((a, b) => byKey.get(a.sectionKey)!.position - byKey.get(b.sectionKey)!.position);
+	const rest = computed.filter((item) => !byKey.has(item.sectionKey));
+
+	const out: (T & { override: Override | null })[] = rest.map((item) => ({
+		...item,
+		override: null
+	}));
+
+	for (const item of placed) {
+		const row = byKey.get(item.sectionKey)!;
+		out.splice(Math.min(row.position, out.length), 0, {
+			...item,
+			override: {
+				position: row.position,
+				computedPosition: computedPosition.get(item.sectionKey)!,
+				stale: row.weightsIdAtPlacement !== activeId
+			}
+		});
+	}
+
+	return out;
 }

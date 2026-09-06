@@ -7,10 +7,12 @@ import type { Effort } from '../standard/types.js';
 import { activeStandardView, answeredSections } from './completeness.js';
 import {
 	activeWeights,
+	applyOverrides,
 	gatherInputs,
 	reasonFrom,
 	score,
 	type Contributions,
+	type Override,
 	type Weights
 } from './ordering.js';
 import { getRiskProfile } from './risk-profile.js';
@@ -49,6 +51,8 @@ export type PathItem = {
 	contributions: Contributions;
 	/** The weighted sum these produced. Shown as reasons, never as a number. */
 	score: number;
+	/** Set when the community moved this one by hand. Both positions, always. */
+	override: Override | null;
 	/** The clause a new discussion about this should be filed against. */
 	clauseKey: string | null;
 	/** An open discussion already exists for it. */
@@ -155,8 +159,13 @@ export function path(
 	// the standard's own order.
 	items.sort((a, b) => b.score - a.score || a.sectionKey.localeCompare(b.sectionKey));
 
+	// The community's own placements go on last, over a computed order that is
+	// still there underneath — an override that erased the computation would make
+	// the list unfalsifiable.
+	const ordered = applyOverrides(db, ctx.community.id, items);
+
 	const { limit } = options;
-	return limit ? items.slice(0, limit) : items;
+	return limit ? ordered.slice(0, limit) : ordered;
 }
 
 export type Attention = {

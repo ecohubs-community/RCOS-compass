@@ -22,6 +22,7 @@
 		{
 			label: 'Working on',
 			items: [
+				{ href: links.path(slug), label: 'The path' },
 				{ href: links.discussions(slug), label: 'Discussions', badge: data.unread || undefined },
 				{ href: links.documents(slug), label: 'Documents' }
 			]
@@ -41,6 +42,7 @@
 			items: [
 				{ href: links.standard(slug), label: 'Standard & definitions' },
 				{ href: links.search(slug), label: 'Search' },
+				{ href: links.pathSettings(slug), label: 'How the path is ordered' },
 				{ href: links.aiSettings(slug), label: 'AI assistance' }
 			]
 		}
