@@ -5,6 +5,15 @@ import { definition } from '../db/schema/definitions.js';
 import { discussion } from '../db/schema/discussions.js';
 import type { Effort } from '../standard/types.js';
 import { activeStandardView, answeredSections } from './completeness.js';
+import {
+	activeWeights,
+	gatherInputs,
+	reasonFrom,
+	score,
+	type Contributions,
+	type Weights
+} from './ordering.js';
+import { getRiskProfile } from './risk-profile.js';
 
 /**
  * What a community still has to decide, in an order that is not arbitrary.
@@ -14,10 +23,11 @@ import { activeStandardView, answeredSections } from './completeness.js';
  * section whose dependencies are already answered comes before one that would
  * be answered in the dark.
  *
- * The weighted ordering with its four sliders is P5. Here it is the dependency
- * edges the standard already carries, plus layer order as the tie-break — the
- * standard is built so Layer 0 comes first, and following it is a better default
- * than inventing one.
+ * P5 made the ordering arguable: four contributions the community can see and
+ * reweight, summed. The defaults reproduce what P3 did — unblocked first, then
+ * by layer — so a community that changes nothing sees no change; everything
+ * after that is theirs. `ordering.ts` holds the arithmetic and the reason why
+ * the defaults are shaped the way they are.
  */
 
 export type PathItem = {
@@ -29,6 +39,16 @@ export type PathItem = {
 	effort: Effort;
 	/** Why this one is here, in the community's own terms. */
 	reason: string;
+	/**
+	 * The four inputs, kept separate rather than collapsed into the rank.
+	 *
+	 * A community that disagrees with an ordering needs to know *which* input it
+	 * is disagreeing with: "this is high because your risk profile says you hold
+	 * land" is arguable, and "this is high" is not.
+	 */
+	contributions: Contributions;
+	/** The weighted sum these produced. Shown as reasons, never as a number. */
+	score: number;
 	/** The clause a new discussion about this should be filed against. */
 	clauseKey: string | null;
 	/** An open discussion already exists for it. */
@@ -51,7 +71,10 @@ export function effortLabel(effort: Effort): string {
  * Only *authored* sections appear: a Ratification Record is not work, and
  * putting one in a community's queue is the busywork docs/12 removed.
  */
-export function path(ctx: Ctx, options: { db?: Db; limit?: number } = {}): PathItem[] {
+export function path(
+	ctx: Ctx,
+	options: { db?: Db; limit?: number; weights?: Weights } = {}
+): PathItem[] {
 	requirePermission(ctx, 'community.read');
 	const db = options.db ?? getDb();
 
@@ -84,6 +107,16 @@ export function path(ctx: Ctx, options: { db?: Db; limit?: number } = {}): PathI
 		clausesByOwner.set(clause.owner, [...(clausesByOwner.get(clause.owner) ?? []), clause.key]);
 	}
 
+	const weights = options.weights ?? activeWeights(db, ctx.community.id);
+	const inputs = gatherInputs(
+		db,
+		ctx.community.id,
+		standard.view,
+		answered,
+		weights,
+		getRiskProfile(ctx, { db })
+	);
+
 	const items = standard.view
 		.authoredSections()
 		.filter((section) => !answered.has(section.key))
@@ -91,6 +124,13 @@ export function path(ctx: Ctx, options: { db?: Db; limit?: number } = {}): PathI
 			const annotation = standard.view.annotation(section.key);
 			const artifact = standard.view.artifact(section.artifact);
 			const blocking = (annotation?.dependsOn ?? []).filter((key) => !answered.has(key));
+			const ownedClauses = clausesByOwner.get(section.key) ?? [];
+
+			const scored = score(
+				{ sectionKey: section.key, layer: artifact?.layer ?? null, blocking, ownedClauses },
+				inputs,
+				standard.view
+			);
 
 			return {
 				sectionKey: section.key,
@@ -100,42 +140,23 @@ export function path(ctx: Ctx, options: { db?: Db; limit?: number } = {}): PathI
 					annotation?.question ??
 					standard.view.localise(section.i18n, ctx.community.locale as 'en').value.title,
 				effort: annotation?.effort ?? ('one_meeting' as Effort),
-				reason: reasonFor(standard.view, blocking, artifact?.i18n.en?.title ?? section.artifact),
+				reason: reasonFrom(scored.contributions),
 				// What a "Start discussion" link should file the thread against.
-				clauseKey: clausesByOwner.get(section.key)?.[0] ?? null,
+				clauseKey: ownedClauses[0] ?? null,
 				discussionId:
-					(clausesByOwner.get(section.key) ?? [])
-						.map((key) => openThreads.get(key))
-						.find((id) => id !== undefined) ?? null,
-				blocking: blocking.length
+					ownedClauses.map((key) => openThreads.get(key)).find((id) => id !== undefined) ?? null,
+				contributions: scored.contributions,
+				score: scored.score
 			};
 		});
 
-	// Unblocked first, then by layer, then in document order. A question whose
-	// answer depends on one nobody has written yet gets answered in the dark.
-	items.sort(
-		(a, b) =>
-			a.blocking - b.blocking ||
-			(a.layer ?? 99) - (b.layer ?? 99) ||
-			a.sectionKey.localeCompare(b.sectionKey)
-	);
+	// Highest score first. The key is the only tie-break, and it is a tie-break
+	// rather than an opinion: two items the four inputs cannot separate are in
+	// the standard's own order.
+	items.sort((a, b) => b.score - a.score || a.sectionKey.localeCompare(b.sectionKey));
 
 	const { limit } = options;
-	return (limit ? items.slice(0, limit) : items).map(({ blocking: _blocking, ...item }) => item);
-}
-
-function reasonFor(
-	view: NonNullable<ReturnType<typeof activeStandardView>>['view'],
-	blocking: string[],
-	artifactTitle: string
-): string {
-	if (blocking.length === 0) return `Nothing else has to be decided first · ${artifactTitle}`;
-
-	const first = view.section(blocking[0]!);
-	const name = first ? view.localise(first.i18n, 'en').value.title : blocking[0]!;
-	return blocking.length === 1
-		? `Waiting on “${name}”`
-		: `Waiting on “${name}” and ${blocking.length - 1} more`;
+	return limit ? items.slice(0, limit) : items;
 }
 
 export type Attention = {

@@ -161,6 +161,8 @@ export type RiskProfile = typeof riskProfile.$inferSelect;
  *
  * Dependency dominates because it has to (see the column comment). The other
  * three are of a size with each other, so tuning any one of them visibly moves
- * the list rather than being swamped.
+ * the list rather than being swamped — and together they can lift an item past
+ * one layer boundary, which is what makes "because you hold land, these move
+ * up" true rather than decorative.
  */
-export const DEFAULT_WEIGHTS = { dependency: 100, severity: 10, risk: 10, attention: 8 } as const;
+export const DEFAULT_WEIGHTS = { dependency: 250, severity: 10, risk: 10, attention: 8 } as const;

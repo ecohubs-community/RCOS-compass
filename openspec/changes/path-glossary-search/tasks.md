@@ -35,13 +35,13 @@
 
 ## 4. The ordering
 
-- [ ] 4.1 The four contributions computed separately — dependency, severity, risk, attention — and kept separate on the item
-- [ ] 4.1a Severity measured as how many countable clauses a section answers (they range from one to eight). The spec's MUST-vs-SHOULD phrasing ranks nothing here: RCOS-Core 0.1 has 185 MUST, 18 MAY and no SHOULD, and the path only walks sections owning countable MUSTs
-- [ ] 4.2 The weighted sum, and the ordering it produces
-- [ ] 4.3 "Why this is here" generated from whichever contributions actually moved the item, so the sentence cannot drift from the position
-- [ ] 4.4 Defaults that reproduce P3's ordering exactly: unblocked first, then by layer. A community that changes nothing must see no change — which needs the dependency contribution to dominate the rest put together, so the defaults are deliberately unbalanced and the settings screen says why
-- [ ] 4.5 "What they already have" (UI spec §4.4): confirmed evidence drops a clause down; an adopted definition *referencing* an unwritten one raises it; an open discussion raises it, because the group has already shown it cares
-- [ ] 4.6 Tests: each input moves the order on its own and can be zeroed out; the reason names the input that actually moved the item; with defaults and no profile the order matches P3's exactly
+- [x] 4.1 The four contributions computed separately — dependency, severity, risk, attention — and kept separate on the item
+- [x] 4.1a Severity measured as how many countable clauses a section answers (they range from one to eight). The spec's MUST-vs-SHOULD phrasing ranks nothing here: RCOS-Core 0.1 has 185 MUST, 18 MAY and no SHOULD, and the path only walks sections owning countable MUSTs
+- [x] 4.2 The weighted sum, and the ordering it produces
+- [x] 4.3 "Why this is here" generated from whichever contributions actually moved the item, so the sentence cannot drift from the position
+- [x] 4.4 Defaults that reproduce P3's ordering exactly: unblocked first, then by layer. A community that changes nothing must see no change — which needs the dependency contribution to dominate the rest put together, so the defaults are deliberately unbalanced and the settings screen says why
+- [x] 4.5 "What they already have" (UI spec §4.4): confirmed evidence drops a clause down; an adopted definition *referencing* an unwritten one raises it; an open discussion raises it, because the group has already shown it cares
+- [x] 4.6 Tests: each input moves the order on its own and can be zeroed out; the reason names the input that actually moved the item; with defaults and no profile the order matches P3's exactly
 
 ## 5. Weights and overrides, as governance
 
