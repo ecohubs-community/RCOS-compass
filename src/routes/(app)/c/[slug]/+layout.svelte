@@ -40,6 +40,7 @@
 			label: 'Reference',
 			items: [
 				{ href: links.standard(slug), label: 'Standard & definitions' },
+				{ href: links.search(slug), label: 'Search' },
 				{ href: links.aiSettings(slug), label: 'AI assistance' }
 			]
 		}
@@ -78,6 +79,21 @@
 			>
 			<span class="text-fg truncate font-medium">{data.community.name}</span>
 		</div>
+
+		<!--
+			Search in the shell rather than on a page you have to find first (UI spec
+			§4.9): the moment a member wants it is while reading something else, and
+			a lookup you have to navigate to is one nobody uses mid-argument.
+		-->
+		<form method="GET" action={links.search(slug)} class="border-border border-b px-3 py-2.5">
+			<input
+				type="search"
+				name="q"
+				placeholder="Search this community"
+				aria-label="Search this community's governance"
+				class="border-border bg-raised text-fg placeholder:text-fg-muted h-8 w-full min-w-0 rounded-(--radius-control) border px-2.5 text-[13px]"
+			/>
+		</form>
 
 		<!--
 			eslint-disable svelte/no-navigation-without-resolve --

@@ -21,6 +21,7 @@ import { countUnresolved } from './objections.js';
 import { proposalToFreeze } from './discussions.js';
 import { activeStandardView, DECISION_MATRIX, isArtifactComplete } from './completeness.js';
 import { activeMemberships, notify } from './notifications.js';
+import { getSearchIndex } from '../search/index.js';
 import { indexDecision, indexDefinition } from './search.js';
 import { registerTenantService } from './registry.js';
 
@@ -618,22 +619,38 @@ export function decisionDetail(ctx: Ctx, ref: string, options: { db?: Db } = {})
  * pump?" — and not `DEC-2026-014`. So the search reads the adopted text and the
  * title, which is where the answer actually lives.
  *
- * Substring matching over one community's decisions, which is a few hundred rows
- * at most; the typeahead index in P5 replaces it without changing this signature.
+ * Delegated to the search seam rather than scanning the table. The substring
+ * scan this replaces had the failure that makes substring search feel broken:
+ * "spending" did not match "spend", and a member who typed the question the way
+ * they would say it got nothing. Ranking comes back with the hits, so the
+ * register lists the closest answer first rather than the most recent.
  */
 export function searchDecisions(ctx: Ctx, query: string, options: { db?: Db } = {}): Decision[] {
-	const all = listDecisions(ctx, options);
-	const needle = query.trim().toLowerCase();
-	if (!needle) return all;
+	requirePermission(ctx, 'community.read');
+	const db = options.db ?? getDb();
+	if (!query.trim()) return listDecisions(ctx, options);
 
-	const words = needle.split(/\s+/).filter((word) => word.length > 2);
-	return all.filter((decision) => {
-		const haystack =
-			`${decision.title} ${decision.proposalText} ${decision.rationale ?? ''}`.toLowerCase();
-		return words.length === 0
-			? haystack.includes(needle)
-			: words.some((word) => haystack.includes(word));
-	});
+	const hits = getSearchIndex(db).query(ctx.community.id, query, { kinds: ['decision'] });
+	if (hits.length === 0) return [];
+
+	const rows = db
+		.select()
+		.from(decision)
+		.where(
+			and(
+				eq(decision.communityId, ctx.community.id),
+				inArray(
+					decision.id,
+					hits.map((hit) => hit.subjectId)
+				)
+			)
+		)
+		.all();
+
+	// Back into the engine's order: `in (…)` returns rows in whatever order the
+	// query planner likes, and the ranking is the reason to have asked.
+	const byId = new Map(rows.map((row) => [row.id, row]));
+	return hits.map((hit) => byId.get(hit.subjectId)).filter((row): row is Decision => Boolean(row));
 }
 
 registerTenantService({ name: 'decisions.get', subject: 'decision', call: getDecision });

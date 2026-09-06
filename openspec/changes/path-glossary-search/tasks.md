@@ -26,12 +26,12 @@
 
 ## 3. Reverse lookup
 
-- [ ] 3.1 Tokenise, stop-word, and rank. No model, no summary, no sentence of our own — the result is citations and the member reads them
-- [ ] 3.2 Index what 0.2 decided about decision bodies, and prove the choice with the water-pump question rather than with an opinion about relevance
-- [ ] 3.3 An empty result says which words were searched for, so it does not read as a broken feature
-- [ ] 3.4 `searchDecisions` from P3 delegates to the seam rather than scanning the table
-- [ ] 3.5 Global search from anywhere in the community
-- [ ] 3.6 Tests: **the water-pump question returns the clauses and decisions that govern spending, and no prose of ours**; the same question with `AI_PROVIDER=null` behaves identically, because this was never an AI feature
+- [x] 3.1 Tokenise, stop-word, and rank. No model, no summary, no sentence of our own — the result is citations and the member reads them
+- [x] 3.2 Index what 0.2 decided about decision bodies, and prove the choice with the water-pump question rather than with an opinion about relevance
+- [x] 3.3 An empty result says which words were searched for, so it does not read as a broken feature
+- [x] 3.4 `searchDecisions` from P3 delegates to the seam rather than scanning the table
+- [x] 3.5 Global search from anywhere in the community
+- [x] 3.6 Tests: **the water-pump question returns the clauses and decisions that govern spending, and no prose of ours**; the same question with `AI_PROVIDER=null` behaves identically, because this was never an AI feature
 
 ## 4. The ordering
 
