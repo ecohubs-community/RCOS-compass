@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import type { Audience } from '../../src/lib/server/auth/audience.js';
-import { anonymousIn, asMember } from '../../src/lib/server/auth/audience.js';
+import { anonymousIn, asSignedIn } from '../../src/lib/server/auth/audience.js';
 import type { Ctx } from '../../src/lib/server/auth/guard.js';
 import { newId } from '../../src/lib/server/db/id.js';
 import { setDbForTests, type Db } from '../../src/lib/server/db/index.js';
@@ -107,7 +107,7 @@ describe('every read path knows who is asking', () => {
 			test('shows a member both', () => {
 				const seeded = path.seed(db, ctx);
 
-				const rows = path.read(asMember(ctx), db, seeded);
+				const rows = path.read(asSignedIn(ctx), db, seeded);
 
 				expect(rows.map((row) => row.id).sort()).toEqual([seeded.member, seeded.world].sort());
 			});

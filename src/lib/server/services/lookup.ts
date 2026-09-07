@@ -1,5 +1,6 @@
 import { and, eq, inArray } from 'drizzle-orm';
-import { requirePermission, type Ctx } from '../auth/guard.js';
+import { communityOf, type Reader } from '../auth/audience.js';
+import { requireRead } from '../auth/visible-to.js';
 import { getDb, type Db } from '../db/index.js';
 import { decision } from '../db/schema/decisions.js';
 import { definition } from '../db/schema/definitions.js';
@@ -9,7 +10,18 @@ import { getSearchIndex } from '../search/index.js';
 import { termsOf } from '../search/stop-words.js';
 import type { Searchable, SearchHit } from '../search/types.js';
 import type { Locale } from '../standard/types.js';
-import { activeStandardView, answeredSections } from './completeness.js';
+import { standardViewFor, answeredSections } from './completeness.js';
+import { community } from '../db/schema/tenancy.js';
+import type { Audience } from '../auth/audience.js';
+
+function localeOfCommunity(db: Db, communityId: string): Locale {
+	const row = db
+		.select({ locale: community.locale })
+		.from(community)
+		.where(eq(community.id, communityId))
+		.get();
+	return (row?.locale ?? 'en') as Locale;
+}
 import { definitionsBySection } from './definitions.js';
 
 /**
@@ -99,13 +111,22 @@ function excerptOf(body: string, terms: string[]): string {
 }
 
 /** Clauses of the adopted standard that contain the searched-for words. */
-function matchingClauses(db: Db, ctx: Ctx, terms: string[], limit: number): ClauseCitation[] {
-	const standard = activeStandardView(db, ctx);
+function matchingClauses(
+	db: Db,
+	audience: Audience,
+	terms: string[],
+	limit: number
+): ClauseCitation[] {
+	const communityId = communityOf(audience);
+	const standard = standardViewFor(db, communityId);
 	if (!standard || terms.length === 0) return [];
 
-	const locale = ctx.community.locale as Locale;
+	const locale = localeOfCommunity(db, communityId);
 	const answered = answeredSections(db, standard.row.id);
-	const definitions = definitionsBySection(ctx, { db });
+	// The clause list is the published standard and is the same for everybody.
+	// Which of them this community has *answered*, and with what, is not — so
+	// the definitions come through the filter.
+	const definitions = definitionsBySection(audience, { db });
 
 	const scored = standard.view.clauses
 		.map((clause) => {
@@ -221,11 +242,11 @@ function stillExists(db: Db, communityId: string, hits: SearchHit[]): Set<string
 }
 
 export function lookup(
-	ctx: Ctx,
+	reader: Reader,
 	question: string,
 	options: { db?: Db; limit?: number; kinds?: readonly Searchable[] } = {}
 ): Lookup {
-	requirePermission(ctx, 'community.read');
+	const audience = requireRead(reader);
 	const db = options.db ?? getDb();
 	const limit = options.limit ?? 20;
 
@@ -244,13 +265,13 @@ export function lookup(
 		return { question, terms, ignored, clauses: [], ours: [] };
 	}
 
-	const clauses = matchingClauses(db, ctx, terms, limit);
+	const clauses = matchingClauses(db, audience, terms, limit);
 
-	const hits = getSearchIndex(db).query(ctx.community.id, question, {
+	const hits = getSearchIndex(db).query(communityOf(audience), question, {
 		kinds: options.kinds,
 		limit
 	});
-	const alive = stillExists(db, ctx.community.id, hits);
+	const alive = stillExists(db, communityOf(audience), hits);
 
 	const ours = hits
 		.filter((hit) => alive.has(hit.subjectId))

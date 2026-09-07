@@ -1,6 +1,41 @@
 import type { Audience } from '../../src/lib/server/auth/audience.js';
 import type { Ctx } from '../../src/lib/server/auth/guard.js';
+import { newId } from '../../src/lib/server/db/id.js';
 import type { Db } from '../../src/lib/server/db/index.js';
+import { decision } from '../../src/lib/server/db/schema/decisions.js';
+import { document } from '../../src/lib/server/db/schema/documents.js';
+import { definition } from '../../src/lib/server/db/schema/definitions.js';
+import { getDecision, listDecisions } from '../../src/lib/server/services/decisions.js';
+import { definitionsBySection, getDefinition } from '../../src/lib/server/services/definitions.js';
+import { getDocument, listDocuments } from '../../src/lib/server/services/documents.js';
+import {
+	communityArtifact,
+	definitionVersion
+} from '../../src/lib/server/db/schema/definitions.js';
+import { getStandard } from '../../src/lib/server/standard/index.js';
+
+const view = getStandard('rcos-core', '0.1');
+import { communityStandard } from '../../src/lib/server/db/schema/tenancy.js';
+import { listLocalDefinitions } from '../../src/lib/server/services/definitions.js';
+import { listPassages } from '../../src/lib/server/services/documents.js';
+import { glossary } from '../../src/lib/server/services/glossary.js';
+import { communityOf } from '../../src/lib/server/auth/audience.js';
+
+/** Which artifact the `definitions.local` entry seeded, per community. */
+const LOCAL_ARTIFACT = new Map<string, string>();
+
+/** Two rows of one kind, one member-visible and one published. */
+function pair(
+	db: Db,
+	ctx: Ctx,
+	insert: (id: string, visibility: 'member' | 'world', n: number) => void
+) {
+	const member = newId();
+	const world = newId();
+	insert(member, 'member', 1);
+	insert(world, 'world', 2);
+	return { member, world };
+}
 
 /**
  * The read services that return rows a community owns.
@@ -32,8 +67,6 @@ export type ReadPath = {
 };
 
 /** Every service below still takes a `Ctx`, which is a member by construction. */
-const PENDING = 'takes a Ctx, and a Ctx is a member by construction';
-
 const notYetAudienceAware = (name: string) => (): never => {
 	throw new Error(
 		`${name} cannot answer an anonymous audience: it takes a Ctx, and a Ctx is a member. ` +
@@ -41,89 +74,269 @@ const notYetAudienceAware = (name: string) => (): never => {
 	);
 };
 
+/** A standard definition of each visibility, answering two different sections. */
+function seedDefinitions(db: Db, ctx: Ctx, scope: 'standard') {
+	const standardId = db.select({ id: communityStandard.id }).from(communityStandard).get()!.id;
+	const sections = ['purpose-charter.primary-purpose', 'purpose-charter.secondary-purposes'];
+	return pair(db, ctx, (id, visibility, n) =>
+		db
+			.insert(definition)
+			.values({
+				id,
+				communityId: ctx.community.id,
+				scope,
+				communityStandardId: standardId,
+				sectionKey: sections[n - 1]!,
+				provisional: false,
+				visibility,
+				createdBy: ctx.user.id,
+				createdAt: new Date(0),
+				updatedAt: new Date(0)
+			})
+			.run()
+	);
+}
+
+function seedDocuments(db: Db, ctx: Ctx) {
+	return pair(db, ctx, (id, visibility, n) =>
+		db
+			.insert(document)
+			.values({
+				id,
+				communityId: ctx.community.id,
+				filename: `bylaws-${n}.pdf`,
+				mime: 'application/pdf',
+				bytes: 10,
+				sha256: String(n).repeat(64).slice(0, 64),
+				storageKey: `k${n}`,
+				status: 'extracted',
+				statusDetail: null,
+				pagesExtracted: 1,
+				pagesTotal: 1,
+				visibility,
+				firstPublishedAt: null,
+				uploadedBy: ctx.user.id,
+				uploadedAt: new Date(0),
+				extractedAt: new Date(0)
+			})
+			.run()
+	);
+}
+
+function seedDecisions(db: Db, ctx: Ctx) {
+	return pair(db, ctx, (id, visibility, n) =>
+		db
+			.insert(decision)
+			.values({
+				id,
+				communityId: ctx.community.id,
+				seq: n,
+				ref: `DEC-2026-00${n}`,
+				title: 'Spending authority',
+				type: 'strategic',
+				layer: null,
+				mechanism: 'consent',
+				threshold: null,
+				tallyPresent: null,
+				tallyFor: null,
+				tallyAgainst: null,
+				unresolvedObjections: 0,
+				rationale: null,
+				proposalText: 'Any spend over €500 needs a consent decision.',
+				decidedAt: new Date(0),
+				reviewDueAt: null,
+				source: 'online',
+				provisional: false,
+				status: 'active',
+				supersededById: null,
+				idempotencyKey: `key-${n}`,
+				visibility,
+				firstPublishedAt: null,
+				recordedBy: ctx.user.id,
+				proposalPostId: null
+			})
+			.run()
+	);
+}
+
 export const READ_PATHS: ReadPath[] = [
 	{
-		name: 'definitions.list',
-		pending: PENDING,
-		seed: notYetAudienceAware('definitions.list'),
-		read: notYetAudienceAware('definitions.list')
+		name: 'definitions.bySection',
+		seed: (db, ctx) => seedDefinitions(db, ctx, 'standard'),
+		read: (audience, db) => [...definitionsBySection(audience, { db }).values()]
 	},
 	{
 		name: 'definitions.get',
-		pending: PENDING,
-		seed: notYetAudienceAware('definitions.get'),
-		read: notYetAudienceAware('definitions.get')
-	},
-	{
-		name: 'definitions.local',
-		pending: PENDING,
-		seed: notYetAudienceAware('definitions.local'),
-		read: notYetAudienceAware('definitions.local')
-	},
-	{
-		name: 'definitions.bySection',
-		pending: PENDING,
-		seed: notYetAudienceAware('definitions.bySection'),
-		read: notYetAudienceAware('definitions.bySection')
+		seed: (db, ctx) => seedDefinitions(db, ctx, 'standard'),
+		read: (audience, db, seeded) =>
+			[seeded.member, seeded.world].flatMap((id) => {
+				try {
+					return [getDefinition(audience, id, { db })];
+				} catch {
+					// A 404 is the right answer for something this reader may not see,
+					// so an absence here is a pass rather than an error.
+					return [];
+				}
+			})
 	},
 	{
 		name: 'decisions.list',
-		pending: PENDING,
-		seed: notYetAudienceAware('decisions.list'),
-		read: notYetAudienceAware('decisions.list')
+		seed: seedDecisions,
+		read: (audience, db) => listDecisions(audience, { db })
 	},
 	{
 		name: 'decisions.get',
-		pending: PENDING,
-		seed: notYetAudienceAware('decisions.get'),
-		read: notYetAudienceAware('decisions.get')
+		seed: seedDecisions,
+		read: (audience, db, seeded) =>
+			[seeded.member, seeded.world].flatMap((id) => {
+				try {
+					return [getDecision(audience, id, { db })];
+				} catch {
+					return [];
+				}
+			})
+	},
+	{
+		name: 'documents.list',
+		seed: seedDocuments,
+		read: (audience, db) => listDocuments(audience, { db })
+	},
+	{
+		name: 'documents.get',
+		seed: seedDocuments,
+		read: (audience, db, seeded) =>
+			[seeded.member, seeded.world].flatMap((id) => {
+				try {
+					return [getDocument(audience, id, { db })];
+				} catch {
+					return [];
+				}
+			})
+	},
+	{
+		name: 'definitions.local',
+		seed: (db, ctx) => {
+			const artifactId = newId();
+			db.insert(communityArtifact)
+				.values({
+					id: artifactId,
+					communityId: ctx.community.id,
+					title: 'Community Agreements',
+					description: null,
+					layer: null,
+					order: 0,
+					kind: 'default',
+					visibility: 'world',
+					firstPublishedAt: null,
+					createdAt: new Date(0)
+				})
+				.run();
+			LOCAL_ARTIFACT.set(ctx.community.id, artifactId);
+			return pair(db, ctx, (id, visibility) =>
+				db
+					.insert(definition)
+					.values({
+						id,
+						communityId: ctx.community.id,
+						scope: 'local',
+						attachKind: 'community_artifact',
+						attachCommunityArtifactId: artifactId,
+						provisional: false,
+						visibility,
+						createdBy: ctx.user.id,
+						createdAt: new Date(0),
+						updatedAt: new Date(0)
+					})
+					.run()
+			);
+		},
+		read: (audience, db) =>
+			listLocalDefinitions(audience, LOCAL_ARTIFACT.get(communityOf(audience))!, { db })
+	},
+	{
+		name: 'documents.passages',
+		seed: seedDocuments,
+		read: (audience, db, seeded) =>
+			[seeded.member, seeded.world].flatMap((id) => {
+				try {
+					// The passage list is authorised by its document, so a document the
+					// reader cannot see yields nothing rather than its contents.
+					listPassages(audience, id, { db });
+					return [{ id }];
+				} catch {
+					return [];
+				}
+			})
+	},
+	{
+		name: 'glossary',
+		/**
+		 * Two terms the standard says a community answers, each with an *adopted*
+		 * definition — the glossary shows adopted text and nothing else, so a
+		 * lighter seed would produce two empty columns and a test that passes
+		 * whatever the filter does.
+		 */
+		seed: (db, ctx) => {
+			const mapped = view.glossary.filter((term) => term.definedBy).slice(0, 2);
+			const standardId = db.select({ id: communityStandard.id }).from(communityStandard).get()!.id;
+			return pair(db, ctx, (id, visibility, n) => {
+				const versionId = newId();
+				db.insert(definition)
+					.values({
+						id,
+						communityId: ctx.community.id,
+						scope: 'standard',
+						communityStandardId: standardId,
+						sectionKey: mapped[n - 1]!.definedBy!,
+						adoptedVersionId: versionId,
+						provisional: false,
+						visibility,
+						createdBy: ctx.user.id,
+						createdAt: new Date(0),
+						updatedAt: new Date(0)
+					})
+					.run();
+				db.insert(definitionVersion)
+					.values({
+						id: versionId,
+						definitionId: id,
+						n: 1,
+						body: `What we decided about ${mapped[n - 1]!.key}.`,
+						plainLanguage: null,
+						type: null,
+						authorId: ctx.user.id,
+						aiAssisted: false,
+						aiTask: null,
+						linterResult: null,
+						createdAt: new Date(0),
+						adoptedAt: new Date(0),
+						decisionId: null,
+						supersedesVersionId: null
+					})
+					.run();
+			});
+		},
+		read: (audience, db) =>
+			glossary(audience, { db })
+				.filter((entry) => entry.ours)
+				.map((entry) => ({ id: entry.ours!.definitionId }))
 	},
 	{
 		name: 'decisions.search',
-		pending: PENDING,
+		pending: 'reaches the index, so it waits for group 3',
 		seed: notYetAudienceAware('decisions.search'),
 		read: notYetAudienceAware('decisions.search')
 	},
 	{
-		name: 'documents.list',
-		pending: PENDING,
-		seed: notYetAudienceAware('documents.list'),
-		read: notYetAudienceAware('documents.list')
-	},
-	{
-		name: 'documents.get',
-		pending: PENDING,
-		seed: notYetAudienceAware('documents.get'),
-		read: notYetAudienceAware('documents.get')
-	},
-	{
-		name: 'documents.passages',
-		pending: PENDING,
-		seed: notYetAudienceAware('documents.passages'),
-		read: notYetAudienceAware('documents.passages')
-	},
-	{
-		name: 'artifacts.local',
-		pending: PENDING,
-		seed: notYetAudienceAware('artifacts.local'),
-		read: notYetAudienceAware('artifacts.local')
-	},
-	{
-		name: 'glossary',
-		pending: PENDING,
-		seed: notYetAudienceAware('glossary'),
-		read: notYetAudienceAware('glossary')
+		name: 'search.query',
+		pending: 'the index does not carry visibility yet — group 3',
+		seed: notYetAudienceAware('search.query'),
+		read: notYetAudienceAware('search.query')
 	},
 	{
 		name: 'lookup',
-		pending: PENDING,
+		pending: 'reaches the index, so it waits for group 3',
 		seed: notYetAudienceAware('lookup'),
 		read: notYetAudienceAware('lookup')
-	},
-	{
-		name: 'search.query',
-		pending: PENDING,
-		seed: notYetAudienceAware('search.query'),
-		read: notYetAudienceAware('search.query')
 	}
 ];

@@ -2,6 +2,8 @@ import { randomBytes } from 'node:crypto';
 import { and, eq, isNull } from 'drizzle-orm';
 import { error } from '@sveltejs/kit';
 import { requirePermission, requireWritableCommunity, type Ctx } from '../auth/guard.js';
+import { communityOf, type Reader } from '../auth/audience.js';
+import { requireRead, visibleTo } from '../auth/visible-to.js';
 import { getDb, type Db } from '../db/index.js';
 import { newId } from '../db/id.js';
 import {
@@ -45,19 +47,28 @@ function activeStandard(db: Db, communityId: string) {
  * merely checked (docs/04-security.md §2).
  */
 export function getDefinition(
-	ctx: Ctx,
+	reader: Reader,
 	definitionId: string,
 	options: { db?: Db } = {}
 ): Definition {
-	requirePermission(ctx, 'community.read');
+	const audience = requireRead(reader);
 	const db = options.db ?? getDb();
 
 	const found = db
 		.select()
 		.from(definition)
-		.where(and(eq(definition.id, definitionId), eq(definition.communityId, ctx.community.id)))
+		.where(
+			and(
+				eq(definition.id, definitionId),
+				eq(definition.communityId, communityOf(audience)),
+				visibleTo(audience, definition.visibility)
+			)
+		)
 		.get();
 
+	// The same answer as for a definition that does not exist. Saying "you may
+	// not see this" would confirm that it does, which is the disclosure the
+	// visibility level was chosen to prevent.
 	if (!found) error(404, 'Not found');
 	return found;
 }
@@ -214,18 +225,22 @@ export function createDefinition(
 
 /** Everything hanging off one of the community's own artifacts. */
 export function listLocalDefinitions(
-	ctx: Ctx,
+	reader: Reader,
 	artifactId: string,
 	options: { db?: Db } = {}
 ): Definition[] {
-	requirePermission(ctx, 'community.read');
+	const audience = requireRead(reader);
 	const db = options.db ?? getDb();
 
 	const artifact = db
 		.select()
 		.from(communityArtifact)
 		.where(
-			and(eq(communityArtifact.id, artifactId), eq(communityArtifact.communityId, ctx.community.id))
+			and(
+				eq(communityArtifact.id, artifactId),
+				eq(communityArtifact.communityId, communityOf(audience)),
+				visibleTo(audience, communityArtifact.visibility)
+			)
 		)
 		.get();
 	if (!artifact) error(404, 'Not found');
@@ -235,8 +250,9 @@ export function listLocalDefinitions(
 		.from(definition)
 		.where(
 			and(
-				eq(definition.communityId, ctx.community.id),
-				eq(definition.attachCommunityArtifactId, artifactId)
+				eq(definition.communityId, communityOf(audience)),
+				eq(definition.attachCommunityArtifactId, artifactId),
+				visibleTo(audience, definition.visibility)
 			)
 		)
 		.all();
@@ -408,15 +424,24 @@ registerTenantService({
 });
 
 /** Every standard definition this community holds, keyed by section. */
-export function definitionsBySection(ctx: Ctx, options: { db?: Db } = {}): Map<string, Definition> {
-	requirePermission(ctx, 'community.read');
+export function definitionsBySection(
+	reader: Reader,
+	options: { db?: Db } = {}
+): Map<string, Definition> {
+	const audience = requireRead(reader);
 	const db = options.db ?? getDb();
 
 	return new Map(
 		db
 			.select()
 			.from(definition)
-			.where(and(eq(definition.communityId, ctx.community.id), eq(definition.scope, 'standard')))
+			.where(
+				and(
+					eq(definition.communityId, communityOf(audience)),
+					eq(definition.scope, 'standard'),
+					visibleTo(audience, definition.visibility)
+				)
+			)
 			.all()
 			.map((row) => [row.sectionKey!, row])
 	);

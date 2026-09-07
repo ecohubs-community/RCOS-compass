@@ -1,6 +1,8 @@
 import { and, desc, eq, inArray, isNotNull, sql } from 'drizzle-orm';
 import { error } from '@sveltejs/kit';
 import { requirePermission, requireWritableCommunity, type Ctx } from '../auth/guard.js';
+import { communityOf, type Reader } from '../auth/audience.js';
+import { requireRead, visibleTo } from '../auth/visible-to.js';
 import { getDb, type Db } from '../db/index.js';
 import { newId } from '../db/id.js';
 import {
@@ -75,40 +77,58 @@ export function formatRef(year: string, seq: number): string {
 	return `DEC-${year}-${String(seq).padStart(3, '0')}`;
 }
 
-export function getDecision(ctx: Ctx, decisionId: string, options: { db?: Db } = {}): Decision {
-	requirePermission(ctx, 'community.read');
+export function getDecision(
+	reader: Reader,
+	decisionId: string,
+	options: { db?: Db } = {}
+): Decision {
+	const audience = requireRead(reader);
 	const db = options.db ?? getDb();
 
 	const found = db
 		.select()
 		.from(decision)
-		.where(and(eq(decision.id, decisionId), eq(decision.communityId, ctx.community.id)))
+		.where(
+			and(
+				eq(decision.id, decisionId),
+				eq(decision.communityId, communityOf(audience)),
+				visibleTo(audience, decision.visibility)
+			)
+		)
 		.get();
 	if (!found) error(404, 'Not found');
 	return found;
 }
 
 /** The permalink's lookup: `/c/{slug}/d/DEC-2026-014`. */
-export function getDecisionByRef(ctx: Ctx, ref: string, options: { db?: Db } = {}): Decision {
-	requirePermission(ctx, 'community.read');
+export function getDecisionByRef(reader: Reader, ref: string, options: { db?: Db } = {}): Decision {
+	const audience = requireRead(reader);
 	const db = options.db ?? getDb();
 
 	const found = db
 		.select()
 		.from(decision)
-		.where(and(eq(decision.ref, ref), eq(decision.communityId, ctx.community.id)))
+		.where(
+			and(
+				eq(decision.ref, ref),
+				eq(decision.communityId, communityOf(audience)),
+				visibleTo(audience, decision.visibility)
+			)
+		)
 		.get();
 	if (!found) error(404, 'Not found');
 	return found;
 }
 
-export function listDecisions(ctx: Ctx, options: { db?: Db } = {}): Decision[] {
-	requirePermission(ctx, 'community.read');
+export function listDecisions(reader: Reader, options: { db?: Db } = {}): Decision[] {
+	const audience = requireRead(reader);
 	const db = options.db ?? getDb();
 	return db
 		.select()
 		.from(decision)
-		.where(eq(decision.communityId, ctx.community.id))
+		.where(
+			and(eq(decision.communityId, communityOf(audience)), visibleTo(audience, decision.visibility))
+		)
 		.orderBy(desc(decision.seq))
 		.all();
 }
@@ -625,12 +645,16 @@ export function decisionDetail(ctx: Ctx, ref: string, options: { db?: Db } = {})
  * they would say it got nothing. Ranking comes back with the hits, so the
  * register lists the closest answer first rather than the most recent.
  */
-export function searchDecisions(ctx: Ctx, query: string, options: { db?: Db } = {}): Decision[] {
-	requirePermission(ctx, 'community.read');
+export function searchDecisions(
+	reader: Reader,
+	query: string,
+	options: { db?: Db } = {}
+): Decision[] {
+	const audience = requireRead(reader);
 	const db = options.db ?? getDb();
-	if (!query.trim()) return listDecisions(ctx, options);
+	if (!query.trim()) return listDecisions(reader, options);
 
-	const hits = getSearchIndex(db).query(ctx.community.id, query, { kinds: ['decision'] });
+	const hits = getSearchIndex(db).query(communityOf(audience), query, { kinds: ['decision'] });
 	if (hits.length === 0) return [];
 
 	const rows = db
@@ -638,7 +662,8 @@ export function searchDecisions(ctx: Ctx, query: string, options: { db?: Db } = 
 		.from(decision)
 		.where(
 			and(
-				eq(decision.communityId, ctx.community.id),
+				eq(decision.communityId, communityOf(audience)),
+				visibleTo(audience, decision.visibility),
 				inArray(
 					decision.id,
 					hits.map((hit) => hit.subjectId)

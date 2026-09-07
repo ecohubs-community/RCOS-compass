@@ -1,7 +1,9 @@
 import { eq, inArray, sql, type SQL } from 'drizzle-orm';
 import type { AnySQLiteColumn } from 'drizzle-orm/sqlite-core';
-import type { Audience } from './audience.js';
-import { ctxCan } from './guard.js';
+import type { Audience, Reader } from './audience.js';
+import { toAudience } from './audience.js';
+import { ctxCan, requirePermission } from './guard.js';
+import type { Capability } from './permissions.js';
 
 /**
  * What this reader may see, as a condition inside the query.
@@ -43,3 +45,19 @@ export function visibleTo(audience: Audience, column: AnySQLiteColumn): SQL {
 
 /** Everything, for the aggregates that count what a community has. */
 export const everything = (): SQL => sql`1 = 1`;
+
+/**
+ * The permission a read needs, when there is somebody to ask it of.
+ *
+ * A member reading their own community is checked the way P1–P5 checks
+ * everything. An anonymous reader is not refused and not granted: there is no
+ * permission to hold, and `visibleTo` is the whole of what they may see. That
+ * is the point of the split — the filter is the authorisation for the public
+ * surface, so it can never be the thing somebody forgets to add after the
+ * permission check passed.
+ */
+export function requireRead(reader: Reader, capability: Capability = 'community.read'): Audience {
+	const audience = toAudience(reader);
+	if (audience.kind === 'signed_in') requirePermission(audience.ctx, capability);
+	return audience;
+}

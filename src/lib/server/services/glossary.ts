@@ -1,10 +1,22 @@
-import { inArray } from 'drizzle-orm';
-import { requirePermission, type Ctx } from '../auth/guard.js';
+import { eq, inArray } from 'drizzle-orm';
+import { communityOf, type Reader } from '../auth/audience.js';
+import { requireRead } from '../auth/visible-to.js';
 import { getDb, type Db } from '../db/index.js';
 import { definitionVersion } from '../db/schema/definitions.js';
 import type { Locale } from '../standard/types.js';
-import { activeStandardView } from './completeness.js';
+import { standardViewFor } from './completeness.js';
 import { definitionsBySection } from './definitions.js';
+import { community } from '../db/schema/tenancy.js';
+
+/** The community's own language, without needing a member context to ask. */
+function localeOfCommunity(db: Db, communityId: string): Locale {
+	const row = db
+		.select({ locale: community.locale })
+		.from(community)
+		.where(eq(community.id, communityId))
+		.get();
+	return (row?.locale ?? 'en') as Locale;
+}
 
 /**
  * The standard's vocabulary, beside the community's own. UI spec §4.8.
@@ -42,15 +54,18 @@ export type GlossaryEntry = {
 	ours: { definitionId: string; body: string; adoptedAt: number } | null;
 };
 
-export function glossary(ctx: Ctx, options: { db?: Db } = {}): GlossaryEntry[] {
-	requirePermission(ctx, 'community.read');
+export function glossary(reader: Reader, options: { db?: Db } = {}): GlossaryEntry[] {
+	const audience = requireRead(reader);
 	const db = options.db ?? getDb();
 
-	const standard = activeStandardView(db, ctx);
+	const standard = standardViewFor(db, communityOf(audience));
 	if (!standard) return [];
 
-	const locale = ctx.community.locale as Locale;
-	const bySection = definitionsBySection(ctx, { db });
+	const locale = localeOfCommunity(db, communityOf(audience));
+	// Filtered by the same helper as everything else: the community half of a
+	// term is that community's adopted text, and a reader who may not see the
+	// definition may not see it here either.
+	const bySection = definitionsBySection(audience, { db });
 
 	// One query for the adopted texts rather than one per term: 37 terms is 37
 	// round trips otherwise, on a page that is nothing but this loop.
@@ -97,9 +112,9 @@ export function glossary(ctx: Ctx, options: { db?: Db } = {}): GlossaryEntry[] {
 
 /** One term, for the panel that opens over whatever somebody was reading. */
 export function glossaryTerm(
-	ctx: Ctx,
+	reader: Reader,
 	key: string,
 	options: { db?: Db } = {}
 ): GlossaryEntry | null {
-	return glossary(ctx, options).find((entry) => entry.key === key) ?? null;
+	return glossary(reader, options).find((entry) => entry.key === key) ?? null;
 }

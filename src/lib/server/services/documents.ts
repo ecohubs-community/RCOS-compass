@@ -1,6 +1,8 @@
 import { and, desc, eq, gte, sql } from 'drizzle-orm';
 import { error } from '@sveltejs/kit';
 import { requirePermission, requireWritableCommunity, type Ctx } from '../auth/guard.js';
+import { communityOf, type Reader } from '../auth/audience.js';
+import { requireRead, visibleTo } from '../auth/visible-to.js';
 import { getDb, type Db } from '../db/index.js';
 import { newId } from '../db/id.js';
 import { getConfig } from '../config.js';
@@ -29,33 +31,47 @@ import { registerTenantService } from './registry.js';
  * addresses, and the machinery for restricting that is P6.
  */
 
-export function getDocument(ctx: Ctx, documentId: string, options: { db?: Db } = {}): Document {
-	requirePermission(ctx, 'community.read');
+export function getDocument(
+	reader: Reader,
+	documentId: string,
+	options: { db?: Db } = {}
+): Document {
+	const audience = requireRead(reader);
 	const db = options.db ?? getDb();
 
 	const found = db
 		.select()
 		.from(document)
-		.where(and(eq(document.id, documentId), eq(document.communityId, ctx.community.id)))
+		.where(
+			and(
+				eq(document.id, documentId),
+				eq(document.communityId, communityOf(audience)),
+				visibleTo(audience, document.visibility)
+			)
+		)
 		.get();
 
 	if (!found) error(404, 'Not found');
 	return found;
 }
 
-export function listDocuments(ctx: Ctx, options: { db?: Db } = {}): Document[] {
-	requirePermission(ctx, 'community.read');
+export function listDocuments(reader: Reader, options: { db?: Db } = {}): Document[] {
+	const audience = requireRead(reader);
 	const db = options.db ?? getDb();
 	return db
 		.select()
 		.from(document)
-		.where(eq(document.communityId, ctx.community.id))
+		.where(
+			and(eq(document.communityId, communityOf(audience)), visibleTo(audience, document.visibility))
+		)
 		.orderBy(desc(document.uploadedAt))
 		.all();
 }
 
-export function listPassages(ctx: Ctx, documentId: string, options: { db?: Db } = {}) {
-	getDocument(ctx, documentId, options);
+export function listPassages(reader: Reader, documentId: string, options: { db?: Db } = {}) {
+	// Authorised by the document, which already applied the filter: a passage of
+	// something you cannot see is something you cannot see.
+	getDocument(reader, documentId, options);
 	const db = options.db ?? getDb();
 	return db
 		.select()
