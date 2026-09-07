@@ -5,6 +5,7 @@ import { runExtraction } from '../documents/extract-job.js';
 import { purgeDeletedCommunities } from './purge.js';
 import { sendWeeklyDigests } from './digest.js';
 import { expireExceptions } from '../services/visibility.js';
+import { cleanUpExports, runExport, type ExportPayload } from './export-job.js';
 import { enqueue } from './queue.js';
 import type { HandlerRegistry } from './worker.js';
 
@@ -22,6 +23,8 @@ export const DIGEST_INTERVAL_MS = 7 * 24 * 60 * 60_000;
  * the wrong moment is the failure the expiry exists to prevent.
  */
 export const EXCEPTION_INTERVAL_MS = 60 * 60_000;
+/** Daily: a bundle lives a week, so an hour of slack either side is immaterial. */
+export const EXPORT_CLEANUP_MS = 24 * 60 * 60_000;
 const RATE_LIMIT_RETENTION_MS = 24 * 60 * 60_000;
 
 /**
@@ -103,6 +106,27 @@ export const handlers: HandlerRegistry = {
 	 * Idempotent by the same trick as the others: it selects only what is still
 	 * live and past its date, so a second run in the same hour finds nothing.
 	 */
+	/**
+	 * Building an export bundle. Enqueued by a steward asking for one, and not
+	 * re-armed: it is work somebody requested rather than housekeeping.
+	 */
+	'build-export': {
+		timeoutMs: 120_000,
+		run: async (payload, { db, clock }) => {
+			await runExport(db, payload as ExportPayload, clock.now());
+		}
+	},
+
+	/** Removing bundles past their date, and the rows that point at them. */
+	'clean-exports': {
+		timeoutMs: 60_000,
+		run: async (_payload, { db, clock }) => {
+			const result = await cleanUpExports(db, clock.now());
+			if (result.removed > 0) getLogger().info(result, 'expired exports removed');
+			enqueue(db, clock, { kind: 'clean-exports', runAfter: clock.now() + EXPORT_CLEANUP_MS });
+		}
+	},
+
 	'expire-exceptions': {
 		timeoutMs: 30_000,
 		run: (_payload, { db, clock }) => {

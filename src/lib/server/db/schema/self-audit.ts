@@ -34,3 +34,35 @@ export const selfAudit = sqliteTable(
 );
 
 export type SelfAudit = typeof selfAudit.$inferSelect;
+
+/**
+ * A file a job produced, that a later request will fetch.
+ *
+ * Not an `export_job` table: the queue already stores a job's kind, payload and
+ * status, and duplicating that would give one piece of work two records that
+ * can disagree. What has nowhere to live is the *file* — where it is, whose it
+ * is, and when it stops being available — which is what a download resolves and
+ * a cleanup job removes.
+ */
+export const producedFile = sqliteTable(
+	'produced_file',
+	{
+		id: text('id').primaryKey(),
+		communityId: text('community_id')
+			.notNull()
+			.references(() => community.id, { onDelete: 'cascade' }),
+		kind: text('kind', { enum: ['export'] }).notNull(),
+		/** Relative to `UPLOAD_DIR`, like every other stored file. Never client-supplied. */
+		storageKey: text('storage_key').notNull(),
+		filename: text('filename').notNull(),
+		bytes: integer('bytes').notNull(),
+		/** What the requester could see, recorded so the manifest cannot drift from it. */
+		levels: text('levels', { mode: 'json' }).notNull(),
+		requestedBy: text('requested_by').references(() => user.id, { onDelete: 'set null' }),
+		createdAt: integer('created_at', { mode: 'timestamp_ms' }).notNull(),
+		expiresAt: integer('expires_at', { mode: 'timestamp_ms' }).notNull()
+	},
+	(table) => [index('produced_file_expiry_idx').on(table.expiresAt)]
+);
+
+export type ProducedFile = typeof producedFile.$inferSelect;

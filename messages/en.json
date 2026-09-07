@@ -17,5 +17,6 @@
 	"untranslated_marker": "not yet translated",
 	"nav_transparency": "What we are not showing",
 	"nav_publishing": "Publishing",
-	"nav_audit": "Self-audit"
+	"nav_audit": "Self-audit",
+	"nav_export": "Export"
 }

@@ -65,15 +65,15 @@
 
 ## 7. Export
 
-- [ ] 7.1 The bundle: Markdown through the renderer from 5.1, the register in full, JSON for machines, and a manifest naming the standard, version, community, date and which visibility levels it contains
-- [ ] 7.2 PDF via headless Chromium against the app's own print stylesheet (`docs/00` §8). This is where Playwright becomes a runtime dependency on the server; kept as its own task so that if the memory cost bites, the bundle still ships without it
-- [ ] 7.3 A produced-file record — path, community, expiry — rather than an `export_job` table. The queue already stores a job's kind, payload and status; what has nowhere to live is the file a later request resolves and a cleanup job removes
-- [ ] 7.4 The signed link, derived from `BETTER_AUTH_SECRET` with a domain separator rather than a new required environment variable — a new required variable means every existing deployment fails to boot for a feature it may never use
-- [ ] 7.5 Scoped to one community, expiring, audit-logged when issued and when used
-- [ ] 7.6 The filter applies — a bundle contains only what its requester may see, and the manifest says which levels those were
-- [ ] 7.7 Local definitions included and labelled. Leaving them out makes the export a misrepresentation of how the community governs itself; including them unlabelled lets an outsider read a house rule as a requirement
-- [ ] 7.8 Produced files expire and are cleaned up; a job that fails part-way leaves no partial bundle and issues no link
-- [ ] 7.9 Tests: **a plain test over the produced file, with nothing serving** — "readable without the app" cannot be demonstrated by a suite whose web server is running. It unpacks the bundle and asserts its decision count and one adopted definition match the register. Separately, an altered or expired link is refused, and a restricted definition the exporter may not see is absent
+- [x] 7.1 The bundle: Markdown through the renderer from 5.1, the register in full, JSON for machines, and a manifest naming the standard, version, community, date and which visibility levels it contains
+- [x] 7.2 PDF via headless Chromium against the app's own print stylesheet (`docs/00` §8). This is where Playwright becomes a runtime dependency on the server; kept as its own task so that if the memory cost bites, the bundle still ships without it
+- [x] 7.3 A produced-file record — path, community, expiry — rather than an `export_job` table. The queue already stores a job's kind, payload and status; what has nowhere to live is the file a later request resolves and a cleanup job removes
+- [x] 7.4 The signed link, derived from `BETTER_AUTH_SECRET` with a domain separator rather than a new required environment variable — a new required variable means every existing deployment fails to boot for a feature it may never use
+- [x] 7.5 Scoped to one community, expiring, audit-logged when issued and when used
+- [x] 7.6 The filter applies — a bundle contains only what its requester may see, and the manifest says which levels those were
+- [x] 7.7 Local definitions included and labelled. Leaving them out makes the export a misrepresentation of how the community governs itself; including them unlabelled lets an outsider read a house rule as a requirement
+- [x] 7.8 Produced files expire and are cleaned up; a job that fails part-way leaves no partial bundle and issues no link
+- [x] 7.9 Tests: **a plain test over the produced file, with nothing serving** — "readable without the app" cannot be demonstrated by a suite whose web server is running. It unpacks the bundle and asserts its decision count and one adopted definition match the register. Separately, an altered or expired link is refused, and a restricted definition the exporter may not see is absent
 
 ## 8. The git mirror
 

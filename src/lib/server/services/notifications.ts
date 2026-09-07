@@ -26,11 +26,16 @@ import { registerTenantService } from './registry.js';
  */
 
 export type NotificationKind =
-	'proposal.posted' | 'consent.opened' | 'decision.frozen' | 'definition.review_due';
+	| 'proposal.posted'
+	| 'consent.opened'
+	| 'decision.frozen'
+	| 'definition.review_due'
+	/** The first notification about a *job* rather than about governance. */
+	| 'export.ready';
 
 export type NotifyInput = {
 	kind: NotificationKind;
-	subjectType: 'discussion' | 'decision' | 'definition';
+	subjectType: 'discussion' | 'decision' | 'definition' | 'export';
 	subjectId: string;
 	/** A short line. Never a definition body — that is what the link is for. */
 	summary: string;

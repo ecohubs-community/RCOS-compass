@@ -51,6 +51,7 @@ if (!config.isTest) {
 	// instance was down should stop being hidden as soon as it is up, not an
 	// hour later.
 	enqueueOnce(db, systemClock, { kind: 'expire-exceptions' });
+	enqueueOnce(db, systemClock, { kind: 'clean-exports' });
 }
 
 /**

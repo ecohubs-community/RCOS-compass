@@ -11,7 +11,19 @@ import { join, relative } from 'node:path';
 
 const root = new URL('..', import.meta.url).pathname;
 const scanRoot = join(root, 'src');
-const allowed = new Set([join(root, 'src/app.css')]);
+const allowed = new Set([
+	join(root, 'src/app.css'),
+	/**
+	 * The print stylesheet inlined into an exported PDF.
+	 *
+	 * It is not a screen. The document is generated in a background job with no
+	 * network and no stylesheet link — deliberately, so a print layout cannot
+	 * silently lose its styling because a request failed — which means it cannot
+	 * reference a CSS variable defined in `app.css`. Ink on paper is also a
+	 * different palette problem from a screen in two themes.
+	 */
+	join(root, 'src/lib/server/services/export-pdf.ts')
+]);
 const hex = /#[0-9a-fA-F]{3}(?:[0-9a-fA-F]{3})?\b/;
 
 /**
