@@ -54,6 +54,7 @@
 				{ href: links.search(slug), label: m.nav_search() },
 				{ href: links.pathSettings(slug), label: m.nav_path_settings() },
 				{ href: links.transparency(slug), label: m.nav_transparency() },
+				{ href: links.publishing(slug), label: m.nav_publishing() },
 				{ href: links.aiSettings(slug), label: m.nav_ai_settings() }
 			]
 		}

@@ -26,6 +26,7 @@ export const links = {
 	aiSettings: (slug: string) => resolve('/(app)/c/[slug]/settings/ai', { slug }),
 	pathSettings: (slug: string) => resolve('/(app)/c/[slug]/settings/path', { slug }),
 	transparency: (slug: string) => resolve('/(app)/c/[slug]/settings/transparency', { slug }),
+	publishing: (slug: string) => resolve('/(app)/c/[slug]/settings/publishing', { slug }),
 	path: (slug: string) => resolve('/(app)/c/[slug]/path', { slug }),
 	interview: (slug: string) => resolve('/(app)/c/[slug]/settings/interview', { slug }),
 	decisions: (slug: string) => resolve('/(app)/c/[slug]/decisions', { slug }),

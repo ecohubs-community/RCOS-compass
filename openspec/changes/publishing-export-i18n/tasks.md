@@ -34,12 +34,12 @@
 
 ## 4. Publishing
 
-- [ ] 4.1 The community-level switch: `public_index_enabled` already exists and defaults false. With it off every public URL is 404 regardless of what is `world`, so a community can withdraw its public presence without unpublishing eleven artifacts one at a time. Switching it on is a steward act and is recorded
-- [ ] 4.2 Publishing an artifact writes a decision record; **so does unpublishing**. Withdrawing something a community made public is as much a governance act as making it public, and a community that can do it silently has a gap in the record exactly where somebody will later ask
-- [ ] 4.3 Publishing sets `first_published_at` if unset, and unpublishing leaves it — that is what 410 reads
-- [ ] 4.4 The outward claim as its own shape: binary, gap list, standard version, last self-audit date, and **no readiness field on it**, so a public surface cannot render a percentage by accident rather than being asked not to
-- [ ] 4.5 Attribution: `roles_and_counts` unless an attendee individually consented. No community-level setting may name somebody who did not
-- [ ] 4.6 Tests: publishing and unpublishing both appear in the register; 410 for withdrawn, 404 for never-published, 404 for everything while the switch is off; a decision with no consenting attendees publishes its tally and no names; a community that sets its policy to names still cannot name a non-consenter
+- [x] 4.1 The community-level switch: `public_index_enabled` already exists and defaults false. With it off every public URL is 404 regardless of what is `world`, so a community can withdraw its public presence without unpublishing eleven artifacts one at a time. Switching it on is a steward act and is recorded
+- [x] 4.2 Publishing an artifact writes a decision record; **so does unpublishing**. Withdrawing something a community made public is as much a governance act as making it public, and a community that can do it silently has a gap in the record exactly where somebody will later ask
+- [x] 4.3 Publishing sets `first_published_at` if unset, and unpublishing leaves it — that is what 410 reads
+- [x] 4.4 The outward claim as its own shape: binary, gap list, standard version, last self-audit date, and **no readiness field on it**, so a public surface cannot render a percentage by accident rather than being asked not to
+- [x] 4.5 Attribution: `roles_and_counts` unless an attendee individually consented. No community-level setting may name somebody who did not
+- [x] 4.6 Tests: publishing and unpublishing both appear in the register; 410 for withdrawn, 404 for never-published, 404 for everything while the switch is off; a decision with no consenting attendees publishes its tally and no names; a community that sets its policy to names still cannot name a non-consenter
 
 ## 5. One renderer, then the public surface
 
