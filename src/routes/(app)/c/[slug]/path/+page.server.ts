@@ -29,7 +29,9 @@ export const load: PageServerLoad = ({ locals }) => {
 		// Whether the ordering is structural or tailored, so a community is never
 		// left assuming a list is about them when it is not.
 		hasProfile: getRiskProfile(ctx, { db }) !== null,
-		can: { manage: ctxCan(ctx, 'settings.manage') }
+		// Placing an item is publishing an order for everybody, which P1's matrix
+		// makes a steward's act.
+		can: { manage: ctxCan(ctx, 'path.publish') }
 	};
 };
 

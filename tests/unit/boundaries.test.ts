@@ -125,6 +125,25 @@ describe('the AI module writes nothing but its own log', () => {
 		expect(output).toContain('may only touch');
 	});
 
+	it('refuses the risk profile, which is about people rather than governance', () => {
+		// "Do you have children on site?" is a fact about people. The behavioural
+		// proof is in tests/integration/risk-profile.test.ts — two task inputs,
+		// with and without a profile, byte-identical — and this is the structural
+		// one: there is no import that could carry it in.
+		const output = inAiModule(
+			"import { riskProfile } from '../db/schema/path.js';\nexport const x = riskProfile;\n"
+		);
+		expect(output).toContain('may only touch');
+	});
+
+	it('refuses the risk profile from a subdirectory too', () => {
+		const output = probe(
+			'nested',
+			"import { riskProfile } from '../../db/schema/path.js';\nexport const x = riskProfile;\n"
+		);
+		expect(output).toContain('may only touch');
+	});
+
 	it('allows its own log from a subdirectory', () => {
 		const output = probe(
 			'nested',

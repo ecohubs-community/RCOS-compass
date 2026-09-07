@@ -8,7 +8,7 @@ import { discussion } from '../db/schema/discussions.js';
 import { evidence } from '../db/schema/documents.js';
 import { DEFAULT_WEIGHTS, pathOverride, pathWeights, type PathWeights } from '../db/schema/path.js';
 import type { StandardView } from '../standard/index.js';
-import { raisedSections, MAX_RAISES } from './risk-profile.js';
+import { raisedSections } from './risk-profile.js';
 
 /**
  * The ordering, as four numbers a community can see and argue with.
@@ -221,8 +221,18 @@ export function score(facts: SectionFacts, inputs: OrderingInputs, view: Standar
 	const owned = facts.ownedClauses.length;
 	const severityValue = owned / maxClauses;
 
+	/**
+	 * What the community told us about itself.
+	 *
+	 * Near full strength as soon as a single answer names a section, rather than
+	 * a fraction of the five questions. Almost no section is named by more than
+	 * one answer, so dividing by the number of questions made "because you hold
+	 * land, these move up" a claim that moved nothing anybody could see — which
+	 * is the failure the interview exists to avoid. A second answer naming the
+	 * same section makes it stronger, not four times stronger.
+	 */
 	const raises = inputs.raised.get(facts.sectionKey) ?? 0;
-	const riskValue = MAX_RAISES === 0 ? 0 : raises / MAX_RAISES;
+	const riskValue = raises === 0 ? 0 : Math.min(1, 0.5 + 0.25 * raises);
 
 	/**
 	 * What they already have. UI spec §4.4.
@@ -440,7 +450,17 @@ export function placeOverride(
 	position: number,
 	options: { db?: Db } = {}
 ): void {
-	requirePermission(ctx, 'settings.manage');
+	/**
+	 * `path.publish`, not `settings.manage` and not a member right.
+	 *
+	 * P1's matrix already decided this and said why: "any member may drag the
+	 * Path into their own order and see what it implies; only a steward publishes
+	 * that order for everyone." `path_override` is keyed by community, so every
+	 * placement here is the second of those. The private half — `path.reorder.
+	 * private` — has no storage yet and is the one capability in the matrix
+	 * nothing calls; it needs a per-member ordering, which this table is not.
+	 */
+	requirePermission(ctx, 'path.publish');
 	requireWritableCommunity(ctx);
 	if (!Number.isInteger(position) || position < 0) error(400, 'That is not a position.');
 
@@ -474,7 +494,7 @@ export function placeOverride(
 
 /** Release an item back to wherever the ordering puts it. */
 export function clearOverride(ctx: Ctx, sectionKey: string, options: { db?: Db } = {}): void {
-	requirePermission(ctx, 'settings.manage');
+	requirePermission(ctx, 'path.publish');
 	requireWritableCommunity(ctx);
 	const db = options.db ?? getDb();
 	db.delete(pathOverride)

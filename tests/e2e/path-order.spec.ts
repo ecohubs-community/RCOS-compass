@@ -71,4 +71,43 @@ test.describe('the path a community can argue with', () => {
 		await expect(page.getByRole('heading', { name: 'What it was before' })).toBeVisible();
 		await expect(page.getByRole('heading', { name: 'What that produces' })).toBeVisible();
 	});
+	test('the interview says what each answer will do, before it is answered', async ({ page }) => {
+		test.slow();
+		const fixture = await seed(page);
+		await signIn(page, fixture.email, fixture.password);
+		await visit(page, `/c/${fixture.slug}/path`);
+
+		await page.getByRole('link', { name: 'Answer them' }).click();
+
+		// The consequence is on the page beside the option, not after the answer.
+		// An interview that reorders a community's work without saying so feels
+		// like it was the community's own choice.
+		await expect(page.getByText('Do you hold land or buildings together?')).toBeVisible();
+		await expect(page.getByText('Moves up:').first()).toBeVisible();
+
+		await page
+			.getByRole('group', { name: 'Do you hold money together?' })
+			.getByLabel('Yes', { exact: true })
+			.check();
+		await page.getByRole('button', { name: 'Save' }).click();
+
+		await expect(page.getByText('Saved.')).toBeVisible();
+
+		// Answering it removes the "this is not tailored to you" notice.
+		await visit(page, `/c/${fixture.slug}/path`);
+		await expect(page.getByText('This order is structural')).toBeHidden();
+		await expect(page.getByText('Ordered for this community')).toBeVisible();
+	});
+
+	test('is skippable, and says so', async ({ page }) => {
+		test.slow();
+		const fixture = await seed(page);
+		await signIn(page, fixture.email, fixture.password);
+		await visit(page, `/c/${fixture.slug}/settings/interview`);
+
+		// Every question can be left unanswered, and nothing forces the screen.
+		await expect(page.getByLabel('Skip this one')).toHaveCount(5);
+		await visit(page, `/c/${fixture.slug}/path`);
+		await expect(page.getByRole('listitem').first()).toBeVisible();
+	});
 });

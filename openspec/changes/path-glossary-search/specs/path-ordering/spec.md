@@ -68,21 +68,32 @@ contributions that placed it. It MUST NOT be written or stored separately.
 
 ### Requirement: A community may overrule the ordering, and see what it overruled
 
-A member MUST be able to place an item by hand, and the override MUST survive
+A steward MUST be able to place an item by hand, and the override MUST survive
 re-computation. The item MUST continue to show where the ordering would have put
 it.
 
-#### Scenario: A member drags an item to the top
+The first draft of this requirement said *a member*, which contradicts the
+permission matrix P1 already settled: `path.reorder.private` is a member's own
+view of the order, `path.publish` is putting an order in front of everybody, and
+`path_override` is keyed by community rather than by member — so every placement
+it can store is the second kind. A per-member ordering would need a column this
+table does not have, and is not part of this change.
+
+#### Scenario: A steward drags an item to the top
 - **WHEN** an item is moved by hand
 - **THEN** it stays there when the path is recomputed
 - **AND** it shows both its placed position and its computed one
 
+#### Scenario: A member tries to move one
+- **WHEN** a member without `path.publish` places an item
+- **THEN** it is refused and the ordering is unchanged
+
 #### Scenario: An override is removed
-- **WHEN** a member clears an override
+- **WHEN** a steward clears an override
 - **THEN** the item returns to its computed position
 
 #### Scenario: Another community's path
-- **WHEN** a member of one community overrides an item
+- **WHEN** a steward of one community overrides an item
 - **THEN** no other community's ordering changes
 
 ### Requirement: A community that changes nothing gets the previous behaviour

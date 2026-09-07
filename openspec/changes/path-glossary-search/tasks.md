@@ -39,7 +39,7 @@
 - [x] 4.1a Severity measured as how many countable clauses a section answers (they range from one to eight). The spec's MUST-vs-SHOULD phrasing ranks nothing here: RCOS-Core 0.1 has 185 MUST, 18 MAY and no SHOULD, and the path only walks sections owning countable MUSTs
 - [x] 4.2 The weighted sum, and the ordering it produces
 - [x] 4.3 "Why this is here" generated from whichever contributions actually moved the item, so the sentence cannot drift from the position
-- [x] 4.4 Defaults that reproduce P3's ordering exactly: unblocked first, then by layer. A community that changes nothing must see no change — which needs the dependency contribution to dominate the rest put together, so the defaults are deliberately unbalanced and the settings screen says why
+- [x] 4.4 Defaults that reproduce P3's ordering exactly: by how many questions are in the way, then by layer. A community that changes nothing must see no change — which needs the dependency contribution's *layer step* to outweigh everything a day-one community scores, so the defaults are deliberately unbalanced (250 against 10) and the settings screen says why. See `design.md` §4a, corrected once the arithmetic was done
 - [x] 4.5 "What they already have" (UI spec §4.4): confirmed evidence drops a clause down; an adopted definition *referencing* an unwritten one raises it; an open discussion raises it, because the group has already shown it cares
 - [x] 4.6 Tests: each input moves the order on its own and can be zeroed out; the reason names the input that actually moved the item; with defaults and no profile the order matches P3's exactly
 
@@ -53,10 +53,10 @@
 
 ## 6. The risk profile
 
-- [ ] 6.1 The interview, from the questions decided in 0.2 — each stating which requirements it moves and why, at the moment it is answered
-- [ ] 6.2 Skippable, with the path screen saying plainly that the ordering is structural rather than tailored, and offering the interview
-- [ ] 6.3 Editable later; changing it changes the order and nothing else
-- [ ] 6.4 Tests: an answer moves what it said it would move; readiness and compliance are untouched by any answer; **no risk-profile answer reaches an AI task's input, a public surface, or another community**
+- [x] 6.1 The interview, from the questions decided in 0.2 — each stating which requirements it moves and why, at the moment it is answered
+- [x] 6.2 Skippable, with the path screen saying plainly that the ordering is structural rather than tailored, and offering the interview
+- [x] 6.3 Editable later; changing it changes the order and nothing else
+- [x] 6.4 Tests: an answer moves what it said it would move; readiness and compliance are untouched by any answer; **no risk-profile answer reaches an AI task's input, a public surface, or another community**
 
 ## 7. Glossary
 

@@ -6,10 +6,18 @@ Each question MUST state which parts of the standard the answer moves, and why,
 at the moment it is answered. An interview that reorders a community's work
 without saying so MUST NOT ship.
 
+The profile is a settings object: answering it reorders the path for everybody,
+so recording an answer requires `settings.manage`. Every member reads it and
+sees what it did.
+
 #### Scenario: A community says it holds land
-- **WHEN** a member answers that the community holds land
+- **WHEN** a steward answers that the community holds land
 - **THEN** they are told which requirements this moves up, and why
 - **AND** the path reflects it
+
+#### Scenario: A member tries to answer
+- **WHEN** a member without `settings.manage` records an answer
+- **THEN** it is refused and the ordering is unchanged
 
 #### Scenario: Every question earns its place
 - **WHEN** the interview's questions are enumerated

@@ -103,16 +103,37 @@ the community's own choice.
 
 ### 4a. The default weights have to reproduce a lexicographic sort
 
-P3 orders by unblocked-first, then layer, then document order — a lexicographic
-comparator. A weighted sum reproduces that only if the dependency contribution
-dominates every other term put together, so the defaults are not four balanced
-numbers: dependency is an order of magnitude above the rest, and the settings
-screen says so.
+P3 orders by how many questions are in the way, then by layer, then by document
+order — a lexicographic comparator. A weighted sum reproduces that only for a
+particular shape of default, so the four numbers are deliberately unbalanced and
+the settings screen says so.
+
+**The binding constraint is the layer step, not the total.** Stating it as
+"dependency dominates the rest put together" was the version of this written
+before the arithmetic was done, and it is too weak. Encoding a lexicographic key
+in one contribution in `[0, 1]` makes the *smallest* structural difference — one
+layer — worth `dependency ÷ positions`, where `positions` is
+`(maxBlockers + 1) × layers − 1`. That step has to outweigh everything a day-one
+community scores, which is severity alone: with no risk profile and nothing
+decided, risk and attention are zero.
+
+RCOS-Core 0.1 has seven layers and at most two blockers, so twenty positions and
+a step of `dependency ÷ 20`. Against a severity weight of 10 the dependency
+weight has to exceed 200; it is **250**. That is twenty-five times the others,
+not the "order of magnitude" first assumed.
 
 *Why it matters that this is written down:* "a community that changes nothing
 sees no change" is a requirement, and it is only satisfiable for a particular
 shape of default. Someone tuning the defaults to look tidier would break it
-silently.
+silently — and so would a standard with more layers or deeper dependencies,
+which is why `defaultsPreserveStructure()` computes the requirement from the
+loaded standard rather than trusting this paragraph.
+
+*What the other three still do:* together they can lift an item past one layer
+boundary, which is what makes "because you hold land, these move up" true rather
+than decorative. Across more than one layer, structure wins — the standard's
+layering is a real claim about what has to be decided first, and a fact about a
+community is not a reason to answer Layer 3 before Layer 0.
 
 ### 5. `SearchIndex` is an interface with one implementation
 

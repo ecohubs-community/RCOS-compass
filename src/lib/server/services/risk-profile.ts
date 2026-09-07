@@ -3,6 +3,7 @@ import { requirePermission, requireWritableCommunity, type Ctx } from '../auth/g
 import { getDb, type Db } from '../db/index.js';
 import { riskProfile, type Meets, type RiskProfile } from '../db/schema/path.js';
 import type { StandardView } from '../standard/index.js';
+import type { Locale } from '../standard/types.js';
 
 /**
  * What a community told us about itself, and what each answer moves.
@@ -172,14 +173,33 @@ export function raisedSections(profile: RiskProfile | null): Map<string, number>
 	return raised;
 }
 
-/** The most answers any single section could collect. The risk denominator. */
-export const MAX_RAISES = RISK_QUESTIONS.reduce((total, question) => {
-	const counts = new Map<string, number>();
-	for (const answer of question.answers) {
-		for (const key of answer.raises) counts.set(key, 1);
-	}
-	return total + (counts.size > 0 ? 1 : 0);
-}, 0);
+/**
+ * Each question with the sections its answers move, named the way a member
+ * reads them.
+ *
+ * The interview has to say what an answer will do *at the moment it is
+ * answered* — an interview that silently reorders a list is a worse kind of
+ * hidden logic than a scoring function, because it feels like it was the
+ * community's own choice. So the consequences are resolved here from the same
+ * mapping the ordering uses; there is no second list to fall out of step.
+ */
+export function interview(view: StandardView, locale = 'en' as Locale) {
+	const title = (key: string) => {
+		const section = view.section(key);
+		return section ? view.localise(section.i18n, locale).value.title : key;
+	};
+
+	return RISK_QUESTIONS.map((question) => ({
+		id: question.id,
+		question: question.question,
+		answers: question.answers.map((answer) => ({
+			value: answer.value,
+			label: answer.label,
+			/** The exact sections this raises. Empty is a real answer, not a gap. */
+			moves: answer.raises.map((key) => ({ key, title: title(key) }))
+		}))
+	}));
+}
 
 export function getRiskProfile(ctx: Ctx, options: { db?: Db } = {}): RiskProfile | null {
 	requirePermission(ctx, 'community.read');
