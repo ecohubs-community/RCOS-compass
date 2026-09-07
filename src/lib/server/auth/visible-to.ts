@@ -26,6 +26,7 @@ import type { Visibility } from '../db/schema/visibility.js';
  */
 export function visibleTo(audience: Audience, column: AnySQLiteColumn): SQL {
 	if (audience.kind === 'anonymous') return eq(column, 'world');
+	if (audience.kind === 'scoped') return inArray(column, [...audience.levels]);
 
 	const levels: string[] = ['member', 'world'];
 	/**
@@ -75,6 +76,7 @@ export function requireRead(reader: Reader, capability: Capability = 'community.
  */
 export function visibleLevels(audience: Audience): Visibility[] {
 	if (audience.kind === 'anonymous') return ['world'];
+	if (audience.kind === 'scoped') return [...audience.levels];
 	const levels: Visibility[] = ['member', 'world'];
 	if (ctxCan(audience.ctx, 'exception.read')) levels.push('restricted');
 	return levels;

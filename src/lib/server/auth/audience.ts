@@ -1,3 +1,4 @@
+import type { Visibility } from '../db/schema/visibility.js';
 import type { Ctx } from './guard.js';
 
 /**
@@ -15,12 +16,33 @@ import type { Ctx } from './guard.js';
  * community id and nothing else: there is no user in it to borrow, and no shape
  * a permission check would accept.
  */
-export type Audience = { kind: 'anonymous'; communityId: string } | { kind: 'signed_in'; ctx: Ctx };
+export type Audience =
+	| { kind: 'anonymous'; communityId: string }
+	| { kind: 'signed_in'; ctx: Ctx }
+	/**
+	 * A background job rendering on a community's behalf, with the levels it may
+	 * include stated rather than derived from somebody's role.
+	 *
+	 * The git mirror needs this. It runs from a steward's freeze, and rendering
+	 * as that steward would carry restricted content into a repository that may
+	 * be public — so the first version narrowed the `Ctx` by rewriting its role,
+	 * which is the doctored-context shape this whole type exists to prevent, only
+	 * pointing the safe way. A job that means "member-visible and world-visible"
+	 * should say so.
+	 */
+	| { kind: 'scoped'; communityId: string; levels: readonly Visibility[] };
 
 /** The community being read, whoever is reading. */
 export function communityOf(audience: Audience): string {
-	return audience.kind === 'anonymous' ? audience.communityId : audience.ctx.community.id;
+	return audience.kind === 'signed_in' ? audience.ctx.community.id : audience.communityId;
 }
+
+/** A job rendering with an explicit set of levels and nobody's permissions. */
+export const scopedTo = (communityId: string, levels: readonly Visibility[]): Audience => ({
+	kind: 'scoped',
+	communityId,
+	levels
+});
 
 /**
  * Somebody signed in, reading their own community — what P1–P5 assumed.

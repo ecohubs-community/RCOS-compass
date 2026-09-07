@@ -59,6 +59,7 @@
 				{ href: links.transparency(slug), label: m.nav_transparency() },
 				{ href: links.publishing(slug), label: m.nav_publishing() },
 				{ href: links.exportSettings(slug), label: m.nav_export() },
+				{ href: links.mirror(slug), label: m.nav_mirror() },
 				{ href: links.aiSettings(slug), label: m.nav_ai_settings() }
 			]
 		}

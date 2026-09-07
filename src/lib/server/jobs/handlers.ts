@@ -6,6 +6,7 @@ import { purgeDeletedCommunities } from './purge.js';
 import { sendWeeklyDigests } from './digest.js';
 import { expireExceptions } from '../services/visibility.js';
 import { cleanUpExports, runExport, type ExportPayload } from './export-job.js';
+import { runMirror, type MirrorPayload } from './mirror-job.js';
 import { enqueue } from './queue.js';
 import type { HandlerRegistry } from './worker.js';
 
@@ -124,6 +125,18 @@ export const handlers: HandlerRegistry = {
 			const result = await cleanUpExports(db, clock.now());
 			if (result.removed > 0) getLogger().info(result, 'expired exports removed');
 			enqueue(db, clock, { kind: 'clean-exports', runAfter: clock.now() + EXPORT_CLEANUP_MS });
+		}
+	},
+
+	/**
+	 * Mirroring a community's state after a freeze. Retried with backoff by the
+	 * queue like any other job, because a remote that is briefly unreachable is
+	 * the ordinary case rather than an error.
+	 */
+	'mirror-commit': {
+		timeoutMs: 120_000,
+		run: async (payload, { db, clock }) => {
+			await runMirror(db, payload as MirrorPayload, clock.now());
 		}
 	},
 

@@ -1,7 +1,9 @@
 import { fail, redirect } from '@sveltejs/kit';
 import { randomUUID } from 'node:crypto';
 import { ctxCan } from '$lib/server/auth/guard';
+import { systemClock } from '$lib/server/clock';
 import { getDb } from '$lib/server/db';
+import { enqueue } from '$lib/server/jobs/queue';
 import { freeze } from '$lib/server/services/decisions';
 import {
 	addMessage,
@@ -254,6 +256,23 @@ export const actions: Actions = {
 		);
 
 		if ('status' in outcome) return outcome;
-		redirect(303, `/c/${event.params.slug}/d/${(outcome.result as { ref: string }).ref}`);
+
+		/**
+		 * The mirror, after the freeze transaction has committed and never inside
+		 * it (`docs/00` §9). A repository that is briefly behind is fine; a
+		 * decision that failed to record because a git remote was unreachable is
+		 * not.
+		 */
+		const recorded = outcome.result as { ref: string; title: string };
+		enqueue(getDb(), systemClock, {
+			kind: 'mirror-commit',
+			payload: {
+				communityId: event.locals.ctx!.community.id,
+				actorName: event.locals.ctx!.user.name,
+				subject: `${recorded.ref} — ${recorded.title}`
+			}
+		});
+
+		redirect(303, `/c/${event.params.slug}/d/${recorded.ref}`);
 	}
 };

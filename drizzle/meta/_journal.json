@@ -99,6 +99,13 @@
       "when": 1788819600905,
       "tag": "0013_thick_reptil",
       "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "6",
+      "when": 1788820851877,
+      "tag": "0014_unknown_korvac",
+      "breakpoints": true
     }
   ]
 }

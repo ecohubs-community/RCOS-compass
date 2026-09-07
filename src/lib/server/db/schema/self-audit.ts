@@ -66,3 +66,36 @@ export const producedFile = sqliteTable(
 );
 
 export type ProducedFile = typeof producedFile.$inferSelect;
+
+/**
+ * Where a community mirrors its history, when it has chosen somewhere.
+ *
+ * Not a `mirror_settings` table: `git_mirror_enabled` already sits on
+ * `community`, and a second switch could disagree with the first. What has
+ * nowhere to live is the remote itself — its URL, its sealed credential and how
+ * the last push went.
+ */
+export const mirrorRemote = sqliteTable('mirror_remote', {
+	communityId: text('community_id')
+		.primaryKey()
+		.references(() => community.id, { onDelete: 'cascade' }),
+	url: text('url').notNull(),
+	/** AES-GCM, keyed from the instance secret. Never readable through the UI. */
+	credential: text('credential', { mode: 'json' }).notNull(),
+	/** Which key generation sealed it, so a rotation is reported not silent. */
+	credentialGeneration: integer('credential_generation').notNull(),
+	/**
+	 * Whether restricted content goes to the remote.
+	 *
+	 * Off by default and switched on explicitly: a remote may be a public
+	 * repository, and pushing is publishing.
+	 */
+	includeRestricted: integer('include_restricted', { mode: 'boolean' }).notNull().default(false),
+	lastPushedAt: integer('last_pushed_at', { mode: 'timestamp_ms' }),
+	/** In words a steward can act on, and never containing the credential. */
+	lastError: text('last_error'),
+	updatedBy: text('updated_by').references(() => user.id, { onDelete: 'set null' }),
+	updatedAt: integer('updated_at', { mode: 'timestamp_ms' }).notNull()
+});
+
+export type MirrorRemote = typeof mirrorRemote.$inferSelect;

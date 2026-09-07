@@ -29,6 +29,7 @@ export const links = {
 	publishing: (slug: string) => resolve('/(app)/c/[slug]/settings/publishing', { slug }),
 	audit: (slug: string) => resolve('/(app)/c/[slug]/audit', { slug }),
 	exportSettings: (slug: string) => resolve('/(app)/c/[slug]/settings/export', { slug }),
+	mirror: (slug: string) => resolve('/(app)/c/[slug]/settings/mirror', { slug }),
 	path: (slug: string) => resolve('/(app)/c/[slug]/path', { slug }),
 	interview: (slug: string) => resolve('/(app)/c/[slug]/settings/interview', { slug }),
 	decisions: (slug: string) => resolve('/(app)/c/[slug]/decisions', { slug }),

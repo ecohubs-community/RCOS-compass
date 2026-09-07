@@ -16,5 +16,6 @@
 	"nav_transparency": "Was wir nicht zeigen",
 	"nav_publishing": "Veröffentlichen",
 	"nav_audit": "Selbstprüfung",
-	"nav_export": "Export"
+	"nav_export": "Export",
+	"nav_mirror": "Git-Spiegel"
 }

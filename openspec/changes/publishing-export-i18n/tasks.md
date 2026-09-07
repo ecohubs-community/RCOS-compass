@@ -77,15 +77,15 @@
 
 ## 8. The git mirror
 
-- [ ] 8.1 A local bare repository per community, created without anybody configuring anything — the durability promise has to reach the community that has never heard of GitHub and the one that does not trust it
-- [ ] 8.2 The post-freeze job renders through 5.1 and commits. **After the transaction commits, never inside it**: a failing mirror must not block, delay or roll back governance
-- [ ] 8.3 Download as a git bundle, which clones and shows one commit per decision
-- [ ] 8.4 Optional remote: a steward links any git remote and the same commits are pushed there. Linking changes where history is copied to and nothing about what is in it
-- [ ] 8.5 A `mirror_remote` row holding the URL, the encrypted credential, the key generation that encrypted it and the last push's outcome — not a `mirror_settings` table, because `git_mirror_enabled` already exists on `community` and duplicating it would give a community two switches that can disagree
-- [ ] 8.6 The credential encrypted with a key derived from `BETTER_AUTH_SECRET`, write-only from the interface, absent from every log line, error body, export, dead-letter record and the admin console. Revocation is deleting the row, which stops pushes and keeps every commit. A rotated secret re-encrypts or reports that re-entry is needed — it must not silently become a value that fails as an authentication error
-- [ ] 8.7 Retry with backoff; a persistent failure surfaces in settings saying what failed and when, without echoing the credential
-- [ ] 8.8 The mirror obeys `visibleTo` — it is an outward path like any other. Restricted content is excluded unless the community opted in explicitly
-- [ ] 8.9 Tests: a community that configured nothing still gets commits; the bundle clones and reads with git alone; a failing push leaves the decision frozen and findable; **decryption without the secret fails** — asserting the stored bytes merely differ from the plaintext would pass for base64; restricted content is not in the commits
+- [x] 8.1 A local bare repository per community, created without anybody configuring anything — the durability promise has to reach the community that has never heard of GitHub and the one that does not trust it
+- [x] 8.2 The post-freeze job renders through 5.1 and commits. **After the transaction commits, never inside it**: a failing mirror must not block, delay or roll back governance
+- [x] 8.3 Download as a git bundle, which clones and shows one commit per decision
+- [x] 8.4 Optional remote: a steward links any git remote and the same commits are pushed there. Linking changes where history is copied to and nothing about what is in it
+- [x] 8.5 A `mirror_remote` row holding the URL, the encrypted credential, the key generation that encrypted it and the last push's outcome — not a `mirror_settings` table, because `git_mirror_enabled` already exists on `community` and duplicating it would give a community two switches that can disagree
+- [x] 8.6 The credential encrypted with a key derived from `BETTER_AUTH_SECRET`, write-only from the interface, absent from every log line, error body, export, dead-letter record and the admin console. Revocation is deleting the row, which stops pushes and keeps every commit. A rotated secret re-encrypts or reports that re-entry is needed — it must not silently become a value that fails as an authentication error
+- [x] 8.7 Retry with backoff; a persistent failure surfaces in settings saying what failed and when, without echoing the credential
+- [x] 8.8 The mirror obeys `visibleTo` — it is an outward path like any other. Restricted content is excluded unless the community opted in explicitly
+- [x] 8.9 Tests: a community that configured nothing still gets commits; the bundle clones and reads with git alone; a failing push leaves the decision frozen and findable; **decryption without the secret fails** — asserting the stored bytes merely differ from the plaintext would pass for base64; restricted content is not in the commits
 
 ## 9. i18n
 
