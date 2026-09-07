@@ -38,7 +38,10 @@
 		},
 		{
 			label: m.nav_group_agreed(),
-			items: [{ href: links.decisions(slug), label: m.nav_decisions() }]
+			items: [
+				{ href: links.decisions(slug), label: m.nav_decisions() },
+				{ href: links.audit(slug), label: m.nav_audit() }
+			]
 		},
 		{
 			/**

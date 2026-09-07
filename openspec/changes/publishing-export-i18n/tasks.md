@@ -56,12 +56,12 @@
 
 ## 6. Self-audit
 
-- [ ] 6.1 `self_audit` — immutable, with the actor, the time and the snapshot as JSON. Nothing edits or deletes one
-- [ ] 6.2 The act: computed from records only, changing no state. Readiness and compliance identical before and after, asserted rather than assumed
-- [ ] 6.3 The snapshot's contents, all of them (UI spec §4.8): compliance, missing artifacts, uncovered clauses, provisional definitions with the interim rule, definitions past review, decisions frozen over unresolved objections, live exceptions with expiries, readiness per layer — and local definitions past review, listed separately and marked as not affecting compliance
-- [ ] 6.4 The result page is member-visible, not public: it names what a community is restricting and why, which is exactly the thing an anonymous surface must not carry. The public index cites its **date** and nothing else from it
-- [ ] 6.5 Previous audits stay listed so a community sees its own trajectory; the public index says plainly when there has never been one
-- [ ] 6.6 Tests: it changes nothing; two runs on unchanged state agree; a member cannot run one; an audit still says what was true after the state moves; the snapshot is not reachable from any public route; nothing on it claims certification
+- [x] 6.1 `self_audit` — immutable, with the actor, the time and the snapshot as JSON. Nothing edits or deletes one
+- [x] 6.2 The act: computed from records only, changing no state. Readiness and compliance identical before and after, asserted rather than assumed
+- [x] 6.3 The snapshot's contents, all of them (UI spec §4.8): compliance, missing artifacts, uncovered clauses, provisional definitions with the interim rule, definitions past review, decisions frozen over unresolved objections, live exceptions with expiries, readiness per layer — and local definitions past review, listed separately and marked as not affecting compliance
+- [x] 6.4 The result page is member-visible, not public: it names what a community is restricting and why, which is exactly the thing an anonymous surface must not carry. The public index cites its **date** and nothing else from it
+- [x] 6.5 Previous audits stay listed so a community sees its own trajectory; the public index says plainly when there has never been one
+- [x] 6.6 Tests: it changes nothing; two runs on unchanged state agree; a member cannot run one; an audit still says what was true after the state moves; the snapshot is not reachable from any public route; nothing on it claims certification
 
 ## 7. Export
 
