@@ -1,5 +1,6 @@
 <script lang="ts">
 	import Markdown from '$lib/components/ui/Markdown.svelte';
+	import * as m from '$lib/paraglide/messages';
 
 	let { data } = $props();
 
@@ -34,7 +35,7 @@
 					{/if}
 				</p>
 			{:else}
-				<p class="text-fg-muted mt-2">Not yet decided by this community.</p>
+				<p class="text-fg-muted mt-2">{m.public_not_decided()}</p>
 			{/if}
 		</section>
 	{/each}
@@ -47,9 +48,9 @@
 			requirement.
 		-->
 		<section class="border-border mt-10 border-t pt-6" aria-labelledby="local">
-			<h2 id="local" class="text-section font-medium">Local additions</h2>
+			<h2 id="local" class="text-section font-medium">{m.public_local_additions()}</h2>
 			<p class="text-fg-muted text-meta mt-1">
-				Rules this community wrote for itself, which {data.artifact.standard.id} does not ask for.
+				{m.public_local_note({ standard: data.artifact.standard.id })}
 			</p>
 			{#each data.artifact.localAdditions as addition (addition.title)}
 				<article class="border-border bg-surface mt-3 rounded-(--radius-card) border p-4">

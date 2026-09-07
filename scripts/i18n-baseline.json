@@ -1,0 +1,129 @@
+{
+	"total": 241,
+	"files": [
+		{
+			"path": "src/routes/(app)/c/[slug]/discussions/[id]/+page.svelte",
+			"count": 30
+		},
+		{
+			"path": "src/routes/(app)/c/[slug]/definitions/[id]/+page.svelte",
+			"count": 16
+		},
+		{
+			"path": "src/routes/(app)/c/[slug]/decisions/+page.svelte",
+			"count": 14
+		},
+		{
+			"path": "src/routes/(app)/c/[slug]/documents/[id]/+page.svelte",
+			"count": 13
+		},
+		{
+			"path": "src/routes/(app)/c/[slug]/settings/mirror/+page.svelte",
+			"count": 13
+		},
+		{
+			"path": "src/routes/(app)/c/[slug]/settings/publishing/+page.svelte",
+			"count": 13
+		},
+		{
+			"path": "src/routes/(app)/c/[slug]/+page.svelte",
+			"count": 11
+		},
+		{
+			"path": "src/routes/(app)/c/[slug]/search/+page.svelte",
+			"count": 11
+		},
+		{
+			"path": "src/routes/(app)/c/[slug]/d/[ref]/+page.svelte",
+			"count": 10
+		},
+		{
+			"path": "src/routes/(app)/c/[slug]/settings/ai/+page.svelte",
+			"count": 10
+		},
+		{
+			"path": "src/routes/(app)/c/[slug]/settings/path/+page.svelte",
+			"count": 9
+		},
+		{
+			"path": "src/routes/(account)/account/two-factor/+page.svelte",
+			"count": 8
+		},
+		{
+			"path": "src/routes/(app)/c/[slug]/path/+page.svelte",
+			"count": 8
+		},
+		{
+			"path": "src/routes/(app)/c/[slug]/settings/interview/+page.svelte",
+			"count": 8
+		},
+		{
+			"path": "src/routes/(app)/c/[slug]/audit/+page.svelte",
+			"count": 7
+		},
+		{
+			"path": "src/routes/(app)/c/[slug]/settings/export/+page.svelte",
+			"count": 7
+		},
+		{
+			"path": "src/routes/(app)/c/[slug]/settings/transparency/+page.svelte",
+			"count": 7
+		},
+		{
+			"path": "src/routes/(account)/sign-in/two-factor/+page.svelte",
+			"count": 6
+		},
+		{
+			"path": "src/routes/(app)/c/[slug]/documents/+page.svelte",
+			"count": 6
+		},
+		{
+			"path": "src/lib/components/GlossaryPanel.svelte",
+			"count": 5
+		},
+		{
+			"path": "src/routes/(app)/c/[slug]/+layout.svelte",
+			"count": 5
+		},
+		{
+			"path": "src/routes/(app)/c/[slug]/standard/+page.svelte",
+			"count": 5
+		},
+		{
+			"path": "src/routes/(app)/c/[slug]/discussions/+page.svelte",
+			"count": 4
+		},
+		{
+			"path": "src/lib/components/ui/LinterPanel.svelte",
+			"count": 3
+		},
+		{
+			"path": "src/lib/components/GlossaryEntry.svelte",
+			"count": 2
+		},
+		{
+			"path": "src/routes/(account)/sign-in/+page.svelte",
+			"count": 2
+		},
+		{
+			"path": "src/routes/(app)/c/[slug]/glossary/+page.svelte",
+			"count": 2
+		},
+		{
+			"path": "src/routes/+error.svelte",
+			"count": 2
+		},
+		{
+			"path": "src/routes/+page.svelte",
+			"count": 2
+		},
+		{
+			"path": "src/routes/(account)/+layout.svelte",
+			"count": 1
+		},
+		{
+			"path": "src/routes/+layout.svelte",
+			"count": 1
+		}
+	]
+}

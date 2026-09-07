@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { resolve } from '$app/paths';
+	import * as m from '$lib/paraglide/messages';
 
 	let { data } = $props();
 
@@ -26,11 +27,12 @@
 		<section aria-labelledby="claim">
 			<h1 id="claim" class="text-page font-medium">
 				{#if data.claim.compliant}
-					Compliant with {data.claim.standardId}
-					{data.claim.version}
+					{m.public_compliant({ standard: data.claim.standardId, version: data.claim.version })}
 				{:else}
-					Not yet compliant with {data.claim.standardId}
-					{data.claim.version}
+					{m.public_not_compliant({
+						standard: data.claim.standardId,
+						version: data.claim.version
+					})}
 				{/if}
 			</h1>
 
@@ -39,7 +41,7 @@
 					The gap list is what makes the claim a statement about work rather
 					than a verdict. A bare "not compliant" is something nobody can act on.
 				-->
-				<p class="text-fg-secondary mt-2">Still to complete:</p>
+				<p class="text-fg-secondary mt-2">{m.public_still_to_complete()}</p>
 				<ul class="text-fg-secondary mt-1 list-inside list-disc">
 					{#each data.claim.missing as item (item.artifactKey)}
 						<li>{item.title}</li>
@@ -56,35 +58,33 @@
 			{/if}
 
 			<p class="text-fg-muted text-meta mt-3">
-				Method: self-audit ·
+				{m.public_method()} ·
 				{#if data.claim.lastAuditAt}
-					last run {day(data.claim.lastAuditAt)}
+					{m.public_last_run({ date: day(data.claim.lastAuditAt) })}
 				{:else}
-					never run
+					{m.public_never_run()}
 				{/if}
 			</p>
 		</section>
 	{/if}
 
 	<section class="mt-10" aria-labelledby="artifacts">
-		<h2 id="artifacts" class="text-section font-medium">Published governance</h2>
+		<h2 id="artifacts" class="text-section font-medium">{m.public_published_governance()}</h2>
 
 		{#if data.artifacts.length === 0}
 			<!--
 				Said plainly. A 404 would be a lie — the community exists and chose to
 				have a public page — and an empty shell reads as a broken site.
 			-->
-			<p class="text-fg-secondary mt-2">
-				This community has not published any of its governance documents yet.
-			</p>
+			<p class="text-fg-secondary mt-2">{m.public_nothing_published()}</p>
 		{:else}
 			<div class="mt-3 overflow-x-auto">
 				<table class="w-full text-left">
 					<thead class="text-fg-muted text-meta border-border border-b">
 						<tr>
-							<th class="py-2 font-normal">Artifact</th>
-							<th class="py-2 font-normal">Layer</th>
-							<th class="py-2 font-normal">Last adopted</th>
+							<th class="py-2 font-normal">{m.public_col_artifact()}</th>
+							<th class="py-2 font-normal">{m.public_col_layer()}</th>
+							<th class="py-2 font-normal">{m.public_col_last_adopted()}</th>
 						</tr>
 					</thead>
 					<tbody>
@@ -101,7 +101,7 @@
 										>
 									{:else}
 										<span class="text-fg">{artifact.title}</span>
-										<span class="text-fg-muted text-meta"> · community addition</span>
+										<span class="text-fg-muted text-meta"> · {m.public_community_addition()}</span>
 									{/if}
 								</td>
 								<td class="text-fg-secondary py-2" data-tabular>{artifact.layer ?? '—'}</td>
@@ -118,12 +118,9 @@
 
 	{#if data.standard}
 		<section class="mt-10" aria-labelledby="about">
-			<h2 id="about" class="text-section font-medium">About this page</h2>
+			<h2 id="about" class="text-section font-medium">{m.public_about_heading()}</h2>
 			<p class="text-fg-secondary mt-2">
-				This community governs itself against <strong
-					>{data.standard.id} v{data.standard.version}</strong
-				>, an open standard for community governance. What appears here is what they chose to
-				publish; their discussions, drafts and member records are private to them.
+				{m.public_about_body({ standard: data.standard.id, version: data.standard.version })}
 			</p>
 		</section>
 	{/if}

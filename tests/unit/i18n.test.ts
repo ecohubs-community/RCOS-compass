@@ -1,4 +1,7 @@
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
+import { literalsIn } from '../../scripts/check-i18n.mjs';
 import { baseLocale, isUntranslated, locales, translationCoverage } from '../../src/lib/i18n.js';
 import * as m from '../../src/lib/paraglide/messages.js';
 
@@ -61,5 +64,39 @@ describe('an untranslated string says so', () => {
 			// it promises a language the product does not speak.
 			expect(row.translated).toBeGreaterThan(0);
 		}
+	});
+});
+
+describe('the extraction that is still owed', () => {
+	it('is tracked by a ratchet rather than by memory', () => {
+		// P6 built the machinery and translated the shell and the public surface.
+		// Extracting the twenty-odd screens P1–P5 shipped is mechanical work with
+		// no design content in it, and claiming it was done would be worse than
+		// leaving the number visible.
+		const baseline = JSON.parse(
+			readFileSync(join(import.meta.dirname, '../../scripts/i18n-baseline.json'), 'utf8')
+		) as { total: number; files: { path: string; count: number }[] };
+
+		expect(baseline.total).toBeGreaterThan(0);
+		expect(baseline.files.length).toBeGreaterThan(0);
+	});
+
+	it('has nothing left in the surface the world reads', () => {
+		// The public pages are what an outsider sees, and they are small. Whatever
+		// else is still English, these are not.
+		const baseline = JSON.parse(
+			readFileSync(join(import.meta.dirname, '../../scripts/i18n-baseline.json'), 'utf8')
+		) as { files: { path: string; count: number }[] };
+
+		const publicFiles = baseline.files.filter((file) => file.path.includes('(public)'));
+		expect(publicFiles, publicFiles.map((f) => f.path).join(', ')).toEqual([]);
+	});
+
+	it('counts the same way every run, so the direction means something', () => {
+		// A heuristic that drifts would make the ratchet meaningless.
+		expect(literalsIn('<p>Hello there, friend</p>')).toHaveLength(1);
+		expect(literalsIn('<p>{m.greeting()}</p>')).toHaveLength(0);
+		expect(literalsIn('<!-- Explaining something at length -->')).toHaveLength(0);
+		expect(literalsIn('<input aria-label="Search this community" />')).toHaveLength(1);
 	});
 });

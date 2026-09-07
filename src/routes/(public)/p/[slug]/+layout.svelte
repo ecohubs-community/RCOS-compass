@@ -1,11 +1,13 @@
 <script lang="ts">
+	import * as m from '$lib/paraglide/messages';
+
 	let { data, children } = $props();
 </script>
 
 <div class="flex min-h-screen flex-col">
 	<header class="border-border bg-surface border-b px-6 py-4">
 		<p class="text-fg text-page font-medium">{data.community.name}</p>
-		<p class="text-fg-muted text-meta mt-0.5">Governance, published by the community itself</p>
+		<p class="text-fg-muted text-meta mt-0.5">{m.public_subtitle()}</p>
 	</header>
 
 	<div class="min-w-0 flex-1">
@@ -18,9 +20,6 @@
 			Saying it in the footer of every page rather than once on the index means
 			a reader who arrived at a single artifact still sees it.
 		-->
-		<p>
-			This page shows what {data.community.name} has chosen to publish. Their discussions, drafts and
-			internal records are not here.
-		</p>
+		<p>{m.public_footer({ name: data.community.name })}</p>
 	</footer>
 </div>

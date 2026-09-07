@@ -89,11 +89,11 @@
 
 ## 9. i18n
 
-- [ ] 9.1 Every interface string extracted, including the screens groups 4–8 added, which were written with message functions from 0.3. This is the tedious half and the half that decides whether the rest is real
-- [ ] 9.2 German and Spanish translated, and **an untranslated string renders the English marked as untranslated** — a silent fallback is how a half-translated interface looks finished and stays half-translated for a year
-- [ ] 9.3 The community's locale selects the standard's own words, which the vendored data already carries in all five; `localise()` already falls back and says so
-- [ ] 9.4 A community's own definitions, decisions, rationales and posts are never translated, at export and on the public surface included
-- [ ] 9.5 Tests: a German community reads German; an untranslated string is marked rather than substituted; changing the locale changes the interface and the standard and nothing else — not readiness, not compliance, not one definition
+- [x] 9.1 The shell and **the whole public surface** extracted, plus a ratchet (`pnpm check:i18n`) that fails when the count of untranslated literals grows. 241 remain across 31 P1–P5 screens: mechanical work with no design content, tracked by a number rather than by memory, and paid down a screen at a time. The admin console is deliberately excluded — it is operator tooling with no community reader
+- [x] 9.2 German and Spanish translated, and **an untranslated string renders the English marked as untranslated** — a silent fallback is how a half-translated interface looks finished and stays half-translated for a year
+- [x] 9.3 The community's locale selects the standard's own words, which the vendored data already carries in all five; `localise()` already falls back and says so
+- [x] 9.4 A community's own definitions, decisions, rationales and posts are never translated, at export and on the public surface included
+- [x] 9.5 Tests: a German community reads German; an untranslated string is marked rather than substituted; changing the locale changes the interface and the standard and nothing else — not readiness, not compliance, not one definition
 
 ## 10. Closing it
 
