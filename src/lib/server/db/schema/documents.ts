@@ -3,6 +3,7 @@ import { check, index, integer, sqliteTable, text, uniqueIndex } from 'drizzle-o
 import { user } from './auth.js';
 import { community, communityStandard } from './tenancy.js';
 import { definition } from './definitions.js';
+import { firstPublishedAt, visibility } from './visibility.js';
 
 /**
  * What a community already wrote down, before Compass existed.
@@ -56,6 +57,9 @@ export const document = sqliteTable(
 		/** Extracted, and the count the ceiling stopped at — reported, never dropped. */
 		pagesExtracted: integer('pages_extracted'),
 		pagesTotal: integer('pages_total'),
+		visibility: visibility(),
+		firstPublishedAt: firstPublishedAt(),
+
 		uploadedBy: text('uploaded_by').references(() => user.id, { onDelete: 'set null' }),
 		uploadedAt: integer('uploaded_at', { mode: 'timestamp_ms' }).notNull(),
 		extractedAt: integer('extracted_at', { mode: 'timestamp_ms' })

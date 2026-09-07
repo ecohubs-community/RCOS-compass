@@ -1,6 +1,7 @@
 import { sql } from 'drizzle-orm';
 import { check, index, integer, sqliteTable, text, uniqueIndex } from 'drizzle-orm/sqlite-core';
 import { user } from './auth.js';
+import { firstPublishedAt, visibility } from './visibility.js';
 import { community, communityStandard } from './tenancy.js';
 
 /**
@@ -33,6 +34,8 @@ export const communityArtifact = sqliteTable(
 		kind: text('kind', { enum: ['default', 'custom'] })
 			.notNull()
 			.default('custom'),
+		visibility: visibility(),
+		firstPublishedAt: firstPublishedAt(),
 		createdAt: integer('created_at', { mode: 'timestamp_ms' }).notNull()
 	},
 	(table) => [index('community_artifact_community_idx').on(table.communityId)]
@@ -77,6 +80,9 @@ export const definition = sqliteTable(
 		reviewDueAt: integer('review_due_at', { mode: 'timestamp_ms' }),
 		/** Adopted before the community had a Decision Matrix. docs/03 §7. */
 		provisional: integer('provisional', { mode: 'boolean' }).notNull().default(false),
+		visibility: visibility(),
+		firstPublishedAt: firstPublishedAt(),
+
 		createdBy: text('created_by').references(() => user.id, { onDelete: 'set null' }),
 		createdAt: integer('created_at', { mode: 'timestamp_ms' }).notNull(),
 		updatedAt: integer('updated_at', { mode: 'timestamp_ms' }).notNull()

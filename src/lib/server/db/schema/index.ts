@@ -9,3 +9,4 @@ export * from './notifications.js';
 export * from './documents.js';
 export * from './ai.js';
 export * from './path.js';
+export * from './visibility.js';

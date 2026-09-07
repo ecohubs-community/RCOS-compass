@@ -1,5 +1,6 @@
 import { index, integer, sqliteTable, text, uniqueIndex } from 'drizzle-orm/sqlite-core';
 import { user } from './auth.js';
+import { firstPublishedAt, visibility } from './visibility.js';
 import { community, membership } from './tenancy.js';
 import { post } from './discussions.js';
 
@@ -60,6 +61,9 @@ export const decision = sqliteTable(
 		 * `post.frozenDecisionId` is for.
 		 */
 		idempotencyKey: text('idempotency_key').notNull(),
+		visibility: visibility(),
+		firstPublishedAt: firstPublishedAt(),
+
 		recordedBy: text('recorded_by').references(() => user.id, { onDelete: 'set null' }),
 		proposalPostId: text('proposal_post_id').references(() => post.id, { onDelete: 'set null' })
 	},
