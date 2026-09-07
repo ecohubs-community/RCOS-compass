@@ -4,6 +4,7 @@ import { pruneRateLimits } from '../rate-limit.js';
 import { runExtraction } from '../documents/extract-job.js';
 import { purgeDeletedCommunities } from './purge.js';
 import { sendWeeklyDigests } from './digest.js';
+import { expireExceptions } from '../services/visibility.js';
 import { enqueue } from './queue.js';
 import type { HandlerRegistry } from './worker.js';
 
@@ -13,6 +14,14 @@ export const PRUNE_INTERVAL_MS = 6 * 60 * 60_000;
 export const PURGE_INTERVAL_MS = 24 * 60 * 60_000;
 /** Weekly, and re-armed by the handler rather than by a scheduler. */
 export const DIGEST_INTERVAL_MS = 7 * 24 * 60 * 60_000;
+/**
+ * Hourly, which is a great deal more often than an exception's granularity
+ * needs — they are set in days. The reason is the direction of the error: a
+ * restriction that outlives its stated end by an hour is a small broken
+ * promise, and one that outlives it by a day because the instance restarted at
+ * the wrong moment is the failure the expiry exists to prevent.
+ */
+export const EXCEPTION_INTERVAL_MS = 60 * 60_000;
 const RATE_LIMIT_RETENTION_MS = 24 * 60 * 60_000;
 
 /**
@@ -79,6 +88,30 @@ export const handlers: HandlerRegistry = {
 			const result = await sendWeeklyDigests(db, clock, getConfig().PUBLIC_APP_URL);
 			getLogger().info(result, 'weekly digest');
 			enqueue(db, clock, { kind: 'weekly-digest', runAfter: clock.now() + DIGEST_INTERVAL_MS });
+		}
+	},
+
+	/**
+	 * Ending transparency exceptions that have run out.
+	 *
+	 * The first scheduled job that changes a subject's state rather than tidying
+	 * up after one. RCOS §5.3.5 requires exceptions to be time-bounded, and a
+	 * bound nothing enforces is a sentence in a settings screen — so the job is
+	 * the enforcement, and every reversion lands in the community's change log
+	 * rather than happening quietly.
+	 *
+	 * Idempotent by the same trick as the others: it selects only what is still
+	 * live and past its date, so a second run in the same hour finds nothing.
+	 */
+	'expire-exceptions': {
+		timeoutMs: 30_000,
+		run: (_payload, { db, clock }) => {
+			const result = expireExceptions(db, clock.now());
+			if (result.expired > 0) getLogger().info(result, 'transparency exceptions expired');
+			enqueue(db, clock, {
+				kind: 'expire-exceptions',
+				runAfter: clock.now() + EXCEPTION_INTERVAL_MS
+			});
 		}
 	}
 };

@@ -53,6 +53,7 @@
 				{ href: links.glossary(slug), label: m.nav_glossary() },
 				{ href: links.search(slug), label: m.nav_search() },
 				{ href: links.pathSettings(slug), label: m.nav_path_settings() },
+				{ href: links.transparency(slug), label: m.nav_transparency() },
 				{ href: links.aiSettings(slug), label: m.nav_ai_settings() }
 			]
 		}

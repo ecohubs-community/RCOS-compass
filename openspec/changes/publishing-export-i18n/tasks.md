@@ -19,11 +19,11 @@
 
 ## 2. Exceptions that end
 
-- [ ] 2.1 The expiry job, re-arming itself the way `weekly-digest` does rather than introducing a scheduler — the queue already has that pattern and a second one is a second thing to get wrong
-- [ ] 2.2 It reverts expired subjects to `member`, writes a change-log entry for each, and is idempotent: a job that ran twice in a night must not log twice
-- [ ] 2.3 Renewal keeps both justifications readable, because "why is this still hidden" is the question an auditor asks
-- [ ] 2.4 The screen: what this community is restricting, from whom, why, who authorised it, and when each one ends
-- [ ] 2.5 Tests: an exception expires and the subject comes back; a renewed one does not; the change log says which; the job is safe to run twice
+- [x] 2.1 The expiry job, re-arming itself the way `weekly-digest` does rather than introducing a scheduler — the queue already has that pattern and a second one is a second thing to get wrong
+- [x] 2.2 It reverts expired subjects to `member`, writes a change-log entry for each, and is idempotent: a job that ran twice in a night must not log twice
+- [x] 2.3 Renewal keeps both justifications readable, because "why is this still hidden" is the question an auditor asks
+- [x] 2.4 The screen: what this community is restricting, from whom, why, who authorised it, and when each one ends
+- [x] 2.5 Tests: an exception expires and the subject comes back; a renewed one does not; the change log says which; the job is safe to run twice
 
 ## 3. The search index learns visibility
 

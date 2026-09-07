@@ -47,6 +47,10 @@ if (!config.isTest) {
 		kind: 'weekly-digest',
 		runAfter: systemClock.now() + DIGEST_INTERVAL_MS
 	});
+	// Immediately, unlike the digest: anything whose exception ran out while the
+	// instance was down should stop being hidden as soon as it is up, not an
+	// hour later.
+	enqueueOnce(db, systemClock, { kind: 'expire-exceptions' });
 }
 
 /**
