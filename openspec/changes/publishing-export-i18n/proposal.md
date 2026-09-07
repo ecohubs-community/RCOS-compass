@@ -19,17 +19,23 @@ being added to one.
 
 - **`visibility` becomes a real column and a real filter.** `member | world |
   restricted` on definitions, decisions, documents and artifacts, defaulting to
-  `member`. One `visibleTo(ctx)` helper, applied in the query on every read path —
-  lists, search indexing, AI context, exports, the mirror — with a test that
-  enumerates the read services and fails on one that does not use it.
+  `member`. One helper taking an **audience** rather than a member context —
+  because an anonymous reader has neither a user nor a membership, and a fake
+  context built to satisfy the signature would pass every permission check in the
+  product — applied in the query on every read path, with a test that enumerates
+  the row-returning read services and fails on one that does not use it.
 - **Transparency Exception becomes a first-class object** (UI spec §1.6, RCOS
   §5.3.5): what is restricted, the justification, the expiry, and the decision
   that authorised it. A nightly job expires them, reverts the subject to `member`
   and writes a change-log entry. Restriction is an auditable act with an end
   date, not a permission somebody set once.
-- **Publishing is a governance act.** Moving an artifact to `world` requires a
-  decision record. Unpublishing returns **410 Gone**, not 404 — the page existed,
-  and saying so is the honest answer to anyone holding the link.
+- **Publishing is a governance act**, and so is withdrawing. Moving an artifact
+  to `world` writes a decision record, and so does taking it back. A community
+  also has a switch of its own: with the public index off, every public URL is
+  404 whatever is world-visible, so withdrawing a public presence does not mean
+  unpublishing eleven artifacts one at a time. Unpublishing returns **410 Gone**,
+  not 404 — the page existed, and saying so is the honest answer to anyone
+  holding the link.
 - **The public artifact index** (RCOS Appendix C.6): anonymous, the binary
   compliance claim with its gap list, **never a percentage**, attribution by
   `roles_and_counts` unless an attendee consented individually. Local definitions
@@ -97,10 +103,19 @@ being added to one.
 
 ## Impact
 
-**Schema.** `visibility` on `definition`, `decision`, `document`,
-`community_artifact`; new `transparency_exception`, `self_audit`,
-`export_job`, `mirror_settings`. One migration, all additive; existing rows take
-`member`, which is the current effective behaviour.
+**Schema.** `visibility` and `first_published_at` on `definition`, `decision`,
+`document`, `community_artifact`; new `transparency_exception` (carrying the
+audience field `docs/03` §3's sketch omits), `self_audit`, a produced-file record
+and `mirror_remote`. Not an `export_job` table — the queue already stores kind,
+payload and status — and not a `mirror_settings` table, because
+`git_mirror_enabled`, `public_index_enabled` and `publish_names_policy` already
+sit on `community` and a second copy could disagree with the first. One
+migration, all additive; existing rows take `member`, which is the current
+effective behaviour.
+
+**The search index is dropped and rebuilt.** An FTS5 virtual table cannot be
+altered, so adding visibility to it is a recreate, and the deploy step becomes
+migrate → rebuild → serve with the rebuild no longer optional.
 
 **Every read service.** Adding a filter to a query that never had one is where
 this phase can silently break P1–P5 — a list that quietly returns less is not a
@@ -110,13 +125,18 @@ read paths is the guard, and it is written before the filter.
 **Routes.** A new `(public)` group, anonymous and outside the community layout —
 the first surface in the product with no `Ctx`.
 
-**Dependencies.** Paraglide (`@inlang/paraglide-js`); `isomorphic-git` or the
-`git` binary for the mirror; Playwright already present for PDF rendering
-(`docs/00` §8), moving from a dev dependency to a runtime one on the server.
+**Dependencies.** Paraglide (`@inlang/paraglide-js`), wired in first so the five
+screens this phase adds are written with message functions rather than extracted
+afterwards; `isomorphic-git` or the `git` binary for the mirror; Playwright
+already present for PDF rendering (`docs/00` §8), moving from a dev dependency to
+a runtime one on the server — kept as its own task so the bundle still ships if
+the memory cost bites.
 
-**Config.** A key for encrypting mirror credentials, a signing secret for export
-links, and their absence must fail at boot like every other required variable
-rather than silently disabling a feature.
+**Config.** No new required variables. Both the export signing key and the mirror
+credential key are derived from `BETTER_AUTH_SECRET` with distinct domain
+separators — a new required variable means every existing deployment fails to
+boot for a feature it may never use, and an optional one means a feature that
+silently does nothing.
 
 **Security.** The first anonymous read path, the first stored third-party
 credential, and the first signed URL. All three are in `docs/04` §4's "what may

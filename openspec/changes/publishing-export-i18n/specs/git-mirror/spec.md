@@ -64,9 +64,14 @@ error message, an export, a push failure report or the admin console.
 - **WHEN** the remote rejects the credential
 - **THEN** the reported failure says authentication failed and contains no part of the credential
 
-#### Scenario: The database is read directly
-- **WHEN** the stored row is inspected without the configuration key
-- **THEN** the credential is not recoverable from it
+#### Scenario: The database is read without the key
+- **WHEN** the stored row is read and decryption is attempted without the configuration secret
+- **THEN** it fails, and the credential is not recoverable from the stored bytes
+
+#### Scenario: The signing secret is rotated
+- **WHEN** the configuration secret changes
+- **THEN** a stored credential is either re-encrypted or reported as needing re-entry
+- **AND** it never silently becomes an unusable value that fails as an authentication error
 
 #### Scenario: A steward revokes it
 - **WHEN** the credential row is deleted

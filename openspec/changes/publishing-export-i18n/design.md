@@ -63,9 +63,27 @@ the interface.
 ### 1. `visibility` is a column, and the filter is in the query
 
 Four tables gain `visibility text not null default 'member'` with a CHECK, and
-one helper — `visibleTo(ctx)` — returns the drizzle condition. Every list, every
-detail read, the search index write, the AI context assembly, the export and the
-mirror take it.
+one helper returns the drizzle condition. Every list, every detail read, the
+search index write, the AI context assembly, the export and the mirror take it.
+
+**The helper cannot take a `Ctx`.** `Ctx` is `{ user, community, membership, now }`
+and an anonymous visitor has none of the first three, so `visibleTo(ctx)` — which
+is how the first draft of this document put it — is a signature the public
+surface can never satisfy. The parameter is an **audience**:
+
+```
+type Audience =
+  | { kind: 'anonymous'; communityId: string }
+  | { kind: 'member'; ctx: Ctx }
+```
+
+`visibleTo(audience)` returns `visibility = 'world'` for the first and the
+member's own set for the second. This is not a detail. The alternative anybody
+reaches for under time pressure is constructing a fake `Ctx` for the public
+loader, and a fake `Ctx` satisfies `requirePermission(ctx, 'community.read')` —
+which would hand an anonymous visitor every read path in the product. The type
+has to make that unrepresentable, which means the public loaders never build a
+`Ctx` and the services they call take an `Audience`.
 
 *Why in the query rather than after:* the same reason the tenant boundary is
 (P5, `docs/00` §5). A read that fetches everything and filters the result is one
@@ -92,9 +110,19 @@ write `restricted` without one** — the state and its justification are created
 the same transaction or neither is.
 
 The exception carries: subject, justification, `expires_at`, the authorising
-decision, and who created it. A nightly job reverts expired subjects to `member`
-and writes a change-log entry, so the community sees restriction end rather than
-discovering it silently continued.
+decision, who created it, and **who may see it**. That last field was missing
+from the data-model sketch in `docs/03` §3 and is named explicitly in UI spec
+§1.6; without it "restricted" has no defined audience and the requirement that a
+member sees restricted subjects "only if they may" is unimplementable. For the
+MVP the audience is a role — `steward` — rather than a member list: per-member
+access control is a second permission system, and RCOS §5.3.5 asks for
+justification and time-bounding, not for fine-grained ACLs.
+
+A job reverts expired subjects to `member` and writes a change-log entry, so the
+community sees restriction end rather than discovering it silently continued. It
+re-arms itself the way `weekly-digest` does rather than introducing a scheduler —
+the queue already has that pattern and a second one would be a second thing to
+get wrong.
 
 *Why an expiry is mandatory rather than optional:* RCOS §5.3.5 requires
 exceptions to be time-bounded. An optional expiry becomes a null on every row
@@ -107,10 +135,24 @@ Moving an artifact to `world` writes a decision record. It is a governance act
 (UI spec §1.6) and the register is where governance acts live; a community that
 later asks "when did we make this public, and who agreed?" gets an answer.
 
-Unpublishing sets visibility back and the public route answers **410 Gone**. Not
-404, which says the page never existed and is a lie somebody can check against
-their own bookmark; not a redirect, which pretends nothing changed. 410 says: it
-was here, it isn't now, and this community decided that.
+Unpublishing sets visibility back, **also writes a decision**, and the public
+route answers **410 Gone**. Not 404, which says the page never existed and is a
+lie somebody can check against their own bookmark; not a redirect, which pretends
+nothing changed. 410 says: it was here, it isn't now, and this community decided
+that.
+
+*Unpublishing is a decision for the same reason publishing is.* Withdrawing
+something a community made public is as much a governance act as making it
+public, and a community that can quietly unpublish has a hole in the record
+exactly where somebody will later ask a question.
+
+**410 needs a source of truth, and visibility alone is not one.** A subject back
+at `member` looks identical to one that was never published, so the route cannot
+tell the two apart from the column. The subject carries `first_published_at`,
+set once and never cleared: present means the page existed and 410 is the honest
+answer; absent means 404. Reconstructing it by scanning the register for a
+publishing decision would work and would put a query over the decision table on
+every 404 of a public route, which is the shape of thing a crawler finds first.
 
 *Trade-off:* 410 confirms the page once existed, which is a small disclosure. It
 is the right one — the alternative is lying to someone holding a link the
@@ -129,6 +171,26 @@ public page" is a rule that survives until someone adds a summary card. A field
 that does not exist in the type cannot be rendered by accident, and the test that
 crawls every public route asserting no `%` is then a second line of defence
 rather than the only one.
+
+### 4a. Two gates, not one: the community's switch and the artifact's visibility
+
+`community.public_index_enabled` already exists and already defaults to false, and
+the first draft of this proposal ignored it. It is not redundant with per-artifact
+visibility: it answers "does this community have a public presence at all",
+which is a different question from "is this artifact public". A community
+mid-way through publishing its first artifact should not acquire a public URL as
+a side effect of a visibility change.
+
+So the public route requires both — the switch on, and the subject `world` — and
+a community with the switch off answers 404 for every public URL regardless of
+what is `world`. Turning the switch on is a steward act and, like publishing, a
+recorded one.
+
+*Why not drop the switch and let visibility alone decide:* because unpublishing
+everything would then be the only way to withdraw a community's public presence,
+and "we want to stop being public for a month while we sort something out" is a
+thing communities will want that should not require unpublishing eleven
+artifacts one at a time.
 
 ### 5. Attribution is `roles_and_counts` outward until a person says otherwise
 
@@ -181,6 +243,44 @@ including them unlabelled lets an outsider read a house rule as a standard
 requirement. An auditor must be able to tell at a glance, and so must a new
 member.
 
+### 7a. One artifact renderer, three consumers
+
+The public artifact page, the export's Markdown and the mirror's commit are the
+same operation — *render this artifact, with its adopted definitions, its local
+additions and its provenance, as a document*. The first draft of this plan built
+it three times, once per group, which is how the export ends up saying something
+subtly different from the public page and both differ from what is in git.
+
+So there is one renderer producing a structured document, and three thin
+adapters: to HTML for the page, to Markdown for the bundle and the repository,
+and to the print stylesheet for the PDF. A test renders one artifact through all
+three and asserts the same facts appear in each.
+
+*Why this matters more here than usual:* the self-audit exists so a community can
+show an outsider what is true. Three renderings that disagree is precisely the
+thing an auditor would find and precisely the thing the product cannot afford to
+be caught doing.
+
+### 7b. Two derived keys, and no new required configuration
+
+The export links need signing and the mirror credential needs encrypting. Both
+could be new required environment variables — and adding a required variable
+means every existing deployment fails to boot until somebody sets it
+(`docs/00` §10), for two features they may never use.
+
+Instead both are **derived from `BETTER_AUTH_SECRET` with distinct domain
+separators**, so there is one secret to rotate and no new way for a deployment to
+be misconfigured. Rotating it invalidates outstanding export links, which is
+correct — they are short-lived — and makes stored mirror credentials
+undecryptable, which is not. So the credential row records which key generation
+encrypted it and a rotation is a re-encrypt, not a silent breakage.
+
+*Alternative considered:* separate secrets, which is better hygiene in the
+abstract. Rejected because the concrete failure it prevents is theoretical and
+the concrete failure it causes — a feature that silently does not work because a
+variable is unset, or an instance that will not boot after an upgrade — is the
+kind we have already met once in this project.
+
 ### 8. The mirror is one repository, and a remote is optional on top
 
 Every community gets a local bare repository, with no configuration and no
@@ -199,8 +299,17 @@ cannot leave the server is a backup we keep for them, which is not the promise.
 Making the local repo primary also means the push path can fail forever without
 anybody losing history.
 
-**The credential.** Encrypted at rest with a key from config, so a stolen
-database file is not a set of working tokens. Write-only from the interface: a
+**What is actually new.** `community` already carries `git_mirror_enabled`,
+`public_index_enabled` and `publish_names_policy`; a `mirror_settings` table
+would duplicate settings that exist. What has nowhere to live is the remote URL,
+the encrypted credential and the last push's outcome, so that is what the new
+table holds. Likewise there is no `export_job` table: the queue already stores a
+job's kind, payload and status, and what is missing is a record of a *produced
+file* — its path, its community, its expiry — which is the thing a later request
+resolves and a cleanup job removes.
+
+**The credential.** Encrypted at rest with a derived key (decision 7b), so a
+stolen database file is not a set of working tokens. Write-only from the interface: a
 steward enters or replaces it and can never read it back. Never in a log line, an
 error body, an export, the admin console, or a push failure message. Revocation
 is deleting the row, which stops pushes and keeps every commit.
@@ -234,18 +343,49 @@ locales for every clause, section, artifact and glossary term, and
 and discussion posts. They are what a group agreed in their own words, and a
 translated governance rule is a different rule.
 
+### 10. The public surface is rate-limited and crawlable
+
+It is the first thing in the product reachable without a session, which makes it
+the first thing a crawler, a scraper or somebody bored finds. Public routes take
+the existing per-IP limiter with their own ceiling — generous enough that a
+search engine indexing a community is not throttled, tight enough that the
+anonymous surface cannot be used to probe the app cheaply.
+
+Crawlable on purpose: UI spec §4.8 calls communities publishing their governance
+"free distribution" for RCOS, and a public index nobody can find is not
+distribution. So `robots.txt` allows the public group and disallows everything
+else, and each published community offers a sitemap. A community with the switch
+off appears nowhere.
+
 ## Risks / Trade-offs
 
 **A read path is missed and member content reaches the world** → The single
 worst outcome in the phase. Three defences, deliberately overlapping: the filter
-is in `visibleTo` and nowhere else; the enumerating test fails for a read service
+is in one helper and nowhere else; the enumerating test fails for a read service
 that does not use it; and the public crawl test asserts that no member-visible
 fixture text appears on any anonymous route. The first is the mechanism, the
 second catches an omission, the third catches a mistake in the mechanism.
 
+*The enumerating test only covers what it can.* Its shape — seed a `member` row
+and a `world` row, read as an anonymous audience, expect one back — fits services
+that return subject rows and does not fit `readiness()` or `path()`, which return
+computed numbers. Pretending otherwise would produce a registry full of entries
+asserting nothing, which is worse than a shorter registry: it would read as
+coverage. So the registry lists row-returning read services, and the aggregates
+are covered separately by asserting that what they count is what the audience
+could see.
+
 **The percentage reaches a public surface** → Structural (decision 4) plus a
 crawl assertion. Mutation-checked per `docs/06` §8a: put the percentage in the
 public view model and watch the right test fail.
+
+*The crawl assertion cannot simply be "no `%` on the page".* A community's own
+adopted text may legitimately contain one — *"a change requires 80% of members"*
+is a governance rule somebody will publish, and a test that fails on it is a test
+that gets deleted the first time it fires. The assertion is on the shape: the
+public view model has no readiness field reachable from it, and the rendered page
+matches no `\d+\s*%` adjacent to a compliance word. The structural half is the
+real defence; the crawl is the backstop.
 
 **Playwright as a runtime dependency** → A headless Chromium per export is
 megabytes of RSS and seconds of CPU. It runs in the job worker, which is already
@@ -254,13 +394,19 @@ fine because it is a job with a link. `docs/00` §8 already says revisit if the
 memory cost bites; this phase is where we find out.
 
 **A stored git token leaks** → Encrypted at rest, write-only, absent from logs
-and exports, revocable by deletion. The residual risk is a compromised server
-with the config key, at which point the token is not the worst thing lost.
+and exports, revocable by deletion. The test asserts the property that matters —
+that the stored value cannot be decrypted without the key — rather than that the
+bytes differ from the plaintext, which base64 would satisfy. The residual risk is
+a compromised server with the config secret, at which point the token is not the
+worst thing lost.
 
 **The export bundle drifts from what the app shows** → It is generated from the
-same services the screens use, not from a second query layer. The e2e spec reads
-the bundle and asserts the decision count and one adopted definition match what
-the register shows.
+same services the screens use and the same renderer (decision 7a), not from a
+second query layer. The check is a plain test over the produced file rather than
+an e2e one: "readable without the app" cannot be demonstrated by a suite whose
+web server is running. The e2e spec requests the export and follows the link; a
+separate test unpacks the artefact it produced, with nothing serving, and asserts
+the decision count and one adopted definition match the register.
 
 **Half-translated German reads worse than English** → The visible fallback is the
 mitigation and also the admission. A community that would rather see clean
@@ -278,9 +424,18 @@ it does today and no community's content becomes public by upgrading. New tables
 start empty; a community with no exception has no exception, and a community that
 never links a remote has no credential row.
 
-Deploy is migrate → rebuild search index (visibility is now indexed) → serve. The
-rebuild is the one non-obvious step: the index gained a column, and a rebuilt
-index and an incrementally-built one must agree, which P5 already tests.
+Deploy is migrate → rebuild search index → serve, and the rebuild is not
+optional here. **An FTS5 virtual table cannot be altered** — SQLite answers
+`virtual tables may not be altered` to an `ALTER TABLE … ADD COLUMN` — so
+`search_document` gaining a visibility column means dropping and recreating it,
+which empties the index. Between the migration and the rebuild every search
+returns nothing, for every community.
+
+That is survivable because the rebuild is a command that already exists and takes
+seconds, and because it is a deploy step rather than something a running instance
+does to itself. It is worth stating plainly rather than discovering: a release
+that migrates and serves without rebuilding leaves a product whose search is
+silently empty and whose tests all passed.
 
 Rollback is the migration down plus a search rebuild. Nothing in P1–P5 depends on
 any of it; every new read path degrades to "everything is member-visible", which

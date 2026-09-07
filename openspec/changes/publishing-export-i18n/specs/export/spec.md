@@ -25,9 +25,10 @@ The Markdown and JSON in an export MUST be usable with no Compass, no network
 and no database: one file per artifact, the decision register in full, and a
 manifest naming the standard and version the community was working against.
 
-#### Scenario: The bundle is opened elsewhere
-- **WHEN** the bundle is unpacked on a machine that has never run Compass
+#### Scenario: The bundle is opened with nothing serving
+- **WHEN** the bundle is unpacked and read with no Compass process running
 - **THEN** the artifacts read as documents and the register reads as a table
+- **AND** nothing in it requires a network request to make sense
 
 #### Scenario: The bundle is compared with the application
 - **WHEN** the bundle's decision count and adopted definitions are compared with what the register shows
@@ -62,6 +63,20 @@ as community additions rather than standard requirements.
 #### Scenario: An outsider reads the bundle
 - **WHEN** somebody unfamiliar with the community reads an exported artifact
 - **THEN** they can tell a standard requirement from a community addition without knowing the product
+
+### Requirement: One rendering, wherever an artifact is shown outwardly
+
+The public page, the exported Markdown, the PDF and the mirrored commit MUST be
+produced from one rendering of an artifact, not from separate implementations per
+destination. The same facts MUST appear in each.
+
+#### Scenario: The same artifact is read three ways
+- **WHEN** an artifact is rendered for the public page, the export bundle and the mirror
+- **THEN** its adopted definitions, its local additions and their labels are the same in all three
+
+#### Scenario: A rendering rule changes
+- **WHEN** how an artifact presents a local addition changes
+- **THEN** it changes in all three, because there is one place it is decided
 
 ### Requirement: A download link is signed, short-lived and audited
 

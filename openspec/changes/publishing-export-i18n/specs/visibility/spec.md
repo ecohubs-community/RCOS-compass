@@ -21,6 +21,12 @@ read path MUST apply it inside its query rather than to its results — lists,
 detail reads, search indexing, AI context assembly, exports and the git mirror
 included.
 
+The helper MUST take an audience rather than a member context, because an
+anonymous reader has no membership, no user and no community context to offer. No
+anonymous read path MUST construct a member context in order to call a service:
+a constructed context would satisfy the ordinary permission checks and grant an
+anonymous visitor every read path in the product.
+
 #### Scenario: An anonymous reader lists artifacts
 - **WHEN** a reader with no membership reads a community's artifacts
 - **THEN** only `world` artifacts are returned
@@ -40,8 +46,9 @@ included.
 ### Requirement: Restricting something requires an exception that expires
 
 `restricted` MUST NOT be settable on its own. It MUST require a transparency
-exception recording what is restricted, the justification, who authorised it, the
-decision that authorised it, and an expiry date. The expiry MUST NOT be optional.
+exception recording what is restricted, **who may see it**, the justification,
+who authorised it, the decision that authorised it, and an expiry date. The
+expiry MUST NOT be optional, and neither MUST the audience.
 
 The subject and its exception MUST be written in one transaction, so a restricted
 subject without a justification cannot exist.
@@ -49,6 +56,10 @@ subject without a justification cannot exist.
 #### Scenario: A steward restricts an artifact
 - **WHEN** an artifact is set to `restricted` with a justification, an authorising decision and an expiry
 - **THEN** both the visibility and the exception are stored
+
+#### Scenario: A restricted subject is read by someone outside its audience
+- **WHEN** a member who is not in the exception's stated audience reads it
+- **THEN** the answer is the same as for a subject that does not exist
 
 #### Scenario: A steward restricts something with no justification or no expiry
 - **WHEN** either is missing
