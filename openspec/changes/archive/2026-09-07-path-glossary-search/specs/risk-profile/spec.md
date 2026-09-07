@@ -21,8 +21,22 @@ sees what it did.
 
 #### Scenario: Every question earns its place
 - **WHEN** the interview's questions are enumerated
-- **THEN** each one has at least one answer that changes the ordering
-- **AND** a question with no such answer fails the build, because it is noise
+- **THEN** each one has at least one answer that names sections it moves
+- **AND** every named section exists in the standard
+- **AND** a question naming none, or naming one the standard does not have, fails the build
+
+#### Scenario: An answer names sections already at the top of their layer
+- **WHEN** every section an answer names already outranks what the answer could lift it past
+- **THEN** each named section still gains weight and says so in its reason
+- **AND** nothing the answer did not name is touched
+
+> Stated this way because the stronger phrasing — *every* answer moves a
+> position — is not satisfiable against a day-one list and would have forced
+> either a vacuous test or a mapping chosen for what moves rather than for what
+> matters. The four sections the founder-veto question names are already the top
+> of their layer, so the answer confirms the structural order rather than
+> disturbing it. The interview as a whole MUST still change what a community
+> sees.
 
 ### Requirement: The interview is skippable, and says what skipping means
 

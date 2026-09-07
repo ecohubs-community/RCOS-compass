@@ -1,5 +1,8 @@
-## ADDED Requirements
+# path-ordering Specification
 
+## Purpose
+Covers the order a community's work is presented in: the four weights that produce it, stored as a settings object the community can read, change and look back on; the four contributions each item carries separately so its stated reason comes from the same arithmetic as its rank; the steward's hand-placed override and the computed position it continues to show; and the check that a community changing nothing still gets the structural ordering the path had before weighting existed.
+## Requirements
 ### Requirement: The ordering rule is visible, editable and versioned
 
 The weights that order a community's path MUST be stored as a settings object the
@@ -99,10 +102,23 @@ table does not have, and is not part of this change.
 ### Requirement: A community that changes nothing gets the previous behaviour
 
 With default weights and no risk profile, the ordering MUST match the structural
-ordering the path had before weighting existed: unblocked items first, then by
-layer.
+ordering the path had before weighting existed: by how many questions are in the
+way, then by layer.
+
+This holds only for a particular shape of default, and the shape MUST be checked
+rather than assumed. Encoding that key in one contribution scaled to `[0, 1]`
+makes one layer worth the dependency weight divided by the standard's structural
+positions, `(maxBlockers + 1) × layers − 1`. That step MUST outweigh everything
+a day-one community can score, which is gap severity alone. The check MUST be
+computed from the loaded standard, because both things that would break it — a
+standard with more layers or deeper dependencies, and somebody rebalancing the
+defaults to look tidier — would otherwise break it silently.
 
 #### Scenario: A community that has answered no questions
 - **WHEN** the path is computed with defaults and no risk profile
-- **THEN** items whose dependencies are unanswered rank below those whose are not
+- **THEN** items waiting on more unanswered questions rank below those waiting on fewer
 - **AND** within that, earlier layers come first
+
+#### Scenario: The defaults are rebalanced
+- **WHEN** the default weights no longer satisfy that condition against the loaded standard
+- **THEN** the build fails, rather than the ordering quietly changing
