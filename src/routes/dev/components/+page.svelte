@@ -1,5 +1,6 @@
 <script lang="ts">
 	import Button from '$lib/components/ui/Button.svelte';
+	import Untranslated from '$lib/components/ui/Untranslated.svelte';
 	import StatusChip, {
 		MODIFIER_LABELS,
 		STATUS_LABELS,
@@ -42,6 +43,21 @@
 			<Button variant="primary" pending>Recording</Button>
 			<Button variant="secondary" disabled>Unavailable</Button>
 			<Button variant="secondary" size="sm">Small</Button>
+		</div>
+	</section>
+
+	<section class="mt-10" aria-labelledby="untranslated">
+		<h2 id="untranslated" class="text-section font-medium">Untranslated strings</h2>
+		<p class="text-fg-muted text-meta mt-1">
+			A string with no translation in the reader's language shows the English with a marker. A
+			silent fallback is how a half-translated interface looks finished and stays that way — nobody
+			files a bug about a screen that reads fine.
+		</p>
+		<div class="mt-4 flex flex-wrap items-center gap-4">
+			<span class="text-fg">Translated: <Untranslated key="nav_dashboard" /></span>
+			<span class="text-fg"
+				>Marked: <Untranslated key="nav_ai_settings" text="AI assistance" /></span
+			>
 		</div>
 	</section>
 

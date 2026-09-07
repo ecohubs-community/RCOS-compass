@@ -216,6 +216,8 @@ export default ts.config(
 
 	{
 		ignores: [
+			// Generated from project.inlang + messages/ by `pnpm i18n:compile`.
+			'src/lib/paraglide/',
 			'build/',
 			'.svelte-kit/',
 			'dist/',

@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { page } from '$app/state';
 	import GlossaryPanel from '$lib/components/GlossaryPanel.svelte';
+	import * as m from '$lib/paraglide/messages';
 	import { links } from '$lib/links';
 
 	let { data, children } = $props();
@@ -19,18 +20,25 @@
 	type NavGroup = { label: string | null; items: NavItem[] };
 
 	const groups = $derived<NavGroup[]>([
-		{ label: null, items: [{ href: links.dashboard(slug), label: 'Dashboard', exact: true }] },
 		{
-			label: 'Working on',
+			label: null,
+			items: [{ href: links.dashboard(slug), label: m.nav_dashboard(), exact: true }]
+		},
+		{
+			label: m.nav_group_working_on(),
 			items: [
-				{ href: links.path(slug), label: 'The path' },
-				{ href: links.discussions(slug), label: 'Discussions', badge: data.unread || undefined },
-				{ href: links.documents(slug), label: 'Documents' }
+				{ href: links.path(slug), label: m.nav_path() },
+				{
+					href: links.discussions(slug),
+					label: m.nav_discussions(),
+					badge: data.unread || undefined
+				},
+				{ href: links.documents(slug), label: m.nav_documents() }
 			]
 		},
 		{
-			label: "What we've agreed",
-			items: [{ href: links.decisions(slug), label: 'Decisions' }]
+			label: m.nav_group_agreed(),
+			items: [{ href: links.decisions(slug), label: m.nav_decisions() }]
 		},
 		{
 			/**
@@ -39,13 +47,13 @@
 			 * screen reader announced two — and the two labels promised two
 			 * destinations that were the same screen.
 			 */
-			label: 'Reference',
+			label: m.nav_group_reference(),
 			items: [
-				{ href: links.standard(slug), label: 'Standard & definitions' },
-				{ href: links.glossary(slug), label: 'Glossary' },
-				{ href: links.search(slug), label: 'Search' },
-				{ href: links.pathSettings(slug), label: 'How the path is ordered' },
-				{ href: links.aiSettings(slug), label: 'AI assistance' }
+				{ href: links.standard(slug), label: m.nav_standard() },
+				{ href: links.glossary(slug), label: m.nav_glossary() },
+				{ href: links.search(slug), label: m.nav_search() },
+				{ href: links.pathSettings(slug), label: m.nav_path_settings() },
+				{ href: links.aiSettings(slug), label: m.nav_ai_settings() }
 			]
 		}
 	]);
@@ -165,7 +173,7 @@
 				<button
 					type="submit"
 					class="text-fg-muted hover:text-fg text-meta cursor-pointer underline underline-offset-2"
-					>Sign out</button
+					>{m.nav_sign_out()}</button
 				>
 			</form>
 		</div>

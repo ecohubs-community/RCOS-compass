@@ -1,0 +1,18 @@
+{
+	"$schema": "https://inlang.com/schema/inlang-message-format",
+	"nav_dashboard": "Dashboard",
+	"nav_path": "The path",
+	"nav_discussions": "Discussions",
+	"nav_documents": "Documents",
+	"nav_decisions": "Decisions",
+	"nav_standard": "Standard & definitions",
+	"nav_glossary": "Glossary",
+	"nav_search": "Search",
+	"nav_ai_settings": "AI assistance",
+	"nav_path_settings": "How the path is ordered",
+	"nav_sign_out": "Sign out",
+	"nav_group_working_on": "Working on",
+	"nav_group_agreed": "What we've agreed",
+	"nav_group_reference": "Reference",
+	"untranslated_marker": "not yet translated"
+}

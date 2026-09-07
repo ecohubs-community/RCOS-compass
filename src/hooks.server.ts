@@ -4,6 +4,7 @@ import { assertConfigOrExit, getConfig } from '$lib/server/config';
 import { initDatabase } from '$lib/server/db';
 import { getLogger } from '$lib/server/logger';
 import { securityHeaders } from '$lib/server/http/security-headers';
+import { baseLocale, withLocale } from '$lib/server/locale';
 import { rateLimitRequest } from '$lib/server/http/rate-limit-request';
 import { resolveActor } from '$lib/server/auth/session';
 import { requirePlatformAdmin } from '$lib/server/auth/admin';
@@ -109,7 +110,19 @@ export const handle: Handle = async ({ event, resolve }) => {
 
 	const startedAt = performance.now();
 
-	const response = await resolve(event);
+	/**
+	 * The language, after the tenant and around everything that renders.
+	 *
+	 * After, because the locale is the community's and there is no community
+	 * before `resolveTenant`. Around, because message functions are called deep
+	 * inside components and a value passed down by hand is a value somebody
+	 * forgets to pass.
+	 */
+	const response = await withLocale(
+		event.locals.ctx?.community.locale ?? event.locals.community?.locale ?? baseLocale,
+		event.url.origin,
+		() => resolve(event)
+	);
 
 	// CSP is set by SvelteKit from svelte.config.js, which nonces its own inline
 	// scripts. Everything else is set here.

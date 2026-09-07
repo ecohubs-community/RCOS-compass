@@ -1,3 +1,4 @@
+import { paraglideVitePlugin } from '@inlang/paraglide-js';
 import { sveltekit } from '@sveltejs/kit/vite';
 import tailwindcss from '@tailwindcss/vite';
 import { loadEnv, type Plugin } from 'vite';
@@ -31,7 +32,27 @@ function envIntoProcessEnv(): Plugin {
 }
 
 export default defineConfig({
-	plugins: [envIntoProcessEnv(), tailwindcss(), sveltekit()],
+	plugins: [
+		envIntoProcessEnv(),
+		/**
+		 * Compiled message functions, not a runtime dictionary. A key that no
+		 * locale defines is a build error rather than a blank on a screen, and a
+		 * locale nobody loaded ships no bytes.
+		 *
+		 * `strategy` is deliberately short: the community's locale is a column on
+		 * `community`, resolved server-side per request, so there is nothing to
+		 * negotiate from a header or a cookie. The URL is not part of it either —
+		 * a community's address is its slug, and adding a locale segment would
+		 * give every page two URLs.
+		 */
+		paraglideVitePlugin({
+			project: './project.inlang',
+			outdir: './src/lib/paraglide',
+			strategy: ['custom-server', 'baseLocale']
+		}),
+		tailwindcss(),
+		sveltekit()
+	],
 	test: {
 		// Determinism: docs/06-testing-strategy.md §2.1. No shared state between
 		// suites, UTC everywhere, and nothing reaches the network.
