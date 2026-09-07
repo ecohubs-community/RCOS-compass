@@ -30,13 +30,15 @@ export function makeCommunity(
 		status?: 'active' | 'suspended' | 'deleted';
 		/** Decision references are year-stamped in it, so tests need to set it. */
 		timezone?: string;
+		/** The standard's own translations are chosen by it. */
+		locale?: string;
 	} = {}
 ) {
 	const row = {
 		id: newId(),
 		slug: overrides.slug ?? `community-${newId().slice(-8)}`,
 		name: 'Valle Verde',
-		locale: 'en',
+		locale: overrides.locale ?? 'en',
 		timezone: overrides.timezone ?? 'America/Guayaquil',
 		status: overrides.status ?? ('active' as const),
 		suspendedReason: null,

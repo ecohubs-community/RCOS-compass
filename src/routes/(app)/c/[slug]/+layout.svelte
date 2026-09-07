@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { page } from '$app/state';
+	import GlossaryPanel from '$lib/components/GlossaryPanel.svelte';
 	import { links } from '$lib/links';
 
 	let { data, children } = $props();
@@ -41,6 +42,7 @@
 			label: 'Reference',
 			items: [
 				{ href: links.standard(slug), label: 'Standard & definitions' },
+				{ href: links.glossary(slug), label: 'Glossary' },
 				{ href: links.search(slug), label: 'Search' },
 				{ href: links.pathSettings(slug), label: 'How the path is ordered' },
 				{ href: links.aiSettings(slug), label: 'AI assistance' }
@@ -181,3 +183,6 @@
 		{@render children()}
 	</div>
 </div>
+
+<!-- Mounted once for the whole community: a term can be hit on any screen. -->
+<GlossaryPanel {slug} />

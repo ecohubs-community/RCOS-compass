@@ -60,11 +60,11 @@
 
 ## 7. Glossary
 
-- [ ] 7.1 The page: every RCOS term, with the community's adopted definition beside it where one exists, using the mapping vendored in 0.3
-- [ ] 7.2 The slide-over panel, because terms get hit while reading anything
-- [ ] 7.3 Derived at read time from adopted definitions — nothing stored, so nothing can be stale
-- [ ] 7.4 A term with no reliable mapping shows the standard's definition alone and says the community has not defined it, rather than guessing
-- [ ] 7.5 Tests: freezing a definition changes the glossary with nobody maintaining it; a superseded version shows the current text; the standard's own term appears in the community's locale where it has one
+- [x] 7.1 The page: every RCOS term, with the community's adopted definition beside it where one exists, using the mapping vendored in 0.3
+- [x] 7.2 The slide-over panel, because terms get hit while reading anything
+- [x] 7.3 Derived at read time from adopted definitions — nothing stored, so nothing can be stale
+- [x] 7.4 A term with no reliable mapping shows the standard's definition alone and says the community has not defined it, rather than guessing
+- [x] 7.5 Tests: freezing a definition changes the glossary with nobody maintaining it; a superseded version shows the current text; the standard's own term appears in the community's locale where it has one
 
 ## 8. Closing it
 

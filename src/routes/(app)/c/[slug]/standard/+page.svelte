@@ -60,6 +60,26 @@
 						{:else}
 							<span class="text-fg min-w-0 flex-1 truncate">{section.title}</span>
 						{/if}
+						{#if section.term}
+							<!--
+								A real link to the term's place in the glossary; the panel in the
+								shell intercepts it when JavaScript is there. Terms get hit in the
+								middle of a sentence, and making somebody leave the page to look
+								one up is how they stop looking them up.
+							-->
+							<!--
+								eslint-disable svelte/no-navigation-without-resolve --
+								`links.glossary` is a `resolve` with the term's anchor appended;
+								the rule reads the attribute, not the value's provenance.
+							-->
+							<a
+								href="{links.glossary(slug)}#{section.term.key}"
+								data-glossary-term={section.term.key}
+								class="text-fg-secondary hover:text-fg text-meta underline underline-offset-2"
+								>{section.term.label}</a
+							>
+							<!-- eslint-enable svelte/no-navigation-without-resolve -->
+						{/if}
 						<span class="text-fg-muted text-meta" data-tabular>
 							{section.refs.length > 0 ? section.refs.join(' · ') : 'no clause'}
 						</span>

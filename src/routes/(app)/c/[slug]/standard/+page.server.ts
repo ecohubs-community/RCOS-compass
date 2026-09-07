@@ -23,6 +23,25 @@ export const load: PageServerLoad = ({ locals, url }) => {
 
 	// Built once. `countableClauses()` re-filters all 213 clauses on every call,
 	// and this page has 94 sections to render.
+	/**
+	 * The glossary term a section defines, where the standard says so.
+	 *
+	 * An exact mapping from `glossary.yaml`'s `definedBy` rather than matching a
+	 * title against a term — a guess would be wrong quietly, and quietly wrong
+	 * about which rule defines "Member" is worse than showing nothing.
+	 */
+	const termBySection = new Map(
+		standard.view.glossary
+			.filter((term) => term.definedBy)
+			.map((term) => [
+				term.definedBy!,
+				{
+					key: term.key,
+					label: standard.view.localise(term.i18n, ctx.community.locale as 'en').value.term
+				}
+			])
+	);
+
 	const refsBySection = new Map<string, string[]>();
 	for (const clause of standard.view.countableClauses()) {
 		if (!clause.owner) continue;
@@ -41,6 +60,7 @@ export const load: PageServerLoad = ({ locals, url }) => {
 						title: standard.view.localise(section.i18n, ctx.community.locale as 'en').value.title,
 						refs: refsBySection.get(section.key) ?? [],
 						definitionId: definition?.id ?? null,
+						term: termBySection.get(section.key) ?? null,
 						status: definition?.adoptedVersionId
 							? ('adopted' as const)
 							: definition
