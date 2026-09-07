@@ -1,6 +1,7 @@
 import { sql } from 'drizzle-orm';
 import type { Db } from '../db/index.js';
 import { termsOf } from './stop-words.js';
+import type { Visibility } from '../db/schema/visibility.js';
 import type { SearchDoc, SearchHit, Searchable, SearchIndex } from './types.js';
 
 /**
@@ -32,6 +33,9 @@ import type { SearchDoc, SearchHit, Searchable, SearchIndex } from './types.js';
 /**
  * Column weights for `bm25`, in the virtual table's column order.
  *
+ * Seven now rather than six: `visibility` joined the unindexed columns and the
+ * list is positional, so a weight that is not added shifts every one after it.
+ *
  * Titles above bodies, by a lot. A decision *called* "Spending authority"
  * should outrank one that merely mentions spending halfway through its
  * rationale — and indexing bodies at all is what makes the water-pump question
@@ -39,7 +43,7 @@ import type { SearchDoc, SearchHit, Searchable, SearchIndex } from './types.js';
  * than in its title. The unindexed columns take zero because they contribute no
  * tokens.
  */
-const COLUMN_WEIGHTS = '0.0, 0.0, 0.0, 0.0, 8.0, 1.0';
+const COLUMN_WEIGHTS = '0.0, 0.0, 0.0, 0.0, 0.0, 8.0, 1.0';
 
 /** Enough to fill a page of results; more is a list nobody reads. */
 const DEFAULT_LIMIT = 25;
@@ -61,8 +65,8 @@ export function fts5SearchIndex(db: Db): SearchIndex {
 			// after a new version must not leave the superseded text findable.
 			this.remove(communityId, doc.subjectId);
 			run(sql`
-				insert into search_document (community_id, kind, subject_id, ref, title, body)
-				values (${communityId}, ${doc.kind}, ${doc.subjectId}, ${doc.ref ?? ''}, ${doc.title}, ${doc.body})
+				insert into search_document (community_id, visibility, kind, subject_id, ref, title, body)
+				values (${communityId}, ${doc.visibility}, ${doc.kind}, ${doc.subjectId}, ${doc.ref ?? ''}, ${doc.title}, ${doc.body})
 			`);
 		},
 
@@ -77,7 +81,7 @@ export function fts5SearchIndex(db: Db): SearchIndex {
 			run(sql`delete from search_document where community_id = ${communityId}`);
 		},
 
-		query(communityId, text, options = {}): SearchHit[] {
+		query(communityId, text, options): SearchHit[] {
 			const terms = termsOf(text);
 			// No words worth looking for is not an error and not an empty query —
 			// handing FTS5 an empty MATCH is a syntax error, and the honest answer
@@ -87,6 +91,10 @@ export function fts5SearchIndex(db: Db): SearchIndex {
 			const expression = terms.map(asLiteral).join(' OR ');
 			const limit = options.limit ?? DEFAULT_LIMIT;
 			const kinds = options.kinds;
+			const levels = options.levels;
+			// An audience that may see nothing finds nothing, rather than an `in ()`
+			// that SQLite would reject.
+			if (levels.length === 0) return [];
 
 			const rows = db.all<{
 				kind: Searchable;
@@ -94,13 +102,15 @@ export function fts5SearchIndex(db: Db): SearchIndex {
 				ref: string;
 				title: string;
 				body: string;
+				visibility: Visibility;
 				rank: number;
 			}>(sql`
 				select
-					kind, subject_id, ref, title, body,
+					kind, subject_id, ref, title, body, visibility,
 					bm25(search_document, ${sql.raw(COLUMN_WEIGHTS)}) as rank
 				from search_document
 				where community_id = ${communityId}
+					and visibility in ${levels}
 					and search_document match ${expression}
 					${kinds && kinds.length > 0 ? sql`and kind in ${kinds}` : sql``}
 				order by rank
@@ -113,6 +123,7 @@ export function fts5SearchIndex(db: Db): SearchIndex {
 				ref: row.ref === '' ? null : row.ref,
 				title: row.title,
 				body: row.body,
+				visibility: row.visibility,
 				rank: row.rank
 			}));
 		}

@@ -81,7 +81,8 @@ export function indexDefinition(db: Db, communityId: string, definitionId: strin
 		subjectId: row.id,
 		ref: row.sectionKey,
 		title: definitionTitle(db, communityId, row),
-		body: bodyOf(version.body, version.plainLanguage, row.purpose)
+		body: bodyOf(version.body, version.plainLanguage, row.purpose),
+		visibility: row.visibility
 	});
 }
 
@@ -125,7 +126,8 @@ export function indexDecision(db: Db, communityId: string, decisionId: string): 
 		subjectId: row.id,
 		ref: row.ref,
 		title: row.title,
-		body: bodyOf(row.proposalText, row.rationale)
+		body: bodyOf(row.proposalText, row.rationale),
+		visibility: row.visibility
 	});
 }
 
@@ -150,7 +152,11 @@ export function indexDiscussion(db: Db, communityId: string, discussionId: strin
 		subjectId: row.id,
 		ref: row.clauseKey,
 		title: row.title,
-		body: ''
+		body: '',
+		// Always member-visible: a discussion is the working conversation, not
+		// something a community publishes. Nothing sets a visibility on it, so
+		// nothing can accidentally publish one either.
+		visibility: 'member'
 	});
 }
 
@@ -172,7 +178,9 @@ export function indexDocument(db: Db, communityId: string, documentId: string): 
 			subjectId: item.id,
 			ref: `${file.filename} p.${item.page}`,
 			title: file.filename,
-			body: item.text
+			body: item.text,
+			// A passage is as visible as the document it came out of, and no more.
+			visibility: file.visibility
 		});
 	}
 }

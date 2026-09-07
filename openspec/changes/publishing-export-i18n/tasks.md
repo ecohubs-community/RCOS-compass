@@ -27,10 +27,10 @@
 
 ## 3. The search index learns visibility
 
-- [ ] 3.1 A visibility column on `search_document`, filtered inside the query beside `community_id`. **This is a drop and recreate, not an alter** — SQLite refuses `ALTER TABLE … ADD COLUMN` on a virtual table with `virtual tables may not be altered`
-- [ ] 3.2 Indexing writes it, and a visibility change re-indexes in the same transaction as the change, exactly as a text change does
-- [ ] 3.3 The migration empties the index, so the deploy step becomes migrate → **rebuild** → serve, and the rebuild stops being optional. A release that skips it serves a product whose search is silently empty and whose tests all passed. P5's "a rebuilt index answers identically" test is what proves the rebuild is right
-- [ ] 3.4 Tests: a member outside an exception's audience finds nothing searching for words that appear only in the restricted definition; changing visibility changes what is findable immediately; the rebuilt index and the incremental one still agree
+- [x] 3.1 A visibility column on `search_document`, filtered inside the query beside `community_id`. **This is a drop and recreate, not an alter** — SQLite refuses `ALTER TABLE … ADD COLUMN` on a virtual table with `virtual tables may not be altered`
+- [x] 3.2 Indexing writes it, and a visibility change re-indexes in the same transaction as the change, exactly as a text change does
+- [x] 3.3 The migration empties the index, so the deploy step becomes migrate → **rebuild** → serve, and the rebuild stops being optional. A release that skips it serves a product whose search is silently empty and whose tests all passed. P5's "a rebuilt index answers identically" test is what proves the rebuild is right
+- [x] 3.4 Tests: a member outside an exception's audience finds nothing searching for words that appear only in the restricted definition; changing visibility changes what is findable immediately; the rebuilt index and the incremental one still agree
 
 ## 4. Publishing
 

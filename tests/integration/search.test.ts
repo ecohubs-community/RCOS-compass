@@ -1,3 +1,4 @@
+import { eq } from 'drizzle-orm';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import type { Ctx } from '../../src/lib/server/auth/guard.js';
 import { newId } from '../../src/lib/server/db/id.js';
@@ -8,6 +9,11 @@ import { communityStandard } from '../../src/lib/server/db/schema/tenancy.js';
 import { getSearchIndex, setSearchIndexForTests } from '../../src/lib/server/search/index.js';
 import type { SearchHit } from '../../src/lib/server/search/types.js';
 import { freeze } from '../../src/lib/server/services/decisions.js';
+import { restrict } from '../../src/lib/server/services/visibility.js';
+import { definition as definitionTable } from '../../src/lib/server/db/schema/definitions.js';
+import { asSignedIn } from '../../src/lib/server/auth/audience.js';
+import { visibleLevels } from '../../src/lib/server/auth/visible-to.js';
+import { makeMembership as makeSeat, makeUser as makePerson } from '../support/factories.js';
 import { deleteDocument } from '../../src/lib/server/services/documents.js';
 import { addProposal, openDiscussion } from '../../src/lib/server/services/discussions.js';
 import { indexDocument, rebuildSearchIndex } from '../../src/lib/server/services/search.js';
@@ -29,11 +35,15 @@ const view = getStandard('rcos-core', '0.1');
 const COUNTABLE = view.countableClauses()[0]!;
 
 const SPENDING = 'Any spend over €500 needs a consent decision of the whole circle.';
+/** A word nothing else in the fixture uses, so a hit is unambiguous. */
+const SECRET_WORDS = 'The quetzal fund needs a consent decision before any spending.';
 
 let db: Db;
 let cleanup: () => void;
 let ana: Ctx;
 let bo: Ctx;
+/** A plain member of Ana's community: the reader a restriction hides from. */
+let lena: Ctx;
 
 function seed(slug: string): Ctx {
 	const home = makeCommunity(db, { slug });
@@ -75,7 +85,7 @@ function decide(who: Ctx, title: string, body: string) {
 }
 
 const find = (who: Ctx, text: string): SearchHit[] =>
-	getSearchIndex(db).query(who.community.id, text);
+	getSearchIndex(db).query(who.community.id, text, { levels: visibleLevels(asSignedIn(who)) });
 const refs = (hits: SearchHit[]) => hits.map((hit) => `${hit.kind}:${hit.subjectId}`).sort();
 
 beforeEach(() => {
@@ -83,6 +93,13 @@ beforeEach(() => {
 	setDbForTests(db);
 	ana = seed('valle-verde');
 	bo = seed('other-place');
+
+	const member = makePerson(db, { email: 'lena@example.org' });
+	lena = {
+		...ana,
+		user: member,
+		membership: makeSeat(db, ana.community.id, member.id, { role: 'member' })
+	};
 });
 
 afterEach(() => {
@@ -131,7 +148,8 @@ describe('what the index answers', () => {
 		// Decisions only: each `decide` also opens a thread of the same name, and
 		// a two-word title with no body outranks everything by construction.
 		const hits = getSearchIndex(db).query(ana.community.id, 'water pump', {
-			kinds: ['decision']
+			kinds: ['decision'],
+			levels: visibleLevels(asSignedIn(ana))
 		});
 		expect(hits).toHaveLength(2);
 		expect(hits[0]!.subjectId).toBe(named.id);
@@ -303,5 +321,83 @@ describe('an index write belongs to the transaction that caused it', () => {
 		const hits = find(ana, 'water pump');
 		expect(hits).toHaveLength(1);
 		expect(hits[0]!.subjectId).toBe(opened.id);
+	});
+});
+
+describe('the index knows what may be seen', () => {
+	it('hides a restricted definition from a member outside its audience', () => {
+		const recorded = decide(ana, 'Spending authority', SECRET_WORDS);
+		const definitionId = db
+			.select()
+			.from(definitionTable)
+			.where(eq(definitionTable.communityId, ana.community.id))
+			.get()!.id;
+
+		// Findable by everybody first, so the assertion afterwards is about the
+		// restriction rather than about the words never having been there.
+		expect(find(lena, 'quetzal').length).toBeGreaterThan(0);
+
+		restrict(
+			ana,
+			{ type: 'definition', id: definitionId },
+			{
+				justification: 'Asked for by the member it concerns.',
+				audience: 'stewards',
+				expiresAt: new Date(NOW + 86_400_000)
+			},
+			{ db }
+		);
+
+		// The index is where this leak would be least visible: a hit shows the
+		// title and an excerpt, so a search result is the content, not a pointer
+		// to it that a later permission check could still refuse.
+		expect(find(lena, 'quetzal').map((hit) => hit.subjectId)).not.toContain(definitionId);
+		expect(find(ana, 'quetzal').map((hit) => hit.subjectId)).toContain(definitionId);
+		expect(recorded.ref).toMatch(/^DEC-/);
+	});
+
+	it('reflects a visibility change in the same transaction as the change', () => {
+		const definitionId = (() => {
+			decide(ana, 'Spending authority', SECRET_WORDS);
+			return db
+				.select()
+				.from(definitionTable)
+				.where(eq(definitionTable.communityId, ana.community.id))
+				.get()!.id;
+		})();
+
+		restrict(
+			ana,
+			{ type: 'definition', id: definitionId },
+			{
+				justification: 'Asked for by the member it concerns.',
+				audience: 'stewards',
+				expiresAt: new Date(NOW + 86_400_000)
+			},
+			{ db }
+		);
+
+		// No job, no lag: a window in which the search still returns what the
+		// community just hid is the whole of the failure.
+		expect(find(lena, 'quetzal').map((hit) => hit.subjectId)).not.toContain(definitionId);
+	});
+
+	it('shows an anonymous reader only what is published', () => {
+		decide(ana, 'Spending authority', SECRET_WORDS);
+		expect(getSearchIndex(db).query(ana.community.id, 'quetzal', { levels: ['world'] })).toEqual(
+			[]
+		);
+	});
+
+	it('answers identically after a rebuild', () => {
+		decide(ana, 'Spending authority', SECRET_WORDS);
+		const before = refs(find(ana, 'quetzal spending'));
+
+		rebuildSearchIndex(db, ana.community.id);
+
+		// The rebuild reads visibility from the rows, so a rebuilt index and an
+		// incrementally-built one must agree about it too — which is the property
+		// the release step depends on.
+		expect(refs(find(ana, 'quetzal spending'))).toEqual(before);
 	});
 });

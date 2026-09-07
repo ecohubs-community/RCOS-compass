@@ -2,7 +2,7 @@ import { and, desc, eq, inArray, isNotNull, sql } from 'drizzle-orm';
 import { error } from '@sveltejs/kit';
 import { requirePermission, requireWritableCommunity, type Ctx } from '../auth/guard.js';
 import { communityOf, type Reader } from '../auth/audience.js';
-import { requireRead, visibleTo } from '../auth/visible-to.js';
+import { requireRead, visibleLevels, visibleTo } from '../auth/visible-to.js';
 import { getDb, type Db } from '../db/index.js';
 import { newId } from '../db/id.js';
 import {
@@ -654,7 +654,10 @@ export function searchDecisions(
 	const db = options.db ?? getDb();
 	if (!query.trim()) return listDecisions(reader, options);
 
-	const hits = getSearchIndex(db).query(communityOf(audience), query, { kinds: ['decision'] });
+	const hits = getSearchIndex(db).query(communityOf(audience), query, {
+		kinds: ['decision'],
+		levels: visibleLevels(audience)
+	});
 	if (hits.length === 0) return [];
 
 	const rows = db

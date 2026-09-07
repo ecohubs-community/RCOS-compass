@@ -2,6 +2,7 @@ import { and, eq, isNull, lte } from 'drizzle-orm';
 import { error } from '@sveltejs/kit';
 import { requirePermission, requireWritableCommunity, type Ctx } from '../auth/guard.js';
 import { getDb, type Db } from '../db/index.js';
+import { indexDecision, indexDefinition, indexDocument } from './search.js';
 import { newId } from '../db/id.js';
 import { changeLog } from '../db/schema/decisions.js';
 import { communityArtifact, definition } from '../db/schema/definitions.js';
@@ -123,6 +124,11 @@ export function restrict(
 			})
 			.run();
 
+		// In the same transaction as the change, exactly as a text edit is: an
+		// index that lags a restriction is a window in which the search still
+		// returns what the community just hid.
+		reindex(tx as unknown as Db, ctx.community.id, subject);
+
 		writeChange(tx as unknown as Db, ctx.community.id, ctx.user.id, now, {
 			kind: 'visibility.restricted',
 			subject,
@@ -227,6 +233,10 @@ export function expireExceptions(db: Db, now: number): { expired: number } {
 				.set({ expiredAt: new Date(now) })
 				.where(eq(transparencyException.id, row.id))
 				.run();
+			reindex(tx as unknown as Db, row.communityId, {
+				type: row.subjectType,
+				id: row.subjectId
+			});
 			writeChange(tx as unknown as Db, row.communityId, null, new Date(now), {
 				kind: 'visibility.exception_expired',
 				subject: { type: row.subjectType, id: row.subjectId },
@@ -236,6 +246,28 @@ export function expireExceptions(db: Db, now: number): { expired: number } {
 		expired += 1;
 	}
 	return { expired };
+}
+
+/**
+ * Put a subject back in the index at its new visibility.
+ *
+ * One switch rather than four call sites, because the four kinds are the four
+ * things `TABLES` already enumerates and a fifth would otherwise need finding
+ * in two places. A discussion is never restrictable, so it is not here.
+ */
+export function reindex(db: Db, communityId: string, subject: Subject): void {
+	switch (subject.type) {
+		case 'definition':
+			return indexDefinition(db, communityId, subject.id);
+		case 'decision':
+			return indexDecision(db, communityId, subject.id);
+		case 'document':
+			return indexDocument(db, communityId, subject.id);
+		case 'artifact':
+			// Artifacts carry no indexed text of their own — their definitions do,
+			// and each of those has its own visibility.
+			return;
+	}
 }
 
 function writeChange(

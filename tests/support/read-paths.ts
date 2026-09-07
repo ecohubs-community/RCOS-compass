@@ -5,7 +5,11 @@ import type { Db } from '../../src/lib/server/db/index.js';
 import { decision } from '../../src/lib/server/db/schema/decisions.js';
 import { document } from '../../src/lib/server/db/schema/documents.js';
 import { definition } from '../../src/lib/server/db/schema/definitions.js';
-import { getDecision, listDecisions } from '../../src/lib/server/services/decisions.js';
+import {
+	getDecision,
+	listDecisions,
+	searchDecisions
+} from '../../src/lib/server/services/decisions.js';
 import { definitionsBySection, getDefinition } from '../../src/lib/server/services/definitions.js';
 import { getDocument, listDocuments } from '../../src/lib/server/services/documents.js';
 import {
@@ -19,6 +23,10 @@ import { communityStandard } from '../../src/lib/server/db/schema/tenancy.js';
 import { listLocalDefinitions } from '../../src/lib/server/services/definitions.js';
 import { listPassages } from '../../src/lib/server/services/documents.js';
 import { glossary } from '../../src/lib/server/services/glossary.js';
+import { lookup } from '../../src/lib/server/services/lookup.js';
+import { indexDecision } from '../../src/lib/server/services/search.js';
+import { getSearchIndex } from '../../src/lib/server/search/index.js';
+import { visibleLevels } from '../../src/lib/server/auth/visible-to.js';
 import { communityOf } from '../../src/lib/server/auth/audience.js';
 
 /** Which artifact the `definitions.local` entry seeded, per community. */
@@ -53,25 +61,20 @@ function pair(
 export type ReadPath = {
 	name: string;
 	/**
-	 * Set while the service still takes a `Ctx`. The suite runs these under
-	 * `it.fails`, so they assert something true — *this service cannot answer an
-	 * anonymous audience* — and the marker clears itself: the moment the service
-	 * is converted the test passes, `it.fails` goes red, and whoever converted it
-	 * has to delete this line. A suite left red for a whole phase is a suite
-	 * people stop reading.
+	 * Set while a service cannot yet answer an anonymous audience. The suite runs
+	 * such an entry under `it.fails`, so it asserts something true rather than
+	 * being skipped — and the marker clears itself: converting the service makes
+	 * the test pass, which makes `it.fails` go red, which forces whoever
+	 * converted it to delete the line.
+	 *
+	 * Nothing is pending today. The field stays because the next phase to add a
+	 * read path needs it, and because a registry entry added without one fails
+	 * immediately rather than being quietly incomplete.
 	 */
 	pending?: string;
 	/** Two rows, one of each visibility. Returns their ids. */
 	seed: (db: Db, ctx: Ctx) => { member: string; world: string };
 	read: (audience: Audience, db: Db, seeded: { member: string; world: string }) => { id: string }[];
-};
-
-/** Every service below still takes a `Ctx`, which is a member by construction. */
-const notYetAudienceAware = (name: string) => (): never => {
-	throw new Error(
-		`${name} cannot answer an anonymous audience: it takes a Ctx, and a Ctx is a member. ` +
-			'Convert it to take an Audience and apply visibleTo() inside its query.'
-	);
 };
 
 /** A standard definition of each visibility, answering two different sections. */
@@ -323,20 +326,36 @@ export const READ_PATHS: ReadPath[] = [
 	},
 	{
 		name: 'decisions.search',
-		pending: 'reaches the index, so it waits for group 3',
-		seed: notYetAudienceAware('decisions.search'),
-		read: notYetAudienceAware('decisions.search')
+		seed: (db, ctx) => {
+			const seeded = seedDecisions(db, ctx);
+			indexDecision(db, ctx.community.id, seeded.member);
+			indexDecision(db, ctx.community.id, seeded.world);
+			return seeded;
+		},
+		read: (audience, db) => searchDecisions(audience, 'spending', { db })
 	},
 	{
 		name: 'search.query',
-		pending: 'the index does not carry visibility yet — group 3',
-		seed: notYetAudienceAware('search.query'),
-		read: notYetAudienceAware('search.query')
+		seed: (db, ctx) => {
+			const seeded = seedDecisions(db, ctx);
+			indexDecision(db, ctx.community.id, seeded.member);
+			indexDecision(db, ctx.community.id, seeded.world);
+			return seeded;
+		},
+		read: (audience, db) =>
+			getSearchIndex(db)
+				.query(communityOf(audience), 'spending consent', { levels: visibleLevels(audience) })
+				.map((hit) => ({ id: hit.subjectId }))
 	},
 	{
 		name: 'lookup',
-		pending: 'reaches the index, so it waits for group 3',
-		seed: notYetAudienceAware('lookup'),
-		read: notYetAudienceAware('lookup')
+		seed: (db, ctx) => {
+			const seeded = seedDecisions(db, ctx);
+			indexDecision(db, ctx.community.id, seeded.member);
+			indexDecision(db, ctx.community.id, seeded.world);
+			return seeded;
+		},
+		read: (audience, db) =>
+			lookup(audience, 'spending consent', { db }).ours.map((hit) => ({ id: hit.subjectId }))
 	}
 ];

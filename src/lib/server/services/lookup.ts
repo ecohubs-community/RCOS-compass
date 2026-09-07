@@ -1,6 +1,6 @@
 import { and, eq, inArray } from 'drizzle-orm';
 import { communityOf, type Reader } from '../auth/audience.js';
-import { requireRead } from '../auth/visible-to.js';
+import { requireRead, visibleLevels } from '../auth/visible-to.js';
 import { getDb, type Db } from '../db/index.js';
 import { decision } from '../db/schema/decisions.js';
 import { definition } from '../db/schema/definitions.js';
@@ -269,7 +269,8 @@ export function lookup(
 
 	const hits = getSearchIndex(db).query(communityOf(audience), question, {
 		kinds: options.kinds,
-		limit
+		limit,
+		levels: visibleLevels(audience)
 	});
 	const alive = stillExists(db, communityOf(audience), hits);
 

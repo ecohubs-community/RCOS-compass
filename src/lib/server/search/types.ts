@@ -11,6 +11,8 @@
  * away from not narrowing them.
  */
 
+import type { Visibility } from '../db/schema/visibility.js';
+
 /** What a community wrote. Clause text is not here; see `SearchIndex`. */
 export const SEARCHABLE = ['definition', 'decision', 'discussion', 'passage'] as const;
 export type Searchable = (typeof SEARCHABLE)[number];
@@ -23,6 +25,17 @@ export type SearchDoc = {
 	ref: string | null;
 	title: string;
 	body: string;
+	/**
+	 * The subject's visibility, carried into the index rather than looked up
+	 * beside it.
+	 *
+	 * Same reasoning as `community_id`: the filter belongs in the query. A
+	 * search that returns hits and then checks each subject's visibility is a
+	 * search that leaks the day somebody moves the check — and search is a
+	 * particularly bad place for that, because a hit's title and excerpt are the
+	 * content, not a pointer to it.
+	 */
+	visibility: Visibility;
 };
 
 export type SearchHit = SearchDoc & {
@@ -47,6 +60,15 @@ export interface SearchIndex {
 	query(
 		communityId: string,
 		text: string,
-		options?: { kinds?: readonly Searchable[]; limit?: number }
+		options: {
+			kinds?: readonly Searchable[];
+			limit?: number;
+			/**
+			 * Which levels this reader may see. Required rather than defaulted:
+			 * a default would be the thing a new caller silently inherits, and the
+			 * safe default and the useful one are not the same.
+			 */
+			levels: readonly Visibility[];
+		}
 	): SearchHit[];
 }

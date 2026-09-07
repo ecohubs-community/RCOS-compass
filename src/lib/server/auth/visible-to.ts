@@ -4,6 +4,7 @@ import type { Audience, Reader } from './audience.js';
 import { toAudience } from './audience.js';
 import { ctxCan, requirePermission } from './guard.js';
 import type { Capability } from './permissions.js';
+import type { Visibility } from '../db/schema/visibility.js';
 
 /**
  * What this reader may see, as a condition inside the query.
@@ -60,4 +61,21 @@ export function requireRead(reader: Reader, capability: Capability = 'community.
 	const audience = toAudience(reader);
 	if (audience.kind === 'signed_in') requirePermission(audience.ctx, capability);
 	return audience;
+}
+
+/**
+ * The same answer as `visibleTo`, as a list rather than a condition.
+ *
+ * The search index is not a table we can put a drizzle condition on — it is
+ * FTS5 behind an interface, and the interface may not take SQL. So the one
+ * decision about what a reader may see is made here, once, and handed to the
+ * index as data. Two functions, one rule: if they ever disagree the tests in
+ * `visibility.test.ts` fail, because both are exercised through the same
+ * registry entries.
+ */
+export function visibleLevels(audience: Audience): Visibility[] {
+	if (audience.kind === 'anonymous') return ['world'];
+	const levels: Visibility[] = ['member', 'world'];
+	if (ctxCan(audience.ctx, 'exception.read')) levels.push('restricted');
+	return levels;
 }

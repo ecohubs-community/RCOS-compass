@@ -1,5 +1,9 @@
 import { eq } from 'drizzle-orm';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { VISIBILITY_LEVELS } from '../../src/lib/server/db/schema/visibility.js';
+
+/** These suites are about the tenant boundary, not the visibility one. */
+const ALL_LEVELS = VISIBILITY_LEVELS;
 import type { Ctx } from '../../src/lib/server/auth/guard.js';
 import { newId } from '../../src/lib/server/db/id.js';
 import { setDbForTests, type Db } from '../../src/lib/server/db/index.js';
@@ -114,7 +118,9 @@ describe("nothing of one community's path or search reaches another", () => {
 		const recorded = fill(ana, SECRET);
 
 		// The index, directly and through both of its callers.
-		expect(getSearchIndex(db).query(bo.community.id, 'spend circle water pump')).toEqual([]);
+		expect(
+			getSearchIndex(db).query(bo.community.id, 'spend circle water pump', { levels: ALL_LEVELS })
+		).toEqual([]);
 		expect(searchDecisions(bo, 'spend', { db })).toEqual([]);
 
 		expect(lookup(bo, 'Can we spend €800 on the water pump?', { db }).ours).toEqual([]);
@@ -153,8 +159,10 @@ describe("nothing of one community's path or search reaches another", () => {
 		rebuildSearchIndex(db, ana.community.id);
 
 		// B's index is untouched, and still answers only about B.
-		expect(getSearchIndex(db).query(bo.community.id, 'together').length).toBeGreaterThan(0);
-		expect(getSearchIndex(db).query(bo.community.id, 'circle')).toEqual([]);
+		expect(
+			getSearchIndex(db).query(bo.community.id, 'together', { levels: ALL_LEVELS }).length
+		).toBeGreaterThan(0);
+		expect(getSearchIndex(db).query(bo.community.id, 'circle', { levels: ALL_LEVELS })).toEqual([]);
 	});
 
 	it('takes everything with the community when it goes', () => {
@@ -165,6 +173,6 @@ describe("nothing of one community's path or search reaches another", () => {
 		// The cascades are asserted in path-schema.test.ts; what matters here is
 		// that the search rows are not orphaned behind a deleted tenant.
 		getSearchIndex(db).clear(id);
-		expect(getSearchIndex(db).query(id, 'spend')).toEqual([]);
+		expect(getSearchIndex(db).query(id, 'spend', { levels: ALL_LEVELS })).toEqual([]);
 	});
 });
