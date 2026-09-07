@@ -127,7 +127,20 @@
 						<div class="flex flex-wrap items-baseline gap-2">
 							<span class="text-fg-muted text-meta">{KIND_LABEL[hit.kind] ?? hit.kind}</span>
 							{#if hit.ref}
-								<span class="text-fg-secondary text-meta" data-tabular>{hit.ref}</span>
+								<!--
+									The reference is the citation. A member who found this by asking
+									a question quotes "DEC-2026-014" afterwards, so it has to be the
+									thing they can click and copy, not decoration beside a title.
+								-->
+								{#if href}
+									<a
+										{href}
+										class="text-fg-secondary hover:text-fg text-meta underline underline-offset-2"
+										data-tabular>{hit.ref}</a
+									>
+								{:else}
+									<span class="text-fg-secondary text-meta" data-tabular>{hit.ref}</span>
+								{/if}
 							{/if}
 						</div>
 						<p class="mt-1">

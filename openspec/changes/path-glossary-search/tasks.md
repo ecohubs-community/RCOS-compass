@@ -68,9 +68,9 @@
 
 ## 8. Closing it
 
-- [ ] 8.1 The e2e spec passes end to end: interview → a defensible order → the water-pump question answered with citations
-- [ ] 8.2 The same at 375px, including the drag override
-- [ ] 8.3 Every service added in groups 2–7 **that is addressed by an id** registered in `services/registry.ts`. Most of this phase is not: search takes a query, weights take a community, and the interview takes answers — so the honest closing check is the tenant boundary asserted directly for each of those instead, and the registry gains whatever genuinely takes a subject id
-- [ ] 8.4 The a11y pass covers the path, settings, interview, search and glossary screens at 375 / 768 / 1024 / 1440
-- [ ] 8.5 Mutation-check the claims this phase rests on (`docs/06` §8a): that a risk answer never reaches an AI input, that search never crosses a community, that the reason matches the rank, and that defaults reproduce P3's order. Break each, watch the *right* test fail, put it back — P4 had two tests passing for the wrong reason and this is what found them
-- [ ] 8.6 `docs/00`, `docs/03` and `docs/06` updated wherever the build taught something the documents did not say, and the two decisions from 0.2 recorded
+- [x] 8.1 The e2e spec passes end to end: interview → a defensible order → the water-pump question answered with citations
+- [x] 8.2 The same at 375px, including the drag override
+- [x] 8.3 Every service added in groups 2–7 **that is addressed by an id** registered in `services/registry.ts`. Most of this phase is not: search takes a query, weights take a community, and the interview takes answers — so the honest closing check is the tenant boundary asserted directly for each of those instead, and the registry gains whatever genuinely takes a subject id
+- [x] 8.4 The a11y pass covers the path, settings, interview, search and glossary screens at 375 / 768 / 1024 / 1440
+- [x] 8.5 Mutation-check the claims this phase rests on (`docs/06` §8a): that a risk answer never reaches an AI input, that search never crosses a community, that the reason matches the rank, and that defaults reproduce P3's order. Break each, watch the *right* test fail, put it back — P4 had two tests passing for the wrong reason and this is what found them
+- [x] 8.6 `docs/00`, `docs/03` and `docs/06` updated wherever the build taught something the documents did not say, and the two decisions from 0.2 recorded

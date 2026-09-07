@@ -19,8 +19,6 @@ import { seed, signIn, visit } from './support.js';
  */
 
 test.describe('a community that needs to know what to do first', () => {
-	test.fixme(true, 'P5 group 8 — nothing is built yet');
-
 	test('answers the interview and gets an order it can argue with', async ({ page }) => {
 		test.slow();
 
@@ -39,15 +37,16 @@ test.describe('a community that needs to know what to do first', () => {
 			.first()
 			.click();
 
-		// Each answer says what it moves, as it is answered.
-		await page.getByRole('group', { name: /land/i }).getByRole('radio', { name: 'Yes' }).check();
-		await expect(page.getByText(/moves up|because you hold land/i)).toBeVisible();
+		// Each answer says what it moves, beside the answer itself.
+		const land = page.getByRole('group', { name: /land/i });
+		await land.getByRole('radio', { name: 'Yes' }).check();
+		await expect(land.getByText(/moves up/i).first()).toBeVisible();
 
 		await page.getByRole('button', { name: /save|done|finish/i }).click();
 
 		// --- an order with reasons ----------------------------------------------
 		await visit(page, `/c/${slug}/path`);
-		const items = page.getByRole('listitem');
+		const items = page.getByRole('list', { name: 'What to decide next' }).getByRole('listitem');
 		await expect(items.first()).toBeVisible();
 
 		// Every item says why it is where it is, and the top one's reason names
@@ -56,11 +55,11 @@ test.describe('a community that needs to know what to do first', () => {
 		await expect(first).toContainText(/because|waiting on|nothing else/i);
 
 		// --- and it can be argued with ------------------------------------------
-		await visit(page, `/c/${slug}/path/settings`);
-		await expect(page.getByLabel(/dependency/i)).toBeVisible();
-		await expect(page.getByLabel(/risk/i)).toBeVisible();
+		await visit(page, `/c/${slug}/settings/path`);
+		await expect(page.getByLabel('What has to come first')).toBeVisible();
+		await expect(page.getByLabel('What you told us about yourselves')).toBeVisible();
 		// The weights are the community's, and it can see they are the defaults.
-		await expect(page.getByText(/default/i)).toBeVisible();
+		await expect(page.getByText('These are the numbers Compass ships with')).toBeVisible();
 	});
 
 	test('answers the water-pump question with citations and nothing else', async ({ page }) => {
@@ -88,34 +87,54 @@ test.describe('a community that needs to know what to do first', () => {
 
 		// --- the question, in a member's own words ------------------------------
 		await visit(page, `/c/${slug}/search`);
-		await page.getByLabel(/search|question/i).fill('can we spend €800 on the water pump?');
-		await page.getByRole('button', { name: /search|ask/i }).click();
+		// The page's own box, not the one in the shell — both are a search for this
+		// community's governance, and both work.
+		const ask = page.getByRole('main');
+		await ask.getByLabel(/search|question/i).fill('can we spend €800 on the water pump?');
+		await ask.getByRole('button', { name: /search|ask/i }).click();
 
 		// It cites: the decision that governs spending, by its reference.
 		await expect(page.getByRole('link', { name: /^DEC-\d{4}-\d{3}$/ })).toBeVisible();
-		await expect(page.getByText(/over €500 needs a consent decision/i)).toBeVisible();
+		// Twice, and both are right: the decision that recorded it, and the
+		// definition it adopted. Quoted from what the community wrote either way.
+		await expect(page.getByText(/over €500 needs a consent decision/i)).toHaveCount(2);
+		await expect(page.getByText(/over €500 needs a consent decision/i).first()).toBeVisible();
 
 		// And it does not answer. No sentence of ours telling them whether they may.
 		await expect(page.getByText(/^(yes|no),? you (can|may|cannot|may not)/i)).toHaveCount(0);
 	});
 
-	test('a member of another community finds none of it', async ({ page }) => {
+	test('a member of another community finds none of it', async ({ browser }) => {
 		test.slow();
 
-		const theirs = await seed(page);
-		await signIn(page, theirs.email, theirs.password);
-		await visit(page, `/c/${theirs.slug}/discussions`);
-		await page.getByLabel('Start a discussion').fill('Pump money');
-		await page.getByLabel('Clause (optional)').fill(theirs.clauseKey);
-		await page.getByRole('button', { name: 'Start' }).click();
+		// Two browser contexts rather than two sign-ins in one: signing in while
+		// already signed in redirects away from the form, and the failure looks
+		// like a hung page rather than a test driving the app wrongly.
+		const theirContext = await browser.newContext();
+		const theirPage = await theirContext.newPage();
+		const theirs = await seed(theirPage);
+		await signIn(theirPage, theirs.email, theirs.password);
+		await visit(theirPage, `/c/${theirs.slug}/discussions`);
+		await theirPage.getByLabel('Start a discussion').fill('Pump money');
+		await theirPage.getByLabel('Clause (optional)').fill(theirs.clauseKey);
+		await theirPage.getByRole('button', { name: 'Start' }).click();
+		await expect(theirPage.getByRole('heading', { name: 'Pump money' })).toBeVisible();
 
 		// A second community, with the same words in play.
-		const ours = await seed(page);
-		await signIn(page, ours.email, ours.password);
-		await visit(page, `/c/${ours.slug}/search`);
-		await page.getByLabel(/search|question/i).fill('pump money');
-		await page.getByRole('button', { name: /search|ask/i }).click();
+		const ourContext = await browser.newContext();
+		const ourPage = await ourContext.newPage();
+		const ours = await seed(ourPage);
+		await signIn(ourPage, ours.email, ours.password);
+		await visit(ourPage, `/c/${ours.slug}/search`);
 
-		await expect(page.getByText('Pump money')).toHaveCount(0);
+		const ask = ourPage.getByRole('main');
+		await ask.getByLabel(/search|question/i).fill('pump money');
+		await ask.getByRole('button', { name: /search|ask/i }).click();
+
+		await expect(ourPage.getByText('Pump money')).toHaveCount(0);
+		await expect(ourPage.getByText(/Searched for: (pump|money)/)).toBeVisible();
+
+		await theirContext.close();
+		await ourContext.close();
 	});
 });

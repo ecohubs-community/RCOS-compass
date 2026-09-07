@@ -1,6 +1,6 @@
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Page } from '@playwright/test';
-import { seedWithProposal, visit } from './support.js';
+import { seed, seedWithProposal, signIn, visit } from './support.js';
 
 /**
  * docs/02-component-guidelines.md §6 commits to WCAG 2.1 AA. The gallery is the
@@ -51,6 +51,50 @@ test.describe('accessibility', () => {
 			const results = await scan(page).analyze();
 			expect(results.violations, `${url} has accessibility violations`).toEqual([]);
 		}
+	});
+
+	/**
+	 * P5's screens, at whichever viewport this project runs.
+	 *
+	 * The path is a list with two buttons per row, the settings and interview are
+	 * forms, search has two boxes with the same purpose on one page, and the
+	 * glossary is 37 entries of two definitions each. Every one of those is a
+	 * shape where a label or a heading level goes wrong quietly.
+	 */
+	test('the path, its settings, the interview, search and the glossary have no violations', async ({
+		page
+	}) => {
+		test.slow();
+		const fixture = await seed(page);
+		await signIn(page, fixture.email, fixture.password);
+
+		for (const url of [
+			`/c/${fixture.slug}/path`,
+			`/c/${fixture.slug}/settings/path`,
+			`/c/${fixture.slug}/settings/interview`,
+			`/c/${fixture.slug}/search`,
+			`/c/${fixture.slug}/search?q=can+we+spend+on+the+water+pump`,
+			`/c/${fixture.slug}/glossary`
+		]) {
+			await visit(page, url);
+			const results = await scan(page).analyze();
+			expect(results.violations, `${url} has accessibility violations`).toEqual([]);
+		}
+	});
+
+	test('the glossary panel has no violations, open', async ({ page }) => {
+		test.slow();
+		const fixture = await seed(page);
+		await signIn(page, fixture.email, fixture.password);
+		await visit(page, `/c/${fixture.slug}/standard`);
+
+		await page.getByRole('link', { name: 'Commons', exact: true }).first().click();
+		await expect(page.getByRole('dialog', { name: 'Glossary term' })).toBeVisible();
+
+		// A modal is where focus order and labelling go wrong, and it is the one
+		// state the page-level scans above never reach.
+		const results = await scan(page).analyze();
+		expect(results.violations).toEqual([]);
 	});
 
 	test('the document screens have no violations', async ({ page }) => {

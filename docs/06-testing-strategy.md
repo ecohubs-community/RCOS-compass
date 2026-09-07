@@ -279,6 +279,16 @@ notice → assert the decision reference, the version, the readiness change, and
 the change-log entry → find the decision by reverse-lookup search → publish the
 artifact → confirm the public index shows the binary statement and no percentage.
 
+P5 adds a second exit spec, `tests/e2e/path-search.spec.ts`, written before any
+of it existed and `fixme`'d until it passed:
+
+> answer the interview → get an order whose reasons are on the screen and whose
+> weights can be changed → ask *"can we spend €800 on the water pump?"* and get
+> the clauses and decisions that govern it, with no sentence of ours
+
+It runs with `AI_PROVIDER=null`, because none of it is an AI feature — which is
+the point that spec exists to keep honest.
+
 Separate specs: document upload → mapping → confirm → "turn into definition";
 invite → accept → role change → removal; admin console CRUD; full export and
 re-import round-trip.
@@ -311,6 +321,16 @@ the product:
   better-auth hashes passwords at production cost deliberately; four projects
   doing that at once are slow for an honest reason. Trimming the work to fit the
   default timeout would mean checking less than the matrix promises.
+- **Two users means two browser contexts.** Signing in as a second person in the
+  same context redirects away from the sign-in form, and the failure presents as
+  a ninety-second wait for an email field that will never appear. P5's
+  cross-community search spec creates a context each.
+- **A handler that must beat SvelteKit's router listens in the capture phase.**
+  The client router intercepts clicks on internal links and calls
+  `preventDefault()` to navigate. A bubbling handler runs second, sees
+  `defaultPrevented` and stands down — so the glossary panel never opened and
+  the term arrived as a full page instead, which looks exactly like a component
+  that was never mounted.
 
 ---
 
@@ -366,6 +386,24 @@ Worth doing for: anything asserting a number did **not** move, anything
 asserting something was **not** written, and every boundary rule. All three are
 claims about an absence, and an absence is exactly what a broken test reports
 successfully.
+
+P5 added two more failure shapes, both found by mutation and neither obvious
+from reading the test.
+
+**Asserting against whatever sorts first.** Two tests checked that confirmed
+evidence lowers a path item and that an unconfirmed AI suggestion does not —
+against the section that happens to be first in the list. That section has a
+structural lead nothing about attention is meant to overcome, so both tests
+passed whether the feature worked or not, and a mutation letting unconfirmed
+suggestions count sailed straight through. They now pick a target the four
+inputs cannot separate from its neighbour. **When a test asserts that something
+moved, choose a subject that had somewhere to move to** — and if none exists,
+assert the mechanism instead and say why.
+
+**Enumerating fields instead of walking them.** "The reverse lookup writes no
+prose of its own" first checked the excerpt and the title. A `summary` field
+added later would have passed. It now walks the whole result and requires every
+string that is not an identifier to be traceable to the standard or to a row.
 
 ---
 

@@ -161,8 +161,26 @@ Follow these and the migration is a driver swap:
 - **Booleans are integers** via Drizzle's `mode: 'boolean'`.
 - **No raw SQL outside `src/lib/server/db`.** Where raw SQL is unavoidable
   (FTS5, recursive CTEs), it lives behind an interface with one file per engine.
+
+  > **`no-restricted-syntax` does not accumulate across flat-config blocks.**
+  > The last block matching a file replaces the rule's options entirely, so two
+  > boundaries both spelled with that rule silently disable each other for every
+  > file they share. P5 hit this adding the FTS5 boundary beside the
+  > role-comparison one, and the probe passed with nothing enforced. Selectors
+  > are named constants in `eslint.config.js` and composed per scope; a boundary
+  > with a hole in it is worse than none, because it is trusted.
 - **Full-text search is behind `SearchIndex`** — FTS5 today, `tsvector` later.
-  Nothing else in the app knows how search is implemented.
+  Nothing else in the app knows how search is implemented. Built in P5:
+  `src/lib/server/search/` holds the interface, the tokeniser and one engine
+  file, and an ESLint rule refuses FTS5's query language anywhere else. The
+  tenant is a column *inside* the virtual table and every statement filters on
+  it — a search that fetches across communities and narrows the results
+  afterwards is one refactor away from not narrowing them.
+- **The index is written inside the transaction that changes a row**, not by a
+  job. A decision that exists and is unfindable for thirty seconds is one a
+  member concludes did not save. `pnpm search:rebuild` exists for the first
+  deploy and for drift, and is idempotent; the release step is migrate,
+  rebuild, serve.
 - **JSON columns are allowed** for open-ended blobs (linter results, AI usage
   metadata) but never for anything we filter or join on.
 - Money-like values (spending thresholds inside definitions) are text inside
@@ -376,3 +394,6 @@ they imply are in `10-legal-and-operations.md`.
 | A10 | First-party funnel counters, no third-party analytics | Plausible/PostHog — more than we need; or nothing — ships onboarding blind |
 | A11 | PolyForm Noncommercial for the app; the standard stays CC BY 4.0 in its own repo; consume its data, never its AGPL code | One licence for both — would either restrict the standard or give away the app |
 | A12 | Mobile is a supported surface for every screen, not a read-only subset | Desktop-only working screens — would re-create the access asymmetry RCOS exists to remove |
+| A13 | One FTS5 table with the tenant as a filtered column; the index written inside the transaction that changes a row | One table per community — makes isolation structural and the schema a function of how many communities signed up; or a background indexer — a decision unfindable for thirty seconds is one a member concludes did not save |
+| A14 | The path's ordering is four weights in a versioned row, not a comparator in the source | A hand-tuned comparator with the reasoning in a comment — which is what P3 had, and exactly the shape where the explanation stops matching the behaviour |
+| A15 | Reverse lookup returns citations and never an answer | A model over governance text — the one behaviour §1.3 promises never to have |

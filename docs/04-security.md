@@ -153,6 +153,21 @@ The single highest-severity risk. Defence in depth:
   other tenants.
 - **Email** never contains definition or discussion bodies — only "there is
   something to look at" plus a link.
+- **Risk-profile answers never leave the community.** The five interview
+  questions (`risk_profile`) ask whether a community holds land, holds money
+  together, has children living on site, has one owner or a founder's veto, and
+  whether it meets in person. Those are facts about *people*, not about
+  governance: they order a list and do nothing else. They are never sent to a
+  model, never on a public surface, and never in an export the community did not
+  ask for.
+
+  Proved twice, because "we do not send it" is a claim about an absence. The AI
+  module cannot import `db/schema/path.ts` at any depth — the same
+  `no-restricted-imports` boundary that keeps it away from every other content
+  table — and `tests/integration/risk-profile.test.ts` runs both real AI tasks
+  against a recording provider for a community with a full profile and one
+  without, asserting the requests are byte-identical. Asserting some particular
+  word is absent would only catch the leak somebody thought of.
 
 ---
 

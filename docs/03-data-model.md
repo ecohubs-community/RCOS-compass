@@ -549,9 +549,39 @@ The register is append-only; GDPR erasure is a right. Both hold, this way:
 `decision(community_id, seq)` unique · `decision(community_id, decided_at desc)` ·
 `discussion(community_id, last_activity_at desc)` ·
 `evidence(community_id, clause_key)` · `audit_event(at desc)` ·
-`ai_call(community_id, created_at)`. FTS5 virtual tables for definitions,
-decisions, and passages, each carrying `community_id` and `visibility` as
-filterable columns.
+`ai_call(community_id, created_at)`.
+
+`path_weights` has a **partial** unique index on `(community_id) where active =
+1`: one live ordering per community, enforced where it cannot be forgotten,
+with the superseded rows sitting beside it. `path_override` is unique on
+`(community_id, section_key)`.
+
+**One FTS5 virtual table, not three.** `search_document` holds definitions,
+decisions, discussion titles and document passages, with `community_id`,
+`kind`, `subject_id` and `ref` as stored `UNINDEXED` columns. `community_id` is
+inside the query rather than applied to the results — a search that fetches
+across communities and narrows afterwards is one refactor away from not
+narrowing. **Clause text is not in it**: the standard is identical for every
+community, so indexing it per tenant would put non-tenant data inside the
+structure whose whole discipline is tenant isolation. Clauses are matched
+against the loaded standard in memory and merged into the result.
+
+**Decision bodies are indexed, not only titles and rationales.** The water-pump
+question is answered by the text a community adopted — *"any spend over €500
+needs a consent decision"* — which lives in `proposal_text`; a title reading
+"Spending authority" matches nothing a member actually types. The cost is real:
+`proposal_text` is the longest column in the table and makes relevance noisier,
+so `bm25` weights titles eight times bodies. The exit criteria are the arbiter,
+not an opinion about relevance.
+
+**An override survives a weights change and says it might be stale.**
+`path_override.weights_id_at_placement` records which ordering was live when
+somebody placed an item. Three options were open — drop the override, keep it
+silently, keep it and say so. Keeping it silently is the trap: the community's
+own instruction disappearing because they moved a slider is the worst of the
+three, and dropping it makes a deliberate act evaporate. So the row survives,
+the item carries a note that the ordering moved underneath it, and it offers to
+release. The community decides.
 
 ---
 
@@ -589,6 +619,31 @@ Two shapes in `evidence` are worth explaining, because both look redundant:
   other, which is how "no model output writes state" becomes a build failure
   rather than a habit. The boundary could not be *stated* while those tables sat
   beside the content ones.
+
+P5 added three more, and the reason is the same each time:
+
+- `path_weights_range_ck` — no weight below zero. A negative weight would
+  *invert* an input rather than silence it, which is neither what the screen
+  offers nor something the stated reasons could explain.
+- `path_override_position_ck` — a position is not negative.
+- `risk_profile_meets_ck` — the meeting question is one of three answers or
+  unanswered. Null is "not answered", which is a different thing from "no".
+
+### The ordering's arithmetic, and why the defaults are lopsided
+
+`path_weights` ships `dependency: 250, severity: 10, risk: 10, attention: 8`,
+and the gap is load-bearing rather than aesthetic. "A community that changes
+nothing sees no change" means the weighted sum has to reproduce the structural
+order P3 had — by how many questions are in the way, then by layer. Encoding
+that lexicographic key in one contribution scaled to `[0, 1]` makes one layer
+worth `dependency ÷ positions`, where `positions` is
+`(maxBlockers + 1) × layers − 1`. RCOS-Core 0.1 has seven layers and at most two
+blockers, so twenty positions, and the dependency weight has to exceed twenty
+times severity — which is the only other input a day-one community scores.
+
+`defaultsPreserveStructure()` computes that from the loaded standard and a test
+asserts it, because the two things that would break it — a standard with more
+layers, and somebody tidying the defaults — would both do it silently.
 
 **Drizzle's `text({ enum })` is not one of these.** It narrows the TypeScript
 type and emits a plain `text` column: no `CHECK`, nothing at the database. A
