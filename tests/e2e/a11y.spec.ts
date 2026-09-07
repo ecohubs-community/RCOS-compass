@@ -97,6 +97,42 @@ test.describe('accessibility', () => {
 		expect(results.violations).toEqual([]);
 	});
 
+	/**
+	 * The public surface, which is the one page in the product most likely to be
+	 * opened on a phone by somebody who has never seen it before — often from a
+	 * link in an email, with no idea what Compass is.
+	 */
+	test('the public index and an artifact page have no violations', async ({ page, browser }) => {
+		test.slow();
+		const fixture = await seed(page);
+		await signIn(page, fixture.email, fixture.password);
+		await visit(page, `/c/${fixture.slug}/settings/publishing`);
+		await page.getByRole('checkbox', { name: /public pages/i }).check();
+		await page.getByRole('button', { name: 'Save' }).click();
+
+		const anonymous = await browser.newContext();
+		const visitor = await anonymous.newPage();
+		await visitor.goto(`/p/${fixture.slug}`);
+		expect((await scan(visitor).analyze()).violations).toEqual([]);
+
+		await anonymous.close();
+	});
+
+	test('the publishing and transparency screens have no violations', async ({ page }) => {
+		test.slow();
+		const fixture = await seed(page);
+		await signIn(page, fixture.email, fixture.password);
+
+		for (const url of [
+			`/c/${fixture.slug}/settings/publishing`,
+			`/c/${fixture.slug}/settings/transparency`
+		]) {
+			await visit(page, url);
+			const results = await scan(page).analyze();
+			expect(results.violations, `${url} has accessibility violations`).toEqual([]);
+		}
+	});
+
 	test('the document screens have no violations', async ({ page }) => {
 		test.slow();
 		const fixture = await seedWithProposal(page);

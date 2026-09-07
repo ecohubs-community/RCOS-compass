@@ -174,3 +174,20 @@ describe('administrative writes have their own hourly ceiling', () => {
 		expect(isAdminAction('/administration', 'POST')).toBe(false);
 	});
 });
+
+describe('the public surface is metered like everything else', () => {
+	it('is not exempt', () => {
+		// The only anonymous surface in the product, and therefore the first thing
+		// a scraper finds. It shares the general per-address bucket rather than
+		// having one of its own.
+		expect(isExemptFromRateLimit('/p/valle-verde')).toBe(false);
+		expect(isExemptFromRateLimit('/p/valle-verde/a/purpose-charter')).toBe(false);
+	});
+
+	it('is not treated as a credential attempt, so it keeps the generous ceiling', () => {
+		// A crawler reading a hundred artifact pages must not be metered as though
+		// it were guessing passwords.
+		expect(isCredentialAttempt('/p/valle-verde', 'GET')).toBe(false);
+		expect(isCredentialAttempt('/p/valle-verde/a/purpose-charter', 'POST')).toBe(false);
+	});
+});

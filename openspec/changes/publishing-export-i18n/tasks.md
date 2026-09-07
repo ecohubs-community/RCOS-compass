@@ -43,16 +43,16 @@
 
 ## 5. One renderer, then the public surface
 
-- [ ] 5.1 **The artifact renderer, once.** An artifact with its adopted definitions, its local additions and its provenance, as a structured document — with three thin adapters: HTML for the page, Markdown for the bundle and the repository, print stylesheet for the PDF. Built here because groups 5, 7 and 8 all need it, and building it three times is how the export ends up saying something subtly different from the public page and both differ from what is in git
-- [ ] 5.2 A test renders one artifact through all three adapters and asserts the same facts appear in each
-- [ ] 5.3 The `(public)` route group — anonymous, outside the community layout, the first surface in the product with no `Ctx`. It resolves a community and an `Audience`, and never builds a member context
-- [ ] 5.4 The index in the shape of RCOS Appendix C.6: published artifacts with layer, version and date; the compliance statement; what is private and why, in the community's own words; the standard version; a contact the community wrote
-- [ ] 5.5 One page per published artifact, with local additions labelled *"community addition — not required by RCOS-Core v0.1"* — an auditor must be able to tell at a glance, and so must a new member
-- [ ] 5.6 A community that has published nothing, with the switch on, says so rather than 404ing or showing an empty shell that reads as broken
-- [ ] 5.7 Rate limiting per address on the public group, generous enough not to throttle a search engine indexing a community; `robots.txt` allowing the public group and disallowing every authenticated route; a sitemap per published community. UI spec §4.8 calls this free distribution for RCOS, and an index nobody can find is not distribution
-- [ ] 5.8 **The public-surface crawl test**: every public route of a community holding both member-visible and world content, fetched anonymously, contains no member-visible fixture text. The percentage assertion is on the *shape* — no readiness field reachable from the public view model — plus no `\d+\s*%` next to a compliance word. A bare "no `%`" would fail on a community whose own published rule reads *"a change requires 80% of members"*, and a test that fires on legitimate content is a test somebody deletes
-- [ ] 5.9 Mutation-check it: put the percentage on the public view model and watch the right test fail
-- [ ] 5.10 a11y and 375px for every public page. It is the surface most likely to be opened on a phone by somebody who has never seen the product
+- [x] 5.1 **The artifact renderer, once.** An artifact with its adopted definitions, its local additions and its provenance, as a structured document — with three thin adapters: HTML for the page, Markdown for the bundle and the repository, print stylesheet for the PDF. Built here because groups 5, 7 and 8 all need it, and building it three times is how the export ends up saying something subtly different from the public page and both differ from what is in git
+- [x] 5.2 A test renders one artifact through all three adapters and asserts the same facts appear in each
+- [x] 5.3 The `(public)` route group — anonymous, outside the community layout, the first surface in the product with no `Ctx`. It resolves a community and an `Audience`, and never builds a member context
+- [x] 5.4 The index in the shape of RCOS Appendix C.6: published artifacts with layer, version and date; the compliance statement; what is private and why, in the community's own words; the standard version; a contact the community wrote
+- [x] 5.5 One page per published artifact, with local additions labelled *"community addition — not required by RCOS-Core v0.1"* — an auditor must be able to tell at a glance, and so must a new member
+- [x] 5.6 A community that has published nothing, with the switch on, says so rather than 404ing or showing an empty shell that reads as broken
+- [x] 5.7 Rate limiting per address on the public group, generous enough not to throttle a search engine indexing a community; `robots.txt` allowing the public group and disallowing every authenticated route; a sitemap per published community. UI spec §4.8 calls this free distribution for RCOS, and an index nobody can find is not distribution
+- [x] 5.8 **The public-surface crawl test**: every public route of a community holding both member-visible and world content, fetched anonymously, contains no member-visible fixture text. The percentage assertion is on the *shape* — no readiness field reachable from the public view model — plus no `\d+\s*%` next to a compliance word. A bare "no `%`" would fail on a community whose own published rule reads *"a change requires 80% of members"*, and a test that fires on legitimate content is a test somebody deletes
+- [x] 5.9 Mutation-check it: put the percentage on the public view model and watch the right test fail
+- [x] 5.10 a11y and 375px for every public page. It is the surface most likely to be opened on a phone by somebody who has never seen the product
 
 ## 6. Self-audit
 

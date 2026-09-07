@@ -22,6 +22,16 @@ import { recordAudit } from '../services/audit.js';
 const EXEMPT_PREFIXES = ['/healthz', '/_app/', '/favicon'];
 
 /**
+ * The public surface is **not** exempt.
+ *
+ * It is the only part of the product reachable with no session, which makes it
+ * the first thing a scraper finds. The general per-address bucket already
+ * covers it at a ceiling generous enough that a search engine indexing a
+ * community is never throttled — a second bucket for `/p/` would be a second
+ * number to keep in step with the first, for no gain.
+ */
+
+/**
  * Paths where a request can be an attempt at a credential — a password, a
  * six-digit code, a recovery code. Only their POSTs are held to the tighter
  * ceiling; rendering the sign-in page is an ordinary request.
