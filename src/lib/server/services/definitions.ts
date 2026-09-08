@@ -14,7 +14,9 @@ import {
 	standardFeedback,
 	type Definition
 } from '../db/schema/definitions.js';
+import { changeLog } from '../db/schema/decisions.js';
 import { communityStandard } from '../db/schema/tenancy.js';
+import { indexDefinition } from './search.js';
 import { registerTenantService } from './registry.js';
 
 /**
@@ -369,6 +371,100 @@ export function saveDraft(
 			updatedAt: now
 		};
 	});
+}
+
+/**
+ * Correcting adopted text without rewriting what it replaces.
+ * `docs/03-data-model.md` §10.
+ *
+ * The flow that already exists — draft, freeze, supersede — is how a community
+ * *changes its mind*, and it goes through a decision because that is what
+ * changing a rule is. This is the other case: the rule is the same and the words
+ * are wrong. A misspelled street, a number transposed, a name that should never
+ * have been typed into it.
+ *
+ * So it makes a new version carrying a reason, points the definition at it, and
+ * leaves the superseded one exactly where it was. Nothing is destroyed, which is
+ * what separates it from a redaction — and it is why a correction is not enough
+ * on its own when somebody asks to be forgotten.
+ */
+export function correctDefinition(
+	ctx: Ctx,
+	input: { definitionId: string; body: string; reason: string },
+	options: { db?: Db } = {}
+): string {
+	requirePermission(ctx, 'definition.ratify');
+	requireWritableCommunity(ctx);
+
+	const body = input.body.trim();
+	if (!body) error(400, 'A correction needs the corrected text.');
+	const reason = input.reason.trim();
+	if (!reason) error(400, 'Say why this is being corrected.');
+
+	const db = options.db ?? getDb();
+	const now = new Date(ctx.now());
+	const id = newId();
+
+	db.transaction((tx) => {
+		const row = tx
+			.select()
+			.from(definition)
+			.where(
+				and(eq(definition.id, input.definitionId), eq(definition.communityId, ctx.community.id))
+			)
+			.get();
+		if (!row?.adoptedVersionId) error(404, 'Not found');
+
+		const current = tx
+			.select()
+			.from(definitionVersion)
+			.where(eq(definitionVersion.id, row.adoptedVersionId))
+			.get()!;
+
+		tx.insert(definitionVersion)
+			.values({
+				id,
+				definitionId: row.id,
+				n: current.n + 1,
+				body,
+				plainLanguage: current.plainLanguage,
+				type: current.type,
+				authorId: ctx.user.id,
+				aiAssisted: false,
+				aiTask: null,
+				linterResult: null,
+				createdAt: now,
+				adoptedAt: now,
+				// The decision that adopted the text is carried forward: the
+				// community agreed to the rule, and a correction does not re-open it.
+				decisionId: current.decisionId,
+				supersedesVersionId: current.id
+			})
+			.run();
+
+		tx.update(definition)
+			.set({ adoptedVersionId: id, updatedAt: now })
+			.where(eq(definition.id, row.id))
+			.run();
+
+		indexDefinition(tx as unknown as Db, ctx.community.id, row.id);
+
+		tx.insert(changeLog)
+			.values({
+				id: newId(),
+				communityId: ctx.community.id,
+				at: now,
+				actorId: ctx.user.id,
+				kind: 'definition.corrected',
+				subjectType: 'definition',
+				subjectId: row.id,
+				summary: reason,
+				payload: null
+			})
+			.run();
+	});
+
+	return id;
 }
 
 /** The adopted text, or null while a definition has never been frozen. */

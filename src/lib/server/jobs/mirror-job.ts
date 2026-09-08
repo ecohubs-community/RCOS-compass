@@ -15,7 +15,21 @@ import { credentialFor, getRemote, mirrorAudience, mirrorFiles } from '../servic
  * hour behind. `docs/00` §9 makes exactly this call, and the notification
  * argument in P3 is the other half of it.
  */
-export type MirrorPayload = { communityId: string; actorName: string; subject: string };
+export type MirrorPayload = {
+	communityId: string;
+	/**
+	 * The membership label — `M-0142` — never a name.
+	 *
+	 * P6 put the person's name here deliberately, to keep their address out of
+	 * the git author field, and stopped one step short: a commit body is history
+	 * in a repository the community controls and may have pushed somewhere
+	 * public, and P7 commits to never rewriting it. So an erasure cannot reach a
+	 * name written here. Commits already made keep theirs; the privacy policy
+	 * says so in the same paragraph as the exported bundle nobody can recall.
+	 */
+	actorLabel: string;
+	subject: string;
+};
 
 export async function runMirror(db: Db, payload: MirrorPayload, now: number): Promise<void> {
 	const home = db.select().from(community).where(eq(community.id, payload.communityId)).get();
@@ -28,9 +42,10 @@ export async function runMirror(db: Db, payload: MirrorPayload, now: number): Pr
 		communityId: home.id,
 		files,
 		subject: payload.subject,
-		// The person in the body rather than the author field, so a public
-		// repository does not carry their email address forever.
-		body: `Recorded by ${payload.actorName} in ${home.name}.`,
+		// The membership in the body rather than the author field or a name: a
+		// public repository would otherwise carry both forever, somewhere no
+		// erasure reaches.
+		body: `Recorded by ${payload.actorLabel} in ${home.name}.`,
 		at: new Date(now)
 	});
 	if (!sha) return;

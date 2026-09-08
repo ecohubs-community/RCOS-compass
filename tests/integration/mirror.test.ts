@@ -131,7 +131,7 @@ describe('every community gets a repository, with no configuration', () => {
 
 		await runMirror(
 			db,
-			{ communityId: ana.community.id, actorName: 'Ana', subject: 'DEC-2026-001 — Exit' },
+			{ communityId: ana.community.id, actorLabel: 'M-0001', subject: 'DEC-2026-001 — Exit' },
 			NOW
 		);
 
@@ -141,7 +141,11 @@ describe('every community gets a repository, with no configuration', () => {
 
 		const log = git(clone, ['log', '--format=%s%n%b']);
 		expect(log).toContain('DEC-2026-001 — Exit');
-		expect(log).toContain('Recorded by Ana');
+		// The membership, never the person: a commit body is history in a
+		// repository this design refuses to rewrite, so a name written here would
+		// be beyond any later erasure.
+		expect(log).toContain('Recorded by M-0001');
+		expect(log).not.toContain('Ana');
 
 		const files = git(clone, ['ls-files']);
 		expect(files).toContain('artifacts/');
@@ -154,7 +158,7 @@ describe('every community gets a repository, with no configuration', () => {
 
 		await runMirror(
 			db,
-			{ communityId: ana.community.id, actorName: 'Ana', subject: 'DEC-2026-001 — Exit' },
+			{ communityId: ana.community.id, actorLabel: 'M-0001', subject: 'DEC-2026-001 — Exit' },
 			NOW
 		);
 
@@ -172,7 +176,7 @@ describe('every community gets a repository, with no configuration', () => {
 		adopt('Members may leave at any time.');
 		await runMirror(
 			db,
-			{ communityId: ana.community.id, actorName: 'Ana', subject: 'DEC-2026-001 — Exit' },
+			{ communityId: ana.community.id, actorLabel: 'M-0001', subject: 'DEC-2026-001 — Exit' },
 			NOW
 		);
 		const clone = join(scratch, 'clone');
@@ -190,7 +194,7 @@ describe('every community gets a repository, with no configuration', () => {
 		adopt('Members may leave at any time.');
 		await runMirror(
 			db,
-			{ communityId: ana.community.id, actorName: 'Ana', subject: 'DEC-2026-001 — Exit' },
+			{ communityId: ana.community.id, actorLabel: 'M-0001', subject: 'DEC-2026-001 — Exit' },
 			NOW
 		);
 

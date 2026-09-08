@@ -16,6 +16,7 @@ import {
 import { listObjections, raiseObjection, resolveObjection } from '$lib/server/services/objections';
 import { isArtifactComplete, DECISION_MATRIX } from '$lib/server/services/completeness';
 import { lint } from '$lib/server/linter';
+import { membershipLabel } from '$lib/server/services/person';
 import { parseMarkdown } from '$lib/server/markdown';
 import { getVotingProvider, openRoundFor } from '$lib/server/voting';
 import type { Actions, PageServerLoad, RequestEvent } from './$types';
@@ -268,7 +269,7 @@ export const actions: Actions = {
 			kind: 'mirror-commit',
 			payload: {
 				communityId: event.locals.ctx!.community.id,
-				actorName: event.locals.ctx!.user.name,
+				actorLabel: membershipLabel(event.locals.ctx!.membership.seq),
 				subject: `${recorded.ref} — ${recorded.title}`
 			}
 		});

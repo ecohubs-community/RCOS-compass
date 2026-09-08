@@ -28,14 +28,14 @@
 
 ## 4. Correction and redaction
 
-- [ ] 4.1 Correction: superseding a definition version with a reason, which already has most of its machinery — the task is the reason and the change-log entry, not a new mechanism
-- [ ] 4.2 Redaction: replacing a named span in a stored body with the marker, steward-only, over **any body a member wrote** — definition bodies, decision rationales and proposal text, discussion posts, objection reasons, an external attendee's name. Scoping it to definitions and decisions was the first draft and too narrow: the place somebody types another person's name is a discussion, not an adopted rule
-- [ ] 4.3 The change-log entry for a redaction records that one happened and by whom, and never what was removed
-- [ ] 4.4 Reindex in the same transaction as the body — the search index holds its own copy, and a redaction that skips it leaves the name findable through a search box after it has gone from the page
-- [ ] 4.5 Re-commit the mirror after a redaction so the current state carries the marker, without rewriting git history
-- [ ] 4.6 Stop the mirror writing a person's name into commit bodies: the body names the membership label from now on. A P6 defect this phase surfaced — the author field was reasoned about and the message body was not — and one that erasure cannot fix retrospectively, because this design also refuses to rewrite a community's history
-- [ ] 4.7 An external attendee — present, never a member, no account and no way to ask us for anything — is rendered by the same function and reachable by redaction
-- [ ] 4.8 Tests: a member is refused; a redaction against a tally is refused; the change-log entry does not contain the redacted text — **mutation-check by putting the removed span into the entry's summary and watching the test fail**; the mirror's next commit carries the marker and the history is intact; a search for the redacted words returns nothing; a freeze commits a body naming `M-####` rather than a person
+- [x] 4.1 Correction: superseding a definition version with a reason, which already has most of its machinery — the task is the reason and the change-log entry, not a new mechanism
+- [x] 4.2 Redaction: replacing a named span in a stored body with the marker, steward-only, over **any body a member wrote** — definition bodies, decision rationales and proposal text, discussion posts, objection reasons, an external attendee's name. Scoping it to definitions and decisions was the first draft and too narrow: the place somebody types another person's name is a discussion, not an adopted rule
+- [x] 4.3 The change-log entry for a redaction records that one happened and by whom, and never what was removed
+- [x] 4.4 Reindex in the same transaction as the body — the search index holds its own copy, and a redaction that skips it leaves the name findable through a search box after it has gone from the page
+- [x] 4.5 Re-commit the mirror after a redaction so the current state carries the marker, without rewriting git history
+- [x] 4.6 Stop the mirror writing a person's name into commit bodies: the body names the membership label from now on. A P6 defect this phase surfaced — the author field was reasoned about and the message body was not — and one that erasure cannot fix retrospectively, because this design also refuses to rewrite a community's history
+- [x] 4.7 An external attendee — present, never a member, no account and no way to ask us for anything — is rendered by the same function and reachable by redaction
+- [x] 4.8 Tests: a member is refused; a redaction against a tally is refused; the change-log entry does not contain the redacted text — **mutation-check by putting the removed span into the entry's summary and watching the test fail**; the mirror's next commit carries the marker and the history is intact; a search for the redacted words returns nothing; a freeze commits a body naming `M-####` rather than a person
 
 ## 5. The documents, and the inventory they come from
 
