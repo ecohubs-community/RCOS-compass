@@ -44,5 +44,15 @@
 	"publishing_nothing_publishable": "Nothing yet — an artifact becomes publishable once you have adopted at least one of its sections.",
 	"publishing_activity": "What has been published, and when",
 	"publishing_no_activity": "Nothing has been published or withdrawn yet.",
-	"export_preparing": "Preparing your export…"
+	"export_preparing": "Preparing your export…",
+	"language_title": "Language",
+	"language_heading": "The language this community works in",
+	"language_intro": "One language for everybody here. Governance is a shared activity, and two members reading the same rule in two languages is how a disagreement becomes an argument about translation.",
+	"language_unchanged": "This changes what the interface and the standard are shown in. It changes nothing the community wrote — every definition, decision and rationale stays in the words it was written in.",
+	"language_label": "Language",
+	"language_save": "Save",
+	"language_saved": "Saved. Every member sees this community in the new language.",
+	"language_interface_english": "standard translated, interface in English",
+	"language_steward_only": "Only a steward can change this.",
+	"nav_language": "Language"
 }

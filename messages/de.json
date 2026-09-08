@@ -42,5 +42,15 @@
 	"publishing_nothing_publishable": "Noch nichts — ein Artefakt wird veröffentlichbar, sobald ihr mindestens einen seiner Abschnitte beschlossen habt.",
 	"publishing_activity": "Was wann veröffentlicht wurde",
 	"publishing_no_activity": "Bisher wurde nichts veröffentlicht oder zurückgezogen.",
-	"export_preparing": "Export wird vorbereitet…"
+	"export_preparing": "Export wird vorbereitet…",
+	"language_title": "Sprache",
+	"language_heading": "Die Sprache dieser Gemeinschaft",
+	"language_intro": "Eine Sprache für alle hier. Governance ist eine gemeinsame Tätigkeit, und wenn zwei Mitglieder dieselbe Regel in zwei Sprachen lesen, wird aus einer Meinungsverschiedenheit ein Streit über die Übersetzung.",
+	"language_unchanged": "Das ändert, in welcher Sprache die Oberfläche und der Standard angezeigt werden. Es ändert nichts an dem, was die Gemeinschaft geschrieben hat — jede Definition, jede Entscheidung und jede Begründung bleibt in ihren eigenen Worten.",
+	"language_label": "Sprache",
+	"language_save": "Speichern",
+	"language_saved": "Gespeichert. Alle Mitglieder sehen diese Gemeinschaft jetzt in der neuen Sprache.",
+	"language_interface_english": "Standard übersetzt, Oberfläche auf Englisch",
+	"language_steward_only": "Nur ein Steward kann das ändern.",
+	"nav_language": "Sprache"
 }

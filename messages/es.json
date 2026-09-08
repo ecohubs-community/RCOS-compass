@@ -42,5 +42,15 @@
 	"publishing_nothing_publishable": "Todavía nada — un artefacto puede publicarse en cuanto hayáis adoptado al menos una de sus secciones.",
 	"publishing_activity": "Qué se ha publicado y cuándo",
 	"publishing_no_activity": "Todavía no se ha publicado ni retirado nada.",
-	"export_preparing": "Preparando la exportación…"
+	"export_preparing": "Preparando la exportación…",
+	"language_title": "Idioma",
+	"language_heading": "El idioma en el que trabaja esta comunidad",
+	"language_intro": "Un solo idioma para todas las personas de aquí. La gobernanza es una actividad compartida, y que dos miembros lean la misma regla en dos idiomas es como un desacuerdo se convierte en una discusión sobre la traducción.",
+	"language_unchanged": "Esto cambia el idioma en que se muestran la interfaz y el estándar. No cambia nada de lo que la comunidad escribió: cada definición, decisión y justificación permanece en las palabras en que fue escrita.",
+	"language_label": "Idioma",
+	"language_save": "Guardar",
+	"language_saved": "Guardado. Todos los miembros ven esta comunidad en el nuevo idioma.",
+	"language_interface_english": "estándar traducido, interfaz en inglés",
+	"language_steward_only": "Solo una persona con rol de steward puede cambiarlo.",
+	"nav_language": "Idioma"
 }

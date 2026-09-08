@@ -60,6 +60,7 @@
 				{ href: links.publishing(slug), label: m.nav_publishing() },
 				{ href: links.exportSettings(slug), label: m.nav_export() },
 				{ href: links.mirror(slug), label: m.nav_mirror() },
+				{ href: links.language(slug), label: m.nav_language() },
 				{ href: links.aiSettings(slug), label: m.nav_ai_settings() }
 			]
 		}

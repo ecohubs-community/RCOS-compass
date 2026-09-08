@@ -94,6 +94,7 @@
 - [x] 9.3 The community's locale selects the standard's own words, which the vendored data already carries in all five; `localise()` already falls back and says so
 - [x] 9.4 A community's own definitions, decisions, rationales and posts are never translated, at export and on the public surface included
 - [x] 9.5 Tests: a German community reads German; an untranslated string is marked rather than substituted; changing the locale changes the interface and the standard and nothing else — not readiness, not compliance, not one definition
+- [x] 9.6 A steward sets the community's language, from the five the standard is published in rather than the three the interface speaks — a community whose language is one of the other two gets its own standard in its own words with an English interface, marked, which is a smaller lie than having nothing for them. Recorded, because every member's screen changes at once
 
 ## 10. Closing it
 
