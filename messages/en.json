@@ -39,5 +39,10 @@
 	"public_not_decided": "Not yet decided by this community.",
 	"public_local_additions": "Local additions",
 	"public_local_note": "Rules this community wrote for itself, which {standard} does not ask for.",
-	"public_about_body": "This community governs itself against {standard} v{version}, an open standard for community governance. What appears here is what they chose to publish; their discussions, drafts and member records are private to them."
+	"public_about_body": "This community governs itself against {standard} v{version}, an open standard for community governance. What appears here is what they chose to publish; their discussions, drafts and member records are private to them.",
+	"publishing_could_publish": "What you could publish",
+	"publishing_nothing_publishable": "Nothing yet — an artifact becomes publishable once you have adopted at least one of its sections.",
+	"publishing_activity": "What has been published, and when",
+	"publishing_no_activity": "Nothing has been published or withdrawn yet.",
+	"export_preparing": "Preparing your export…"
 }

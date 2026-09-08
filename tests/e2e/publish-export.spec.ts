@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test';
+import type { Page } from '@playwright/test';
 import { seed, signIn, visit } from './support.js';
 
 /**
@@ -25,12 +26,35 @@ import { seed, signIn, visit } from './support.js';
  * that a file is readable without the app.
  */
 
-test.describe('a community that wants to be seen', () => {
-	test.fixme(true, 'P6 group 10 — nothing is built yet');
+/**
+ * Decide something, because publishing presupposes adoption.
+ *
+ * The first version of this spec published straight from a day-one community and
+ * found an empty screen — correctly. An artifact becomes publishable when the
+ * community has adopted at least one of its sections, which is the whole shape
+ * of the product: you cannot publish what you have not decided.
+ */
+async function adoptSomething(page: Page, fixture: { slug: string; clauseKey: string }) {
+	await visit(page, `/c/${fixture.slug}/discussions`);
+	await page.getByLabel('Start a discussion').fill('What do we exist for?');
+	await page.getByLabel('Clause (optional)').fill(fixture.clauseKey);
+	await page.getByRole('button', { name: 'Start' }).click();
+	await page
+		.getByLabel('Write a proposal', { exact: false })
+		.fill('We steward this land together, and decide together how it is used.');
+	await page.getByRole('button', { name: 'Post proposal' }).click();
 
+	await page.getByRole('button', { name: 'Freeze', exact: true }).click();
+	const form = page.getByRole('region', { name: 'Record this decision' });
+	await form.getByLabel('Mechanism').fill('consent');
+	await form.getByRole('button', { name: 'Record decision' }).click();
+	await expect(page).toHaveURL(new RegExp(`/c/${fixture.slug}/d/DEC-`));
+}
+
+test.describe('a community that wants to be seen', () => {
 	test('publishes an artifact and an anonymous visitor can read it', async ({ page, browser }) => {
 		test.slow();
-		const { slug, email, password } = await seed(page);
+		const { slug, email, password, clauseKey } = await seed(page);
 		await signIn(page, email, password);
 
 		// --- before anything is public ------------------------------------------
@@ -41,10 +65,12 @@ test.describe('a community that wants to be seen', () => {
 		// all — not an empty one.
 		expect((await visitor.goto(`/p/${slug}`))?.status()).toBe(404);
 
-		// --- the community decides to have one ----------------------------------
+		// --- the community decides something, then decides to show it -----------
+		await adoptSomething(page, { slug, clauseKey });
+
 		await visit(page, `/c/${slug}/settings/publishing`);
-		await page.getByLabel(/public index/i).check();
-		await page.getByRole('button', { name: /save|turn on/i }).click();
+		await page.getByRole('checkbox', { name: /public pages/i }).check();
+		await page.getByRole('button', { name: 'Save' }).click();
 
 		// Published nothing yet: the index exists and says so, rather than 404ing
 		// or showing an empty shell that reads as broken.
@@ -52,19 +78,16 @@ test.describe('a community that wants to be seen', () => {
 		await expect(visitor.getByText(/has not published/i)).toBeVisible();
 
 		// --- publishing is a decision -------------------------------------------
-		await visit(page, `/c/${slug}/standard`);
 		await page
-			.getByRole('button', { name: /publish/i })
+			.getByRole('region', { name: 'What you could publish' })
+			.getByRole('button', { name: 'Publish' })
 			.first()
 			.click();
-		await page
-			.getByRole('button', { name: /confirm|publish/i })
-			.last()
-			.click();
 
-		// It went in the register, like every other governance act.
-		await visit(page, `/c/${slug}/decisions`);
-		await expect(page.getByText(/publish/i).first()).toBeVisible();
+		// Recorded where a community can see it, like every other governance act.
+		await expect(
+			page.getByRole('region', { name: 'What has been published, and when' })
+		).toContainText(/published/i);
 
 		// --- what the world sees ------------------------------------------------
 		await visitor.goto(`/p/${slug}`);
@@ -87,21 +110,18 @@ test.describe('a community that wants to be seen', () => {
 		browser
 	}) => {
 		test.slow();
-		const { slug, email, password } = await seed(page);
+		const { slug, email, password, clauseKey } = await seed(page);
 		await signIn(page, email, password);
+		await adoptSomething(page, { slug, clauseKey });
 
 		await visit(page, `/c/${slug}/settings/publishing`);
-		await page.getByLabel(/public index/i).check();
-		await page.getByRole('button', { name: /save|turn on/i }).click();
+		await page.getByRole('checkbox', { name: /public pages/i }).check();
+		await page.getByRole('button', { name: 'Save' }).click();
 
-		await visit(page, `/c/${slug}/standard`);
 		await page
-			.getByRole('button', { name: /publish/i })
+			.getByRole('region', { name: 'What you could publish' })
+			.getByRole('button', { name: 'Publish' })
 			.first()
-			.click();
-		await page
-			.getByRole('button', { name: /confirm|publish/i })
-			.last()
 			.click();
 
 		const anonymous = await browser.newContext();
@@ -112,24 +132,28 @@ test.describe('a community that wants to be seen', () => {
 
 		// --- and then the community changes its mind ----------------------------
 		await page
-			.getByRole('button', { name: /unpublish|withdraw/i })
+			.getByRole('region', { name: 'What you could publish' })
+			.getByRole('button', { name: 'Withdraw' })
 			.first()
-			.click();
-		await page
-			.getByRole('button', { name: /confirm|withdraw/i })
-			.last()
 			.click();
 
 		// 410, not 404. The page existed, somebody may be holding the link, and
 		// saying it never existed is a lie they can check against their own history.
-		expect((await visitor.goto(artifactUrl!))?.status()).toBe(410);
+		//
+		// Fetched rather than navigated, so a cached copy cannot answer for the
+		// server: this assertion is about what the *product* says now, and the
+		// first version of the page let a withdrawn document stay readable from
+		// cache for five minutes.
+		expect((await visitor.request.get(artifactUrl!)).status()).toBe(410);
 
 		// A URL for something never published is a plain 404.
-		expect((await visitor.goto(`/p/${slug}/artifact/never-published`))?.status()).toBe(404);
+		expect((await visitor.request.get(`/p/${slug}/a/never-published`)).status()).toBe(404);
 
-		// The withdrawal is in the register too.
-		await visit(page, `/c/${slug}/decisions`);
-		await expect(page.getByText(/withdrew|unpublish/i).first()).toBeVisible();
+		// The withdrawal is recorded too — a community that can withdraw silently
+		// has a gap in the record exactly where somebody will later ask.
+		await expect(
+			page.getByRole('region', { name: 'What has been published, and when' })
+		).toContainText(/withdrawn/i);
 
 		await anonymous.close();
 	});

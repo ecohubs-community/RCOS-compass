@@ -325,6 +325,17 @@ the product:
   same context redirects away from the sign-in form, and the failure presents as
   a ninety-second wait for an email field that will never appear. P5's
   cross-community search spec creates a context each.
+- **A migration is only tested by a database that already had rows in it.** Every
+  suite starts from one migrated in a single pass with nothing in it, which is
+  the one shape where a destructive migration cannot show. P6's first generated
+  migration passed everything and deleted every local definition attached to a
+  community artifact. `tests/integration/migration-upgrade.test.ts` builds a
+  database at the previous migration, seeds the parent/child pair, applies the
+  newest and asserts nothing vanished — guarding the next migration as much as
+  that one.
+- **"Readable without the app" cannot be an e2e test**, whose web server is
+  running. The export is checked by a plain test over the produced file with
+  nothing serving.
 - **A handler that must beat SvelteKit's router listens in the capture phase.**
   The client router intercepts clicks on internal links and calls
   `preventDefault()` to navigate. A bubbling handler runs second, sees
@@ -399,6 +410,23 @@ suggestions count sailed straight through. They now pick a target the four
 inputs cannot separate from its neighbour. **When a test asserts that something
 moved, choose a subject that had somewhere to move to** — and if none exists,
 assert the mechanism instead and say why.
+
+**A scaffold that clears itself.** P6's read-path registry had to be written
+before the filter existed, and "red from the first commit" is right about the
+code and wrong about people: a suite that stays red for a fortnight is one
+nobody reads, and the real failure hides in it. Each entry was marked pending and
+run under `it.fails`, which asserts the true statement about today's code — *this
+service cannot answer an anonymous audience* — and clears itself: converting the
+service makes the test pass, which makes `it.fails` go red, which forces the
+marker off. The gate read "952 passed, 28 expected fail", which is exactly what
+was true.
+
+**A ratchet, where the work is mechanical and long.** Extracting every interface
+string is a screen-at-a-time job with no design content. `pnpm check:i18n` counts
+what is left and fails when the number *grows*, so a new screen with hardcoded
+English is caught on the commit that adds it while the backlog is paid down
+gradually. A test pins the counting heuristic so it cannot drift and quietly make
+the ratchet meaningless.
 
 **Enumerating fields instead of walking them.** "The reverse lookup writes no
 prose of its own" first checked the excerpt and the title. A `summary` field

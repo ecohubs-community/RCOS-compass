@@ -1,8 +1,31 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
+	import { invalidateAll } from '$app/navigation';
 	import { resolve } from '$app/paths';
+	import * as m from '$lib/paraglide/messages';
 
 	let { data, form } = $props();
+
+	/**
+	 * The export is a job, so the page has to come back for the result.
+	 *
+	 * A bounded poll rather than a socket or a spinner that never resolves: a
+	 * community's whole governance is a few hundred kilobytes and the worker
+	 * wakes every few seconds, so this is over in one or two rounds. If it is
+	 * not, the message says to reload rather than pretending to still be working.
+	 */
+	let waiting = $state(false);
+
+	async function waitForIt() {
+		waiting = true;
+		const started = data.exports.length;
+		for (let attempt = 0; attempt < 10; attempt += 1) {
+			await new Promise((resolve) => setTimeout(resolve, 1500));
+			await invalidateAll();
+			if (data.exports.length > started) break;
+		}
+		waiting = false;
+	}
 
 	const when = (ms: number) =>
 		new Date(ms).toLocaleString('en-GB', {
@@ -28,7 +51,16 @@
 		and the bundle says so.
 	</p>
 
-	<form method="POST" action="?/export" use:enhance class="mt-5">
+	<form
+		method="POST"
+		action="?/export"
+		use:enhance={() =>
+			async ({ update }) => {
+				await update();
+				await waitForIt();
+			}}
+		class="mt-5"
+	>
 		<button
 			type="submit"
 			class="bg-accent-deep text-fg h-9 cursor-pointer rounded-(--radius-control) px-3 font-medium"
@@ -36,10 +68,11 @@
 		>
 	</form>
 
-	{#if form?.queued}
+	{#if waiting}
+		<p role="status" class="text-fg-secondary mt-3">{m.export_preparing()}</p>
+	{:else if form?.queued}
 		<p role="status" class="text-fg-secondary mt-3">
-			Preparing your export — it will appear below in a moment. You will be notified when it is
-			ready.
+			Your export is being prepared. If it has not appeared below, reload this page.
 		</p>
 	{/if}
 
@@ -58,7 +91,7 @@
 						<a
 							href={resolve('/download/[token]', { token: file.token })}
 							class="text-fg min-w-0 flex-1 truncate underline underline-offset-2"
-							>{file.filename}</a
+							>Download {file.filename}</a
 						>
 						<span class="text-fg-muted text-meta" data-tabular>{size(file.bytes)}</span>
 						<span class="text-fg-muted text-meta" data-tabular>{when(file.createdAt)}</span>

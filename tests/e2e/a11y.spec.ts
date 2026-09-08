@@ -118,14 +118,17 @@ test.describe('accessibility', () => {
 		await anonymous.close();
 	});
 
-	test('the publishing and transparency screens have no violations', async ({ page }) => {
+	test('every screen this phase added has no violations', async ({ page }) => {
 		test.slow();
 		const fixture = await seed(page);
 		await signIn(page, fixture.email, fixture.password);
 
 		for (const url of [
 			`/c/${fixture.slug}/settings/publishing`,
-			`/c/${fixture.slug}/settings/transparency`
+			`/c/${fixture.slug}/settings/transparency`,
+			`/c/${fixture.slug}/settings/export`,
+			`/c/${fixture.slug}/settings/mirror`,
+			`/c/${fixture.slug}/audit`
 		]) {
 			await visit(page, url);
 			const results = await scan(page).analyze();

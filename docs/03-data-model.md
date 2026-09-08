@@ -173,8 +173,11 @@ document           id | community_id | filename | mime | bytes | sha256 | storag
 passage            id | document_id | page | ordinal | text | text_hash | bbox?
 evidence           id | community_id | passage_id | clause_key | state suggested|confirmed|dismissed|stale
                    | confidence | suggested_by ai|human | confirmed_by? | confirmed_at?
-transparency_exception id | community_id | subject_type | subject_id | justification
-                   | expires_at | decision_id | created_by
+transparency_exception id | community_id | subject_type | subject_id | audience | justification
+                   | expires_at | expired_at? | renews_id? | decision_id | created_by
+                   -- `audience` was missing from this sketch and is named in UI
+                   -- spec §1.6: without it "restricted" has no defined reader and
+                   -- "a member sees it only if they may" is undefined. P6 added it.
 notification       id | community_id | recipient_membership_id | kind | subject_type | subject_id
                    | created_at | read_at?
                    -- one row per recipient, not an event joined to a read table:
@@ -513,7 +516,16 @@ and artifacts. Enforcement, not just display:
 
 - **Every read path takes visibility as a query filter**, including search
   indexing, AI context assembly, exports, and the git mirror. There is one
-  `visibleTo(ctx)` helper and a test that every list service uses it.
+  `visibleTo(audience)` helper and a registry — `tests/support/read-paths.ts` —
+  that a test walks, so a read service added without an entry fails the suite.
+
+  It takes an **audience, not a `Ctx`**: `Ctx` is user, community and membership,
+  and an anonymous reader has none of them. The shortcut anybody reaches for is a
+  `Ctx` with a placeholder user, which satisfies `requirePermission(ctx,
+  'community.read')` and would hand an anonymous visitor every read path in the
+  product — so the type makes it unrepresentable. A third `scoped` variant states
+  its levels outright, for background jobs like the mirror that have no reader at
+  all and must not borrow somebody's role.
 - `restricted` requires an unexpired `transparency_exception` row. A nightly job
   expires them and reverts the subject to `member`, writing a change-log entry.
 - `world` requires a decision record — publishing is a governance act.
@@ -644,6 +656,18 @@ times severity — which is the only other input a day-one community scores.
 `defaultsPreserveStructure()` computes that from the loaded standard and a test
 asserts it, because the two things that would break it — a standard with more
 layers, and somebody tidying the defaults — would both do it silently.
+
+P6 added visibility, and it is enforced by **triggers rather than a `CHECK`** —
+the one place in the schema that is true, and worth knowing why. Adding a CHECK
+to an existing table makes drizzle-kit emit SQLite's twelve-step table rebuild,
+wrapped in `PRAGMA foreign_keys=OFF`. That pragma is a **no-op inside a
+transaction**, and the migrator runs every migration in one, so the `DROP TABLE`
+cascades. On this schema it silently deleted every local definition attached to a
+community artifact, and passed on an empty database because there was nothing to
+lose. `ALTER TABLE … ADD COLUMN` needs no rebuild, so the column is added plainly
+and a `BEFORE INSERT`/`BEFORE UPDATE` trigger raises `ABORT` on a fourth value.
+`tests/integration/migration-upgrade.test.ts` guards the whole class by seeding a
+database at the previous migration and asserting nothing vanishes.
 
 **Drizzle's `text({ enum })` is not one of these.** It narrows the TypeScript
 type and emits a plain `text` column: no `CHECK`, nothing at the database. A

@@ -97,10 +97,10 @@
 
 ## 10. Closing it
 
-- [ ] 10.1 The e2e spec from 0.1 passes end to end: switch on → publish → an anonymous visitor reads the claim and the gap list → export → the bundle opens without the app
-- [ ] 10.2 The same at 375px, including the public index and the export request
-- [ ] 10.3 Task 0.2's enumerating suite is green, and every row-returning read service added in groups 1–9 is in it
-- [ ] 10.4 Every service added in this phase that is addressed by an id registered in `services/registry.ts`; for the rest — the public loaders, the export job, the mirror — the tenant *and visibility* boundaries asserted directly, the way P5 closed the same gap
-- [ ] 10.5 a11y over the public index, the artifact pages, the exceptions screen, the self-audit result and the export screen at 375 / 768 / 1024 / 1440
-- [ ] 10.6 Mutation-check the claims this phase rests on (`docs/06` §8a): that no read path returns member content to an anonymous audience, that the percentage cannot reach a public surface, that an unconsented name is never published, that the mirror credential never survives a failure report, that an expired exception actually reverts, and that a community with the switch off has no public surface. Break each, watch the *right* test fail, put it back
-- [ ] 10.7 `docs/00`, `docs/03`, `docs/04` and `docs/06` updated wherever the build taught something the documents did not say — including `docs/03` §3's transparency exception, which is missing the audience field this phase adds — and the three decisions from 0.4 recorded
+- [x] 10.1 The e2e spec from 0.1 passes end to end: switch on → publish → an anonymous visitor reads the claim and the gap list → export → the bundle opens without the app
+- [x] 10.2 The same at 375px, including the public index and the export request
+- [x] 10.3 Task 0.2's enumerating suite is green, and every row-returning read service added in groups 1–9 is in it
+- [x] 10.4 Every service added in this phase that is addressed by an id registered in `services/registry.ts`; for the rest — the public loaders, the export job, the mirror — the tenant *and visibility* boundaries asserted directly, the way P5 closed the same gap
+- [x] 10.5 a11y over the public index, the artifact pages, the exceptions screen, the self-audit result and the export screen at 375 / 768 / 1024 / 1440
+- [x] 10.6 Mutation-check the claims this phase rests on (`docs/06` §8a): that no read path returns member content to an anonymous audience, that the percentage cannot reach a public surface, that an unconsented name is never published, that the mirror credential never survives a failure report, that an expired exception actually reverts, and that a community with the switch off has no public surface. Break each, watch the *right* test fail, put it back
+- [x] 10.7 `docs/00`, `docs/03`, `docs/04` and `docs/06` updated wherever the build taught something the documents did not say — including `docs/03` §3's transparency exception, which is missing the audience field this phase adds — and the three decisions from 0.4 recorded

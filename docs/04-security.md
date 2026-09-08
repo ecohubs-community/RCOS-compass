@@ -153,6 +153,33 @@ The single highest-severity risk. Defence in depth:
   other tenants.
 - **Email** never contains definition or discussion bodies — only "there is
   something to look at" plus a link.
+- **The public surface is the only anonymous read path**, and it has two gates:
+  the community's `public_index_enabled` switch and the subject's visibility.
+  With the switch off every public URL is 404 regardless of what is `world`. It
+  is rate-limited by the ordinary per-address bucket rather than one of its own,
+  and `robots.txt` allows `/p/` while refusing every authenticated route — a
+  courtesy to crawlers, not a control, since those routes refuse anonymous
+  requests anyway.
+- **A withdrawn page must stop being readable immediately**, so public artifact
+  pages are `max-age=0, must-revalidate` rather than cached for minutes. A
+  community usually withdraws something because it should not have been there,
+  and a five-minute cache — in a browser or a CDN — is five minutes of it still
+  being served. Found by the exit spec, which navigated twice and got the cached
+  200 the second time.
+- **The compliance percentage cannot reach it.** Structurally, not by rule: the
+  outward claim is its own type with no field a percentage could be computed
+  from, so a summary card added later cannot render one by accident. `docs/03`'s
+  `ArtifactProgress` carries `authored` and `answered` and deliberately does not
+  appear on that path.
+- **A name is published only where that person consented**, checked before the
+  community's attribution policy rather than after — both orders agree today,
+  and only this one still agrees when somebody adds a third policy. A name on the
+  open web is the one thing in this phase that cannot be walked back.
+- **The mirror credential is the first secret held on somebody else's behalf.**
+  AES-256-GCM under a key derived from `BETTER_AUTH_SECRET` through HKDF with its
+  own label; write-only from the interface; and redacted out of failure reports,
+  because git prints the whole remote URL — token included — in its error output.
+  The rethrow carries no `cause` for the same reason.
 - **Risk-profile answers never leave the community.** The five interview
   questions (`risk_profile`) ask whether a community holds land, holds money
   together, has children living on site, has one owner or a founder's veto, and

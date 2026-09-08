@@ -237,9 +237,20 @@ Named here so the choice is deliberate and CSP-compatible:
 - **PDF text extraction:** `unpdf` / `pdfjs-dist` in a worker.
 - **DOCX:** `mammoth` to HTML, then sanitised to text + structure.
 - **Viewer:** self-hosted `pdfjs-dist` — no CDN, per the CSP in `04-security.md` §7.
-- **PDF generation** (export bundle, printable register): render the app's own
-  print stylesheet to PDF with headless Chromium via Playwright, which is already
-  a dependency. Revisit if the memory cost bites.
+- **PDF generation** (export bundle, printable register): render a self-contained
+  print stylesheet to PDF with headless Chromium via Playwright.
+
+  > **Corrected in P6.** "Already a dependency" meant a *dev* dependency, and
+  > promoting it puts a few hundred megabytes of browser on every deployment for
+  > a third format of a bundle that is complete without it. Adding it as an
+  > optional dependency pulled a second `playwright-core` into the tree beside
+  > the test runner's and broke type-checking. So it is not a dependency at all:
+  > `export-pdf.ts` resolves it through a non-literal specifier, an instance that
+  > wants printable copies installs it, and **the manifest records whether the
+  > PDF is in the bundle** — one that silently varies in content is worse than
+  > one that is honestly smaller. The HTML is generated rather than fetched from
+  > a route, because rendering a page that needs a session would mean the export
+  > job authenticating to its own server.
 - **No OCR in MVP.** A PDF with no text layer is detected on upload and the
   member is told plainly: *"This looks like a scan — Compass can't read it. You
   can still attach passages by hand."* Silent zero-passage extraction would be
@@ -253,9 +264,31 @@ Named here so the choice is deliberate and CSP-compatible:
   commits, never inside the freeze transaction. A failed push is retried with
   backoff, surfaced in settings, and never blocks governance. Restricted-visibility
   content is excluded from the mirror unless the community opts in explicitly.
-- **Full export** (JSON + Markdown + PDF bundle) is a background job with a
-  signed, expiring download link. It is a stated product promise, so it is
-  covered by an e2e test.
+
+  **Every community gets a local bare repository with no configuration**, and a
+  downloadable git bundle; linking a remote adds a second destination and changes
+  nothing about the contents. A mirror requiring a GitHub account would exclude
+  the communities most likely to want data sovereignty, and one that could never
+  leave the server would be a backup we keep for them rather than the promise in
+  `docs/10` §1.3.
+
+  Two details worth carrying: the commit author is a **service identity**, with
+  the person named in the message body — a git author is an email address, and a
+  public repository would carry it forever somewhere no erasure flow reaches. And
+  git prints the whole remote URL, token included, in its error output, so
+  failures are redacted before they are stored or logged and the rethrow
+  deliberately carries no `cause`.
+- **Full export** (JSON + Markdown + optional PDF, as one zip) is a background
+  job with a signed, expiring download link — one hour, single-community,
+  audit-logged on issue and on use, and deliberately *not* single-use, because
+  single-use links are broken by every mail scanner between here and the
+  recipient and the failure is indistinguishable from a bug. The signing key is
+  derived from `BETTER_AUTH_SECRET` under its own domain separator rather than
+  being a new required variable.
+
+  The promise is that the bundle is readable **without us**, so the check for it
+  is a plain test over the produced file with nothing serving — an e2e suite
+  whose web server is running cannot demonstrate that.
 - **Uploaded files are backed up with the database, not separately.** A restore
   that brings back decisions but loses the bylaws they were mapped from is a
   broken restore. The quarterly drill restores both and re-opens a mapped document.
@@ -397,3 +430,6 @@ they imply are in `10-legal-and-operations.md`.
 | A13 | One FTS5 table with the tenant as a filtered column; the index written inside the transaction that changes a row | One table per community — makes isolation structural and the schema a function of how many communities signed up; or a background indexer — a decision unfindable for thirty seconds is one a member concludes did not save |
 | A14 | The path's ordering is four weights in a versioned row, not a comparator in the source | A hand-tuned comparator with the reasoning in a comment — which is what P3 had, and exactly the shape where the explanation stops matching the behaviour |
 | A15 | Reverse lookup returns citations and never an answer | A model over governance text — the one behaviour §1.3 promises never to have |
+| A16 | Two gates on the public surface: the community's switch *and* the subject's visibility | Visibility alone — withdrawing a public presence would then mean unpublishing every artifact one at a time |
+| A17 | Read services take an `Audience`, and the anonymous case carries a community id and nothing else | A `Ctx` with a placeholder user, which satisfies `requirePermission` and would hand an anonymous visitor every read path |
+| A18 | Keys for export links and mirror credentials are derived from `BETTER_AUTH_SECRET` | New required variables — every existing deployment fails to boot for a feature it may never use; optional ones silently do nothing |

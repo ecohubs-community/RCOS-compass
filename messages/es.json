@@ -37,5 +37,10 @@
 	"public_not_decided": "Esta comunidad todavía no lo ha decidido.",
 	"public_local_additions": "Adiciones locales",
 	"public_local_note": "Reglas que esta comunidad se ha dado a sí misma y que {standard} no exige.",
-	"public_about_body": "Esta comunidad se gobierna conforme a {standard} v{version}, un estándar abierto de gobernanza comunitaria. Aquí aparece lo que decidió publicar; sus debates, borradores y registros de miembros son privados."
+	"public_about_body": "Esta comunidad se gobierna conforme a {standard} v{version}, un estándar abierto de gobernanza comunitaria. Aquí aparece lo que decidió publicar; sus debates, borradores y registros de miembros son privados.",
+	"publishing_could_publish": "Lo que podríais publicar",
+	"publishing_nothing_publishable": "Todavía nada — un artefacto puede publicarse en cuanto hayáis adoptado al menos una de sus secciones.",
+	"publishing_activity": "Qué se ha publicado y cuándo",
+	"publishing_no_activity": "Todavía no se ha publicado ni retirado nada.",
+	"export_preparing": "Preparando la exportación…"
 }

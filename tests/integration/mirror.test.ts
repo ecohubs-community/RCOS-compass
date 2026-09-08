@@ -12,7 +12,7 @@ import { setDbForTests, type Db } from '../../src/lib/server/db/index.js';
 import { definition, definitionVersion } from '../../src/lib/server/db/schema/definitions.js';
 import { mirrorRemote } from '../../src/lib/server/db/schema/self-audit.js';
 import { communityStandard } from '../../src/lib/server/db/schema/tenancy.js';
-import { runMirror } from '../../src/lib/server/jobs/mirror-job.js';
+import { redact, runMirror } from '../../src/lib/server/jobs/mirror-job.js';
 import { commitState, repoPath, writeBundle } from '../../src/lib/server/mirror/repo.js';
 import {
 	credentialFor,
@@ -284,5 +284,39 @@ describe('the credential', () => {
 		const parts = sealed.ciphertext.split('.');
 		const tampered = { ...sealed, ciphertext: [parts[0], parts[1], 'AAAA'].join('.') };
 		expect(unseal(tampered)).toBeNull();
+	});
+});
+
+describe('a push failure never carries the token', () => {
+	const TOKEN = 'ghp_averyrealisticlookingtokenvalue';
+
+	it('strips it out of whatever git said', () => {
+		// This is what git actually prints: the remote URL, with the credential
+		// in it, inside an otherwise ordinary error.
+		const gitSaid =
+			`remote: Invalid username or password.\n` +
+			`fatal: Authentication failed for 'https://${TOKEN}@example.org/vv.git/'`;
+
+		const stored = redact(gitSaid, TOKEN);
+
+		expect(stored).not.toContain(TOKEN);
+		// Still says what went wrong: a redacted message that says nothing leaves
+		// a steward with a broken mirror and no idea why.
+		expect(stored).toContain('Authentication failed');
+	});
+
+	it('strips it when git percent-encoded it', () => {
+		const encoded = encodeURIComponent('tok/en+with=specials');
+		const gitSaid = `fatal: could not read from 'https://${encoded}@example.org/vv.git'`;
+
+		expect(redact(gitSaid, 'tok/en+with=specials')).not.toContain(encoded);
+	});
+
+	it('strips any embedded credential, even one it was not given', () => {
+		// Belt and braces: a URL of the form https://anything@host is stripped
+		// regardless, so a token that arrived by some route this function did not
+		// anticipate still does not survive.
+		const stored = redact("fatal: repository 'https://someothersecret@example.org/x.git'", 'x');
+		expect(stored).not.toContain('someothersecret');
 	});
 });

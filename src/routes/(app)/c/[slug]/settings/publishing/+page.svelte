@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
+	import * as m from '$lib/paraglide/messages';
 
 	let { data, form } = $props();
 </script>
@@ -80,6 +81,63 @@
 				whatever this setting says.
 			{/if}
 		</p>
+	</section>
+
+	<section class="mt-8" aria-labelledby="publishable">
+		<h2 id="publishable" class="text-section font-medium">{m.publishing_could_publish()}</h2>
+		{#if data.publishable.length === 0}
+			<p class="text-fg-secondary mt-2">{m.publishing_nothing_publishable()}</p>
+		{:else}
+			<ul class="mt-3 flex flex-col gap-2">
+				{#each data.publishable as artifact (artifact.key)}
+					{@const live = artifact.definitions.filter((d) => d.visibility === 'world').length}
+					<li class="border-border/60 flex flex-wrap items-center gap-3 border-b pb-2">
+						<span class="text-fg min-w-0 flex-1">{artifact.title}</span>
+						<span class="text-fg-muted text-meta" data-tabular>
+							{live} of {artifact.definitions.length} public
+						</span>
+						{#if data.can.manage}
+							<form method="POST" action="?/publish" use:enhance>
+								<input type="hidden" name="type" value="definition" />
+								{#each artifact.definitions as definition (definition.id)}
+									<input type="hidden" name="id" value={definition.id} />
+								{/each}
+								{#if live === artifact.definitions.length}
+									<input type="hidden" name="withdraw" value="1" />
+								{/if}
+								<button
+									type="submit"
+									class="border-border hover:border-border-strong text-fg h-8 cursor-pointer rounded-(--radius-control) border px-2.5"
+									>{live === artifact.definitions.length ? 'Withdraw' : 'Publish'}</button
+								>
+							</form>
+						{/if}
+					</li>
+				{/each}
+			</ul>
+		{/if}
+	</section>
+
+	<section class="mt-8" aria-labelledby="activity">
+		<h2 id="activity" class="text-section font-medium">{m.publishing_activity()}</h2>
+		{#if data.activity.length === 0}
+			<p class="text-fg-secondary mt-2">{m.publishing_no_activity()}</p>
+		{:else}
+			<ul class="mt-3 flex flex-col gap-1">
+				{#each data.activity as event (event.id)}
+					<li class="border-border/60 flex flex-wrap gap-x-3 border-b pb-1">
+						<span class="text-fg-muted text-meta" data-tabular
+							>{new Date(event.at).toLocaleDateString('en-GB', {
+								day: 'numeric',
+								month: 'short',
+								year: 'numeric'
+							})}</span
+						>
+						<span class="text-fg-secondary min-w-0 flex-1">{event.summary}</span>
+					</li>
+				{/each}
+			</ul>
+		{/if}
 	</section>
 
 	<section class="mt-8" aria-labelledby="published">

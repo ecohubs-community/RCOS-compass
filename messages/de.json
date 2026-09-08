@@ -37,5 +37,10 @@
 	"public_not_decided": "Von dieser Gemeinschaft noch nicht entschieden.",
 	"public_local_additions": "Eigene Ergänzungen",
 	"public_local_note": "Regeln, die sich diese Gemeinschaft selbst gegeben hat und die {standard} nicht verlangt.",
-	"public_about_body": "Diese Gemeinschaft richtet ihre Governance nach {standard} v{version} aus, einem offenen Standard für Gemeinschafts-Governance. Hier steht, was sie veröffentlichen wollte; Diskussionen, Entwürfe und Mitgliederdaten bleiben intern."
+	"public_about_body": "Diese Gemeinschaft richtet ihre Governance nach {standard} v{version} aus, einem offenen Standard für Gemeinschafts-Governance. Hier steht, was sie veröffentlichen wollte; Diskussionen, Entwürfe und Mitgliederdaten bleiben intern.",
+	"publishing_could_publish": "Was ihr veröffentlichen könnt",
+	"publishing_nothing_publishable": "Noch nichts — ein Artefakt wird veröffentlichbar, sobald ihr mindestens einen seiner Abschnitte beschlossen habt.",
+	"publishing_activity": "Was wann veröffentlicht wurde",
+	"publishing_no_activity": "Bisher wurde nichts veröffentlicht oder zurückgezogen.",
+	"export_preparing": "Export wird vorbereitet…"
 }

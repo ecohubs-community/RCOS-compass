@@ -87,7 +87,16 @@ export async function runMirror(db: Db, payload: MirrorPayload, now: number): Pr
 	}
 }
 
-function redact(message: string, credential: string): string {
+/**
+ * Strip the credential out of whatever git said.
+ *
+ * Exported because it is the property worth testing directly: git prints the
+ * whole remote URL — token and all — in its error output, so this is the last
+ * thing standing between a stored token and every log line and dead-letter
+ * record that prints a failure. The network behaviour around it is not the
+ * point; this function is.
+ */
+export function redact(message: string, credential: string): string {
 	return message
 		.split(credential)
 		.join('***')

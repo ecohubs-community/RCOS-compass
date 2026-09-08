@@ -52,9 +52,21 @@ export const load: PageServerLoad = async ({ params, parent, setHeaders }) => {
 		error(404, 'Not found');
 	}
 
-	// Cacheable, because it is public and changes when a community decides
-	// something — which is not often, and never urgently.
-	setHeaders({ 'cache-control': 'public, max-age=300' });
+	/**
+	 * Cacheable, but always revalidated.
+	 *
+	 * The first version said `max-age=300`, and the exit spec caught what that
+	 * means: a community withdraws a document and it stays readable from cache
+	 * for five minutes — to the browser that had it, and to any CDN in front of
+	 * us. Withdrawal is the one operation on this surface that has to take effect
+	 * *now*, because the reason a community withdraws something is usually that
+	 * it should not have been there.
+	 *
+	 * `max-age=0, must-revalidate` keeps the response shareable and cheap to
+	 * re-serve while making every read ask first, so a 410 arrives the moment it
+	 * is true.
+	 */
+	setHeaders({ 'cache-control': 'public, max-age=0, must-revalidate' });
 
 	// Parsed on the server, like every other body in the product: the renderer
 	// deals in the community's text, and turning it into blocks is the HTML
