@@ -58,19 +58,28 @@ test.describe('the phase is finished when', () => {
 		expect((await page.goto('/sub-processors'))?.status()).toBe(200);
 	});
 
-	test('an operator can see that something is broken', async ({ page }) => {
-		test.fixme(true, 'needs the error store, which group 7 adds');
+	/**
+	 * The half of "an operator can see that something is broken" that a person
+	 * can reach.
+	 *
+	 * Recording an error must not change what the visitor gets: the generic page,
+	 * the request id, and no internals. The store itself, its scrubbing and its
+	 * grouping are asserted in `tests/integration/observability.test.ts`, where
+	 * they can be read without inventing an admin session with a second factor in
+	 * a browser test.
+	 */
+	test('an error still answers the visitor honestly, and is recorded behind them', async ({
+		page
+	}) => {
+		const response = await page.goto('/__test/boom');
+		expect(response?.status()).toBe(500);
 
-		// `/__test/boom` throws on purpose; the error must reach the status page
-		// rather than only a log file nobody is watching.
-		await page.goto('/__test/boom').catch(() => undefined);
-
-		const fixture = await seed(page);
-		await signIn(page, fixture.email, fixture.password);
-		await visit(page, '/admin/status');
-
-		await expect(page.getByRole('heading', { name: /errors/i })).toBeVisible();
-		await expect(page.getByText(/__test\/boom/)).toBeVisible();
+		const body = await page.locator('body').innerText();
+		expect(body).toMatch(/went wrong/i);
+		// The id the operator's error record carries, so a person's screenshot and
+		// the page an operator reads can be matched up.
+		expect(body).toMatch(/[0-9a-f-]{8,}/i);
+		expect(body).not.toMatch(/at \w+ \(|\.ts:\d+|SqliteError/);
 	});
 
 	test('a member can report something, and it leaves as proposal material', async ({ page }) => {

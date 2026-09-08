@@ -14,6 +14,7 @@ import { renderPdf } from '../services/export-pdf.js';
 import { renderArtifact } from '../services/render-artifact.js';
 import { standardViewFor } from '../services/completeness.js';
 import { notify } from '../services/notifications.js';
+import { reached } from '../services/funnel.js';
 
 /**
  * Building the bundle, off the request.
@@ -63,6 +64,7 @@ export async function runExport(db: Db, payload: ExportPayload, now: number): Pr
 	await writeFile(path, built.bytes);
 
 	const record = recordBundle(db, ctx, built, storageKey);
+	reached(db, home.id, 'export.first', now);
 
 	notify(db, ctx, {
 		kind: 'export.ready',

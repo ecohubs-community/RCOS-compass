@@ -119,4 +119,84 @@
 			</ul>
 		</section>
 	{/if}
+
+	<section class="mt-10" aria-labelledby="errors-heading">
+		<h2 id="errors-heading" class="text-section font-medium">Errors</h2>
+		{#if status.errors.length === 0}
+			<!-- Said out loud, because an empty table reads as a broken page. -->
+			<p class="text-fg-secondary mt-1">Nothing has thrown in the last thirty days.</p>
+		{:else}
+			<ul class="mt-3 flex flex-col gap-3">
+				{#each status.errors as entry (entry.fingerprint)}
+					<li class="border-border rounded-(--radius-control) border p-3">
+						<p>
+							<span class="font-medium">{entry.route ?? 'unknown route'}</span>
+							<span class="text-fg-secondary"
+								>· {entry.count}
+								{entry.count === 1 ? 'time' : 'times'} ·</span
+							>
+							<span class="text-fg-muted text-meta" data-tabular>{stamp(entry.lastSeenAt)}</span>
+						</p>
+						<!--
+							Scrubbed by the same rules as the logs. The message is stored;
+							the values interpolated into it are not.
+						-->
+						<p class="text-fg-secondary text-meta mt-1 break-words">{entry.message}</p>
+						{#if entry.requestId}
+							<p class="text-fg-muted text-meta mt-1">
+								most recent request <code>{entry.requestId}</code>
+							</p>
+						{/if}
+					</li>
+				{/each}
+			</ul>
+		{/if}
+	</section>
+
+	<section class="mt-10" aria-labelledby="mail-heading">
+		<h2 id="mail-heading" class="text-section font-medium">Mail that did not arrive</h2>
+		{#if status.mailFailures.length === 0}
+			<p class="text-fg-secondary mt-1">Nothing has failed to send.</p>
+		{:else}
+			<ul class="mt-3 flex flex-col gap-2">
+				{#each status.mailFailures as failure, i (i)}
+					<li class="border-border rounded-(--radius-control) border p-3">
+						<p>
+							<span class="font-medium">{failure.kind}</span>
+							<span class="text-fg-muted text-meta" data-tabular>· {stamp(failure.at)}</span>
+						</p>
+						<!-- The kind and what it was for. Never the recipient's address. -->
+						<p class="text-fg-secondary text-meta mt-1 break-words">{failure.error}</p>
+					</li>
+				{/each}
+			</ul>
+		{/if}
+	</section>
+
+	<section class="mt-10" aria-labelledby="ai-heading">
+		<h2 id="ai-heading" class="text-section font-medium">AI usage this month</h2>
+		<!--
+			Usage, not spend. `ai_call` records tokens and no price, and a figure in
+			euros computed from a price list nothing maintains is worse than a count.
+		-->
+		<p class="text-fg-secondary mt-1" data-tabular>
+			{status.ai.month} · {status.ai.calls} calls · {status.ai.tokensIn} in · {status.ai.tokensOut}
+			out
+		</p>
+	</section>
+
+	<section class="mt-10" aria-labelledby="funnel-heading">
+		<h2 id="funnel-heading" class="text-section font-medium">Onboarding</h2>
+		<p class="text-fg-secondary mt-1">
+			How many communities reached each step. No member, no page, no session.
+		</p>
+		<ul class="mt-3 flex flex-col gap-1">
+			{#each status.funnel as step (step.milestone)}
+				<li class="flex justify-between gap-4">
+					<span class="text-fg-secondary">{step.milestone}</span>
+					<span data-tabular>{step.communities}</span>
+				</li>
+			{/each}
+		</ul>
+	</section>
 </main>

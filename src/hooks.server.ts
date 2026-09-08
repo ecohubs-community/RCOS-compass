@@ -1,11 +1,12 @@
 import type { Handle, HandleServerError } from '@sveltejs/kit';
 import { randomUUID } from 'node:crypto';
 import { assertConfigOrExit, getConfig } from '$lib/server/config';
-import { initDatabase } from '$lib/server/db';
+import { getDb, initDatabase } from '$lib/server/db';
 import { getLogger } from '$lib/server/logger';
 import { securityHeaders } from '$lib/server/http/security-headers';
 import { baseLocale, withLocale } from '$lib/server/locale';
 import { rateLimitRequest } from '$lib/server/http/rate-limit-request';
+import { recordError } from '$lib/server/services/errors';
 import { resolveActor } from '$lib/server/auth/session';
 import { requirePlatformAdmin } from '$lib/server/auth/admin';
 import { publicLocale, resolveTenant } from '$lib/server/http/resolve-tenant';
@@ -52,6 +53,7 @@ if (!config.isTest) {
 	// hour later.
 	enqueueOnce(db, systemClock, { kind: 'expire-exceptions' });
 	enqueueOnce(db, systemClock, { kind: 'clean-exports' });
+	enqueueOnce(db, systemClock, { kind: 'sweep-errors' });
 }
 
 /**
@@ -166,6 +168,28 @@ export const handleError: HandleServerError = ({ error, event, status, message }
 			{ requestId, err: error instanceof Error ? error.message : String(error), status },
 			'unhandled error'
 		);
+
+		/**
+		 * And on the instance, where an operator will actually look.
+		 *
+		 * Wrapped, because recording a failure must not become one: if the database
+		 * is what broke, this write fails too, and the visitor still gets their
+		 * generic page and their request id.
+		 */
+		try {
+			recordError(getDb(), {
+				error,
+				route: event.route.id,
+				requestId,
+				communityId: event.locals.community?.id ?? null,
+				now: systemClock.now()
+			});
+		} catch (problem) {
+			(event.locals.log ?? log).warn(
+				{ requestId, err: problem instanceof Error ? problem.message : String(problem) },
+				'could not record the error'
+			);
+		}
 	}
 
 	return {

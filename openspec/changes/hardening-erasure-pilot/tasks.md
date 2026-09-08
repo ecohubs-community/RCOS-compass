@@ -56,19 +56,19 @@
 
 ## 7. Observability
 
-- [ ] 7.1 `error_report` written from `handleError`, fingerprinted by error name plus the top frames, grouped with a count and first/last seen, scrubbed through the logger's own redaction module rather than a second copy of the rules
-- [ ] 7.2 Retention sweep for error records, on the existing cleanup job pattern
-- [ ] 7.3 Record a failed mail send — kind, community, what it was for, the error, and never the recipient's address. Nothing records them today, so the panel `docs/05` §3.5 asks for has no data behind it
-- [ ] 7.4 The seven funnel milestones from `docs/00` §12, written `on conflict do nothing` inside the transaction that makes each true, with `PRODUCT_ANALYTICS=off` skipping the write — the flag added to the typed config module, because nothing in this codebase reads `process.env` directly
-- [ ] 7.5 `/admin/status` gains recent errors, mail delivery failures, AI usage this month across tenants, and the funnel — counts and sizes only, no payloads. **Usage, not spend**: `ai_call` records tokens and no price, and money computed from a price list nothing maintains is worse than a count. A cost column appears only if a price list is ever configured
-- [ ] 7.6 Tests: an error is recorded and the response is unchanged; a failure to record does not fail the request; four hundred occurrences are one entry; a message carrying a definition body is stored scrubbed — **mutation-check by removing the scrubbing and watching that test fail**; a milestone is written once; with analytics off nothing is written and nothing else changes; a failed send is recorded without the address; the status page shows no monetary figure while no price list exists; a non-admin gets 404
+- [x] 7.1 `error_report` written from `handleError`, fingerprinted by error name plus the top frames, grouped with a count and first/last seen, scrubbed through the logger's own redaction module rather than a second copy of the rules
+- [x] 7.2 Retention sweep for error records, on the existing cleanup job pattern
+- [x] 7.3 Record a failed mail send — kind, community, what it was for, the error, and never the recipient's address. Nothing records them today, so the panel `docs/05` §3.5 asks for has no data behind it
+- [x] 7.4 The seven funnel milestones from `docs/00` §12, written `on conflict do nothing` inside the transaction that makes each true, with `PRODUCT_ANALYTICS=off` skipping the write — the flag added to the typed config module, because nothing in this codebase reads `process.env` directly
+- [x] 7.5 `/admin/status` gains recent errors, mail delivery failures, AI usage this month across tenants, and the funnel — counts and sizes only, no payloads. **Usage, not spend**: `ai_call` records tokens and no price, and money computed from a price list nothing maintains is worse than a count. A cost column appears only if a price list is ever configured
+- [x] 7.6 Tests: an error is recorded and the response is unchanged; a failure to record does not fail the request; four hundred occurrences are one entry; a message carrying a definition body is stored scrubbed — **mutation-check by removing the scrubbing and watching that test fail**; a milestone is written once; with analytics off nothing is written and nothing else changes; a failed send is recorded without the address; the status page shows no monetary figure while no price list exists; a non-admin gets 404
 
 ## 8. Durability
 
-- [ ] 8.1 `pnpm snapshot` — `VACUUM INTO` plus the upload tree into one timestamped directory, takeable while serving
-- [ ] 8.2 `pnpm restore` — both halves, refusing to run against a database an instance holds open, and refusing a snapshot missing either half. It removes the target's `-wal` and `-shm` first: a stale write-ahead log beside a restored database resurrects the pages the restore was meant to replace
-- [ ] 8.3 The drill as an integration test: seed a community with a mapped document, snapshot, restore into a scratch directory, open the restored database and read the passage and its file back
-- [ ] 8.4 Tests: the drill itself, plus **the mutation that proves it** — omit the uploads from the snapshot and watch the drill fail rather than pass on the database alone
+- [x] 8.1 `pnpm snapshot` — `VACUUM INTO` plus the upload tree into one timestamped directory, takeable while serving
+- [x] 8.2 `pnpm restore` — both halves, refusing to run against a database an instance holds open, and refusing a snapshot missing either half. It removes the target's `-wal` and `-shm` first: a stale write-ahead log beside a restored database resurrects the pages the restore was meant to replace
+- [x] 8.3 The drill as an integration test: seed a community with a mapped document, snapshot, restore into a scratch directory, open the restored database and read the passage and its file back
+- [x] 8.4 Tests: the drill itself, plus **the mutation that proves it** — omit the uploads from the snapshot and watch the drill fail rather than pass on the database alone
 
 ## 9. Accessibility
 

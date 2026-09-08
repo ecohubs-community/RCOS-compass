@@ -24,6 +24,8 @@
 		"test:e2e": "playwright test",
 		"db:generate": "drizzle-kit generate",
 		"db:migrate": "node --env-file-if-exists=.env scripts/migrate.mjs",
+		"snapshot": "node --env-file-if-exists=.env --import tsx scripts/snapshot.mjs",
+		"restore": "node --env-file-if-exists=.env --import tsx scripts/restore.mjs",
 		"search:rebuild": "node --env-file-if-exists=.env --import tsx scripts/rebuild-search.ts",
 		"db:studio": "drizzle-kit studio",
 		"check:tokens": "node scripts/check-tokens.mjs",

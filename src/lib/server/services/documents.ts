@@ -13,6 +13,7 @@ import { staleEvidenceForDocument } from './evidence.js';
 import { removeDocumentFromIndex } from './search.js';
 import { enqueue } from '../jobs/queue.js';
 import { registerTenantService } from './registry.js';
+import { reached } from './funnel.js';
 
 /**
  * The documents a community already had. docs/04-security.md §5.
@@ -197,6 +198,8 @@ export async function createDocument(
 		await file.discard();
 		throw problem;
 	}
+
+	reached(db, ctx.community.id, 'document.uploaded', ctx.now());
 
 	return db.select().from(document).where(eq(document.id, id)).get()!;
 }

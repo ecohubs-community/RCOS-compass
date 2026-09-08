@@ -26,6 +26,7 @@ import { activeMemberships, notify } from './notifications.js';
 import { getSearchIndex } from '../search/index.js';
 import { indexDecision, indexDefinition } from './search.js';
 import { registerTenantService } from './registry.js';
+import { reached } from './funnel.js';
 
 /**
  * The freeze. docs/03-data-model.md §6, §7, UI spec §5.1.
@@ -330,6 +331,24 @@ export function freeze(ctx: Ctx, input: FreezeInput, options: { db?: Db } = {}):
 			})
 			.where(eq(definition.id, target.definitionRow.id))
 			.run();
+
+		/**
+		 * Two of the seven onboarding milestones, inside the transaction that makes
+		 * them true. `docs/00` §12.
+		 *
+		 * Counted from the adopted definitions rather than kept as a running total:
+		 * a counter would have to be right after every supersession, and this is a
+		 * question asked once a month by one operator.
+		 */
+		const adopted = tx
+			.select({ id: definition.id })
+			.from(definition)
+			.where(
+				and(eq(definition.communityId, ctx.community.id), isNotNull(definition.adoptedVersionId))
+			)
+			.all().length;
+		reached(tx as unknown as Db, ctx.community.id, 'definition.first', now);
+		if (adopted >= 5) reached(tx as unknown as Db, ctx.community.id, 'definition.fifth', now);
 
 		// Coverage is the clause → definition edge readiness counts. Rebuilt on
 		// adopt, and unique per clause, so an auditor asking "where did you define

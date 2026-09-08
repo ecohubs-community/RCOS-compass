@@ -1,6 +1,7 @@
 import type { Db } from '../db/index.js';
 import { newId } from '../db/id.js';
 import { communityArtifact } from '../db/schema/definitions.js';
+import { reached } from './funnel.js';
 
 /**
  * What a community comes with on its first day.
@@ -34,4 +35,9 @@ export function seedCommunityDefaults(
 			createdAt: new Date(now)
 		})
 		.run();
+
+	// The first of the seven onboarding milestones, inside the transaction that
+	// creates the community — so a community that failed to be created did not
+	// reach it. `docs/00` §12.
+	reached(tx, communityId, 'community.created', now);
 }

@@ -1,7 +1,15 @@
 import { sql } from 'drizzle-orm';
 import { getConfig } from '../../config.js';
 import { getDb, type Db } from '../../db/index.js';
+import { aiCall } from '../../db/schema/ai.js';
 import { job } from '../../db/schema/jobs.js';
+import {
+	recentErrors,
+	recentMailFailures,
+	type ErrorEntry,
+	type MailFailureEntry
+} from '../errors.js';
+import { funnel } from '../funnel.js';
 import { community } from '../../db/schema/tenancy.js';
 
 /**
@@ -34,6 +42,21 @@ export type InstanceStatus = {
 	deadJobs: DeadJob[];
 	/** Which optional subsystems are wired up at all. */
 	subsystems: { ai: string; mail: 'smtp' | 'unconfigured' };
+	/** What has failed lately, grouped. */
+	errors: ErrorEntry[];
+	mailFailures: MailFailureEntry[];
+	/**
+	 * AI **usage**, not spend.
+	 *
+	 * `docs/05` §3.5 asks for spend, and `ai_call` records tokens and no price.
+	 * Turning that into money needs a price list per model that nothing
+	 * maintains, and a page reporting a figure computed from a stale table is
+	 * worse than one reporting a count. If a price list is ever configured this
+	 * gains a column rather than changing meaning.
+	 */
+	ai: { month: string; calls: number; tokensIn: number; tokensOut: number };
+	/** How many communities reached each onboarding step. */
+	funnel: { milestone: string; communities: number }[];
 };
 
 /** The applied-migrations table drizzle maintains for itself. */
@@ -99,6 +122,17 @@ export function instanceStatus(db: Db = getDb()): InstanceStatus {
 			updatedAt: row.updatedAt.getTime()
 		}));
 
+	const month = new Date().toISOString().slice(0, 7);
+	const usage = db
+		.select({
+			calls: sql<number>`count(*)`,
+			tokensIn: sql<number>`coalesce(sum(${aiCall.tokensIn}), 0)`,
+			tokensOut: sql<number>`coalesce(sum(${aiCall.tokensOut}), 0)`
+		})
+		.from(aiCall)
+		.where(sql`strftime('%Y-%m', ${aiCall.createdAt} / 1000, 'unixepoch') = ${month}`)
+		.get();
+
 	return {
 		buildSha: config.BUILD_SHA,
 		migration: migrationState(db),
@@ -110,6 +144,15 @@ export function instanceStatus(db: Db = getDb()): InstanceStatus {
 		subsystems: {
 			ai: config.AI_PROVIDER,
 			mail: config.SMTP_URL.length > 0 ? 'smtp' : 'unconfigured'
-		}
+		},
+		errors: recentErrors(db),
+		mailFailures: recentMailFailures(db),
+		ai: {
+			month,
+			calls: usage?.calls ?? 0,
+			tokensIn: usage?.tokensIn ?? 0,
+			tokensOut: usage?.tokensOut ?? 0
+		},
+		funnel: funnel(db)
 	};
 }

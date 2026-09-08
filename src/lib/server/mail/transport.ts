@@ -11,6 +11,18 @@ export type Message = {
 	/** A short line plus a link. Not a definition body, not a discussion post. */
 	text: string;
 	url?: string;
+	/**
+	 * What this message is, for the record kept when it fails to send.
+	 *
+	 * Optional because a transport works without it; supplied by the callers that
+	 * know, which is all of them. The failure record holds this and never the
+	 * recipient — an operator debugging a bounce follows the invitation, not the
+	 * address.
+	 */
+	kind?: string;
+	communityId?: string | null;
+	/** The invitation or membership this was about. Never an address. */
+	ref?: string | null;
 };
 
 export interface MailTransport {

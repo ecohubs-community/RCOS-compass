@@ -4,6 +4,7 @@ import { getDb, type Db } from '../db/index.js';
 import { riskProfile, type Meets, type RiskProfile } from '../db/schema/path.js';
 import type { StandardView } from '../standard/index.js';
 import type { Locale } from '../standard/types.js';
+import { reached } from './funnel.js';
 
 /**
  * What a community told us about itself, and what each answer moves.
@@ -242,6 +243,8 @@ export function setRiskProfile(
 		.from(riskProfile)
 		.where(eq(riskProfile.communityId, ctx.community.id))
 		.get();
+
+	reached(db, ctx.community.id, 'interview.completed', ctx.now());
 
 	const merged = {
 		communityId: ctx.community.id,

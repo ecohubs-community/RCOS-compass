@@ -1,5 +1,6 @@
 import { getConfig } from '../config.js';
 import { getLogger } from '../logger.js';
+import { sweepErrors } from '../services/errors.js';
 import { pruneRateLimits } from '../rate-limit.js';
 import { runExtraction } from '../documents/extract-job.js';
 import { purgeDeletedCommunities } from './purge.js';
@@ -26,6 +27,9 @@ export const DIGEST_INTERVAL_MS = 7 * 24 * 60 * 60_000;
 export const EXCEPTION_INTERVAL_MS = 60 * 60_000;
 /** Daily: a bundle lives a week, so an hour of slack either side is immaterial. */
 export const EXPORT_CLEANUP_MS = 24 * 60 * 60_000;
+
+/** Daily, like the export cleanup: the records it removes are a month old. */
+export const ERROR_SWEEP_MS = 24 * 60 * 60_000;
 const RATE_LIMIT_RETENTION_MS = 24 * 60 * 60_000;
 
 /**
@@ -125,6 +129,23 @@ export const handlers: HandlerRegistry = {
 			const result = await cleanUpExports(db, clock.now());
 			if (result.removed > 0) getLogger().info(result, 'expired exports removed');
 			enqueue(db, clock, { kind: 'clean-exports', runAfter: clock.now() + EXPORT_CLEANUP_MS });
+		}
+	},
+
+	/**
+	 * Removing error and mail-failure records past their retention.
+	 *
+	 * Operational records rather than governance: nobody needs to know that a
+	 * route was throwing six weeks ago, and a table that only grows becomes a
+	 * liability made of things nobody reads.
+	 */
+	'sweep-errors': {
+		timeoutMs: 30_000,
+		run: (_payload, { db, clock }) => {
+			const result = sweepErrors(db, clock.now());
+			if (result.removed > 0) getLogger().info(result, 'expired error records removed');
+			enqueue(db, clock, { kind: 'sweep-errors', runAfter: clock.now() + ERROR_SWEEP_MS });
+			return Promise.resolve();
 		}
 	},
 

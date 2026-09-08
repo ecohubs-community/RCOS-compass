@@ -17,6 +17,7 @@ import { getDocument } from './documents.js';
 import { newEditToken } from './definitions.js';
 import { addProposal, openDiscussion } from './discussions.js';
 import { registerTenantService } from './registry.js';
+import { reached } from './funnel.js';
 
 /**
  * "We have language about this." UI spec §4.5, the change's `evidence` spec.
@@ -150,6 +151,7 @@ export function confirmEvidence(ctx: Ctx, evidenceId: string, options: { db?: Db
 		.set({ state: 'confirmed', confirmedBy: ctx.user.id, confirmedAt: new Date(ctx.now()) })
 		.where(eq(evidence.id, evidenceId))
 		.run();
+	reached(db, ctx.community.id, 'mapping.confirmed', ctx.now());
 	return getEvidence(ctx, evidenceId, { db });
 }
 

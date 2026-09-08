@@ -88,6 +88,14 @@ const ConfigSchema = v.object({
 	 */
 	ALLOW_TEST_ROUTES: v.optional(v.picklist(['0', '1'], 'must be 0 or 1'), '0'),
 
+	/**
+	 * The seven onboarding milestones in `docs/00-architecture.md` §12 — one row
+	 * per community per step, no member, no path, no session. §12 offers a
+	 * self-hosted instance a way to switch even that off, and this is it. On by
+	 * default, because shipping onboarding blind is also a choice and a worse one.
+	 */
+	PRODUCT_ANALYTICS: v.optional(v.picklist(['off', 'on'], 'must be off or on'), 'on'),
+
 	/** Per-IP ceiling for dynamic requests. docs/01-server-client-contract.md §5. */
 	REQUESTS_PER_MINUTE: intFromEnv(300, 1),
 	/**
@@ -116,6 +124,7 @@ export type Config = RawConfig & {
 	maxUnzipBytes: number;
 	aiEnabled: boolean;
 	allowTestRoutes: boolean;
+	productAnalytics: boolean;
 };
 
 /** Emails are matched case-insensitively and tolerate stray whitespace. */
@@ -227,7 +236,8 @@ export function parseConfig(env: Record<string, string | undefined>): Config {
 		maxUploadBytes: parsed.MAX_UPLOAD_MB * bytesInMb,
 		maxUnzipBytes: parsed.MAX_UNZIP_MB * bytesInMb,
 		aiEnabled: parsed.AI_PROVIDER !== 'null',
-		allowTestRoutes: parsed.ALLOW_TEST_ROUTES === '1'
+		allowTestRoutes: parsed.ALLOW_TEST_ROUTES === '1',
+		productAnalytics: parsed.PRODUCT_ANALYTICS !== 'off'
 	};
 }
 
