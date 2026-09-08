@@ -1,16 +1,16 @@
 ## 0. The target, and the two registries this phase depends on
 
-- [ ] 0.1 Write the exit spec first: a person is erased and the register is byte-for-byte unchanged; a community reads the privacy policy and it says what the code does; an operator sees a broken thing on `/admin/status`; the loop runs at 375px by keyboard; a snapshot is restored elsewhere and a mapped document opens. Failing until group 9
-- [ ] 0.2 `tests/support/person-surfaces.ts` — the enumerating registry of every service that returns a person, empty and already asserting that the list covers the services the code exports. It is written before `personLabel` exists, for the same reason P6 wrote the read-path registry before the filter: a list assembled after the work is a list of what somebody remembered
-- [ ] 0.3 `tests/support/routes.ts` — the route enumeration the accessibility work needs, listing every route on disk with its scan state, and failing on a route that is neither scanned nor exempt with a reason
-- [ ] 0.4 Tests: both registries fail loudly when a service or a route is added and not listed — proved by adding one in the test itself, not by trusting the mechanism
+- [x] 0.1 Write the exit spec first: a person is erased and the register is byte-for-byte unchanged; a community reads the privacy policy and it says what the code does; an operator sees a broken thing on `/admin/status`; the loop runs at 375px by keyboard; a snapshot is restored elsewhere and a mapped document opens. Failing until group 9
+- [x] 0.2 `tests/support/person-surfaces.ts` — the enumerating registry of every service that returns a person, empty and already asserting that the list covers the services the code exports. It is written before `personLabel` exists, for the same reason P6 wrote the read-path registry before the filter: a list assembled after the work is a list of what somebody remembered
+- [x] 0.3 `tests/support/routes.ts` — the route enumeration the accessibility work needs, listing every route on disk with its scan state, and failing on a route that is neither scanned nor exempt with a reason
+- [x] 0.4 Tests: both registries fail loudly when a service or a route is added and not listed — proved by adding one in the test itself, not by trusting the mechanism
 
 ## 1. Schema, and the number a person keeps
 
-- [ ] 1.1 Migration, additive: `user.erased_at`, `user.erased_by`; `membership.seq`; `error_report`; `funnel_event`; `legal_review`; `feedback_report`. Nothing that requires a table rebuild — P6's migration lesson is that drizzle-kit's rebuild strategy cascades DROPs inside the migrator's transaction, where `PRAGMA foreign_keys=OFF` is a no-op
-- [ ] 1.2 Backfill `membership.seq` per community ordered by `joined_at`, then the unique `(community_id, seq)` index. The oldest member of each community is `M-0001`
-- [ ] 1.3 Allocate `seq` on membership creation the way `decision.seq` is allocated — `max + 1` inside the transaction that creates the membership, so two people accepting invitations at once cannot collide
-- [ ] 1.4 Tests: a migration-upgrade test over a database seeded with the previous schema, asserting every membership gains a number, no row is lost, and the numbers are unique per community; two concurrent joins get different numbers
+- [x] 1.1 Migration, additive: `user.erased_at`, `user.erased_by`; `membership.seq`; `error_report`; `funnel_event`; `legal_review`; `feedback_report`. Nothing that requires a table rebuild — P6's migration lesson is that drizzle-kit's rebuild strategy cascades DROPs inside the migrator's transaction, where `PRAGMA foreign_keys=OFF` is a no-op
+- [x] 1.2 Backfill `membership.seq` per community ordered by `joined_at`, then the unique `(community_id, seq)` index. The oldest member of each community is `M-0001`
+- [x] 1.3 Allocate `seq` on membership creation the way `decision.seq` is allocated — `max + 1` inside the transaction that creates the membership, so two people accepting invitations at once cannot collide
+- [x] 1.4 Tests: a migration-upgrade test over a database seeded with the previous schema, asserting every membership gains a number, no row is lost, and the numbers are unique per community; two concurrent joins get different numbers
 
 ## 2. One way to render a person
 

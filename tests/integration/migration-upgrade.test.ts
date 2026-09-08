@@ -141,6 +141,60 @@ describe('upgrading a database that already has rows in it', () => {
 		after.close();
 	});
 
+	it('numbers every membership that was already there, oldest first', () => {
+		const { folder } = previousMigrations();
+		const file = join(dir, 'seq.db');
+
+		const before = new Database(file);
+		before.pragma('foreign_keys = ON');
+		migrate(drizzle(before), { migrationsFolder: folder });
+		before.exec(`
+			insert into community (id, slug, name, locale, timezone, status, publish_names_policy,
+				ai_enabled, git_mirror_enabled, public_index_enabled, created_at, updated_at)
+			values ('c1', 'vv', 'Valle Verde', 'en', 'UTC', 'active', 'roles_and_counts', 0, 0, 0, 1, 1),
+				('c2', 'fh', 'Fruit Haven', 'en', 'UTC', 'active', 'roles_and_counts', 0, 0, 0, 1, 1);
+
+			insert into user (id, name, email, email_verified, two_factor_enabled, locale, created_at, updated_at)
+			values ('u1', 'Ana', 'ana@example.org', 1, 0, 'en', 1, 1),
+				('u2', 'Lena', 'lena@example.org', 1, 0, 'en', 1, 1),
+				('u3', 'Bo', 'bo@example.org', 1, 0, 'en', 1, 1);
+
+			insert into membership (id, community_id, user_id, role, is_owner, rcos_state, joined_at)
+			values ('m2', 'c1', 'u2', 'member', 0, 'full', 2000),
+				('m1', 'c1', 'u1', 'steward', 1, 'full', 1000),
+				('m3', 'c2', 'u3', 'steward', 1, 'full', 3000);
+		`);
+		before.close();
+
+		const after = new Database(file);
+		after.pragma('foreign_keys = ON');
+		migrate(drizzle(after), { migrationsFolder: join(ROOT, 'drizzle') });
+
+		const numbers = after
+			.prepare('select id, community_id, seq from membership order by community_id, seq')
+			.all() as { id: string; community_id: string; seq: number }[];
+
+		// Oldest member of each community is M-0001, and the numbering restarts per
+		// community — the label is community-local by design, so that a person's
+		// number in one community says nothing about them in another.
+		expect(numbers).toEqual([
+			{ id: 'm1', community_id: 'c1', seq: 1 },
+			{ id: 'm2', community_id: 'c1', seq: 2 },
+			{ id: 'm3', community_id: 'c2', seq: 1 }
+		]);
+
+		// The unique index exists and is enforced. Creating it before the backfill
+		// would have failed here on the second membership of `c1`, which is what
+		// this test is really guarding: every existing row takes the column default.
+		expect(() =>
+			after.exec(
+				`insert into membership (id, community_id, user_id, role, is_owner, rcos_state, seq, joined_at)
+				 values ('m4', 'c1', 'u3', 'member', 0, 'full', 1, 4000)`
+			)
+		).toThrow(/unique/i);
+		after.close();
+	});
+
 	it('has a migration for every schema change', () => {
 		// A schema edited without generating a migration is a deploy that works on
 		// the developer's machine and nowhere else.

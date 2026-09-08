@@ -28,6 +28,23 @@ export const user = sqliteTable(
 		twoFactorEnabled: integer('two_factor_enabled', { mode: 'boolean' }).notNull().default(false),
 		/** Interface language. Community content follows the community's locale. */
 		locale: text('locale').notNull().default('en'),
+		/**
+		 * When this person asked to be forgotten. `docs/03-data-model.md` §10.
+		 *
+		 * The row stays and the person goes: name, address and avatar are cleared,
+		 * every session and credential is deleted, and this timestamp is what every
+		 * surface reads to know it must render a former-member label instead. The
+		 * alternative — deleting the row — would null the membership references
+		 * that prove eleven people attended a decision, and a tally that quietly
+		 * loses a row is a falsified record.
+		 *
+		 * Nothing about the released address is kept, not even a hash: a hash of an
+		 * email is recoverable by anybody who can guess the address, which is
+		 * exactly the person the erasure was requested against.
+		 */
+		erasedAt: integer('erased_at', { mode: 'timestamp_ms' }),
+		/** Who carried it out — them, or an administrator acting on their request. */
+		erasedBy: text('erased_by'),
 		createdAt: integer('created_at', { mode: 'timestamp_ms' }).notNull(),
 		updatedAt: integer('updated_at', { mode: 'timestamp_ms' }).notNull()
 	},

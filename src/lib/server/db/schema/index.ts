@@ -11,3 +11,4 @@ export * from './ai.js';
 export * from './path.js';
 export * from './visibility.js';
 export * from './self-audit.js';
+export * from './operations.js';

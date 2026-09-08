@@ -138,12 +138,24 @@ export const membership = sqliteTable(
 			.notNull()
 			.default('full'),
 		displayName: text('display_name'),
+		/**
+		 * This membership's number in its community — the `0142` of
+		 * `Former member (M-0142)`. `docs/03-data-model.md` §10.
+		 *
+		 * Allocated when the membership is created and never reused, deliberately
+		 * rather than at erasure: a label minted at erasure would be a new fact
+		 * appearing inside old records, and two erasures racing for `max + 1` would
+		 * collide exactly when nobody was watching. Assigned here it is simply a
+		 * property of the membership, uninteresting until the day it is needed.
+		 */
+		seq: integer('seq').notNull().default(0),
 		joinedAt: integer('joined_at', { mode: 'timestamp_ms' }).notNull(),
 		/** Set when someone leaves; the record stays, the access does not. */
 		endedAt: integer('ended_at', { mode: 'timestamp_ms' })
 	},
 	(table) => [
 		uniqueIndex('membership_community_user_idx').on(table.communityId, table.userId),
+		uniqueIndex('membership_seq_idx').on(table.communityId, table.seq),
 		index('membership_user_idx').on(table.userId),
 		// One owner per community, and only among current members.
 		uniqueIndex('membership_one_owner_idx')

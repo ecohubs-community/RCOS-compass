@@ -3,19 +3,25 @@ import { newId } from '../../src/lib/server/db/id.js';
 import { user } from '../../src/lib/server/db/schema/auth.js';
 import { community, membership } from '../../src/lib/server/db/schema/tenancy.js';
 import type { Role } from '../../src/lib/server/db/schema/tenancy.js';
+import { nextMembershipSeq } from '../../src/lib/server/services/invitations.js';
 
 /** Deterministic fixtures. docs/06-testing-strategy.md §8. */
 const NOW = new Date(Date.UTC(2026, 8, 2, 12, 0, 0));
 
-export function makeUser(db: Db, overrides: { email?: string; verified?: boolean } = {}) {
+export function makeUser(
+	db: Db,
+	overrides: { email?: string; verified?: boolean; name?: string } = {}
+) {
 	const row = {
 		id: newId(),
-		name: 'Test Person',
+		name: overrides.name ?? 'Test Person',
 		email: overrides.email ?? `${newId()}@example.org`,
 		emailVerified: overrides.verified ?? true,
 		image: null,
 		twoFactorEnabled: false,
 		locale: 'en',
+		erasedAt: null,
+		erasedBy: null,
 		createdAt: NOW,
 		updatedAt: NOW
 	};
@@ -61,7 +67,7 @@ export function makeMembership(
 	db: Db,
 	communityId: string,
 	userId: string,
-	overrides: { role?: Role; isOwner?: boolean; ended?: boolean } = {}
+	overrides: { role?: Role; isOwner?: boolean; ended?: boolean; name?: string } = {}
 ) {
 	const row = {
 		id: newId(),
@@ -70,7 +76,10 @@ export function makeMembership(
 		role: overrides.role ?? ('member' as Role),
 		isOwner: overrides.isOwner ?? false,
 		rcosState: 'full' as const,
-		displayName: null,
+		displayName: overrides.name ?? null,
+		// The same allocation the application makes, so a test never produces a
+		// membership shape the product could not.
+		seq: nextMembershipSeq(db, communityId),
 		joinedAt: NOW,
 		endedAt: overrides.ended ? NOW : null
 	};

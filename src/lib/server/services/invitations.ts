@@ -1,5 +1,5 @@
 import { createHash, randomBytes } from 'node:crypto';
-import { and, eq, isNull } from 'drizzle-orm';
+import { and, eq, isNull, sql } from 'drizzle-orm';
 import { error } from '@sveltejs/kit';
 import { requirePermission, type Ctx } from '../auth/guard.js';
 import type { Clock } from '../clock.js';
@@ -19,6 +19,22 @@ import { registerTenantService } from './registry.js';
  */
 
 export const INVITATION_TTL_MS = 7 * 24 * 60 * 60_000;
+
+/**
+ * The next unused membership number in a community.
+ *
+ * `max + 1`, never `count + 1`: a community that has ended a membership would
+ * otherwise hand the departed member's number to the next person to join, and
+ * the whole point of `M-0142` is that it means one person for good.
+ */
+export function nextMembershipSeq(db: Db, communityId: string): number {
+	const highest = db
+		.select({ seq: sql<number>`coalesce(max(${membership.seq}), 0)` })
+		.from(membership)
+		.where(eq(membership.communityId, communityId))
+		.get();
+	return (highest?.seq ?? 0) + 1;
+}
 
 export function hashToken(token: string): string {
 	return createHash('sha256').update(token).digest('hex');
@@ -210,6 +226,11 @@ export function acceptInvitation(
 					isOwner: found.grantsOwner,
 					rcosState: 'full',
 					displayName: null,
+					// Their number in this community, allocated here and never
+					// reused. Inside the same transaction as the insert, so two
+					// people accepting at the same moment cannot both take it —
+					// the same `max + 1` the decision register uses for its refs.
+					seq: nextMembershipSeq(tx as unknown as Db, found.communityId),
 					joinedAt: new Date(now),
 					endedAt: null
 				})
