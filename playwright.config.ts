@@ -10,6 +10,16 @@ const PORT = 4173;
 export default defineConfig({
 	testDir: 'tests/e2e',
 	fullyParallel: true,
+	/**
+	 * Bounded, because the fixture is expensive on purpose.
+	 *
+	 * `/__test/seed` builds a community through the application's own paths —
+	 * two real sign-ups at production hashing cost — so a worker per core means
+	 * ten of those at once against one node process, and the connection resets
+	 * before the hash finishes. Five viewport projects made that reachable; four
+	 * workers keeps the wall-clock while leaving the server able to answer.
+	 */
+	workers: process.env.CI ? 2 : 4,
 	forbidOnly: !!process.env.CI,
 	retries: 0,
 	reporter: process.env.CI ? [['github'], ['html', { open: 'never' }]] : 'list',
@@ -30,7 +40,27 @@ export default defineConfig({
 			name: 'tablet',
 			use: { ...devices['Desktop Chrome'], viewport: { width: 768, height: 1024 } }
 		},
-		{ name: 'mobile', use: { ...devices['Pixel 7'] } }
+		{ name: 'mobile', use: { ...devices['Pixel 7'] } },
+		/**
+		 * 375 pixels, which is the width the roadmap actually asked for and which
+		 * nothing has ever run at: `Pixel 7` is 412. It is the narrowest phone
+		 * anybody still uses, and the width where a table stops fitting.
+		 *
+		 * Scoped to the journeys and the scans rather than the whole suite: a fifth
+		 * project running all 265 tests would add minutes to every run to re-prove
+		 * things that do not depend on the viewport.
+		 */
+		{
+			name: 'mobile-small',
+			testMatch: /(loop|a11y|path-order)\.spec\.ts/,
+			/**
+			 * The width written down, not a device preset that happens to be near
+			 * it: Playwright's `iPhone SE` is 320 *and* WebKit, which would test a
+			 * different width in a browser engine this project does not otherwise
+			 * install. Chromium with mobile emulation at exactly 375.
+			 */
+			use: { ...devices['Pixel 7'], viewport: { width: 375, height: 667 } }
+		}
 	],
 	webServer: {
 		command: 'node build/index.js',

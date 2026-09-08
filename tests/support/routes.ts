@@ -17,40 +17,113 @@ import { join } from 'node:path';
  */
 
 export type RouteCoverage =
-	{ id: string; scan: 'a11y' } | { id: string; scan: 'exempt'; because: string };
+	| {
+			id: string;
+			scan: 'a11y';
+			/**
+			 * How the scan reaches it. A path built from a seeded community is walked
+			 * by `a11y.spec.ts`; anything needing bespoke setup — a panel opened, a
+			 * document uploaded, an id that only exists after a freeze — names the
+			 * test that covers it instead, so "who checks this" is answerable from
+			 * the list rather than by reading four specs.
+			 */
+			path?: (slug: string) => string;
+			coveredBy?: string;
+	  }
+	| { id: string; scan: 'exempt'; because: string };
 
 export const ROUTES: RouteCoverage[] = [
-	{ id: '', scan: 'a11y' },
-	{ id: '(account)/sign-in', scan: 'a11y' },
-	{ id: '(account)/sign-in/two-factor', scan: 'a11y' },
-	{ id: '(account)/account', scan: 'a11y' },
-	{ id: '(account)/account/two-factor', scan: 'a11y' },
-	{ id: '(app)/c/[slug]', scan: 'a11y' },
-	{ id: '(app)/c/[slug]/audit', scan: 'a11y' },
-	{ id: '(app)/c/[slug]/d/[ref]', scan: 'a11y' },
-	{ id: '(app)/c/[slug]/decisions', scan: 'a11y' },
-	{ id: '(app)/c/[slug]/definitions/[id]', scan: 'a11y' },
-	{ id: '(app)/c/[slug]/discussions', scan: 'a11y' },
-	{ id: '(app)/c/[slug]/discussions/[id]', scan: 'a11y' },
-	{ id: '(app)/c/[slug]/documents', scan: 'a11y' },
-	{ id: '(app)/c/[slug]/documents/[id]', scan: 'a11y' },
-	{ id: '(app)/c/[slug]/glossary', scan: 'a11y' },
-	{ id: '(app)/c/[slug]/path', scan: 'a11y' },
-	{ id: '(app)/c/[slug]/search', scan: 'a11y' },
-	{ id: '(app)/c/[slug]/settings/ai', scan: 'a11y' },
-	{ id: '(app)/c/[slug]/settings/export', scan: 'a11y' },
-	{ id: '(app)/c/[slug]/settings/interview', scan: 'a11y' },
-	{ id: '(app)/c/[slug]/settings/language', scan: 'a11y' },
-	{ id: '(app)/c/[slug]/settings/mirror', scan: 'a11y' },
-	{ id: '(app)/c/[slug]/settings/path', scan: 'a11y' },
-	{ id: '(app)/c/[slug]/settings/publishing', scan: 'a11y' },
-	{ id: '(app)/c/[slug]/settings/transparency', scan: 'a11y' },
-	{ id: '(app)/c/[slug]/standard', scan: 'a11y' },
-	{ id: '(legal)/privacy', scan: 'a11y' },
-	{ id: '(legal)/terms', scan: 'a11y' },
-	{ id: '(legal)/sub-processors', scan: 'a11y' },
-	{ id: '(public)/p/[slug]', scan: 'a11y' },
-	{ id: '(public)/p/[slug]/a/[artifact]', scan: 'a11y' },
+	{ id: '', scan: 'a11y', path: () => '/' },
+	{ id: '(account)/sign-in', scan: 'a11y', coveredBy: 'the sign-in page has no violations' },
+	{
+		id: '(account)/sign-in/two-factor',
+		scan: 'a11y',
+		coveredBy: 'reached only mid-enrolment; the two-factor spec drives it'
+	},
+	{ id: '(account)/account', scan: 'a11y', path: () => '/account' },
+	{ id: '(account)/account/two-factor', scan: 'a11y', path: () => '/account/two-factor' },
+	{ id: '(app)/c/[slug]', scan: 'a11y', path: (slug) => `/c/${slug}` },
+	{ id: '(app)/c/[slug]/audit', scan: 'a11y', path: (slug) => `/c/${slug}/audit` },
+	{
+		id: '(app)/c/[slug]/d/[ref]',
+		scan: 'a11y',
+		coveredBy: 'every screen of the loop has no violations'
+	},
+	{ id: '(app)/c/[slug]/decisions', scan: 'a11y', path: (slug) => `/c/${slug}/decisions` },
+	{
+		id: '(app)/c/[slug]/definitions/[id]',
+		scan: 'a11y',
+		coveredBy: 'every screen of the loop has no violations'
+	},
+	{ id: '(app)/c/[slug]/discussions', scan: 'a11y', path: (slug) => `/c/${slug}/discussions` },
+	{
+		id: '(app)/c/[slug]/discussions/[id]',
+		scan: 'a11y',
+		coveredBy: 'the freeze form has no violations, open'
+	},
+	{ id: '(app)/c/[slug]/documents', scan: 'a11y', path: (slug) => `/c/${slug}/documents` },
+	{
+		id: '(app)/c/[slug]/documents/[id]',
+		scan: 'a11y',
+		coveredBy: 'the document screens have no violations'
+	},
+	{ id: '(app)/c/[slug]/glossary', scan: 'a11y', path: (slug) => `/c/${slug}/glossary` },
+	{ id: '(app)/c/[slug]/path', scan: 'a11y', path: (slug) => `/c/${slug}/path` },
+	{ id: '(app)/c/[slug]/search', scan: 'a11y', path: (slug) => `/c/${slug}/search` },
+	{
+		id: '(app)/c/[slug]/settings/ai',
+		scan: 'a11y',
+		path: (slug) => `/c/${slug}/settings/ai`
+	},
+	{
+		id: '(app)/c/[slug]/settings/export',
+		scan: 'a11y',
+		path: (slug) => `/c/${slug}/settings/export`
+	},
+	{
+		id: '(app)/c/[slug]/settings/interview',
+		scan: 'a11y',
+		path: (slug) => `/c/${slug}/settings/interview`
+	},
+	{
+		id: '(app)/c/[slug]/settings/language',
+		scan: 'a11y',
+		path: (slug) => `/c/${slug}/settings/language`
+	},
+	{
+		id: '(app)/c/[slug]/settings/mirror',
+		scan: 'a11y',
+		path: (slug) => `/c/${slug}/settings/mirror`
+	},
+	{
+		id: '(app)/c/[slug]/settings/path',
+		scan: 'a11y',
+		path: (slug) => `/c/${slug}/settings/path`
+	},
+	{
+		id: '(app)/c/[slug]/settings/publishing',
+		scan: 'a11y',
+		path: (slug) => `/c/${slug}/settings/publishing`
+	},
+	{
+		id: '(app)/c/[slug]/settings/transparency',
+		scan: 'a11y',
+		path: (slug) => `/c/${slug}/settings/transparency`
+	},
+	{ id: '(app)/c/[slug]/standard', scan: 'a11y', path: (slug) => `/c/${slug}/standard` },
+	{ id: '(legal)/privacy', scan: 'a11y', path: () => '/privacy' },
+	{ id: '(legal)/terms', scan: 'a11y', path: () => '/terms' },
+	{ id: '(legal)/sub-processors', scan: 'a11y', path: () => '/sub-processors' },
+	{
+		id: '(public)/p/[slug]',
+		scan: 'a11y',
+		coveredBy: 'the public index and an artifact page have no violations'
+	},
+	{
+		id: '(public)/p/[slug]/a/[artifact]',
+		scan: 'a11y',
+		coveredBy: 'the public index and an artifact page have no violations'
+	},
 
 	{
 		id: '(admin)/admin/audit',
@@ -114,3 +187,9 @@ export function routesOnDisk(root = 'src/routes'): string[] {
 	walk(root, '');
 	return found.sort();
 }
+
+/** The routes the walk in `a11y.spec.ts` visits, in order. */
+export const walkable = (): { id: string; path: (slug: string) => string }[] =>
+	ROUTES.flatMap((route) =>
+		route.scan === 'a11y' && route.path ? [{ id: route.id, path: route.path }] : []
+	);

@@ -72,12 +72,12 @@
 
 ## 9. Accessibility
 
-- [ ] 9.1 The `mobile-small` Playwright project at 375×667, scoped to the core-loop and a11y specs — a fifth project running all 250 tests would add minutes to every run to re-prove what does not depend on the viewport
-- [ ] 9.2 Every route scanned or exempt-with-reason, using the group 0 registry; the screens P5 and P6 added scanned at every viewport
-- [ ] 9.3 Focus moves to the page heading after navigation; the keyboard walk asserting every interactive element is reachable, has a visible focus indicator and does not trap focus; a dialog returns focus to what opened it
-- [ ] 9.4 The token contrast test, asserting every foreground/background pair in `app.css` clears AA at its intended size
-- [ ] 9.5 Fix what 375px and the keyboard walk find. This is the task most likely to grow, and the one whose findings are worth the phase
-- [ ] 9.6 Tests: the loop passes at 375px; no page scrolls horizontally there; a deliberately unreachable control fails the keyboard walk; a token darkened below the threshold fails the contrast test
+- [x] 9.1 The `mobile-small` Playwright project at 375×667, scoped to the core-loop and a11y specs — a fifth project running all 250 tests would add minutes to every run to re-prove what does not depend on the viewport
+- [x] 9.2 Every route scanned or exempt-with-reason, using the group 0 registry; the screens P5 and P6 added scanned at every viewport
+- [x] 9.3 Focus moves to the page heading after navigation; the keyboard walk asserting every interactive element is reachable, has a visible focus indicator and does not trap focus; a dialog returns focus to what opened it
+- [x] 9.4 The token contrast test, asserting every foreground/background pair in `app.css` clears AA at its intended size
+- [x] 9.5 Fix what 375px and the keyboard walk find. This is the task most likely to grow, and the one whose findings are worth the phase
+- [x] 9.6 Tests: the loop passes at 375px; no page scrolls horizontally there; a deliberately unreachable control fails the keyboard walk; a token darkened below the threshold fails the contrast test
 
 ## 10. Pilot feedback
 

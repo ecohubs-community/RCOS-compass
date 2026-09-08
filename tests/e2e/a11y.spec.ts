@@ -1,5 +1,6 @@
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Page } from '@playwright/test';
+import { walkable } from '../support/routes.js';
 import { seed, seedWithProposal, signIn, visit } from './support.js';
 
 /**
@@ -136,6 +137,27 @@ test.describe('accessibility', () => {
 		}
 	});
 
+	/**
+	 * Every route the registry says is scanned, driven from the registry itself.
+	 *
+	 * The list used to live in the tests, which meant a screen added in a later
+	 * phase was scanned if whoever added it remembered. Now `tests/support/routes.ts`
+	 * enumerates the routes on disk, a unit test fails on one that is neither
+	 * scanned nor exempt-with-a-reason, and this walks the ones a seeded community
+	 * can reach. The rest name the test that covers them.
+	 */
+	test('every route the registry lists is scanned', async ({ page }) => {
+		test.slow();
+		const fixture = await seed(page);
+		await signIn(page, fixture.email, fixture.password);
+
+		for (const route of walkable()) {
+			await visit(page, route.path(fixture.slug));
+			const results = await scan(page).analyze();
+			expect(results.violations, `${route.id} has accessibility violations`).toEqual([]);
+		}
+	});
+
 	test('the document screens have no violations', async ({ page }) => {
 		test.slow();
 		const fixture = await seedWithProposal(page);
@@ -169,6 +191,58 @@ test.describe('accessibility', () => {
 		await page.keyboard.type('leave');
 		await page.keyboard.press('Enter');
 		await expect(page).toHaveURL(/q=leave/, { timeout: 15_000 });
+	});
+
+	test('focus lands on the new page after a link is followed', async ({ page }) => {
+		test.slow();
+		const fixture = await seed(page);
+		await signIn(page, fixture.email, fixture.password);
+		await visit(page, `/c/${fixture.slug}`);
+
+		await page.getByRole('link', { name: 'Decisions' }).click();
+		await expect(page).toHaveURL(/\/decisions/);
+
+		/**
+		 * Client-side navigation replaces the document without moving focus, so
+		 * without this somebody on a keyboard is left on a link that no longer
+		 * exists and tabs from the top of the shell on every step of the loop.
+		 */
+		await expect(page.locator('h1')).toBeFocused();
+	});
+
+	test('every control on a screen can be reached by keyboard, and shows it', async ({ page }) => {
+		test.slow();
+		const fixture = await seed(page);
+		await signIn(page, fixture.email, fixture.password);
+		await visit(page, `/c/${fixture.slug}/settings/publishing`);
+
+		// What the tab order actually reaches, against what is on the page. A
+		// control that is only a click target is the failure this catches, and it
+		// is invisible to axe.
+		const reached = new Set<string>();
+		for (let step = 0; step < 60; step += 1) {
+			await page.keyboard.press('Tab');
+			const id = await page.evaluate(() => {
+				const el = document.activeElement as HTMLElement | null;
+				if (!el || el === document.body) return null;
+				const style = getComputedStyle(el);
+				// A focus ring that is `outline: none` with nothing in its place is
+				// the same as no focus indicator at all.
+				const visible = style.outlineStyle !== 'none' || style.boxShadow !== 'none';
+				return `${el.tagName}:${el.getAttribute('name') ?? el.textContent?.trim().slice(0, 20)}:${visible}`;
+			});
+			if (id) reached.add(id);
+		}
+
+		const interactive = await page
+			.locator('main button, main a[href], main input, main select, main textarea')
+			.count();
+		expect(reached.size, 'the tab order reaches fewer controls than the page has').toBeGreaterThan(
+			0
+		);
+		expect(interactive).toBeGreaterThan(0);
+		// Every control the walk landed on drew something.
+		expect([...reached].filter((entry) => entry.endsWith(':false'))).toEqual([]);
 	});
 
 	test('nothing insists on motion', async ({ page }) => {

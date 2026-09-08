@@ -35,6 +35,18 @@ describe('every page is accounted for', () => {
 		}
 	});
 
+	it('says how every scanned route is reached', () => {
+		for (const route of ROUTES) {
+			if (route.scan !== 'a11y') continue;
+			// Either the walk visits it or a named test does. "Scanned" without an
+			// answer to "by what" is the same as unscanned, discovered later.
+			expect(
+				Boolean(route.path) || Boolean(route.coveredBy),
+				`${route.id} is marked scanned but nothing says how it is reached`
+			).toBe(true);
+		}
+	});
+
 	it('fails when a route is added and not listed', () => {
 		// The mechanism, exercised rather than trusted.
 		const listed = new Set(['(app)/c/[slug]']);
