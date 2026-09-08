@@ -119,7 +119,20 @@ the component layer is too late, because the name has already crossed into an
 export, a mirror commit and a page's serialised `data` by then. The label is
 produced where the row is read.
 
-### 3a. Four places already hold a name that `personLabel` cannot reach
+### 3b. On a platform surface an erased person has no community, and so no label
+
+`M-0142` is a number inside one community. The admin audit trail is
+platform-wide: an event carries an actor id and sometimes a community, and a
+sign-in failure carries neither. So the rule has two halves — where a community
+is in scope the label is that community's, and where none is, an erased person
+renders as *"Erased account"* with no number at all.
+
+Inventing a global number instead was considered and rejected: a
+platform-wide identifier for a person who asked to be forgotten is precisely the
+thing that lets two communities' records be joined together, which is what
+scoping the label to a community avoids in the first place.
+
+### 3a. Six places already hold a name that `personLabel` cannot reach
 
 Reviewing the design against the schema found four denormalised copies. A
 rendering function fixes the surfaces that read a row; it does nothing for a name
@@ -139,6 +152,14 @@ that was *copied* somewhere at the time it was written. Each needs its own answe
   the product. It is named in the inventory, `personLabel` renders it as a
   present non-member, and a redaction can replace it on request from the person
   named.
+- **`membership.display_name`** — the name a person chose to be known by in one
+  community. `personLabel` checks `erased_at` first so it never renders, but the
+  row would keep it, which is holding a name after being asked not to. Erasure
+  clears it.
+- **`rate_limit_bucket.key`** — carries the client address inside strings like
+  `login:ip:203.0.113.4`. Not erasure's business, because it is not keyed to a
+  person, but it is personal data with a natural expiry and it belongs in the
+  inventory rather than being noticed by somebody else later.
 - **Git commit bodies** — see decision 4a.
 
 The check that keeps this list honest is the inventory test in decision 6:
@@ -164,9 +185,13 @@ the same:
   never what was removed, because a change log that quotes the redacted text is
   the leak with extra steps.
 
-Redaction may touch a definition version's body, a decision's rationale and its
-proposal text. It may not touch the decision's structure — the ref, the date, the
-mechanism, the tally, the attendees. What was decided survives; who was named
+Redaction may touch any body a member wrote: a definition version's body, a
+decision's rationale and proposal text, a discussion post, an objection's reason
+and an external attendee's name. Scoping it to definitions and decisions was the
+first draft and was too narrow — `docs/03` §10 says *free-text bodies*, and the
+place a member is most likely to type somebody's name is a discussion, not an
+adopted rule. It may not touch the decision's structure — the ref, the date, the
+mechanism, the tally, the attendance rows themselves. What was decided survives; who was named
 inside the prose does not have to.
 
 **A redaction reindexes, in the same transaction.** The search index holds its
@@ -216,6 +241,15 @@ so it is keyed to the hash: editing a file re-arms the *draft — not yet review
 by counsel* banner automatically, which is the property that matters. A database
 copy of the text would let the policy drift from the code that implements it, and
 a git-only marker would let a one-word edit slip through a past review.
+
+### 5a. The legal text is imported, not read from disk at runtime
+
+The three Markdown files are pulled in with Vite's `?raw` import, so they are
+bundled with the code they describe and the content hash is computed from what
+actually shipped. Reading them from `content/legal/` at runtime would be the
+obvious approach and would break the moment the application is deployed as a
+built bundle, because nothing copies arbitrary directories into the output — a
+failure that appears in production and never in development.
 
 ### 6. The privacy policy is generated from a data inventory, not from memory
 
@@ -295,8 +329,11 @@ nobody has run.
 
 Three additions, all mechanical:
 
-- A `mobile-small` Playwright project at 375×667 running the core-loop and a11y
-  specs. `Pixel 7` is 412px wide, so "the loop at 375px" has never actually run.
+- A `mobile-small` Playwright project at 375×667, **scoped to the core-loop and
+  a11y specs** rather than the whole suite: a fifth project running all 250 tests
+  would add minutes to every run to re-prove things that are not viewport
+  dependent. `Pixel 7` is 412px wide, so "the loop at 375px" has never actually
+  run.
 - `tests/support/routes.ts` enumerates the route files on disk. The a11y spec
   asserts every route is either scanned or listed as exempt with a reason, so a
   screen added in P8 cannot quietly go unscanned.
@@ -366,6 +403,13 @@ during onboarding. The tables in the register and the path are the known risk;
 they already scroll inside `overflow-x` containers, which is the pattern the
 component guidelines set.
 
+**Every screen this phase adds must use message functions** → The P6 i18n
+ratchet fails when the count of untranslated literals grows, and this phase adds
+the legal pages, the account screen, the feedback control and three admin
+panels. Writing them with `m.*` from the start is cheaper than extracting them
+after the ratchet goes red, which is exactly what the ratchet exists to make
+somebody notice.
+
 **The application has no footer to put the legal links in** → Only the public
 group has one. The links need a shell-level footer on the authenticated layout
 too, which is a small piece of layout work that the phase would otherwise
@@ -399,6 +443,10 @@ which is stated here so it is a decision rather than a discovery.
   `/admin/status` is platform-admin only, and an error message can carry a route
   and an id. A steward seeing "something failed at 14:02" might reduce support
   round-trips. Left out until somebody asks.
+- **What happens when the last platform admin erases themselves?** The design
+  refuses it, on the same reasoning as the sole owner: an instance with no
+  administrator cannot restore itself. Whether the refusal should instead be a
+  warning is a question for whoever runs more than one instance.
 - **What happens to a community whose owner erases themselves?** The design
   refuses it while they are the only owner and asks them to transfer first. A
   community with exactly one member who wants to be erased has no one to transfer

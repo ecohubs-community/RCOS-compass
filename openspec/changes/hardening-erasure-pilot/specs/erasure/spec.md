@@ -16,7 +16,7 @@ new person.
 
 #### Scenario: A member asks to be erased
 - **WHEN** erasure is carried out for a member
-- **THEN** their name, email and avatar are gone from the account
+- **THEN** their name, email, avatar and every per-community display name are gone
 - **AND** every session of theirs is ended and no credential remains that could sign in
 
 #### Scenario: The register afterwards
@@ -34,7 +34,11 @@ new person.
 ### Requirement: An erased person renders as a stable, community-local label
 
 Every surface that shows a person MUST render an erased person as `Former member
-(M-####)`, where the label is the membership's sequence in its community.
+(M-####)`, where the label is the membership's sequence in its community. A
+surface with no community in scope — the platform-wide audit trail, a sign-in
+failure — MUST render an erased person without a number, because a
+platform-wide identifier for a person who asked to be forgotten would let two
+communities' records be joined.
 
 The sequence MUST be assigned when the membership is created, MUST be unique
 within the community, and MUST NOT be reused or renumbered. It MUST NOT be
@@ -56,6 +60,10 @@ use it fails.
 - **WHEN** somebody joins a community where a member has been erased
 - **THEN** they receive the next sequence, never the erased member's
 
+#### Scenario: A platform-wide surface
+- **WHEN** an erased person appears in the platform audit trail
+- **THEN** they are shown as an erased account with no community number
+
 #### Scenario: A service renders a person without the function
 - **WHEN** a service returns a person's name without going through it
 - **THEN** the enumerating test fails and names the service
@@ -75,9 +83,10 @@ the request of the person named. Redaction MUST be permitted only to a steward,
 MUST be recorded in the change log with its actor, and the record MUST NOT
 contain what was removed.
 
-Redaction MUST be limited to free text — a definition version's body, a
-decision's rationale and its proposal text. It MUST NOT alter a decision's
-reference, date, mechanism, tally or attendance.
+Redaction MUST be available for any body a member wrote — a definition version's
+body, a decision's rationale and proposal text, a discussion post, an objection's
+reason and an external attendee's name. It MUST NOT alter a decision's
+reference, date, mechanism, tally or the existence of an attendance row.
 
 #### Scenario: An ordinary correction
 - **WHEN** a definition's text is corrected
@@ -91,6 +100,10 @@ reference, date, mechanism, tally or attendance.
 #### Scenario: A member attempts a redaction
 - **WHEN** a member without steward permission attempts one
 - **THEN** it is refused and the body is unchanged
+
+#### Scenario: A name in a discussion
+- **WHEN** a name is redacted from a discussion post or an objection's reason
+- **THEN** the stored body carries the marker and the post is still there
 
 #### Scenario: A redaction is attempted against a tally
 - **WHEN** a redaction targets a decision's tally, attendance or reference
@@ -163,6 +176,10 @@ refusal MUST say what to do instead.
 #### Scenario: An ordinary member of the same community
 - **WHEN** a member who owns nothing requests erasure
 - **THEN** it proceeds without touching the community
+
+#### Scenario: The last platform administrator
+- **WHEN** the only platform admin requests erasure
+- **THEN** it is refused, because an instance with no administrator cannot be restored
 
 ### Requirement: Erasure is recorded as an act, without naming who was erased
 

@@ -14,14 +14,14 @@
 
 ## 2. One way to render a person
 
-- [ ] 2.1 `personLabel()` — the single function that decides between a display name, a real name and `Former member (M-####)`, and the only place that decision is made
+- [ ] 2.1 `personLabel()` — the single function that decides between a display name, a real name, `Former member (M-####)` where a community is in scope, and `Erased account` where none is. The platform audit trail spans communities, and a global number for a person who asked to be forgotten is the thing scoping the label to a community avoids
 - [ ] 2.2 Route every service that returns a person through it, and register each in `person-surfaces.ts`: members, attribution, decisions, discussions, documents, notifications, the audit trail, self-audit, export, mirror, public pages
 - [ ] 2.3 Tests: the registry runs each service against an erased person and asserts the label; **mutation-check it** by making one service bypass `personLabel` and watching that service's entry fail rather than the whole suite going red in a way nobody can read
 
 ## 3. Erasure
 
-- [ ] 3.1 `erasePerson()` — profile cleared, sessions and credentials deleted, verification tokens gone, `erased_at` and `erased_by` set, in one transaction. Nothing retained about the address, including a hash of it
-- [ ] 3.2 Refuse erasure while the person is the sole owner of a community, with a refusal that says to transfer ownership first
+- [ ] 3.1 `erasePerson()` — profile cleared, **every `membership.display_name` cleared with it**, sessions and credentials deleted, verification tokens gone, `erased_at` and `erased_by` set, in one transaction. Nothing retained about the address, including a hash of it
+- [ ] 3.2 Refuse erasure while the person is the sole owner of a community, with a refusal that says to transfer ownership first; refuse it for the last platform admin, because an instance with no administrator cannot be restored
 - [ ] 3.3 The account screen a person asks from, and the platform-admin path for a request that arrives by email — both writing the same audit event, which names the actor and the membership label and never the erased person
 - [ ] 3.4 Reach the copies a rendering function cannot: clear `audit_event.actor_email` on that person's events and correct the column's comment, which currently justifies itself by a deletion that no longer happens; revoke every open invitation to the erased address
 - [ ] 3.5 Tests: the register is byte-for-byte identical afterwards (compare the serialised rows before and after, not a spot check); an attended decision keeps its tally; sessions issued before are refused; the address registers again as an unrelated account; the sole owner is refused and succeeds after transferring; nothing in the audit trail, the logs or a notification carries the erased name or address; a pending invitation to that address can no longer be accepted, and another member's is untouched
@@ -29,7 +29,7 @@
 ## 4. Correction and redaction
 
 - [ ] 4.1 Correction: superseding a definition version with a reason, which already has most of its machinery — the task is the reason and the change-log entry, not a new mechanism
-- [ ] 4.2 Redaction: replacing a named span in a stored body with the marker, steward-only, limited to definition bodies, decision rationales and proposal text, refused against a decision's ref, date, mechanism, tally or attendance
+- [ ] 4.2 Redaction: replacing a named span in a stored body with the marker, steward-only, over **any body a member wrote** — definition bodies, decision rationales and proposal text, discussion posts, objection reasons, an external attendee's name. Scoping it to definitions and decisions was the first draft and too narrow: the place somebody types another person's name is a discussion, not an adopted rule
 - [ ] 4.3 The change-log entry for a redaction records that one happened and by whom, and never what was removed
 - [ ] 4.4 Reindex in the same transaction as the body — the search index holds its own copy, and a redaction that skips it leaves the name findable through a search box after it has gone from the page
 - [ ] 4.5 Re-commit the mirror after a redaction so the current state carries the marker, without rewriting git history
@@ -39,13 +39,14 @@
 
 ## 5. The documents, and the inventory they come from
 
-- [ ] 5.1 `docs/13-data-inventory.md` — every table holding personal data, what it holds, why, retention, and what erasure does to it. Written from the schema, not from memory
+- [ ] 5.1 `docs/13-data-inventory.md` — every table holding personal data, what it holds, why, retention, and what erasure does to it. Written from the schema, not from memory, and including the ones that are personal data without belonging to an account: `rate_limit_bucket.key` carries client addresses, and an uploaded filename can carry a name
 - [ ] 5.2 The test that fails when a table with a name, email or IP column is missing from the inventory
 - [ ] 5.2b State a retention for `audit_event.ip` and `user_agent` in the inventory. There is none anywhere today, and the trail is the security record — so the answer is written down and argued for here even if no sweep enforces it in this phase
+- [ ] 5.2c Every screen this phase adds uses Paraglide message functions from the first line. The P6 ratchet fails when the untranslated count grows, and this phase adds seven screens
 - [ ] 5.3 `content/legal/privacy.md` — including the erasure-versus-register position verbatim, the AI region, and the plain statement that a bundle already exported cannot be reached by a later redaction
 - [ ] 5.4 `content/legal/pilot-terms.md` and `content/legal/sub-processors.md` — German hosting, export and deletion on request, no DPA yet; the sub-processor list naming what this instance actually talks to
 - [ ] 5.5 `/privacy`, `/terms`, `/sub-processors` — anonymous, linked from the public pages and from an application footer, **which does not exist yet**: only the public group has one, so the authenticated shell gains its own
-- [ ] 5.6 `legal_review` keyed by content hash, the admin action that marks a version reviewed, and the draft banner rendered from that state rather than typed into the file
+- [ ] 5.6 `legal_review` keyed by content hash, the admin action that marks a version reviewed, and the draft banner rendered from that state rather than typed into the file. The Markdown is pulled in with Vite's `?raw` rather than read from disk at runtime — nothing copies `content/` into a built bundle, and that failure appears in production and never in development
 - [ ] 5.7 Tests: a document nobody reviewed carries the banner; marking it reviewed removes it; **editing one character brings it back** — the property the content hash exists for; a steward cannot mark one reviewed; the privacy policy contains the erasure paragraph, asserted against the same words the erasure code implements
 
 ## 6. Licence and attribution where the content goes
@@ -58,20 +59,20 @@
 - [ ] 7.1 `error_report` written from `handleError`, fingerprinted by error name plus the top frames, grouped with a count and first/last seen, scrubbed through the logger's own redaction module rather than a second copy of the rules
 - [ ] 7.2 Retention sweep for error records, on the existing cleanup job pattern
 - [ ] 7.3 Record a failed mail send — kind, community, what it was for, the error, and never the recipient's address. Nothing records them today, so the panel `docs/05` §3.5 asks for has no data behind it
-- [ ] 7.4 The seven funnel milestones from `docs/00` §12, written `on conflict do nothing` inside the transaction that makes each true, with `PRODUCT_ANALYTICS=off` skipping the write
+- [ ] 7.4 The seven funnel milestones from `docs/00` §12, written `on conflict do nothing` inside the transaction that makes each true, with `PRODUCT_ANALYTICS=off` skipping the write — the flag added to the typed config module, because nothing in this codebase reads `process.env` directly
 - [ ] 7.5 `/admin/status` gains recent errors, mail delivery failures, AI usage this month across tenants, and the funnel — counts and sizes only, no payloads. **Usage, not spend**: `ai_call` records tokens and no price, and money computed from a price list nothing maintains is worse than a count. A cost column appears only if a price list is ever configured
 - [ ] 7.6 Tests: an error is recorded and the response is unchanged; a failure to record does not fail the request; four hundred occurrences are one entry; a message carrying a definition body is stored scrubbed — **mutation-check by removing the scrubbing and watching that test fail**; a milestone is written once; with analytics off nothing is written and nothing else changes; a failed send is recorded without the address; the status page shows no monetary figure while no price list exists; a non-admin gets 404
 
 ## 8. Durability
 
 - [ ] 8.1 `pnpm snapshot` — `VACUUM INTO` plus the upload tree into one timestamped directory, takeable while serving
-- [ ] 8.2 `pnpm restore` — both halves, refusing to run against a database an instance holds open, and refusing a snapshot missing either half
+- [ ] 8.2 `pnpm restore` — both halves, refusing to run against a database an instance holds open, and refusing a snapshot missing either half. It removes the target's `-wal` and `-shm` first: a stale write-ahead log beside a restored database resurrects the pages the restore was meant to replace
 - [ ] 8.3 The drill as an integration test: seed a community with a mapped document, snapshot, restore into a scratch directory, open the restored database and read the passage and its file back
 - [ ] 8.4 Tests: the drill itself, plus **the mutation that proves it** — omit the uploads from the snapshot and watch the drill fail rather than pass on the database alone
 
 ## 9. Accessibility
 
-- [ ] 9.1 The `mobile-small` Playwright project at 375×667, and the core loop running in it
+- [ ] 9.1 The `mobile-small` Playwright project at 375×667, scoped to the core-loop and a11y specs — a fifth project running all 250 tests would add minutes to every run to re-prove what does not depend on the viewport
 - [ ] 9.2 Every route scanned or exempt-with-reason, using the group 0 registry; the screens P5 and P6 added scanned at every viewport
 - [ ] 9.3 Focus moves to the page heading after navigation; the keyboard walk asserting every interactive element is reachable, has a visible focus indicator and does not trap focus; a dialog returns focus to what opened it
 - [ ] 9.4 The token contrast test, asserting every foreground/background pair in `app.css` clears AA at its intended size
