@@ -7,8 +7,15 @@ assigned when the membership is created, never reused and never renumbered. The
 membership row MUST survive the erasure of the person it belongs to, so that
 counts and history stay correct.
 
-A member list MUST show that somebody has left or been erased rather than
-silently omitting them.
+Reading a community's members MUST show an erased person as their former-member
+label rather than omitting them, so that the count a community sees agrees with
+the tallies in its own register.
+
+Showing somebody who has **left** is deliberately not stated here: ending a
+membership already excludes it from the list, and whether a departed member
+should be visible is a question for the member-list screen, which does not exist
+yet — `listMembers` has never had one. A requirement written for a screen nobody
+has built is the kind of thing a spec should not claim.
 
 #### Scenario: A member joins
 - **WHEN** a membership is created
@@ -18,9 +25,9 @@ silently omitting them.
 - **WHEN** a person is erased
 - **THEN** their membership row remains with its number and its join date
 
-#### Scenario: The member list afterwards
-- **WHEN** a steward reads the member list
-- **THEN** the erased member appears as a former member rather than disappearing
+#### Scenario: The members are read afterwards
+- **WHEN** a steward reads the community's members
+- **THEN** the erased member is among them, as a former member rather than as a gap
 
 #### Scenario: A number is not reused
 - **WHEN** somebody joins after an erasure
