@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { resolve } from '$app/paths';
+	import ReportProblem from '../ReportProblem.svelte';
 	import * as m from '$lib/paraglide/messages';
 
 	/**
@@ -13,9 +14,13 @@
 	 * typed here, so a standard published under different terms carries its own.
 	 */
 	let {
-		standard = null
-	}: { standard?: { id: string; version: string; licence: string; attribution: string } | null } =
-		$props();
+		standard = null,
+		slug = null
+	}: {
+		standard?: { id: string; version: string; licence: string; attribution: string } | null;
+		/** Present inside a community, where a problem can be reported about it. */
+		slug?: string | null;
+	} = $props();
 </script>
 
 <footer class="border-border text-fg-muted text-meta border-t px-6 py-4">
@@ -31,6 +36,9 @@
 		>
 	</p>
 	<p class="mt-1">{m.footer_licence()}</p>
+	{#if slug}
+		<ReportProblem {slug} />
+	{/if}
 	{#if standard}
 		<p class="mt-1">
 			{standard.id}

@@ -71,6 +71,10 @@ test.describe('a community that wants to be seen', () => {
 		await visit(page, `/c/${slug}/settings/publishing`);
 		await page.getByRole('checkbox', { name: /public pages/i }).check();
 		await page.getByRole('button', { name: 'Save' }).click();
+		// Wait for the switch to actually land: the click resolves when it is
+		// dispatched, and an anonymous visitor arriving before the POST commits
+		// gets the 404 a community with no public pages is supposed to get.
+		await expect(page.getByText(/turned on this community/i)).toBeVisible();
 
 		// Published nothing yet: the index exists and says so, rather than 404ing
 		// or showing an empty shell that reads as broken.
@@ -117,12 +121,19 @@ test.describe('a community that wants to be seen', () => {
 		await visit(page, `/c/${slug}/settings/publishing`);
 		await page.getByRole('checkbox', { name: /public pages/i }).check();
 		await page.getByRole('button', { name: 'Save' }).click();
+		// Wait for the switch to actually land: the click resolves when it is
+		// dispatched, and an anonymous visitor arriving before the POST commits
+		// gets the 404 a community with no public pages is supposed to get.
+		await expect(page.getByText(/turned on this community/i)).toBeVisible();
 
 		await page
 			.getByRole('region', { name: 'What you could publish' })
 			.getByRole('button', { name: 'Publish' })
 			.first()
 			.click();
+		// The act has to have landed before an anonymous visitor asks about it: a
+		// click resolves when it is dispatched, not when the POST commits.
+		await expect(page.getByText(/published to the world/i).first()).toBeVisible();
 
 		const anonymous = await browser.newContext();
 		const visitor = await anonymous.newPage();
@@ -136,6 +147,7 @@ test.describe('a community that wants to be seen', () => {
 			.getByRole('button', { name: 'Withdraw' })
 			.first()
 			.click();
+		await expect(page.getByText(/withdrawn from the world/i).first()).toBeVisible();
 
 		// 410, not 404. The page existed, somebody may be holding the link, and
 		// saying it never existed is a lie they can check against their own history.

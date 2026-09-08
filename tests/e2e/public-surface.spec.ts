@@ -78,6 +78,10 @@ test.describe('what the world can read', () => {
 		await visit(page, `/c/${fixture.slug}/settings/publishing`);
 		await page.getByRole('checkbox', { name: /public pages/i }).check();
 		await page.getByRole('button', { name: 'Save' }).click();
+		// Wait for the switch to actually land: the click resolves when it is
+		// dispatched, and an anonymous visitor arriving before the POST commits
+		// gets the 404 a community with no public pages is supposed to get.
+		await expect(page.getByText(/turned on this community/i)).toBeVisible();
 
 		const anonymous = await browser.newContext();
 		const visitor = await anonymous.newPage();
@@ -113,6 +117,10 @@ test.describe('what the world can read', () => {
 		await visit(page, `/c/${fixture.slug}/settings/publishing`);
 		await page.getByRole('checkbox', { name: /public pages/i }).check();
 		await page.getByRole('button', { name: 'Save' }).click();
+		// Wait for the switch to actually land: the click resolves when it is
+		// dispatched, and an anonymous visitor arriving before the POST commits
+		// gets the 404 a community with no public pages is supposed to get.
+		await expect(page.getByText(/turned on this community/i)).toBeVisible();
 
 		const anonymous = await browser.newContext();
 		const visitor = await anonymous.newPage();

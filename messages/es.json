@@ -69,5 +69,20 @@
 	"footer_privacy": "Privacidad",
 	"footer_terms": "Términos",
 	"footer_sub_processors": "Subencargados",
-	"footer_licence": "RCOS Compass se distribuye bajo la licencia PolyForm Noncommercial 1.0.0."
+	"footer_licence": "RCOS Compass se distribuye bajo la licencia PolyForm Noncommercial 1.0.0.",
+	"feedback_button": "Informar de un problema",
+	"feedback_heading": "Informar de un problema con esta pantalla",
+	"feedback_what_label": "¿Qué ha pasado?",
+	"feedback_kind_label": "¿Qué tipo de problema?",
+	"feedback_kind_confusing": "Me ha confundido",
+	"feedback_kind_broken": "Algo no funciona",
+	"feedback_kind_missing": "Falta algo",
+	"feedback_kind_other": "Otra cosa",
+	"feedback_privacy": "Registramos en qué pantalla estabas y lo que escribas aquí. Nada más de la página se envía.",
+	"feedback_send": "Enviar",
+	"feedback_cancel": "Cancelar",
+	"feedback_sent": "Gracias. Una persona con rol de steward también puede verlo.",
+	"nav_feedback": "Informes",
+	"feedback_none": "Todavía no se ha informado de nada.",
+	"feedback_mark_handled": "Marcar como resuelto"
 }

@@ -71,5 +71,20 @@
 	"footer_privacy": "Privacy",
 	"footer_terms": "Terms",
 	"footer_sub_processors": "Sub-processors",
-	"footer_licence": "RCOS Compass is licensed under PolyForm Noncommercial 1.0.0."
+	"footer_licence": "RCOS Compass is licensed under PolyForm Noncommercial 1.0.0.",
+	"feedback_button": "Report a problem",
+	"feedback_heading": "Report a problem with this screen",
+	"feedback_what_label": "What happened?",
+	"feedback_kind_label": "What kind of problem?",
+	"feedback_kind_confusing": "It confused me",
+	"feedback_kind_broken": "Something is broken",
+	"feedback_kind_missing": "Something is missing",
+	"feedback_kind_other": "Something else",
+	"feedback_privacy": "We record which screen you were on and what you type here. Nothing else from the page is sent.",
+	"feedback_send": "Send",
+	"feedback_cancel": "Cancel",
+	"feedback_sent": "Thank you. A steward can see this too.",
+	"nav_feedback": "Reports",
+	"feedback_none": "Nothing has been reported yet.",
+	"feedback_mark_handled": "Mark handled"
 }

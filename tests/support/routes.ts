@@ -67,6 +67,7 @@ export const ROUTES: RouteCoverage[] = [
 		scan: 'a11y',
 		coveredBy: 'the document screens have no violations'
 	},
+	{ id: '(app)/c/[slug]/feedback', scan: 'a11y', path: (slug) => `/c/${slug}/feedback` },
 	{ id: '(app)/c/[slug]/glossary', scan: 'a11y', path: (slug) => `/c/${slug}/glossary` },
 	{ id: '(app)/c/[slug]/path', scan: 'a11y', path: (slug) => `/c/${slug}/path` },
 	{ id: '(app)/c/[slug]/search', scan: 'a11y', path: (slug) => `/c/${slug}/search` },
@@ -149,6 +150,11 @@ export const ROUTES: RouteCoverage[] = [
 		id: '(admin)/admin/status',
 		scan: 'exempt',
 		because: 'Operator tooling with no community reader.'
+	},
+	{
+		id: '(admin)/admin/feedback',
+		scan: 'exempt',
+		because: 'Operator tooling; the member-facing report screen is scanned in the walk.'
 	},
 	{
 		id: '(admin)/admin/legal',

@@ -10,6 +10,8 @@ import { auditEvent, invitation } from '../../src/lib/server/db/schema/tenancy.j
 import { listMembers } from '../../src/lib/server/services/members.js';
 import { usageByMember } from '../../src/lib/server/services/ai-settings.js';
 import { outwardAttribution } from '../../src/lib/server/services/attribution.js';
+import { feedbackReport } from '../../src/lib/server/db/schema/operations.js';
+import { listFeedback } from '../../src/lib/server/services/feedback.js';
 import { listInvitations } from '../../src/lib/server/services/invitations.js';
 import { listPlatformAudit } from '../../src/lib/server/services/admin/audit.js';
 import { getTenant } from '../../src/lib/server/services/admin/communities.js';
@@ -196,6 +198,29 @@ export const PERSON_SURFACES: PersonSurface[] = [
 		},
 		read: (_ctx, db) => listPlatformAudit({}, db).map((row) => row.actorEmail ?? ''),
 		expect: /Erased account/
+	},
+	{
+		name: 'feedback.listFeedback',
+		module: 'feedback.ts',
+		// The registry caught this one the moment the service existed, which is the
+		// argument for having it: a new surface is a failing test rather than a
+		// name printed somewhere nobody looked.
+		seed: (db, ctx, subject) => {
+			db.insert(feedbackReport)
+				.values({
+					id: newId(),
+					communityId: ctx.community.id,
+					membershipId: subject.membershipId,
+					route: '/c/x/path',
+					kind: 'confusing',
+					body: 'The ordering made no sense to me.',
+					status: 'open',
+					createdAt: new Date(0),
+					handledAt: null
+				})
+				.run();
+		},
+		read: (ctx, db) => listFeedback(ctx, { db }).map((row) => row.from)
 	},
 	{
 		name: 'invitations.listInvitations',

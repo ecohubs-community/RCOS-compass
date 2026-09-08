@@ -62,7 +62,8 @@
 				{ href: links.exportSettings(slug), label: m.nav_export() },
 				{ href: links.mirror(slug), label: m.nav_mirror() },
 				{ href: links.language(slug), label: m.nav_language() },
-				{ href: links.aiSettings(slug), label: m.nav_ai_settings() }
+				{ href: links.aiSettings(slug), label: m.nav_ai_settings() },
+				{ href: links.feedback(slug), label: m.nav_feedback() }
 			]
 		}
 	]);
@@ -198,7 +199,7 @@
 			</p>
 		{/if}
 		{@render children()}
-		<Footer standard={data.standardLicence} />
+		<Footer standard={data.standardLicence} {slug} />
 	</div>
 </div>
 

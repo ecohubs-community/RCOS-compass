@@ -223,20 +223,39 @@ opens without the app.
 
 ## P7 — Hardening and pilot · ~2 weeks
 
-- Full a11y pass (including the muted-contrast fix, #32); keyboard-only run;
-  **the full core-loop e2e spec run at 375px as well as 1440px** — mobile is a
-  supported surface, not a courtesy.
-- Pilot terms, privacy policy, sub-processor list (`10-legal-and-operations.md` §6).
-- Backup + restore drill; observability; `/admin/status`.
-- Privacy policy and ToS, including the erasure-vs-register position (#23) and
-  the AI-provider statement.
-- Seed the two pilot communities; onboarding sessions; a feedback loop that lands
-  in OpenSpec proposals rather than in a chat backlog.
+**Built** (`openspec/changes/archive/…-hardening-erasure-pilot`):
 
-**Exit:** EcoHubs online and Fruit Haven are using it on real material, and the
-first week produces bug reports rather than confusion.
+- **Erasure**, which was the phase's real size and had no code at all: the
+  tombstone, `Former member (M-####)` through one function with a registry of
+  every surface that renders a person, and the four places a name had been
+  *copied* rather than rendered. Redaction for any body a member wrote —
+  including somebody present who never had an account — reindexed in the same
+  transaction, recorded without recording what went.
+- **The documents a community reads before adopting a tool**: a privacy policy
+  written from a data inventory that a test keeps honest, pilot terms, a
+  sub-processor list. The text lives in git, the review lives in the database
+  keyed to the wording's hash, so an edit re-arms the draft notice by itself.
+- **Licence and attribution** wherever the standard's words go (#19).
+- **Observability**: a scrubbed error record on this instance rather than a
+  third-party tracker, mail failures recorded for the first time, AI *usage*
+  rather than a spend figure no price list supports, and the seven onboarding
+  counters `docs/00` §12 specified.
+- **Durability**: a snapshot that takes the uploads with the database, a restore
+  that refuses half of one, and §9's drill executed in the suite rather than
+  described.
+- **Accessibility**: the loop and the scans at 375px, the axe pass driven from a
+  route registry, focus moved to the heading after navigation, a keyboard walk,
+  and contrast asserted against the token file (#32).
+- **Pilot feedback** from any screen, carrying the route and the member's words
+  and nothing else, exported as Markdown grouped by screen.
 
----
+**Not built, deliberately:** a DPA and general-availability terms (they need a
+legal entity), impersonation for support, and seeding the pilot communities —
+an operational act this phase prepared for.
+
+**Exit:** the four criteria in `tests/e2e/hardening.spec.ts` pass. EcoHubs online
+and Fruit Haven using it on real material is the operational half, and remains
+ahead.
 
 ---
 

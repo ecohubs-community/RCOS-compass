@@ -16,29 +16,52 @@ import { seed, signIn, visit } from './support.js';
  * is the part a person does through the product.
  */
 test.describe('the phase is finished when', () => {
-	test('a person can be erased, and the register does not change', async ({ page }) => {
-		test.fixme(true, 'needs the member list, which group 9 adds');
+	test('a person can be erased, and the register does not change', async ({ browser }) => {
+		test.slow();
+		// Two contexts, because two people are involved and `/sign-in` redirects
+		// somebody who already has a session.
+		const stewardContext = await browser.newContext();
+		const steward = await stewardContext.newPage();
+		const fixture = await seed(steward);
+		await signIn(steward, fixture.email, fixture.password);
 
-		const fixture = await seed(page);
-		await signIn(page, fixture.email, fixture.password);
+		// What a steward reads, before anybody is erased.
+		await visit(steward, `/c/${fixture.slug}/decisions`);
+		const registerBefore = await steward.locator('main').innerText();
 
-		// A decision they attended, so the register has something to lose.
-		await visit(page, `/c/${fixture.slug}/decisions`);
-		const registerBefore = await page.locator('main').innerText();
+		/**
+		 * A member erases themselves, from their own account screen.
+		 *
+		 * The screen states what survives before it offers the button — including
+		 * the `Former member (M-####)` they will read as — because that is the
+		 * sentence a community argues about, and it is better argued about here
+		 * than discovered afterwards.
+		 */
+		const memberContext = await browser.newContext();
+		const member = await memberContext.newPage();
+		await signIn(member, fixture.member.email, fixture.member.password);
+		await visit(member, '/account');
+		await expect(member.getByText(/former member \(M-\d{4}\)/i)).toBeVisible();
+		await member.getByLabel(/type erase/i).fill('erase');
+		await member.getByRole('button', { name: /erase my account/i }).click();
 
-		await signIn(page, fixture.member.email, fixture.member.password);
-		await visit(page, '/account');
-		await page.getByRole('button', { name: /erase my account/i }).click();
-		await page.getByLabel(/type erase/i).fill('erase');
-		await page.getByRole('button', { name: /erase/i }).last().click();
+		// Nothing left that could sign in as them.
+		const after = await browser.newContext();
+		const returning = await after.newPage();
+		await visit(returning, '/sign-in');
+		await returning.getByLabel('Email').fill(fixture.member.email);
+		await returning.getByLabel('Password').fill(fixture.member.password);
+		await returning.getByRole('button', { name: 'Sign in' }).click();
+		await expect(returning).toHaveURL(/sign-in/);
 
-		await signIn(page, fixture.email, fixture.password);
-		await visit(page, `/c/${fixture.slug}/decisions`);
-		expect(await page.locator('main').innerText()).toBe(registerBefore);
+		// And the register the steward reads is exactly what it was. Not "the
+		// decision is still there" — the whole page, character for character.
+		await visit(steward, `/c/${fixture.slug}/decisions`);
+		expect(await steward.locator('main').innerText()).toBe(registerBefore);
 
-		await visit(page, `/c/${fixture.slug}/members`);
-		await expect(page.getByText(/former member \(M-\d{4}\)/i)).toBeVisible();
-		await expect(page.getByText(fixture.member.email)).toHaveCount(0);
+		await stewardContext.close();
+		await memberContext.close();
+		await after.close();
 	});
 
 	test('a community can read what happens to its data before agreeing to anything', async ({
@@ -82,18 +105,19 @@ test.describe('the phase is finished when', () => {
 		expect(body).not.toMatch(/at \w+ \(|\.ts:\d+|SqliteError/);
 	});
 
-	test('a member can report something, and it leaves as proposal material', async ({ page }) => {
-		test.fixme(true, 'needs the feedback capture, which group 10 adds');
-
+	test('a member can report something from the screen they are on', async ({ page }) => {
 		const fixture = await seed(page);
-		await signIn(page, fixture.email, fixture.password);
+		await signIn(page, fixture.member.email, fixture.member.password);
 
+		// From wherever they got stuck, not from a feedback page they had to find.
 		await visit(page, `/c/${fixture.slug}/path`);
 		await page.getByRole('button', { name: /report a problem/i }).click();
 		await page.getByLabel(/what happened/i).fill('The order made no sense to me.');
-		await page.getByRole('button', { name: /send/i }).click();
+		await page.getByRole('button', { name: /^send$/i }).click();
 
-		await visit(page, '/admin/feedback');
+		await visit(page, `/c/${fixture.slug}/feedback`);
 		await expect(page.getByText('The order made no sense to me.')).toBeVisible();
+		// The screen it was about, so it is a report rather than a remark.
+		await expect(page.getByText(`/c/${fixture.slug}/path`)).toBeVisible();
 	});
 });

@@ -81,14 +81,14 @@
 
 ## 10. Pilot feedback
 
-- [ ] 10.1 `feedback_report`, the reporting control on every screen, and the service that stores the route, the kind and the member's words and nothing else
-- [ ] 10.2 The steward's list for their own community, and the platform-admin view across the instance
-- [ ] 10.3 The Markdown export of open reports, grouped by route and kind, shaped so a proposal starts from it
-- [ ] 10.4 Tests: a report from a screen with a half-written definition on it contains none of that text; an anonymous submission is refused; another community's report is 404; a handled report is not in the export; an erased reporter renders as a former member and the report keeps its words
+- [x] 10.1 `feedback_report`, the reporting control on every screen, and the service that stores the route, the kind and the member's words and nothing else
+- [x] 10.2 The steward's list for their own community, and the platform-admin view across the instance
+- [x] 10.3 The Markdown export of open reports, grouped by route and kind, shaped so a proposal starts from it
+- [x] 10.4 Tests: a report from a screen with a half-written definition on it contains none of that text; an anonymous submission is refused; another community's report is 404; a handled report is not in the export; an erased reporter renders as a former member and the report keeps its words
 
 ## 11. Closing it
 
-- [ ] 11.1 The group 0 exit spec passes end to end
-- [ ] 11.2 A consolidated mutation pass over the phase's guards — the person registry, the redaction change-log entry, the error scrubbing, the snapshot's uploads, the review-state hash. Break each property, watch the *right* test fail, restore
-- [ ] 11.3 Update `docs/07-spec-review-log.md` rows 19, 23 and 32 to what shipped, and `docs/08-roadmap-mvp.md`'s P7 section to what was built rather than what was planned
-- [ ] 11.4 The pilot pre-flight, as a document rather than a screen: what must be true before a real community is seeded — legal documents marked reviewed, a restore drill run against the actual target, mail deliverable, backups verified. The seeding itself is not this phase's to do
+- [x] 11.1 The group 0 exit spec passes end to end
+- [x] 11.2 A consolidated mutation pass over the phase's guards — the person registry, the redaction change-log entry, the error scrubbing, the snapshot's uploads, the review-state hash. Break each property, watch the *right* test fail, restore
+- [x] 11.3 Update `docs/07-spec-review-log.md` rows 19, 23 and 32 to what shipped, and `docs/08-roadmap-mvp.md`'s P7 section to what was built rather than what was planned
+- [x] 11.4 The pilot pre-flight, as a document rather than a screen: what must be true before a real community is seeded — legal documents marked reviewed, a restore drill run against the actual target, mail deliverable, backups verified. The seeding itself is not this phase's to do

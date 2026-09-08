@@ -31,6 +31,7 @@ export const links = {
 	exportSettings: (slug: string) => resolve('/(app)/c/[slug]/settings/export', { slug }),
 	mirror: (slug: string) => resolve('/(app)/c/[slug]/settings/mirror', { slug }),
 	language: (slug: string) => resolve('/(app)/c/[slug]/settings/language', { slug }),
+	feedback: (slug: string) => resolve('/(app)/c/[slug]/feedback', { slug }),
 	path: (slug: string) => resolve('/(app)/c/[slug]/path', { slug }),
 	interview: (slug: string) => resolve('/(app)/c/[slug]/settings/interview', { slug }),
 	decisions: (slug: string) => resolve('/(app)/c/[slug]/decisions', { slug }),
