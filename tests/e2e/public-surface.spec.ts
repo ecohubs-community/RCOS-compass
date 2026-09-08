@@ -52,6 +52,17 @@ test.describe('what the world can read', () => {
 				`Disallow: ${surface}`
 			);
 		}
+		// The line is only worth having if it resolves. It pointed at a 404 until
+		// the index route existed, which meant no community was ever discovered
+		// through it.
+		const advertised = body.match(/^Sitemap:\s*(\S+)/m)?.[1];
+		expect(advertised).toBeTruthy();
+		// The path, not the configured origin — the test server runs on a port
+		// PUBLIC_APP_URL knows nothing about.
+		const sitemap = await visitor.goto(new URL(advertised!).pathname);
+		expect(sitemap?.status()).toBe(200);
+		expect(await sitemap!.text()).toContain('<sitemapindex');
+
 		await anonymous.close();
 	});
 

@@ -97,6 +97,10 @@ export async function runMirror(db: Db, payload: MirrorPayload, now: number): Pr
  * point; this function is.
  */
 export function redact(message: string, credential: string): string {
+	// A one-character credential would otherwise split the message on every
+	// occurrence of that character and rebuild it out of `***`, leaving a
+	// steward with noise instead of the error that explains their problem.
+	if (credential.length < 8) return message.replace(/https:\/\/[^@\s]*@/g, 'https://');
 	return message
 		.split(credential)
 		.join('***')

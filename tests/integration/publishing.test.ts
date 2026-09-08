@@ -12,6 +12,7 @@ import { outwardClaim } from '../../src/lib/server/services/claim.js';
 import { getDefinition } from '../../src/lib/server/services/definitions.js';
 import {
 	publish,
+	publishAll,
 	publishedSubjects,
 	setPublicIndex,
 	withdraw
@@ -34,6 +35,7 @@ import { makeCommunity, makeMembership, makeUser } from '../support/factories.js
 const NOW = Date.UTC(2026, 9, 1, 12, 0, 0);
 const view = getStandard('rcos-core', '0.1');
 const COUNTABLE = view.countableClauses()[0]!;
+const OTHER = view.countableClauses().find((clause) => clause.owner !== COUNTABLE.owner)!;
 
 let db: Db;
 let cleanup: () => void;
@@ -41,7 +43,7 @@ let ana: Ctx;
 let lena: Ctx;
 let standardRowId: string;
 
-function adopt(): string {
+function adopt(sectionKey: string = COUNTABLE.owner!): string {
 	const id = newId();
 	const versionId = newId();
 	db.insert(definition)
@@ -50,7 +52,7 @@ function adopt(): string {
 			communityId: ana.community.id,
 			scope: 'standard',
 			communityStandardId: standardRowId,
-			sectionKey: COUNTABLE.owner!,
+			sectionKey,
 			adoptedVersionId: versionId,
 			provisional: false,
 			createdBy: ana.user.id,
@@ -189,6 +191,48 @@ describe('publishing is a recorded act, and so is withdrawing', () => {
 		// Two governance acts contradicting each other, silently, is worse than
 		// a refusal that says which one to undo first.
 		expect(catchRefusal(() => publish(ana, { type: 'definition', id }, { db }))?.status).toBe(409);
+	});
+
+	it('publishes every definition of an artifact or none of them', () => {
+		const fine = adopt();
+		const hidden = adopt(OTHER.owner!);
+		restrict(
+			ana,
+			{ type: 'definition', id: hidden },
+			{
+				justification: 'Asked for by the member it concerns.',
+				audience: 'stewards',
+				expiresAt: new Date(NOW + 86_400_000)
+			},
+			{ db }
+		);
+
+		// An artifact is a shape in the standard, so publishing it means publishing
+		// the definitions that answer it. A refusal on the second must not leave
+		// the first on the open web while the screen reports failure.
+		expect(
+			catchRefusal(() =>
+				publishAll(
+					ana,
+					[
+						{ type: 'definition', id: fine },
+						{ type: 'definition', id: hidden }
+					],
+					{ db }
+				)
+			)?.status
+		).toBe(409);
+
+		expect(db.select().from(definition).where(eq(definition.id, fine)).get()!.visibility).toBe(
+			'member'
+		);
+		expect(
+			db
+				.select()
+				.from(changeLog)
+				.all()
+				.map((row) => row.kind)
+		).toEqual(['visibility.restricted']);
 	});
 
 	it('lists what a community has published', () => {

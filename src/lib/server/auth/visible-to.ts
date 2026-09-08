@@ -1,4 +1,4 @@
-import { eq, inArray, sql, type SQL } from 'drizzle-orm';
+import { eq, inArray, type SQL } from 'drizzle-orm';
 import type { AnySQLiteColumn } from 'drizzle-orm/sqlite-core';
 import type { Audience, Reader } from './audience.js';
 import { toAudience } from './audience.js';
@@ -44,9 +44,6 @@ export function visibleTo(audience: Audience, column: AnySQLiteColumn): SQL {
 
 	return inArray(column, levels);
 }
-
-/** Everything, for the aggregates that count what a community has. */
-export const everything = (): SQL => sql`1 = 1`;
 
 /**
  * The permission a read needs, when there is somebody to ask it of.

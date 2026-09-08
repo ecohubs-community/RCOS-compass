@@ -34,23 +34,34 @@ import { reindex, type Subject } from './visibility.js';
 
 const TABLES = { definition, decision, document, artifact: communityArtifact } as const;
 
-/** What a publishable subject looks like once it is one. */
-export type Published = {
-	visibility: 'member' | 'world' | 'restricted';
-	firstPublishedAt: Date | null;
-};
-
 export function publish(ctx: Ctx, subject: Subject, options: { db?: Db } = {}): void {
-	setPublished(ctx, subject, true, options);
+	setPublished(ctx, [subject], true, options);
 }
 
 export function withdraw(ctx: Ctx, subject: Subject, options: { db?: Db } = {}): void {
-	setPublished(ctx, subject, false, options);
+	setPublished(ctx, [subject], false, options);
+}
+
+/**
+ * Publish or withdraw several subjects as one act.
+ *
+ * An RCOS artifact is a shape in the standard rather than a row, so publishing
+ * one means publishing every definition that answers it — and that has to be
+ * all or nothing. Doing them one at a time meant a refusal on the third left the
+ * first two public while the screen reported failure, which is a community's
+ * public page saying something nobody agreed to.
+ */
+export function publishAll(ctx: Ctx, subjects: Subject[], options: { db?: Db } = {}): void {
+	setPublished(ctx, subjects, true, options);
+}
+
+export function withdrawAll(ctx: Ctx, subjects: Subject[], options: { db?: Db } = {}): void {
+	setPublished(ctx, subjects, false, options);
 }
 
 function setPublished(
 	ctx: Ctx,
-	subject: Subject,
+	subjects: Subject[],
 	toWorld: boolean,
 	options: { db?: Db } = {}
 ): void {
@@ -58,57 +69,68 @@ function setPublished(
 	requireWritableCommunity(ctx);
 
 	const db = options.db ?? getDb();
-	const table = TABLES[subject.type];
 	const now = new Date(ctx.now());
 
 	db.transaction((tx) => {
-		const current = tx
-			.select({ visibility: table.visibility, firstPublishedAt: table.firstPublishedAt })
-			.from(table)
-			.where(and(eq(table.id, subject.id), eq(table.communityId, ctx.community.id)))
-			.get();
-		if (!current) error(404, 'Not found');
-
-		if (current.visibility === 'restricted') {
-			// Publishing something the community decided to hide would be two
-			// governance acts contradicting each other, silently. Ending the
-			// exception is a deliberate step, and it has its own record.
-			error(409, 'This is restricted. End the transparency exception before publishing it.');
-		}
-		if (toWorld === (current.visibility === 'world')) return;
-
-		tx.update(table)
-			.set({
-				visibility: toWorld ? 'world' : 'member',
-				/**
-				 * Set once and never cleared. It is what lets a withdrawn page answer
-				 * 410 and one that was never published answer 404 — current
-				 * visibility cannot tell those apart, and reconstructing it from the
-				 * register would put a query over the decision table on every 404 of
-				 * a public route, which is the first thing a crawler finds.
-				 */
-				firstPublishedAt: toWorld ? (current.firstPublishedAt ?? now) : current.firstPublishedAt
-			})
-			.where(and(eq(table.id, subject.id), eq(table.communityId, ctx.community.id)))
-			.run();
-
-		// In the same transaction, as every other visibility change is.
-		reindex(tx as unknown as Db, ctx.community.id, subject);
-
-		tx.insert(changeLog)
-			.values({
-				id: newId(),
-				communityId: ctx.community.id,
-				at: now,
-				actorId: ctx.user.id,
-				kind: toWorld ? 'visibility.published' : 'visibility.withdrawn',
-				subjectType: subject.type,
-				subjectId: subject.id,
-				summary: toWorld ? 'Published to the world' : 'Withdrawn from the world',
-				payload: null
-			})
-			.run();
+		for (const subject of subjects) applyOne(tx as unknown as Db, ctx, subject, toWorld, now);
 	});
+}
+
+/**
+ * One subject, inside a transaction the caller owns.
+ *
+ * A refusal here throws, and better-sqlite3 rolls the whole transaction back —
+ * which is the point: a 409 on the third definition must leave the first two
+ * exactly as they were.
+ */
+function applyOne(tx: Db, ctx: Ctx, subject: Subject, toWorld: boolean, now: Date): void {
+	const table = TABLES[subject.type];
+	const current = tx
+		.select({ visibility: table.visibility, firstPublishedAt: table.firstPublishedAt })
+		.from(table)
+		.where(and(eq(table.id, subject.id), eq(table.communityId, ctx.community.id)))
+		.get();
+	if (!current) error(404, 'Not found');
+
+	if (current.visibility === 'restricted') {
+		// Publishing something the community decided to hide would be two
+		// governance acts contradicting each other, silently. Ending the
+		// exception is a deliberate step, and it has its own record.
+		error(409, 'This is restricted. End the transparency exception before publishing it.');
+	}
+	if (toWorld === (current.visibility === 'world')) return;
+
+	tx.update(table)
+		.set({
+			visibility: toWorld ? 'world' : 'member',
+			/**
+			 * Set once and never cleared. It is what lets a withdrawn page answer
+			 * 410 and one that was never published answer 404 — current
+			 * visibility cannot tell those apart, and reconstructing it from the
+			 * register would put a query over the decision table on every 404 of
+			 * a public route, which is the first thing a crawler finds.
+			 */
+			firstPublishedAt: toWorld ? (current.firstPublishedAt ?? now) : current.firstPublishedAt
+		})
+		.where(and(eq(table.id, subject.id), eq(table.communityId, ctx.community.id)))
+		.run();
+
+	// In the same transaction, as every other visibility change is.
+	reindex(tx, ctx.community.id, subject);
+
+	tx.insert(changeLog)
+		.values({
+			id: newId(),
+			communityId: ctx.community.id,
+			at: now,
+			actorId: ctx.user.id,
+			kind: toWorld ? 'visibility.published' : 'visibility.withdrawn',
+			subjectType: subject.type,
+			subjectId: subject.id,
+			summary: toWorld ? 'Published to the world' : 'Withdrawn from the world',
+			payload: null
+		})
+		.run();
 }
 
 /**

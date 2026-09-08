@@ -21,9 +21,11 @@
 		— one commit per decision, readable with git and nothing else. This happens whether or not you
 		do anything here.
 	</p>
-	<p class="text-fg-muted text-meta mt-2">
-		If you also want those commits in a repository you control, link one below. Nothing about what
-		is committed changes; it just goes to a second place as well.
+	<p class="text-attention text-meta mt-2">
+		If you also want those commits in a repository you control, link one below — but read this
+		first. The mirror is your whole history, not your public pages: it contains everything your
+		members can see, including artifacts you have never published. Point it at a private repository
+		unless you mean all of that to be public.
 	</p>
 
 	{#if form?.error}
@@ -51,8 +53,8 @@
 			{/if}
 			<p class="text-fg-muted text-meta mt-2">
 				{data.remote.includeRestricted
-					? 'Restricted material is included.'
-					: 'Restricted material is not pushed.'}
+					? 'Everything your members can see is pushed here, published or not — including material under a transparency exception.'
+					: 'Everything your members can see is pushed here, published or not. Material under a transparency exception is not.'}
 			</p>
 
 			{#if data.can.manage}
@@ -75,8 +77,9 @@
 			<div class="flex flex-col gap-1">
 				<label for="url" class="text-fg font-medium">Repository URL</label>
 				<p class="text-fg-muted text-meta">
-					An https address for a repository that already exists — GitHub, a Forgejo instance you
-					run, anywhere that speaks git.
+					An https address for an empty repository that already exists — GitHub, a Forgejo instance
+					you run, anywhere that speaks git. Compass never force-pushes, so a repository with its
+					own history will reject the push rather than lose it.
 				</p>
 				<input
 					id="url"

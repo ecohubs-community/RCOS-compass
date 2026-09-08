@@ -1,3 +1,4 @@
+import { error } from '@sveltejs/kit';
 import { and, desc, eq, gt, isNotNull, isNull } from 'drizzle-orm';
 import { requirePermission, type Ctx } from '../auth/guard.js';
 import { getDb, type Db } from '../db/index.js';
@@ -64,7 +65,9 @@ export function runSelfAudit(ctx: Ctx, options: { db?: Db } = {}): SelfAudit {
 	const now = ctx.now();
 	const standard = activeStandardView(db, ctx);
 	if (!standard) {
-		throw new Error('A community must have adopted a standard before it can audit itself.');
+		// A refusal, not a crash. A steward who reaches this has simply not adopted
+		// a standard yet, and a 500 tells them the product is broken instead.
+		error(409, 'Adopt a standard before running a self-audit — there is nothing to audit yet.');
 	}
 
 	const answered = answeredSections(db, standard.row.id);

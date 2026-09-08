@@ -152,6 +152,13 @@ export async function writeBundle(communityId: string, destination: string): Pro
  * The credential goes in the URL because that is what git accepts for HTTPS,
  * and that URL is therefore never logged — the caller reports failures against
  * the *configured* URL, not this one.
+ *
+ * **Never `--force`.** The remote belongs to the community and may hold things
+ * we did not put there — a README, a licence, a repository they were already
+ * using. Forcing would replace their `main` with ours and take those with it,
+ * irreversibly and on somebody else's server. A rejected push is the correct
+ * outcome: the caller reports it, and a steward decides whether to point the
+ * mirror at an empty repository instead.
  */
 export async function pushToRemote(
 	communityId: string,
@@ -160,5 +167,5 @@ export async function pushToRemote(
 ): Promise<void> {
 	const bare = await ensureRepo(communityId);
 	const authenticated = url.replace(/^https:\/\//, `https://${encodeURIComponent(credential)}@`);
-	await git(bare, ['push', '--force', authenticated, 'main:main']);
+	await git(bare, ['push', authenticated, 'main:main']);
 }

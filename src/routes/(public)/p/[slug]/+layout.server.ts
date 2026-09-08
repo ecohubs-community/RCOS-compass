@@ -29,7 +29,8 @@ export const load: LayoutServerLoad = ({ params }) => {
 			slug: community.slug,
 			name: community.name,
 			locale: community.locale,
-			namesPolicy: community.publishNamesPolicy
+			namesPolicy: community.publishNamesPolicy,
+			publicIndexEnabled: community.publicIndexEnabled
 		})
 		.from(community)
 		.where(and(eq(community.slug, params.slug), eq(community.status, 'active')))
@@ -38,17 +39,15 @@ export const load: LayoutServerLoad = ({ params }) => {
 	// A community that has not switched its public pages on is indistinguishable
 	// from one that does not exist — the same answer a suspended or deleted one
 	// gets, and for the same reason.
-	if (!found) error(404, 'Not found');
+	// Both gates come out of the one row: existing-and-active and having public
+	// pages switched on are the same lookup, and asking twice only invited them
+	// to be read from two different moments.
+	if (!found || !found.publicIndexEnabled) error(404, 'Not found');
 
-	const enabled = db
-		.select({ enabled: community.publicIndexEnabled })
-		.from(community)
-		.where(eq(community.id, found.id))
-		.get()?.enabled;
-	if (!enabled) error(404, 'Not found');
+	const { publicIndexEnabled: _gate, ...visible } = found;
 
 	// The community only. Each page builds its own `anonymousIn(id)` server-side
 	// rather than being handed an audience through `data`, which would serialise
 	// it to the browser for no reason and invite somebody to pass it back.
-	return { community: found };
+	return { community: visible };
 };

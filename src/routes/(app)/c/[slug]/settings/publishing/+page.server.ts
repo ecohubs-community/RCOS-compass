@@ -7,10 +7,10 @@ import { outwardClaim } from '$lib/server/services/claim';
 import { answeredSections, standardViewFor } from '$lib/server/services/completeness';
 import { definitionsBySection } from '$lib/server/services/definitions';
 import {
-	publish,
+	publishAll,
 	publishedSubjects,
 	setPublicIndex,
-	withdraw
+	withdrawAll
 } from '$lib/server/services/publishing';
 import type { Actions, PageServerLoad } from './$types';
 
@@ -113,19 +113,16 @@ export const actions: Actions = {
 		const db = getDb();
 		const withdrawing = form.get('withdraw') === '1';
 		// An artifact is a shape in the standard rather than a row, so publishing
-		// one means publishing the definitions that answer it. That is the same
-		// thing the public index reads back.
-		const ids = form.getAll('id').map(String);
+		// one means publishing the definitions that answer it — all of them, in one
+		// transaction. A loop of single publishes left the first two definitions
+		// world-visible when the third was refused, so the screen said "that did not
+		// happen" over a public page where half of it had.
+		const type = String(form.get('type')) as 'definition' | 'decision' | 'document' | 'artifact';
+		const subjects = form.getAll('id').map((id) => ({ type, id: String(id) }));
 
 		try {
-			for (const id of ids) {
-				const subject = {
-					type: String(form.get('type')) as 'definition' | 'decision' | 'document' | 'artifact',
-					id
-				};
-				if (withdrawing) withdraw(event.locals.ctx!, subject, { db });
-				else publish(event.locals.ctx!, subject, { db });
-			}
+			if (withdrawing) withdrawAll(event.locals.ctx!, subjects, { db });
+			else publishAll(event.locals.ctx!, subjects, { db });
 		} catch (problem) {
 			const http = problem as { status?: number; body?: { message?: string } };
 			if (http.status === 409) return fail(409, { error: http.body?.message ?? '' });

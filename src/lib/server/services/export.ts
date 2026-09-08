@@ -1,7 +1,7 @@
 import { createHmac, timingSafeEqual } from 'node:crypto';
 import { and, desc, eq, gt, lte } from 'drizzle-orm';
 import { zipSync, strToU8 } from 'fflate';
-import { anonymousIn, asSignedIn, communityOf, type Audience } from '../auth/audience.js';
+import { communityOf, type Audience } from '../auth/audience.js';
 import { requirePermission, type Ctx } from '../auth/guard.js';
 import { visibleLevels } from '../auth/visible-to.js';
 import { getConfig } from '../config.js';
@@ -276,5 +276,3 @@ export function expiredFiles(db: Db, now: number): ProducedFile[] {
 		.where(lte(producedFile.expiresAt, new Date(now)))
 		.all();
 }
-
-export { anonymousIn, asSignedIn };

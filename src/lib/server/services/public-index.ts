@@ -2,9 +2,10 @@ import { and, eq } from 'drizzle-orm';
 import { communityOf, type Audience } from '../auth/audience.js';
 import { visibleTo } from '../auth/visible-to.js';
 import type { Db } from '../db/index.js';
-import { communityArtifact, definition } from '../db/schema/definitions.js';
+import { definition, definitionVersion, communityArtifact } from '../db/schema/definitions.js';
+import { community } from '../db/schema/tenancy.js';
+import type { Locale } from '../standard/types.js';
 import { standardViewFor } from './completeness.js';
-import { renderArtifact } from './render-artifact.js';
 
 /**
  * What a community has actually published, as a list. RCOS Appendix C.6.
@@ -29,39 +30,63 @@ export function publishedArtifacts(db: Db, audience: Audience): PublicArtifact[]
 	const standard = standardViewFor(db, communityId);
 	if (!standard) return [];
 
-	const publishedSections = new Set(
-		db
-			.select({ sectionKey: definition.sectionKey })
-			.from(definition)
-			.where(
-				and(
-					eq(definition.communityId, communityId),
-					eq(definition.scope, 'standard'),
-					visibleTo(audience, definition.visibility)
-				)
+	/**
+	 * One query for every published section, with the date it was adopted.
+	 *
+	 * The first version called `renderArtifact` once per artifact and threw away
+	 * everything but the title and the newest date — five queries each, for a
+	 * page that shows one line per artifact. An index over eleven artifacts was
+	 * fifty-odd queries, on the one route in the product a crawler hits hardest.
+	 */
+	const publishedSections = db
+		.select({
+			sectionKey: definition.sectionKey,
+			adoptedAt: definitionVersion.adoptedAt,
+			createdAt: definitionVersion.createdAt
+		})
+		.from(definition)
+		.leftJoin(definitionVersion, eq(definitionVersion.id, definition.adoptedVersionId))
+		.where(
+			and(
+				eq(definition.communityId, communityId),
+				eq(definition.scope, 'standard'),
+				visibleTo(audience, definition.visibility)
 			)
-			.all()
-			.map((row) => row.sectionKey)
-			.filter((key): key is string => key !== null)
+		)
+		.all();
+
+	const adoptedAtOf = new Map<string, number>();
+	for (const row of publishedSections) {
+		if (row.sectionKey === null) continue;
+		const at = (row.adoptedAt ?? row.createdAt)?.getTime();
+		if (at !== undefined) adoptedAtOf.set(row.sectionKey, at);
+	}
+	// Answered but not yet adopted still counts as published — the definition row
+	// is world-visible, which is what a reader sees. The date is simply absent.
+	const published = new Set(
+		publishedSections.map((row) => row.sectionKey).filter((key): key is string => key !== null)
 	);
 
+	const locale = localeOf(db, communityId);
+
 	const fromStandard = standard.view.artifacts
-		.filter((artifact) =>
-			standard.view.authoredSectionsOf(artifact.key).some((s) => publishedSections.has(s.key))
-		)
 		.map((artifact) => {
-			const rendered = renderArtifact(db, audience, artifact.key);
-			const dates = (rendered?.sections ?? [])
-				.map((section) => section.adopted?.adoptedAt)
+			const sections = standard.view
+				.authoredSectionsOf(artifact.key)
+				.filter((section) => published.has(section.key));
+			if (sections.length === 0) return null;
+			const dates = sections
+				.map((section) => adoptedAtOf.get(section.key))
 				.filter((at): at is number => at !== undefined);
 			return {
 				key: artifact.key,
-				title: rendered?.title ?? artifact.key,
+				title: standard.view.localise(artifact.i18n, locale).value.title ?? artifact.key,
 				layer: artifact.layer,
 				kind: 'standard' as const,
 				updatedAt: dates.length > 0 ? Math.max(...dates) : null
 			};
-		});
+		})
+		.filter((artifact) => artifact !== null);
 
 	const own = db
 		.select()
@@ -82,4 +107,13 @@ export function publishedArtifacts(db: Db, audience: Audience): PublicArtifact[]
 		}));
 
 	return [...fromStandard, ...own];
+}
+
+function localeOf(db: Db, communityId: string): Locale {
+	const row = db
+		.select({ locale: community.locale })
+		.from(community)
+		.where(eq(community.id, communityId))
+		.get();
+	return (row?.locale ?? 'en') as Locale;
 }

@@ -79,9 +79,3 @@ export type Reader = Ctx | Audience;
 export function toAudience(reader: Reader): Audience {
 	return 'kind' in reader ? reader : asSignedIn(reader);
 }
-
-/** The member behind a reader, or null when nobody is signed in. */
-export function memberOf(reader: Reader): Ctx | null {
-	const audience = toAudience(reader);
-	return audience.kind === 'signed_in' ? audience.ctx : null;
-}

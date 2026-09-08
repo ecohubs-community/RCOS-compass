@@ -1,6 +1,6 @@
 import { eq } from 'drizzle-orm';
 import { error } from '@sveltejs/kit';
-import { anonymousIn, scopedTo, type Audience } from '../auth/audience.js';
+import { scopedTo, type Audience } from '../auth/audience.js';
 import { requirePermission, requireWritableCommunity, type Ctx } from '../auth/guard.js';
 import { seal, unseal, CREDENTIAL_GENERATION, type Sealed } from '../crypto/sealed.js';
 import { getDb, type Db } from '../db/index.js';
@@ -145,5 +145,3 @@ export function removeRemote(ctx: Ctx, options: { db?: Db } = {}): void {
 export function credentialFor(remote: MirrorRemote): string | null {
 	return unseal(remote.credential as Sealed);
 }
-
-export { anonymousIn };
