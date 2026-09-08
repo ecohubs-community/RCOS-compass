@@ -63,5 +63,11 @@
 	"account_erase_owner_warning": "Eres propietaria de una comunidad. Transfiere la propiedad a otra persona primero: una comunidad sin propietaria no puede gobernarse ni cerrarse.",
 	"account_erase_confirm_label": "Escribe erase para confirmar",
 	"account_erase_button": "Borrar mi cuenta",
-	"account_two_factor_link": "Autenticación de dos factores"
+	"account_two_factor_link": "Autenticación de dos factores",
+	"legal_draft_notice": "Borrador: aún no revisado por asesoría legal. Describe lo que hace el software, que no es lo mismo que ser jurídicamente suficiente.",
+	"legal_reviewed": "Revisado el {date}.",
+	"footer_privacy": "Privacidad",
+	"footer_terms": "Términos",
+	"footer_sub_processors": "Subencargados",
+	"footer_licence": "RCOS Compass se distribuye bajo la licencia PolyForm Noncommercial 1.0.0."
 }

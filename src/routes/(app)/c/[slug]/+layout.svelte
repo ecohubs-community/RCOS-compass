@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { page } from '$app/state';
+	import Footer from '$lib/components/legal/Footer.svelte';
 	import GlossaryPanel from '$lib/components/GlossaryPanel.svelte';
 	import * as m from '$lib/paraglide/messages';
 	import { links } from '$lib/links';
@@ -197,6 +198,7 @@
 			</p>
 		{/if}
 		{@render children()}
+		<Footer standard={data.standardLicence} />
 	</div>
 </div>
 

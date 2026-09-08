@@ -16,9 +16,9 @@ import { seed, signIn, visit } from './support.js';
  * is the part a person does through the product.
  */
 test.describe('the phase is finished when', () => {
-	test.fixme(true, 'P7 is not implemented yet');
-
 	test('a person can be erased, and the register does not change', async ({ page }) => {
+		test.fixme(true, 'needs the member list, which group 9 adds');
+
 		const fixture = await seed(page);
 		await signIn(page, fixture.email, fixture.password);
 
@@ -52,13 +52,15 @@ test.describe('the phase is finished when', () => {
 		expect(body).toMatch(/former member/i);
 		expect(body).toMatch(/append-only|register/i);
 		// And the honest limit: a bundle already downloaded cannot be recalled.
-		expect(body).toMatch(/already exported|already downloaded/i);
+		expect(body).toMatch(/exported a bundle|already exported/i);
 
 		expect((await page.goto('/terms'))?.status()).toBe(200);
 		expect((await page.goto('/sub-processors'))?.status()).toBe(200);
 	});
 
 	test('an operator can see that something is broken', async ({ page }) => {
+		test.fixme(true, 'needs the error store, which group 7 adds');
+
 		// `/__test/boom` throws on purpose; the error must reach the status page
 		// rather than only a log file nobody is watching.
 		await page.goto('/__test/boom').catch(() => undefined);
@@ -72,6 +74,8 @@ test.describe('the phase is finished when', () => {
 	});
 
 	test('a member can report something, and it leaves as proposal material', async ({ page }) => {
+		test.fixme(true, 'needs the feedback capture, which group 10 adds');
+
 		const fixture = await seed(page);
 		await signIn(page, fixture.email, fixture.password);
 

@@ -32,7 +32,9 @@ import { artifactToMarkdown, renderArtifact } from './render-artifact.js';
 
 export type BundleManifest = {
 	community: { slug: string; name: string };
-	standard: { id: string; version: string } | null;
+	standard: { id: string; version: string; licence: string; attribution: string } | null;
+	/** The application's own licence, named beside the standard's. */
+	licence: string;
 	exportedAt: string;
 	/** What the exporter could see. A partial bundle that says so is honest. */
 	visibilityLevels: string[];
@@ -47,6 +49,14 @@ export type BundleManifest = {
 	 */
 	pdf: 'included' | 'unavailable on this instance';
 };
+
+/**
+ * The application's licence, named in every bundle beside the standard's.
+ *
+ * `docs/00` §12a: PolyForm Noncommercial is not an OSI open-source licence, and
+ * a bundle that says so is a bundle nobody has to guess about in five years.
+ */
+export const APPLICATION_LICENCE = 'PolyForm Noncommercial 1.0.0';
 
 /** Built in memory: a community's whole governance is a few hundred kilobytes. */
 export function buildBundle(
@@ -111,7 +121,17 @@ export function buildBundle(
 
 	const manifest: BundleManifest = {
 		community: { slug: home.slug, name: home.name },
-		standard: standard ? { id: standard.row.standardId, version: standard.row.version } : null,
+		standard: standard
+			? {
+					id: standard.row.standardId,
+					version: standard.row.version,
+					// From the standard's own metadata, so a standard published under
+					// different terms carries those. `docs/00` §12a.
+					licence: standard.view.meta.licence,
+					attribution: standard.view.meta.attribution
+				}
+			: null,
+		licence: APPLICATION_LICENCE,
 		exportedAt: new Date(now).toISOString(),
 		visibilityLevels: [...visibleLevels(audience)],
 		files: [...names, 'manifest.json', 'README.md'],
@@ -178,6 +198,14 @@ function readme(manifest: BundleManifest): string {
 		manifest.standard
 			? `The community works against ${manifest.standard.id} v${manifest.standard.version}, an open standard for community governance. Anything marked as a community addition is a rule they wrote for themselves, which the standard does not ask for.`
 			: '',
+		'',
+		'## Licences',
+		'',
+		manifest.standard
+			? `The standard's own text is ${manifest.standard.licence} — ${manifest.standard.attribution}. It stays under those terms wherever it appears, including here.`
+			: '',
+		'',
+		`The software that produced this bundle is licensed under ${manifest.licence}. That is not an OSI open-source licence, and the community's own words in this bundle are the community's, under no licence of ours.`,
 		'',
 		`This bundle contains what the person who exported it could see (${manifest.visibilityLevels.join(', ')}).`,
 		''

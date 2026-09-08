@@ -140,6 +140,19 @@ describe('the bundle is readable with nothing running', () => {
 		expect(bundle.names).toContain('README.md');
 		expect(bundle.text('README.md')).toContain('You do not need any particular');
 		expect(bundle.names).toContain('manifest.json');
+
+		/**
+		 * The licences, from the standard's own metadata rather than a string in a
+		 * component. `docs/00` §12a asked for this in P1; spec-review row 19 is the
+		 * same finding, and nothing carried it until there was a bundle to carry it
+		 * in. A community reading this in five years should not have to guess what
+		 * they may do with it.
+		 */
+		const readme = bundle.text('README.md');
+		expect(readme).toContain('CC BY 4.0');
+		expect(readme).toContain('PolyForm Noncommercial 1.0.0');
+		expect(bundle.manifest.standard?.licence).toMatch(/^CC BY 4\.0/);
+		expect(bundle.manifest.licence).toBe('PolyForm Noncommercial 1.0.0');
 		expect(bundle.names).toContain('decisions.md');
 		expect(bundle.names).toContain('decisions.json');
 		expect(bundle.names.some((name) => name.startsWith('artifacts/'))).toBe(true);

@@ -46,6 +46,9 @@ export const ROUTES: RouteCoverage[] = [
 	{ id: '(app)/c/[slug]/settings/publishing', scan: 'a11y' },
 	{ id: '(app)/c/[slug]/settings/transparency', scan: 'a11y' },
 	{ id: '(app)/c/[slug]/standard', scan: 'a11y' },
+	{ id: '(legal)/privacy', scan: 'a11y' },
+	{ id: '(legal)/terms', scan: 'a11y' },
+	{ id: '(legal)/sub-processors', scan: 'a11y' },
 	{ id: '(public)/p/[slug]', scan: 'a11y' },
 	{ id: '(public)/p/[slug]/a/[artifact]', scan: 'a11y' },
 
@@ -73,6 +76,11 @@ export const ROUTES: RouteCoverage[] = [
 		id: '(admin)/admin/status',
 		scan: 'exempt',
 		because: 'Operator tooling with no community reader.'
+	},
+	{
+		id: '(admin)/admin/legal',
+		scan: 'exempt',
+		because: 'Operator tooling; the documents themselves are scanned where a community reads them.'
 	},
 	{
 		id: '__test/boom',

@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { resolve } from '$app/paths';
 	import * as m from '$lib/paraglide/messages';
 
 	let { data, children } = $props();
@@ -21,5 +22,30 @@
 			a reader who arrived at a single artifact still sees it.
 		-->
 		<p>{m.public_footer({ name: data.community.name })}</p>
+		<p class="mt-2 flex flex-wrap gap-x-3 gap-y-1">
+			<a href={resolve('/(legal)/privacy')} class="hover:text-fg underline underline-offset-2"
+				>{m.footer_privacy()}</a
+			>
+			<a href={resolve('/(legal)/terms')} class="hover:text-fg underline underline-offset-2"
+				>{m.footer_terms()}</a
+			>
+			<a
+				href={resolve('/(legal)/sub-processors')}
+				class="hover:text-fg underline underline-offset-2">{m.footer_sub_processors()}</a
+			>
+		</p>
+		<p class="mt-1">{m.footer_licence()}</p>
+		{#if data.standardLicence}
+			<!--
+				The standard's own terms, wherever its words appear. `docs/00` §12a,
+				and spec-review row 19 — dated to P1 and never carried through until
+				there was an export and a public page to carry it.
+			-->
+			<p class="mt-1">
+				{data.standardLicence.id}
+				{data.standardLicence.version} · {data.standardLicence.licence} · {data.standardLicence
+					.attribution}
+			</p>
+		{/if}
 	</footer>
 </div>

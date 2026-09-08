@@ -30,6 +30,18 @@ export const load: LayoutServerLoad = ({ locals, depends }) => {
 	const mandatory = standard ? standard.view.mandatoryArtifacts().length : 0;
 
 	return {
+		/**
+		 * The standard's own licence line, from its metadata rather than a string
+		 * in a component. `docs/00` §12a asked for this in P1 and nothing ever
+		 * printed it; a standard published under different terms now carries its
+		 * own terms wherever its words appear.
+		 */
+		standardLicence: standard && {
+			id: standard.row.standardId,
+			version: standard.row.version,
+			licence: standard.view.meta.licence,
+			attribution: standard.view.meta.attribution
+		},
 		readiness: figures && {
 			percent: figures.percent,
 			satisfied: figures.satisfied,

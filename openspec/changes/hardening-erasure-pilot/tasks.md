@@ -39,20 +39,20 @@
 
 ## 5. The documents, and the inventory they come from
 
-- [ ] 5.1 `docs/13-data-inventory.md` — every table holding personal data, what it holds, why, retention, and what erasure does to it. Written from the schema, not from memory, and including the ones that are personal data without belonging to an account: `rate_limit_bucket.key` carries client addresses, and an uploaded filename can carry a name
-- [ ] 5.2 The test that fails when a table with a name, email or IP column is missing from the inventory
-- [ ] 5.2b State a retention for `audit_event.ip` and `user_agent` in the inventory. There is none anywhere today, and the trail is the security record — so the answer is written down and argued for here even if no sweep enforces it in this phase
-- [ ] 5.2c Every screen this phase adds uses Paraglide message functions from the first line. The P6 ratchet fails when the untranslated count grows, and this phase adds seven screens
-- [ ] 5.3 `content/legal/privacy.md` — including the erasure-versus-register position verbatim, the AI region, and the plain statement that a bundle already exported cannot be reached by a later redaction
-- [ ] 5.4 `content/legal/pilot-terms.md` and `content/legal/sub-processors.md` — German hosting, export and deletion on request, no DPA yet; the sub-processor list naming what this instance actually talks to
-- [ ] 5.5 `/privacy`, `/terms`, `/sub-processors` — anonymous, linked from the public pages and from an application footer, **which does not exist yet**: only the public group has one, so the authenticated shell gains its own
-- [ ] 5.6 `legal_review` keyed by content hash, the admin action that marks a version reviewed, and the draft banner rendered from that state rather than typed into the file. The Markdown is pulled in with Vite's `?raw` rather than read from disk at runtime — nothing copies `content/` into a built bundle, and that failure appears in production and never in development
-- [ ] 5.7 Tests: a document nobody reviewed carries the banner; marking it reviewed removes it; **editing one character brings it back** — the property the content hash exists for; a steward cannot mark one reviewed; the privacy policy contains the erasure paragraph, asserted against the same words the erasure code implements
+- [x] 5.1 `docs/13-data-inventory.md` — every table holding personal data, what it holds, why, retention, and what erasure does to it. Written from the schema, not from memory, and including the ones that are personal data without belonging to an account: `rate_limit_bucket.key` carries client addresses, and an uploaded filename can carry a name
+- [x] 5.2 The test that fails when a table with a name, email or IP column is missing from the inventory
+- [x] 5.2b State a retention for `audit_event.ip` and `user_agent` in the inventory. There is none anywhere today, and the trail is the security record — so the answer is written down and argued for here even if no sweep enforces it in this phase
+- [x] 5.2c Every screen this phase adds uses Paraglide message functions from the first line. The P6 ratchet fails when the untranslated count grows, and this phase adds seven screens
+- [x] 5.3 `content/legal/privacy.md` — including the erasure-versus-register position verbatim, the AI region, and the plain statement that a bundle already exported cannot be reached by a later redaction
+- [x] 5.4 `content/legal/pilot-terms.md` and `content/legal/sub-processors.md` — German hosting, export and deletion on request, no DPA yet; the sub-processor list naming what this instance actually talks to
+- [x] 5.5 `/privacy`, `/terms`, `/sub-processors` — anonymous, linked from the public pages and from an application footer, **which does not exist yet**: only the public group has one, so the authenticated shell gains its own
+- [x] 5.6 `legal_review` keyed by content hash, the admin action that marks a version reviewed, and the draft banner rendered from that state rather than typed into the file. The Markdown is pulled in with Vite's `?raw` rather than read from disk at runtime — nothing copies `content/` into a built bundle, and that failure appears in production and never in development
+- [x] 5.7 Tests: a document nobody reviewed carries the banner; marking it reviewed removes it; **editing one character brings it back** — the property the content hash exists for; a steward cannot mark one reviewed; the privacy policy contains the erasure paragraph, asserted against the same words the erasure code implements
 
 ## 6. Licence and attribution where the content goes
 
-- [ ] 6.1 Render `meta.yaml`'s licence, attribution and source in the export's readme and manifest, on the public pages, and in the application footer beside PolyForm NC
-- [ ] 6.2 Tests: a bundle names both licences; a public artifact page carries the attribution; a standard whose metadata names different terms carries those instead of a hard-coded string
+- [x] 6.1 Render `meta.yaml`'s licence, attribution and source in the export's readme and manifest, on the public pages, and in the application footer beside PolyForm NC
+- [x] 6.2 Tests: a bundle names both licences; a public artifact page carries the attribution; a standard whose metadata names different terms carries those instead of a hard-coded string
 
 ## 7. Observability
 

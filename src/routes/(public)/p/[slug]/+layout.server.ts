@@ -2,6 +2,7 @@ import { error } from '@sveltejs/kit';
 import { and, eq } from 'drizzle-orm';
 import { getDb } from '$lib/server/db';
 import { community } from '$lib/server/db/schema/tenancy';
+import { standardViewFor } from '$lib/server/services/completeness';
 import type { LayoutServerLoad } from './$types';
 
 /**
@@ -46,8 +47,18 @@ export const load: LayoutServerLoad = ({ params }) => {
 
 	const { publicIndexEnabled: _gate, ...visible } = found;
 
-	// The community only. Each page builds its own `anonymousIn(id)` server-side
-	// rather than being handed an audience through `data`, which would serialise
-	// it to the browser for no reason and invite somebody to pass it back.
-	return { community: visible };
+	// The community, and the standard's licence line for the footer. Each page
+	// builds its own `anonymousIn(id)` server-side rather than being handed an
+	// audience through `data`, which would serialise it to the browser for no
+	// reason and invite somebody to pass it back.
+	const standard = standardViewFor(db, found.id);
+	return {
+		community: visible,
+		standardLicence: standard && {
+			id: standard.row.standardId,
+			version: standard.row.version,
+			licence: standard.view.meta.licence,
+			attribution: standard.view.meta.attribution
+		}
+	};
 };
