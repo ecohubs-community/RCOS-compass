@@ -35,7 +35,9 @@ export type AuditAction =
 	| 'community.deleted'
 	| 'community.restored'
 	| 'community.ownership_transferred'
-	| 'community.exported';
+	| 'community.exported'
+	/** Somebody asked to be forgotten. Never carries who. */
+	| 'account.erased';
 
 export type AuditInput = {
 	action: AuditAction;

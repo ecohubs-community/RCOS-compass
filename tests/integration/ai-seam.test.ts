@@ -300,7 +300,7 @@ describe('usage is visible, because an invisible quota looks like a bug', () => 
 
 		const rows = usageByMember(anaOn, { db });
 		expect(rows).toHaveLength(2);
-		expect(rows[0]!.email).toBe('lena@example.org');
+		expect(rows[0]!.person).toBe('lena@example.org');
 		expect(rows[0]!.tokens).toBe(200);
 	});
 

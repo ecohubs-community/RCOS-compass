@@ -230,6 +230,54 @@
 		{@render panelError('transfer')}
 	</section>
 
+	<section class="mt-10" aria-labelledby="erasure-heading">
+		<h2 id="erasure-heading" class="text-section font-medium">Erase a person</h2>
+		<!--
+			For a request that arrives by email from somebody who cannot reach their
+			own account screen. The same service and the same refusals: an owner has
+			to transfer first, and what a community decided does not move.
+		-->
+		<p class="text-fg-secondary mt-1">
+			Their profile and every way of signing in are deleted. What their communities decided stays,
+			attributed to a former member. This cannot be undone.
+		</p>
+		{#if tenant.stewards.filter((s) => !s.isOwner).length === 0}
+			<p class="text-fg-secondary mt-1">
+				Only stewards are listed here. A member asks through their own account screen.
+			</p>
+		{:else}
+			<form
+				method="POST"
+				action="?/erasePerson"
+				class="mt-3 flex flex-col gap-3 sm:max-w-md"
+				use:enhance
+			>
+				<label for="erase-userId" class="text-fg font-medium">Erase</label>
+				<select
+					id="erase-userId"
+					name="userId"
+					class="border-border bg-raised text-fg h-9 rounded-(--radius-control) border px-2.5"
+				>
+					{#each tenant.stewards.filter((s) => !s.isOwner) as steward (steward.userId)}
+						<option value={steward.userId}>{steward.email}</option>
+					{/each}
+				</select>
+				<label for="erase-confirm" class="text-fg font-medium"
+					>Type <code>{tenant.slug}</code> to confirm</label
+				>
+				<input
+					id="erase-confirm"
+					name="confirm"
+					required
+					autocomplete="off"
+					class="border-border bg-raised text-fg h-9 rounded-(--radius-control) border px-3"
+				/>
+				<Button type="submit" class="self-start">Erase this person</Button>
+			</form>
+		{/if}
+		{@render panelError('erasePerson')}
+	</section>
+
 	<section class="mt-10" aria-labelledby="lifecycle-heading">
 		<h2 id="lifecycle-heading" class="text-section font-medium">Suspension</h2>
 		{#if tenant.status === 'suspended'}

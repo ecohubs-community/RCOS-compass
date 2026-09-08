@@ -11,6 +11,7 @@ import {
 } from '../../db/schema/tenancy.js';
 import { user } from '../../db/schema/auth.js';
 import { recordAudit } from '../audit.js';
+import { personAddress } from '../person.js';
 import { validateSlug } from '../tenancy.js';
 import { seedCommunityDefaults } from '../community-setup.js';
 
@@ -39,6 +40,7 @@ export type TenantSummary = {
 	members: number;
 	pendingInvitations: number;
 	createdAt: number;
+	/** The owner's address, or a former-member label once they are erased. */
 	ownerEmail: string | null;
 };
 
@@ -67,7 +69,13 @@ export function listTenants(db: Db = getDb()): TenantSummary[] {
 		// The owner's address is the one piece of personal data the console shows:
 		// an operator has to be able to contact someone about the tenant.
 		const owner = db
-			.select({ email: user.email })
+			.select({
+				email: user.email,
+				name: user.name,
+				erasedAt: user.erasedAt,
+				displayName: membership.displayName,
+				seq: membership.seq
+			})
 			.from(membership)
 			.innerJoin(user, eq(user.id, membership.userId))
 			.where(
@@ -87,7 +95,7 @@ export function listTenants(db: Db = getDb()): TenantSummary[] {
 			members: members?.n ?? 0,
 			pendingInvitations: pending?.n ?? 0,
 			createdAt: row.createdAt.getTime(),
-			ownerEmail: owner?.email ?? null
+			ownerEmail: owner ? personAddress(owner) : null
 		};
 	});
 }
@@ -598,6 +606,7 @@ export function transferOwnership(
 	});
 }
 
+/** `email` is an address until the person is erased, and a label afterwards. */
 export type TenantSteward = { userId: string; email: string; isOwner: boolean };
 
 export type TenantDetail = TenantSummary & {
@@ -626,7 +635,15 @@ export function getTenant(db: Db, communityId: string): TenantDetail | null {
 	if (!summary) return null;
 
 	const stewards = db
-		.select({ userId: membership.userId, email: user.email, isOwner: membership.isOwner })
+		.select({
+			userId: membership.userId,
+			email: user.email,
+			name: user.name,
+			erasedAt: user.erasedAt,
+			displayName: membership.displayName,
+			seq: membership.seq,
+			isOwner: membership.isOwner
+		})
 		.from(membership)
 		.innerJoin(user, eq(user.id, membership.userId))
 		.where(
@@ -636,7 +653,11 @@ export function getTenant(db: Db, communityId: string): TenantDetail | null {
 				isNull(membership.endedAt)
 			)
 		)
-		.all();
+		.all()
+		.map(({ name, erasedAt, displayName, seq, email, ...row }) => ({
+			...row,
+			email: personAddress({ email, name, erasedAt, displayName, seq })
+		}));
 
 	const retiredSlugs = db
 		.select()

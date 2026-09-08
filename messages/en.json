@@ -54,5 +54,16 @@
 	"language_saved": "Saved. Every member sees this community in the new language.",
 	"language_interface_english": "standard translated, interface in English",
 	"language_steward_only": "Only a steward can change this.",
-	"nav_language": "Language"
+	"nav_language": "Language",
+	"account_title": "Your account",
+	"account_heading": "Your account",
+	"account_signed_in_as": "Signed in as",
+	"account_erase_heading": "Erase this account",
+	"account_erase_what_goes": "Your name, your email address and anything you set about yourself are deleted, along with every way of signing in. This cannot be undone.",
+	"account_erase_what_stays": "What your communities decided stays. Decisions name a membership rather than a person, so your part of the record continues to read as a former member — which is why the count of who was present is still true afterwards.",
+	"account_erase_your_labels": "In your communities you will read as:",
+	"account_erase_owner_warning": "You own a community. Transfer ownership to another member first — a community with no owner cannot be governed or closed.",
+	"account_erase_confirm_label": "Type erase to confirm",
+	"account_erase_button": "Erase my account",
+	"account_two_factor_link": "Two-factor authentication"
 }

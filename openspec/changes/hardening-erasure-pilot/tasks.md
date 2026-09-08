@@ -14,17 +14,17 @@
 
 ## 2. One way to render a person
 
-- [ ] 2.1 `personLabel()` — the single function that decides between a display name, a real name, `Former member (M-####)` where a community is in scope, and `Erased account` where none is. The platform audit trail spans communities, and a global number for a person who asked to be forgotten is the thing scoping the label to a community avoids
-- [ ] 2.2 Route every service that returns a person through it, and register each in `person-surfaces.ts`: members, attribution, decisions, discussions, documents, notifications, the audit trail, self-audit, export, mirror, public pages
-- [ ] 2.3 Tests: the registry runs each service against an erased person and asserts the label; **mutation-check it** by making one service bypass `personLabel` and watching that service's entry fail rather than the whole suite going red in a way nobody can read
+- [x] 2.1 `personLabel()` — the single function that decides between a display name, a real name, `Former member (M-####)` where a community is in scope, and `Erased account` where none is. The platform audit trail spans communities, and a global number for a person who asked to be forgotten is the thing scoping the label to a community avoids
+- [x] 2.2 Route every service that returns a person through it, and register each in `person-surfaces.ts`: members, attribution, decisions, discussions, documents, notifications, the audit trail, self-audit, export, mirror, public pages
+- [x] 2.3 Tests: the registry runs each service against an erased person and asserts the label; **mutation-check it** by making one service bypass `personLabel` and watching that service's entry fail rather than the whole suite going red in a way nobody can read
 
 ## 3. Erasure
 
-- [ ] 3.1 `erasePerson()` — profile cleared, **every `membership.display_name` cleared with it**, sessions and credentials deleted, verification tokens gone, `erased_at` and `erased_by` set, in one transaction. Nothing retained about the address, including a hash of it
-- [ ] 3.2 Refuse erasure while the person is the sole owner of a community, with a refusal that says to transfer ownership first; refuse it for the last platform admin, because an instance with no administrator cannot be restored
-- [ ] 3.3 The account screen a person asks from, and the platform-admin path for a request that arrives by email — both writing the same audit event, which names the actor and the membership label and never the erased person
-- [ ] 3.4 Reach the copies a rendering function cannot: clear `audit_event.actor_email` on that person's events and correct the column's comment, which currently justifies itself by a deletion that no longer happens; revoke every open invitation to the erased address
-- [ ] 3.5 Tests: the register is byte-for-byte identical afterwards (compare the serialised rows before and after, not a spot check); an attended decision keeps its tally; sessions issued before are refused; the address registers again as an unrelated account; the sole owner is refused and succeeds after transferring; nothing in the audit trail, the logs or a notification carries the erased name or address; a pending invitation to that address can no longer be accepted, and another member's is untouched
+- [x] 3.1 `erasePerson()` — profile cleared, **every `membership.display_name` cleared with it**, sessions and credentials deleted, verification tokens gone, `erased_at` and `erased_by` set, in one transaction. Nothing retained about the address, including a hash of it
+- [x] 3.2 Refuse erasure while the person is the sole owner of a community, with a refusal that says to transfer ownership first; refuse it for the last platform admin, because an instance with no administrator cannot be restored
+- [x] 3.3 The account screen a person asks from, and the platform-admin path for a request that arrives by email — both writing the same audit event, which names the actor and the membership label and never the erased person
+- [x] 3.4 Reach the copies a rendering function cannot: clear `audit_event.actor_email` on that person's events and correct the column's comment, which currently justifies itself by a deletion that no longer happens; revoke every open invitation to the erased address
+- [x] 3.5 Tests: the register is byte-for-byte identical afterwards (compare the serialised rows before and after, not a spot check); an attended decision keeps its tally; sessions issued before are refused; the address registers again as an unrelated account; the sole owner is refused and succeeds after transferring; nothing in the audit trail, the logs or a notification carries the erased name or address; a pending invitation to that address can no longer be accepted, and another member's is untouched
 
 ## 4. Correction and redaction
 

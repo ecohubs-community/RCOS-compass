@@ -5,7 +5,12 @@ import { setDbForTests, type Db } from '../../src/lib/server/db/index.js';
 import { communityStandard } from '../../src/lib/server/db/schema/tenancy.js';
 import { createTestDb } from '../support/db.js';
 import { makeCommunity, makeMembership, makeUser } from '../support/factories.js';
-import { PERSON_SURFACES, personModulesInSource } from '../support/person-surfaces.js';
+import {
+	NOT_A_PERSON_SURFACE,
+	PERSON_SURFACES,
+	personModulesInSource,
+	type Subject
+} from '../support/person-surfaces.js';
 
 /**
  * Every surface that shows a person, and whether erasure reaches it.
@@ -28,6 +33,7 @@ const ERASED_EMAIL = 'wilhelmina@example.org';
 let db: Db;
 let cleanup: () => void;
 let ctx: Ctx;
+let subject: Subject;
 
 beforeEach(() => {
 	({ db, cleanup } = createTestDb());
@@ -46,15 +52,32 @@ beforeEach(() => {
 		})
 		.run();
 
-	// A distinctive name, because the assertion that matters is that it appears
-	// nowhere — and a common one would pass by coincidence.
-	const person = makeUser(db, { email: ERASED_EMAIL, name: ERASED_NAME });
+	// The reader: a steward who owns the community, because most of these
+	// surfaces are steward-only and somebody has to be able to call them.
+	const reader = makeUser(db, { email: 'ana@example.org', name: 'Ana Restrepo' });
 	ctx = {
-		user: person,
+		user: reader,
 		community: home,
-		membership: makeMembership(db, home.id, person.id, { role: 'steward', isOwner: true }),
+		membership: makeMembership(db, home.id, reader.id, { role: 'steward', isOwner: true }),
 		now: () => NOW
 	} as Ctx;
+
+	/**
+	 * And the person who gets erased: a steward, not the owner.
+	 *
+	 * A distinctive name and address, because the assertion that matters is that
+	 * they appear nowhere and a common one would pass by coincidence. Not the
+	 * owner, because erasure refuses while somebody owns a community — a subject
+	 * who owned one would make every entry fail on the refusal instead of on the
+	 * rendering, which is a suite that looks thorough and checks nothing.
+	 */
+	const person = makeUser(db, { email: ERASED_EMAIL, name: ERASED_NAME });
+	subject = {
+		userId: person.id,
+		membershipId: makeMembership(db, home.id, person.id, { role: 'steward' }).id,
+		email: ERASED_EMAIL,
+		name: ERASED_NAME
+	};
 });
 
 afterEach(() => {
@@ -84,12 +107,34 @@ describe('an erased person is not printed by any surface', () => {
 		const test = surface.pending ? it.fails : it;
 
 		test(surface.name, async () => {
-			surface.seed?.(db, ctx);
-			await erase(ctx.user.id);
+			surface.seed?.(db, ctx, subject);
 
-			const shown = surface.read(ctx, db).join(' | ');
+			// What the surface said before, so an entry that renders nothing at all
+			// cannot pass by accident — the failure mode of a registry is an entry
+			// whose assertion is vacuous.
+			const before = surface.read(ctx, db, subject).join(' | ');
+			expect(before, `${surface.name} shows nothing to erase`).toMatch(
+				new RegExp(`${ERASED_NAME}|${ERASED_EMAIL}`)
+			);
+
+			await erase(subject.userId);
+
+			const shown = surface.read(ctx, db, subject).join(' | ');
 			expect(shown).not.toContain(ERASED_NAME);
 			expect(shown).not.toContain(ERASED_EMAIL);
+
+			/**
+			 * And the label is actually there.
+			 *
+			 * Asserting only the absence of the old name was the first version and
+			 * it could not fail: erasure blanks `user.name`, so a surface that
+			 * printed the raw column — or an empty string, or nothing at all —
+			 * passed. The requirement is that a reader sees *who this was*, which
+			 * is the whole difference between a tombstone and a hole in the page.
+			 */
+			expect(shown, `${surface.name} shows no label`).toMatch(
+				surface.expect ?? /Former member \(M-\d{4}\)/
+			);
 		});
 	}
 });
@@ -97,11 +142,19 @@ describe('an erased person is not printed by any surface', () => {
 describe('the registry is checked against the code, not against memory', () => {
 	it('covers every service module that reads the user table', () => {
 		const listed = new Set(PERSON_SURFACES.map((surface) => surface.module));
-		const unlisted = personModulesInSource().filter((module) => !listed.has(module));
+		const unlisted = personModulesInSource().filter(
+			(module) => !listed.has(module) && !NOT_A_PERSON_SURFACE[module]
+		);
 
 		// A module reading `user` can print a person. If it is not represented
 		// here, erasure has a hole exactly where nobody is looking.
 		expect(unlisted, `unregistered person surfaces: ${unlisted.join(', ')}`).toEqual([]);
+	});
+
+	it('makes every exemption say why', () => {
+		for (const [module, because] of Object.entries(NOT_A_PERSON_SURFACE)) {
+			expect(because.length, module).toBeGreaterThan(20);
+		}
 	});
 
 	it('fails when a module that reads the user table is added and not listed', () => {

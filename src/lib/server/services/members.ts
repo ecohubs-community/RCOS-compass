@@ -3,6 +3,7 @@ import { error } from '@sveltejs/kit';
 import { requirePermission, type Ctx } from '../auth/guard.js';
 import { ownerRoleIsValid } from '../auth/permissions.js';
 import { getDb } from '../db/index.js';
+import { personLabel } from './person.js';
 import { membership, type Membership } from '../db/schema/tenancy.js';
 import { user } from '../db/schema/auth.js';
 import { registerTenantService } from './registry.js';
@@ -32,6 +33,9 @@ export function listMembers(ctx: Ctx): MemberView[] {
 			membershipId: membership.id,
 			userId: membership.userId,
 			name: user.name,
+			displayName: membership.displayName,
+			seq: membership.seq,
+			erasedAt: user.erasedAt,
 			role: membership.role,
 			isOwner: membership.isOwner,
 			rcosState: membership.rcosState
@@ -39,7 +43,14 @@ export function listMembers(ctx: Ctx): MemberView[] {
 		.from(membership)
 		.innerJoin(user, eq(user.id, membership.userId))
 		.where(and(eq(membership.communityId, ctx.community.id), isNull(membership.endedAt)))
-		.all();
+		.all()
+		.map(({ name, displayName, seq, erasedAt, ...row }) => ({
+			...row,
+			// Through the one function, like every other surface. A member list
+			// that quietly dropped an erased person would make the community's own
+			// count disagree with its decision tallies.
+			name: personLabel({ erasedAt, name, displayName, seq })
+		}));
 }
 
 function findInCommunity(ctx: Ctx, membershipId: string): Membership | undefined {

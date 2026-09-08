@@ -83,9 +83,9 @@
 			{#if data.can.manage && data.perMember.length > 0}
 				<h3 class="text-title mt-6 font-medium">Per member, this month</h3>
 				<ul class="mt-2 flex flex-col gap-1">
-					{#each data.perMember as row (row.email)}
+					{#each data.perMember as row (row.person)}
 						<li class="flex justify-between">
-							<span class="text-fg-secondary">{row.email}</span>
+							<span class="text-fg-secondary">{row.person}</span>
 							<span data-tabular>{row.tokens.toLocaleString()} tokens · {row.tasks} tasks</span>
 						</li>
 					{/each}

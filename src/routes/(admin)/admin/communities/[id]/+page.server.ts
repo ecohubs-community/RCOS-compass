@@ -3,6 +3,7 @@ import { requirePlatformAdmin } from '$lib/server/auth/admin';
 import { systemClock } from '$lib/server/clock';
 import { getDb } from '$lib/server/db';
 import { listPlatformAudit } from '$lib/server/services/admin/audit';
+import { erasePersonAsAdmin } from '$lib/server/services/admin/people';
 import {
 	SLUG_REDIRECT_MS,
 	TenantError,
@@ -89,6 +90,36 @@ function requireReason(form: FormData): string {
 }
 
 export const actions: Actions = {
+	/**
+	 * An erasure request that arrived by email rather than through the person's
+	 * own account screen — somebody who has lost access to it, or who wrote to the
+	 * operator instead. The same service, the same audit event, and the same
+	 * refusals: an owner still has to transfer first.
+	 *
+	 * Typed confirmation like every other irreversible act here, and the slug is
+	 * what has to be typed, because that is the thing an operator has in front of
+	 * them when they are about to do this to the wrong community.
+	 */
+	erasePerson: (event) =>
+		run(event, 'erasePerson', (actor, form) => {
+			const tenant = getTenant(getDb(), event.params.id);
+			if (!tenant) throw new TenantError('no_such_tenant', 'No such community.');
+			assertConfirmed(form, tenant.slug);
+
+			const userId = String(form.get('userId') ?? '');
+			if (!tenant.stewards.some((steward) => steward.userId === userId)) {
+				throw new TenantError('not_a_steward', 'That person is not a steward of this community.');
+			}
+
+			try {
+				erasePersonAsAdmin(getDb(), { userId, actorId: actor.userId, now: systemClock.now() });
+			} catch (problem) {
+				const http = problem as { status?: number; body?: { message?: string } };
+				if (http.status === 409) throw new TenantError('reason_required', http.body?.message ?? '');
+				throw problem;
+			}
+		}),
+
 	rename: (event) =>
 		run(event, 'rename', (actor, form) =>
 			renameTenant(getDb(), systemClock, actor, event.params.id, String(form.get('name') ?? ''))

@@ -23,6 +23,7 @@ export const ROUTES: RouteCoverage[] = [
 	{ id: '', scan: 'a11y' },
 	{ id: '(account)/sign-in', scan: 'a11y' },
 	{ id: '(account)/sign-in/two-factor', scan: 'a11y' },
+	{ id: '(account)/account', scan: 'a11y' },
 	{ id: '(account)/account/two-factor', scan: 'a11y' },
 	{ id: '(app)/c/[slug]', scan: 'a11y' },
 	{ id: '(app)/c/[slug]/audit', scan: 'a11y' },

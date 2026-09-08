@@ -3,6 +3,7 @@ import { error } from '@sveltejs/kit';
 import { requirePermission, requireWritableCommunity, type Ctx } from '../auth/guard.js';
 import { getConfig } from '../config.js';
 import { getDb, type Db } from '../db/index.js';
+import { personAddress } from './person.js';
 import { aiUsage } from '../db/schema/ai.js';
 import { membership } from '../db/schema/tenancy.js';
 import { user } from '../db/schema/auth.js';
@@ -66,7 +67,17 @@ export function setAiEnabled(ctx: Ctx, enabled: boolean, options: { db?: Db } = 
 		.run();
 }
 
-export type MemberUsage = { email: string; tasks: number; tokens: number };
+export type MemberUsage = {
+	/**
+	 * Who, as an address where there is one and a former-member label where the
+	 * person has been erased. Named `person` rather than `email` because it is no
+	 * longer always an address, and a field whose name promises one is a field
+	 * somebody will eventually put in a mailto.
+	 */
+	person: string;
+	tasks: number;
+	tokens: number;
+};
 
 /** What each member has spent this month. A steward's view. */
 export function usageByMember(ctx: Ctx, options: { db?: Db } = {}): MemberUsage[] {
@@ -77,16 +88,26 @@ export function usageByMember(ctx: Ctx, options: { db?: Db } = {}): MemberUsage[
 	return db
 		.select({
 			email: user.email,
+			name: user.name,
+			erasedAt: user.erasedAt,
+			displayName: membership.displayName,
+			seq: membership.seq,
 			tasks: sql<number>`coalesce(sum(${aiUsage.tasks}), 0)`,
 			tokens: sql<number>`coalesce(sum(${aiUsage.tokens}), 0)`
 		})
 		.from(aiUsage)
 		.innerJoin(user, eq(user.id, aiUsage.actorId))
 		.innerJoin(membership, eq(membership.userId, user.id))
-		.where(sql`${aiUsage.communityId} = ${ctx.community.id} and ${aiUsage.periodMonth} = ${month}`)
-		.groupBy(user.email)
+		.where(
+			sql`${aiUsage.communityId} = ${ctx.community.id} and ${aiUsage.periodMonth} = ${month} and ${membership.communityId} = ${ctx.community.id}`
+		)
+		.groupBy(user.id)
 		.orderBy(desc(sql`sum(${aiUsage.tokens})`))
-		.all();
+		.all()
+		.map(({ email, name, erasedAt, displayName, seq, ...row }) => ({
+			...row,
+			person: personAddress({ email, name, erasedAt, displayName, seq })
+		}));
 }
 
 function budgetMonth(ctx: Ctx): string {

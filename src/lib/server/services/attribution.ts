@@ -50,7 +50,9 @@ export function outwardAttribution(
 		.select({
 			consented: decisionAttendee.consentedToPublish,
 			externalName: decisionAttendee.externalName,
-			name: user.name
+			name: user.name,
+			displayName: membership.displayName,
+			erasedAt: user.erasedAt
 		})
 		.from(decisionAttendee)
 		.leftJoin(membership, eq(membership.id, decisionAttendee.membershipId))
@@ -64,11 +66,20 @@ export function outwardAttribution(
 	 * the same answer today; only this one still gives the right answer when
 	 * somebody adds a third policy.
 	 */
+	/**
+	 * An erased person is dropped rather than labelled.
+	 *
+	 * Every other surface renders `Former member (M-0142)`, and this is the one
+	 * place that would be wrong: the list exists to say who agreed to be named
+	 * outwardly, and somebody who has since asked to be forgotten gave the
+	 * earlier, weaker instruction. They stay in `unnamed`, so the count is still
+	 * honest about how many people were in the room.
+	 */
 	const named =
 		policy === 'named_with_consent'
 			? attendees
-					.filter((row) => row.consented)
-					.map((row) => row.externalName ?? row.name)
+					.filter((row) => row.consented && !row.erasedAt)
+					.map((row) => row.externalName ?? row.displayName ?? row.name)
 					.filter((name): name is string => Boolean(name))
 			: [];
 

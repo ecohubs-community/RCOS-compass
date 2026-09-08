@@ -52,5 +52,16 @@
 	"language_saved": "Gespeichert. Alle Mitglieder sehen diese Gemeinschaft jetzt in der neuen Sprache.",
 	"language_interface_english": "Standard übersetzt, Oberfläche auf Englisch",
 	"language_steward_only": "Nur ein Steward kann das ändern.",
-	"nav_language": "Sprache"
+	"nav_language": "Sprache",
+	"account_title": "Dein Konto",
+	"account_heading": "Dein Konto",
+	"account_signed_in_as": "Angemeldet als",
+	"account_erase_heading": "Dieses Konto löschen",
+	"account_erase_what_goes": "Dein Name, deine E-Mail-Adresse und alles, was du über dich angegeben hast, werden gelöscht — zusammen mit jeder Möglichkeit, dich anzumelden. Das lässt sich nicht rückgängig machen.",
+	"account_erase_what_stays": "Was deine Gemeinschaften entschieden haben, bleibt. Entscheidungen nennen eine Mitgliedschaft und keine Person, deshalb erscheint dein Teil der Aufzeichnung weiterhin als ehemaliges Mitglied — und deshalb stimmt die Zahl der Anwesenden auch danach noch.",
+	"account_erase_your_labels": "In deinen Gemeinschaften erscheinst du dann als:",
+	"account_erase_owner_warning": "Dir gehört eine Gemeinschaft. Übertrage die Eigentümerschaft zuerst an ein anderes Mitglied — eine Gemeinschaft ohne Eigentümerin lässt sich weder führen noch schließen.",
+	"account_erase_confirm_label": "Tippe erase zur Bestätigung",
+	"account_erase_button": "Mein Konto löschen",
+	"account_two_factor_link": "Zwei-Faktor-Authentifizierung"
 }

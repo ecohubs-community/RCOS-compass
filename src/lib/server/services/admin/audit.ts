@@ -1,5 +1,8 @@
+import { isNotNull } from 'drizzle-orm';
 import { getDb, type Db } from '../../db/index.js';
+import { user } from '../../db/schema/auth.js';
 import { listAudit, type AuditAction } from '../audit.js';
+import { ERASED_WITHOUT_COMMUNITY } from '../person.js';
 import { listTenants } from './communities.js';
 
 /**
@@ -89,6 +92,23 @@ function summarise(meta: unknown): Pick<AuditRow, 'changes' | 'notes'> {
 export function listPlatformAudit(filters: AuditFilters = {}, db: Db = getDb()): AuditRow[] {
 	const names = new Map(listTenants(db).map((t) => [t.id, t.name]));
 
+	/**
+	 * Who has been erased, so their events read as an erased account.
+	 *
+	 * Erasure clears `actor_email` on the rows it can reach, and this covers the
+	 * rest: an event written after it, and the belt-and-braces case of a row the
+	 * clearing missed. The trail is platform-wide — a sign-in failure has no
+	 * community — so there is no membership number to show and none is invented.
+	 */
+	const erased = new Set(
+		db
+			.select({ id: user.id })
+			.from(user)
+			.where(isNotNull(user.erasedAt))
+			.all()
+			.map((row) => row.id)
+	);
+
 	return listAudit(
 		{
 			// The action list is a closed set in `services/audit`; anything else is
@@ -103,13 +123,17 @@ export function listPlatformAudit(filters: AuditFilters = {}, db: Db = getDb()):
 	)
 		.filter((event) => {
 			if (!filters.actor) return true;
+			// Erased actors are searchable by neither address nor label: there is
+			// nothing left to search for, which is the point.
+			if (event.actorId && erased.has(event.actorId)) return false;
 			const needle = filters.actor.toLowerCase();
 			return (event.actorEmail ?? '').includes(needle) || (event.ip ?? '').includes(needle);
 		})
 		.map((event) => ({
 			id: event.id,
 			at: event.at.getTime(),
-			actorEmail: event.actorEmail,
+			actorEmail:
+				event.actorId && erased.has(event.actorId) ? ERASED_WITHOUT_COMMUNITY : event.actorEmail,
 			ip: event.ip,
 			action: event.action,
 			target: event.target,

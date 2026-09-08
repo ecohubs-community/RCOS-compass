@@ -130,7 +130,16 @@ export function listInvitations(ctx: Ctx, options: { db?: Db } = {}): Invitation
 	return db
 		.select()
 		.from(invitation)
-		.where(and(eq(invitation.communityId, ctx.community.id), isNull(invitation.acceptedAt)))
+		.where(
+			and(
+				eq(invitation.communityId, ctx.community.id),
+				isNull(invitation.acceptedAt),
+				// A revoked invitation is not pending. It was listed as one until
+				// erasure needed the address to stop being shown, which is how a
+				// display bug that nobody had filed got found.
+				isNull(invitation.revokedAt)
+			)
+		)
 		.all();
 }
 
