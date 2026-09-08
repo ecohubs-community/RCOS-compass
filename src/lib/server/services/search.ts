@@ -6,8 +6,8 @@ import { discussion } from '../db/schema/discussions.js';
 import { document, passage } from '../db/schema/documents.js';
 import { community } from '../db/schema/tenancy.js';
 import { getSearchIndex } from '../search/index.js';
-import type { Locale } from '../standard/types.js';
 import { standardViewFor } from './completeness.js';
+import { communityLocale } from './community-locale.js';
 
 /**
  * What goes into the index, and when.
@@ -34,15 +34,6 @@ const bodyOf = (...parts: (string | null | undefined)[]) =>
 		.map((part) => part?.trim())
 		.filter((part): part is string => Boolean(part))
 		.join('\n\n');
-
-function localeOf(db: Db, communityId: string): Locale {
-	const row = db
-		.select({ locale: community.locale })
-		.from(community)
-		.where(eq(community.id, communityId))
-		.get();
-	return (row?.locale ?? 'en') as Locale;
-}
 
 /**
  * A definition, by the text the community adopted.
@@ -101,7 +92,7 @@ function definitionTitle(db: Db, communityId: string, row: typeof definition.$in
 	const section = standard?.view.section(row.sectionKey);
 	if (!section) return row.sectionKey;
 
-	return standard!.view.localise(section.i18n, localeOf(db, communityId)).value.title;
+	return standard!.view.localise(section.i18n, communityLocale(db, communityId)).value.title;
 }
 
 /**

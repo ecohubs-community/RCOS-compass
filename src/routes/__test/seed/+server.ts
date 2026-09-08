@@ -41,6 +41,13 @@ export const POST: RequestHandler = async ({ request }) => {
 	const body = (await request.json().catch(() => ({}))) as {
 		slug?: string;
 		shape?: 'fresh' | 'valle-verde';
+		/**
+		 * The community's own language, for the specs that check a screen is in
+		 * it. There is no interface for this yet — the locale is a column a
+		 * community is created with — so a spec that could not set it could not
+		 * tell an English page from an untranslated one.
+		 */
+		locale?: string;
 	};
 	// Each spec seeds its own community, so specs running in parallel — and the
 	// four viewport projects — never collide over one fixture.
@@ -64,6 +71,10 @@ export const POST: RequestHandler = async ({ request }) => {
 
 	// The owner becomes a member by accepting, exactly as they would by email.
 	acceptInvitation(db, systemClock, { token: invitationToken, userId: person.id });
+
+	if (body.locale) {
+		db.update(community).set({ locale: body.locale }).where(eq(community.id, communityId)).run();
+	}
 
 	// `createTenant` already seeds the community's defaults inside its own
 	// transaction. Asking again here gave every seeded community two identical

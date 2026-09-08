@@ -4,10 +4,10 @@ import { requireRead } from '../auth/visible-to.js';
 import { getDb, type Db } from '../db/index.js';
 import { definition } from '../db/schema/definitions.js';
 import { selfAudit } from '../db/schema/self-audit.js';
-import { community, communityStandard } from '../db/schema/tenancy.js';
+import { communityStandard } from '../db/schema/tenancy.js';
 import { getStandard } from '../standard/index.js';
-import type { Locale } from '../standard/types.js';
 import { answeredSections } from './completeness.js';
+import { communityLocale } from './community-locale.js';
 
 /**
  * What a community says about itself outwardly. UI spec §1.4, RCOS §10.1.1.
@@ -62,7 +62,7 @@ export function outwardClaim(reader: Reader, options: { db?: Db } = {}): Outward
 	if (!core) return null;
 
 	const view = getStandard(core.standardId, core.version);
-	const locale = localeOf(db, communityId);
+	const locale = communityLocale(db, communityId);
 	const answered = answeredSections(db, core.id);
 
 	const missing = view
@@ -113,13 +113,4 @@ function lastAudit(db: Db, communityId: string): number | null {
 		.orderBy(desc(selfAudit.runAt))
 		.get();
 	return row?.runAt.getTime() ?? null;
-}
-
-function localeOf(db: Db, communityId: string): Locale {
-	const row = db
-		.select({ locale: community.locale })
-		.from(community)
-		.where(eq(community.id, communityId))
-		.get();
-	return (row?.locale ?? 'en') as Locale;
 }

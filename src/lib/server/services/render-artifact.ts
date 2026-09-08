@@ -4,9 +4,9 @@ import { visibleTo } from '../auth/visible-to.js';
 import type { Db } from '../db/index.js';
 import { decision } from '../db/schema/decisions.js';
 import { definition, definitionVersion } from '../db/schema/definitions.js';
-import { community } from '../db/schema/tenancy.js';
 import type { Locale } from '../standard/types.js';
 import { standardViewFor } from './completeness.js';
+import { communityLocale } from './community-locale.js';
 
 /**
  * An artifact as a document. UI spec §4.8.
@@ -75,7 +75,7 @@ export function renderArtifact(
 	const artifact = standard.view.artifact(artifactKey);
 	if (!artifact) return null;
 
-	const locale = localeOf(db, communityId);
+	const locale = communityLocale(db, communityId);
 	const localised = <T>(i18n: Record<Locale, T>) => standard.view.localise(i18n, locale).value;
 
 	// One query for the community's definitions of this artifact's sections,
@@ -188,15 +188,6 @@ function decisionRefs(
 			.all()
 			.map((row) => [row.id, row.ref])
 	);
-}
-
-function localeOf(db: Db, communityId: string): Locale {
-	const row = db
-		.select({ locale: community.locale })
-		.from(community)
-		.where(eq(community.id, communityId))
-		.get();
-	return (row?.locale ?? 'en') as Locale;
 }
 
 /**

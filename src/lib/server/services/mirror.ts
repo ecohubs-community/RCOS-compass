@@ -7,6 +7,8 @@ import { getDb, type Db } from '../db/index.js';
 import { mirrorRemote, type MirrorRemote } from '../db/schema/self-audit.js';
 import { community } from '../db/schema/tenancy.js';
 import { standardViewFor } from './completeness.js';
+import { listDecisions } from './decisions.js';
+import { decisionRegister } from './export.js';
 import { artifactToMarkdown, renderArtifact } from './render-artifact.js';
 
 /**
@@ -25,10 +27,23 @@ export function mirrorFiles(
 	audience: Audience,
 	communityId: string
 ): Record<string, string> {
-	const standard = standardViewFor(db, communityId);
-	if (!standard) return {};
-
 	const files: Record<string, string> = {};
+
+	/**
+	 * The register, beside the artifacts.
+	 *
+	 * `specs/git-mirror` asks each commit to carry the rendered artifact *and*
+	 * the decision record, and the first version wrote only the former — so a
+	 * community cloning its own history got the rules with no account of how any
+	 * of them were agreed, which is the half a repository is for. The same
+	 * function as the export's, so the two cannot disagree.
+	 */
+	const home = db.select().from(community).where(eq(community.id, communityId)).get();
+	if (home) files['decisions.md'] = decisionRegister(listDecisions(audience, { db }), home.name);
+
+	const standard = standardViewFor(db, communityId);
+	if (!standard) return files;
+
 	for (const artifact of standard.view.artifacts) {
 		const rendered = renderArtifact(db, audience, artifact.key);
 		if (!rendered) continue;
@@ -103,6 +118,18 @@ export function setRemote(
 	// `file://` one would let a steward point the mirror at the server's own
 	// filesystem.
 	if (!/^https:\/\/[^\s]+$/.test(url)) error(400, 'A remote has to be an https:// URL.');
+	/**
+	 * No `user:token@host`, however convenient it looks.
+	 *
+	 * Git's own copy-paste form carries the credential in the URL, and the URL is
+	 * a plaintext column this screen reads back and every push error quotes — so
+	 * accepting one would store the token beside the sealed copy, in the clear,
+	 * and show it to anybody who can open the settings page. The push would fail
+	 * anyway, because the credential is prefixed to a URL that already has one.
+	 */
+	if (/^https:\/\/[^/@]*@/.test(url)) {
+		error(400, 'Leave the token out of the URL — it goes in the field below, encrypted.');
+	}
 	if (!input.credential.trim()) error(400, 'A remote needs a token to push with.');
 
 	const db = options.db ?? getDb();

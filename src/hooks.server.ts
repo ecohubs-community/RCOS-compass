@@ -8,7 +8,7 @@ import { baseLocale, withLocale } from '$lib/server/locale';
 import { rateLimitRequest } from '$lib/server/http/rate-limit-request';
 import { resolveActor } from '$lib/server/auth/session';
 import { requirePlatformAdmin } from '$lib/server/auth/admin';
-import { resolveTenant } from '$lib/server/http/resolve-tenant';
+import { publicLocale, resolveTenant } from '$lib/server/http/resolve-tenant';
 import { DIGEST_INTERVAL_MS, handlers } from '$lib/server/jobs/handlers';
 import { enqueueOnce, startWorker } from '$lib/server/jobs';
 import { systemClock } from '$lib/server/clock';
@@ -122,9 +122,16 @@ export const handle: Handle = async ({ event, resolve }) => {
 	 * before `resolveTenant`. Around, because message functions are called deep
 	 * inside components and a value passed down by hand is a value somebody
 	 * forgets to pass.
+	 *
+	 * `publicLocale` is the third source rather than an afterthought: the public
+	 * group has no `Ctx` and no membership, so without it every published page
+	 * answered in English however the community works.
 	 */
 	const response = await withLocale(
-		event.locals.ctx?.community.locale ?? event.locals.community?.locale ?? baseLocale,
+		event.locals.ctx?.community.locale ??
+			event.locals.community?.locale ??
+			publicLocale(event, db) ??
+			baseLocale,
 		event.url.origin,
 		() => resolve(event)
 	);

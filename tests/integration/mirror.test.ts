@@ -12,7 +12,7 @@ import { setDbForTests, type Db } from '../../src/lib/server/db/index.js';
 import { definition, definitionVersion } from '../../src/lib/server/db/schema/definitions.js';
 import { mirrorRemote } from '../../src/lib/server/db/schema/self-audit.js';
 import { communityStandard } from '../../src/lib/server/db/schema/tenancy.js';
-import { redact, runMirror } from '../../src/lib/server/jobs/mirror-job.js';
+import { pushFailure, redact, runMirror } from '../../src/lib/server/jobs/mirror-job.js';
 import { commitState, repoPath, writeBundle } from '../../src/lib/server/mirror/repo.js';
 import {
 	credentialFor,
@@ -149,6 +149,25 @@ describe('every community gets a repository, with no configuration', () => {
 		expect(git(clone, ['show', `HEAD:${anyArtifact}`])).toContain('Members may leave at any time');
 	});
 
+	it('carries the decision register, not only the rules', async () => {
+		adopt('Members may leave at any time.');
+
+		await runMirror(
+			db,
+			{ communityId: ana.community.id, actorName: 'Ana', subject: 'DEC-2026-001 — Exit' },
+			NOW
+		);
+
+		const clone = join(scratch, 'register');
+		git(scratch, ['clone', repoPath(ana.community.id), clone]);
+
+		// `specs/git-mirror`: the rendered artifact *and* the decision record. A
+		// repository of rules with no account of how any of them were agreed is
+		// the half that makes the history verifiable, missing.
+		expect(git(clone, ['ls-files'])).toContain('decisions.md');
+		expect(git(clone, ['show', 'HEAD:decisions.md'])).toContain('decision register');
+	});
+
 	it('names a service identity as the author, not a person', async () => {
 		adopt('Members may leave at any time.');
 		await runMirror(
@@ -277,6 +296,17 @@ describe('the credential', () => {
 		}
 	});
 
+	it('refuses a URL with the token already in it', () => {
+		// git's own copy-paste form. Accepting it would write the token into the
+		// plaintext `url` column beside the sealed copy — and show it back on the
+		// settings screen to anybody who can open it.
+		const refusal = catchRefusal(() =>
+			setRemote(ana, { url: `https://ana:${TOKEN}@example.org/vv.git`, credential: TOKEN }, { db })
+		);
+		expect(refusal?.status).toBe(400);
+		expect(db.select().from(mirrorRemote).all()).toEqual([]);
+	});
+
 	it('survives a round trip and refuses a tampered value', () => {
 		const sealed = seal(TOKEN);
 		expect(unseal(sealed)).toBe(TOKEN);
@@ -310,6 +340,21 @@ describe('a push failure never carries the token', () => {
 		const gitSaid = `fatal: could not read from 'https://${encoded}@example.org/vv.git'`;
 
 		expect(redact(gitSaid, 'tok/en+with=specials')).not.toContain(encoded);
+	});
+
+	it('tells a steward what to do about a rejected push', () => {
+		const gitSaid =
+			`To https://${TOKEN}@example.org/vv.git\n` +
+			` ! [rejected]        main -> main (non-fast-forward)\n` +
+			`error: failed to push some refs`;
+
+		const stored = pushFailure(gitSaid, TOKEN);
+
+		// Since the push is never forced, this is the ordinary failure — and git's
+		// own words describe the situation without naming the remedy.
+		expect(stored).toContain('empty repository');
+		expect(stored).not.toContain(TOKEN);
+		expect(stored).not.toContain('non-fast-forward');
 	});
 
 	it('strips any embedded credential, even one it was not given', () => {

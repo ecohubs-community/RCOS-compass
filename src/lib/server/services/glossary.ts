@@ -1,22 +1,13 @@
-import { eq, inArray } from 'drizzle-orm';
+import { inArray } from 'drizzle-orm';
 import { communityOf, type Reader } from '../auth/audience.js';
 import { requireRead } from '../auth/visible-to.js';
 import { getDb, type Db } from '../db/index.js';
 import { definitionVersion } from '../db/schema/definitions.js';
-import type { Locale } from '../standard/types.js';
 import { standardViewFor } from './completeness.js';
 import { definitionsBySection } from './definitions.js';
-import { community } from '../db/schema/tenancy.js';
+import { communityLocale } from './community-locale.js';
 
 /** The community's own language, without needing a member context to ask. */
-function localeOfCommunity(db: Db, communityId: string): Locale {
-	const row = db
-		.select({ locale: community.locale })
-		.from(community)
-		.where(eq(community.id, communityId))
-		.get();
-	return (row?.locale ?? 'en') as Locale;
-}
 
 /**
  * The standard's vocabulary, beside the community's own. UI spec §4.8.
@@ -61,7 +52,7 @@ export function glossary(reader: Reader, options: { db?: Db } = {}): GlossaryEnt
 	const standard = standardViewFor(db, communityOf(audience));
 	if (!standard) return [];
 
-	const locale = localeOfCommunity(db, communityOf(audience));
+	const locale = communityLocale(db, communityOf(audience));
 	// Filtered by the same helper as everything else: the community half of a
 	// term is that community's adopted text, and a reader who may not see the
 	// definition may not see it here either.

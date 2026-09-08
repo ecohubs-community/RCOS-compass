@@ -155,6 +155,21 @@ export function renewException(
 	requirePermission(ctx, 'exception.create');
 	requireWritableCommunity(ctx);
 
+	/**
+	 * The same two refusals as `restrict`, for the same two reasons.
+	 *
+	 * Renewing is where an exception spends most of its life, so the door that is
+	 * guarded on the way in has to be guarded here too — an empty justification
+	 * reached the CHECK constraint and came back as a 500, and an expiry already
+	 * in the past was accepted outright and simply hid something until the next
+	 * sweep noticed.
+	 */
+	const justification = input.justification.trim();
+	if (!justification) error(400, 'Say why this still has to be restricted.');
+	if (input.expiresAt.getTime() <= ctx.now()) {
+		error(400, 'A renewal has to end at some point in the future.');
+	}
+
 	const db = options.db ?? getDb();
 	const now = new Date(ctx.now());
 
@@ -176,7 +191,7 @@ export function renewException(
 				subjectType: subject.type,
 				subjectId: subject.id,
 				audience: input.audience,
-				justification: input.justification.trim(),
+				justification,
 				decisionId: input.decisionId ?? null,
 				expiresAt: input.expiresAt,
 				expiredAt: null,
@@ -185,6 +200,15 @@ export function renewException(
 				createdAt: now
 			})
 			.run();
+
+		// Extending a restriction is a governance act like imposing one. Recorded
+		// so the register answers "how long has this been hidden, and who kept it
+		// that way" without anybody reading the exception chain by hand.
+		writeChange(scoped, ctx.community.id, ctx.user.id, now, {
+			kind: 'visibility.exception_renewed',
+			subject,
+			summary: justification
+		});
 
 		return tx.select().from(transparencyException).where(eq(transparencyException.id, id)).get()!;
 	});

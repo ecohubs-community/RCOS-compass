@@ -1,7 +1,9 @@
 import { error, redirect, type RequestEvent } from '@sveltejs/kit';
+import { and, eq } from 'drizzle-orm';
 import { requirePermission, type Ctx } from '../auth/guard.js';
 import type { Clock } from '../clock.js';
 import type { Db } from '../db/index.js';
+import { community } from '../db/schema/tenancy.js';
 import { resolveCommunity, resolveSlugRedirect } from '../services/tenancy.js';
 
 /**
@@ -16,8 +18,33 @@ import { resolveCommunity, resolveSlugRedirect } from '../services/tenancy.js';
  * form action and any future endpoint, rather than three chances to get the
  * boundary wrong.
  */
+const TENANT_PATH = /^\/c\/([^/]+)(\/|$)/;
+const PUBLIC_PATH = /^\/p\/([^/]+)(\/|$)/;
+
+/**
+ * The language a request is answered in, when there is no member to ask.
+ *
+ * The public group has no `Ctx` and no membership, so `resolveTenant` never
+ * runs for it — and the locale fell back to English on every public page, in a
+ * phase whose whole point was that a community's public face speaks the
+ * community's language. The lookup is by slug alone: whether the page is served
+ * at all is the layout's decision, and answering an eventual 404 in German
+ * costs one indexed read.
+ */
+export function publicLocale(event: RequestEvent, db: Db): string | null {
+	const match = PUBLIC_PATH.exec(event.url.pathname);
+	if (!match) return null;
+
+	const row = db
+		.select({ locale: community.locale })
+		.from(community)
+		.where(and(eq(community.slug, decodeURIComponent(match[1]!)), eq(community.status, 'active')))
+		.get();
+	return row?.locale ?? null;
+}
+
 export function resolveTenant(event: RequestEvent, db: Db, clock: Clock): void {
-	const match = /^\/c\/([^/]+)(\/|$)/.exec(event.url.pathname);
+	const match = TENANT_PATH.exec(event.url.pathname);
 	if (!match) return;
 
 	const slug = decodeURIComponent(match[1]!);

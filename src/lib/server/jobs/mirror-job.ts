@@ -63,7 +63,7 @@ export async function runMirror(db: Db, payload: MirrorPayload, now: number): Pr
 		 * is stored or logged. This is the single most likely way for the secret
 		 * to end up somewhere it can be read.
 		 */
-		const message = redact(
+		const message = pushFailure(
 			String((problem as { message?: string }).message ?? problem),
 			credential
 		);
@@ -85,6 +85,26 @@ export async function runMirror(db: Db, payload: MirrorPayload, now: number): Pr
 		// eslint-disable-next-line preserve-caught-error
 		throw new Error(message);
 	}
+}
+
+/**
+ * What a steward reads on the settings screen after a push failed.
+ *
+ * Two jobs, in this order. A rejection gets a sentence somebody can act on:
+ * since the push is never forced, the ordinary failure is a remote that already
+ * has history, and git's own wording — "Updates were rejected because the tip
+ * of your current branch is behind" — describes a situation without naming a
+ * remedy. Everything else is git's message with the token taken out.
+ *
+ * The rejection branch replaces the text rather than appending to it, which is
+ * also why it is safe: nothing of git's output, and so nothing of the URL it
+ * quotes, survives into the row.
+ */
+export function pushFailure(raw: string, credential: string): string {
+	return /non-fast-forward|rejected|fetch first|behind its remote/i.test(raw)
+		? 'The remote already has commits Compass did not make, and Compass never force-pushes. ' +
+				'Point the mirror at an empty repository, or merge this history into that one by hand.'
+		: redact(raw, credential);
 }
 
 /**

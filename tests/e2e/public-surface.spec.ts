@@ -102,4 +102,35 @@ test.describe('what the world can read', () => {
 		await owner.close();
 		await anonymous.close();
 	});
+
+	test('answers in the community’s language, not the server’s', async ({ browser }) => {
+		test.slow();
+		const owner = await browser.newContext();
+		const page = await owner.newPage();
+		const fixture = await seed(page, { locale: 'de' });
+		await signIn(page, fixture.email, fixture.password);
+
+		await visit(page, `/c/${fixture.slug}/settings/publishing`);
+		await page.getByRole('checkbox', { name: /public pages/i }).check();
+		await page.getByRole('button', { name: 'Save' }).click();
+
+		const anonymous = await browser.newContext();
+		const visitor = await anonymous.newPage();
+		await visitor.goto(`/p/${fixture.slug}`);
+
+		/**
+		 * The public group has no member and no `Ctx`, so tenant resolution never
+		 * ran for it and the locale fell back to English on every published page —
+		 * in the phase whose point was that a community's public face speaks the
+		 * community's language. German exists in `messages/de.json`; this is what
+		 * says it is reachable.
+		 */
+		await expect(visitor.getByRole('heading', { name: /Noch nicht konform/i })).toBeVisible();
+		await expect(
+			visitor.getByRole('heading', { name: 'Veröffentlichte Governance' })
+		).toBeVisible();
+
+		await owner.close();
+		await anonymous.close();
+	});
 });

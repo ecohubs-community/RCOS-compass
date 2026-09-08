@@ -3,9 +3,8 @@ import { communityOf, type Audience } from '../auth/audience.js';
 import { visibleTo } from '../auth/visible-to.js';
 import type { Db } from '../db/index.js';
 import { definition, definitionVersion, communityArtifact } from '../db/schema/definitions.js';
-import { community } from '../db/schema/tenancy.js';
-import type { Locale } from '../standard/types.js';
 import { standardViewFor } from './completeness.js';
+import { communityLocale } from './community-locale.js';
 
 /**
  * What a community has actually published, as a list. RCOS Appendix C.6.
@@ -67,7 +66,7 @@ export function publishedArtifacts(db: Db, audience: Audience): PublicArtifact[]
 		publishedSections.map((row) => row.sectionKey).filter((key): key is string => key !== null)
 	);
 
-	const locale = localeOf(db, communityId);
+	const locale = communityLocale(db, communityId);
 
 	const fromStandard = standard.view.artifacts
 		.map((artifact) => {
@@ -107,13 +106,4 @@ export function publishedArtifacts(db: Db, audience: Audience): PublicArtifact[]
 		}));
 
 	return [...fromStandard, ...own];
-}
-
-function localeOf(db: Db, communityId: string): Locale {
-	const row = db
-		.select({ locale: community.locale })
-		.from(community)
-		.where(eq(community.id, communityId))
-		.get();
-	return (row?.locale ?? 'en') as Locale;
 }

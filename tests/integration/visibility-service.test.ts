@@ -301,4 +301,59 @@ describe('an exception ends', () => {
 		// Renewed, so it is not swept by the expiry that would have caught the old one.
 		expect(expireExceptions(db, NOW).expired).toBe(0);
 	});
+
+	it('is recorded, like imposing one is', () => {
+		const id = adopt();
+		restrict(ana, { type: 'definition', id }, restriction, { db });
+		renewException(
+			ana,
+			{ type: 'definition', id },
+			{ ...restriction, justification: 'Still true, and they asked again.' },
+			{ db }
+		);
+
+		// "How long has this been hidden, and who kept it that way" is a register
+		// question. Without an entry it is answerable only by reading the
+		// exception chain by hand.
+		expect(
+			db
+				.select()
+				.from(changeLog)
+				.all()
+				.map((row) => row.kind)
+		).toEqual(['visibility.restricted', 'visibility.exception_renewed']);
+	});
+
+	it('is refused the same way imposing one is', () => {
+		const id = adopt();
+		restrict(ana, { type: 'definition', id }, restriction, { db });
+
+		// An empty justification reached the CHECK constraint and came back as a
+		// 500; an expiry in the past was accepted outright.
+		expect(
+			catchRefusal(() =>
+				renewException(
+					ana,
+					{ type: 'definition', id },
+					{ ...restriction, justification: '  ' },
+					{
+						db
+					}
+				)
+			)?.status
+		).toBe(400);
+		expect(
+			catchRefusal(() =>
+				renewException(
+					ana,
+					{ type: 'definition', id },
+					{ ...restriction, expiresAt: new Date(NOW - 1) },
+					{ db }
+				)
+			)?.status
+		).toBe(400);
+
+		// Neither attempt disturbed the exception that is actually in force.
+		expect(listExceptions(ana, { db })).toHaveLength(1);
+	});
 });

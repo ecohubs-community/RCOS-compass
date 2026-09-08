@@ -9,20 +9,11 @@ import { document, passage } from '../db/schema/documents.js';
 import { getSearchIndex } from '../search/index.js';
 import { termsOf } from '../search/stop-words.js';
 import type { Searchable, SearchHit } from '../search/types.js';
-import type { Locale } from '../standard/types.js';
 import { standardViewFor, answeredSections } from './completeness.js';
-import { community } from '../db/schema/tenancy.js';
 import type { Audience } from '../auth/audience.js';
 
-function localeOfCommunity(db: Db, communityId: string): Locale {
-	const row = db
-		.select({ locale: community.locale })
-		.from(community)
-		.where(eq(community.id, communityId))
-		.get();
-	return (row?.locale ?? 'en') as Locale;
-}
 import { definitionsBySection } from './definitions.js';
+import { communityLocale } from './community-locale.js';
 
 /**
  * Reverse lookup: "can we spend €800 on the water pump?" → the rules that
@@ -121,7 +112,7 @@ function matchingClauses(
 	const standard = standardViewFor(db, communityId);
 	if (!standard || terms.length === 0) return [];
 
-	const locale = localeOfCommunity(db, communityId);
+	const locale = communityLocale(db, communityId);
 	const answered = answeredSections(db, standard.row.id);
 	// The clause list is the published standard and is the same for everybody.
 	// Which of them this community has *answered*, and with what, is not — so

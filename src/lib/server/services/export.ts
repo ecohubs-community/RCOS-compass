@@ -113,7 +113,7 @@ export function buildBundle(
 		community: { slug: home.slug, name: home.name },
 		standard: standard ? { id: standard.row.standardId, version: standard.row.version } : null,
 		exportedAt: new Date(now).toISOString(),
-		visibilityLevels: [...visibleLevelsOf(audience)],
+		visibilityLevels: [...visibleLevels(audience)],
 		files: [...names, 'manifest.json', 'README.md'],
 		counts: { artifacts: artifacts.length, decisions: decisions.length },
 		pdf: extras.pdf ? 'included' : 'unavailable on this instance'
@@ -128,10 +128,12 @@ export function buildBundle(
 	};
 }
 
-const visibleLevelsOf = (audience: Audience) =>
-	audience.kind === 'anonymous' ? ['world'] : visibleLevels(audience);
-
-function decisionRegister(rows: (typeof decision.$inferSelect)[], name: string): string {
+/**
+ * The register as Markdown. Shared with the mirror, which commits the same file:
+ * a community reading its repository and a community reading its export must
+ * not be given two different accounts of the same decisions.
+ */
+export function decisionRegister(rows: (typeof decision.$inferSelect)[], name: string): string {
 	const lines = [`# ${name} — decision register`, ''];
 	if (rows.length === 0) lines.push('*No decisions have been recorded.*', '');
 	for (const row of rows) {
