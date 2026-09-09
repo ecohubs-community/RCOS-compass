@@ -65,6 +65,18 @@ export default defineConfig({
 			BETTER_AUTH_SECRET: 'test-secret-that-is-long-enough-for-tests',
 			DATABASE_URL: 'file:./data/vitest.db',
 			AI_PROVIDER: 'null',
+			/**
+			 * Empty on purpose, and stated rather than assumed.
+			 *
+			 * The no-network guard replaces `fetch`, which nodemailer does not use —
+			 * it opens a socket. So a developer who set `SMTP_URL` to a local mail
+			 * catcher had every `signUpEmail` in the integration suite deliver a real
+			 * verification message to it: thirty-odd mails per run, each carrying a
+			 * link whose token lives in a throwaway test database and therefore
+			 * answers INVALID_TOKEN. Unset here, `getMailTransport()` hands back the
+			 * transport that refuses, which is what a test wants anyway.
+			 */
+			SMTP_URL: '',
 			LOG_LEVEL: 'silent',
 			TZ: 'UTC'
 		},
