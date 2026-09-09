@@ -6,7 +6,7 @@ import { getConfig } from '$lib/server/config';
 import { getDb } from '$lib/server/db';
 import { newId } from '$lib/server/db/id';
 import { user } from '$lib/server/db/schema/auth';
-import { community, communityStandard, membership } from '$lib/server/db/schema/tenancy';
+import { community, membership } from '$lib/server/db/schema/tenancy';
 import { createTenant } from '$lib/server/services/admin/communities';
 import { acceptInvitation, inviteMember } from '$lib/server/services/invitations';
 import { getStandard } from '$lib/server/standard';
@@ -80,18 +80,6 @@ export const POST: RequestHandler = async ({ request }) => {
 	// transaction. Asking again here gave every seeded community two identical
 	// "Community Agreements" shelves — a shape the product cannot produce, which
 	// is the one thing this route exists to avoid.
-
-	db.insert(communityStandard)
-		.values({
-			id: newId(),
-			communityId,
-			standardId: 'rcos-core',
-			version: '0.1',
-			status: 'active',
-			adoptedAt: new Date(systemClock.now()),
-			retiredAt: null
-		})
-		.run();
 
 	// A second account, a plain member, so a spec can check what a member may not
 	// do rather than only what a steward may.

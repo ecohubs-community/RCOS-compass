@@ -1,4 +1,5 @@
 import { paraglideVitePlugin } from '@inlang/paraglide-js';
+import Icons from 'unplugin-icons/vite';
 import { sveltekit } from '@sveltejs/kit/vite';
 import tailwindcss from '@tailwindcss/vite';
 import { loadEnv, type Plugin } from 'vite';
@@ -50,6 +51,15 @@ export default defineConfig({
 			outdir: './src/lib/paraglide',
 			strategy: ['custom-server', 'baseLocale']
 		}),
+		/**
+		 * Tabler icons, compiled to Svelte components at build time.
+		 *
+		 * Build time rather than the Iconify API: `connect-src 'self'` blocks the
+		 * icon endpoint, and a nav whose icons depend on a third party being up is
+		 * a nav that is sometimes blank. Only the icons actually imported are
+		 * bundled, so the set costs what it uses.
+		 */
+		Icons({ compiler: 'svelte' }),
 		tailwindcss(),
 		sveltekit()
 	],

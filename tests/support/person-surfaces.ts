@@ -6,8 +6,8 @@ import { newId } from '../../src/lib/server/db/id.js';
 import type { Db } from '../../src/lib/server/db/index.js';
 import { aiUsage } from '../../src/lib/server/db/schema/ai.js';
 import { decision, decisionAttendee } from '../../src/lib/server/db/schema/decisions.js';
-import { auditEvent, invitation } from '../../src/lib/server/db/schema/tenancy.js';
-import { listMembers } from '../../src/lib/server/services/members.js';
+import { auditEvent, invitation, membership } from '../../src/lib/server/db/schema/tenancy.js';
+import { listFormerMembers, listMembers } from '../../src/lib/server/services/members.js';
 import { usageByMember } from '../../src/lib/server/services/ai-settings.js';
 import { outwardAttribution } from '../../src/lib/server/services/attribution.js';
 import { feedbackReport } from '../../src/lib/server/db/schema/operations.js';
@@ -86,6 +86,24 @@ export const PERSON_SURFACES: PersonSurface[] = [
 		name: 'members.listMembers',
 		module: 'members.ts',
 		read: (ctx) => listMembers(ctx).map((row) => row.name)
+	},
+	{
+		name: 'members.listFormerMembers',
+		module: 'members.ts',
+		/**
+		 * The same list, one column over — and the surface the member screen made
+		 * necessary. Somebody who has left keeps their row, because the register
+		 * refers to memberships rather than to people, so a departed member who is
+		 * later erased is a person whose name sits in a second query that the
+		 * first one's conversion would not have touched.
+		 */
+		seed: (db, _ctx, subject) => {
+			db.update(membership)
+				.set({ endedAt: new Date(0) })
+				.where(eq(membership.id, subject.membershipId))
+				.run();
+		},
+		read: (ctx) => listFormerMembers(ctx).map((row) => row.name)
 	},
 	{
 		name: 'ai-settings.usageByMember',

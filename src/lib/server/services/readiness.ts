@@ -38,6 +38,15 @@ export const READINESS_DEPENDS = 'community:readiness';
  */
 export const CORE_STANDARD_ID = 'rcos-core';
 
+/**
+ * The version a community adopts on its first day — the one vendored under
+ * `standard/`, listed in `standard/upstream-manifest.json` and checked by
+ * `scripts/check-standard.mjs`. Moving to a later version is a migration a
+ * community consents to, not something that happens to it because the server
+ * was redeployed.
+ */
+export const CORE_STANDARD_VERSION = '0.1';
+
 export type LayerReadiness = {
 	layer: number;
 	name: string;

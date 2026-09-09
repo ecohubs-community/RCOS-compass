@@ -8,6 +8,7 @@ import {
 	membership
 } from '../../src/lib/server/db/schema/tenancy.js';
 import { communityArtifact } from '../../src/lib/server/db/schema/definitions.js';
+import { communityStandard } from '../../src/lib/server/db/schema/tenancy.js';
 import { listAudit, type AuditAction } from '../../src/lib/server/services/audit.js';
 import {
 	SLUG_REDIRECT_MS,
@@ -352,6 +353,36 @@ describe('the detail view', () => {
 
 	it('is null for a community that does not exist', () => {
 		expect(getTenant(db, 'no-such-id')).toBeNull();
+	});
+});
+
+describe('a community starts answering to the standard', () => {
+	it('adopts the vendored core version in the same transaction', () => {
+		const adopted = db
+			.select()
+			.from(communityStandard)
+			.where(eq(communityStandard.communityId, communityId))
+			.all();
+
+		// Without this row the Path, the glossary, the interview and readiness all
+		// render empty, and a tenant created through the console looks broken on
+		// its first morning.
+		expect(adopted).toHaveLength(1);
+		expect(adopted[0]!.standardId).toBe('rcos-core');
+		expect(adopted[0]!.version).toBe('0.1');
+		expect(adopted[0]!.status).toBe('active');
+	});
+
+	it('leaves none behind when creation fails', () => {
+		expect(() =>
+			createTenant(db, clock, actor, {
+				name: 'Duplicate',
+				slug: 'valle-verde',
+				ownerEmail: 'someone@example.org'
+			})
+		).toThrow(TenantError);
+
+		expect(db.select().from(communityStandard).all()).toHaveLength(1);
 	});
 });
 

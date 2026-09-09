@@ -4,6 +4,9 @@
 	import Markdown from '$lib/components/ui/Markdown.svelte';
 	import TextField from '$lib/components/ui/TextField.svelte';
 	import { links } from '$lib/links';
+	import IconCheck from '~icons/tabler/check';
+	import IconLink from '~icons/tabler/link';
+	import IconSparkles from '~icons/tabler/sparkles';
 
 	let { data, form } = $props();
 	const slug = $derived(data.community.slug);
@@ -45,7 +48,7 @@
 
 	{#if data.ai.offer}
 		<form method="POST" action="?/suggest" class="mt-6" use:enhance>
-			<Button type="submit" variant="secondary">Suggest mappings</Button>
+			<Button type="submit" variant="secondary" icon={IconSparkles}>Suggest mappings</Button>
 			<p class="text-fg-muted text-meta mt-2">
 				Compass reads the passages and points at requirements they might answer. Every suggestion is
 				yours to confirm or dismiss — nothing is recorded until you say so.
@@ -155,7 +158,7 @@
 									>
 										<input type="hidden" name="passageId" value={entry.id} />
 										<TextField id="clause-{entry.id}" name="clause" label="Clause" class="w-44" />
-										<Button type="submit" variant="primary">Confirm</Button>
+										<Button type="submit" variant="primary" icon={IconCheck}>Confirm</Button>
 										<button
 											type="button"
 											class="text-fg-secondary hover:text-fg cursor-pointer underline underline-offset-2"
@@ -167,8 +170,11 @@
 									{/if}
 								</section>
 							{:else}
-								<Button variant="secondary" class="mt-3" onclick={() => (mapping = entry.id)}
-									>Map to a clause</Button
+								<Button
+									variant="secondary"
+									class="mt-3"
+									onclick={() => (mapping = entry.id)}
+									icon={IconLink}>Map to a clause</Button
 								>
 							{/if}
 						{/if}

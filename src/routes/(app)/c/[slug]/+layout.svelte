@@ -4,6 +4,19 @@
 	import GlossaryPanel from '$lib/components/GlossaryPanel.svelte';
 	import * as m from '$lib/paraglide/messages';
 	import { links } from '$lib/links';
+	import IconBook from '~icons/tabler/book';
+	import IconClipboardCheck from '~icons/tabler/clipboard-check';
+	import IconFiles from '~icons/tabler/files';
+	import IconGavel from '~icons/tabler/gavel';
+	import IconLayoutDashboard from '~icons/tabler/layout-dashboard';
+	import IconLogout from '~icons/tabler/logout';
+	import IconMessageReport from '~icons/tabler/message-report';
+	import IconMessages from '~icons/tabler/messages';
+	import IconRoute from '~icons/tabler/route';
+	import IconSearch from '~icons/tabler/search';
+	import IconSettings from '~icons/tabler/settings';
+	import IconUsers from '~icons/tabler/users';
+	import IconVocabulary from '~icons/tabler/vocabulary';
 
 	let { data, children } = $props();
 
@@ -17,53 +30,82 @@
 	 */
 	const slug = $derived(data.community.slug);
 
-	type NavItem = { href: string; label: string; exact?: boolean; badge?: number };
-	type NavGroup = { label: string | null; items: NavItem[] };
+	type NavItem = {
+		href: string;
+		label: string;
+		/** A tabler glyph, compiled in at build time — see vite.config.ts. */
+		icon: typeof IconRoute;
+		exact?: boolean;
+		badge?: number;
+	};
+	/**
+	 * `id` rather than keying on the label: two groups have no heading — the
+	 * dashboard at the top and the pair at the bottom — and keying both on the
+	 * same fallback string gave Svelte a duplicate key, which stops hydration
+	 * dead and takes every form on the page with it.
+	 */
+	type NavGroup = { id: string; label: string | null; items: NavItem[] };
 
 	const groups = $derived<NavGroup[]>([
 		{
+			id: 'top',
 			label: null,
-			items: [{ href: links.dashboard(slug), label: m.nav_dashboard(), exact: true }]
-		},
-		{
-			label: m.nav_group_working_on(),
 			items: [
-				{ href: links.path(slug), label: m.nav_path() },
 				{
-					href: links.discussions(slug),
-					label: m.nav_discussions(),
-					badge: data.unread || undefined
-				},
-				{ href: links.documents(slug), label: m.nav_documents() }
+					href: links.dashboard(slug),
+					label: m.nav_dashboard(),
+					icon: IconLayoutDashboard,
+					exact: true
+				}
 			]
 		},
 		{
+			id: 'working-on',
+			label: m.nav_group_working_on(),
+			items: [
+				{ href: links.path(slug), label: m.nav_path(), icon: IconRoute },
+				{
+					href: links.discussions(slug),
+					label: m.nav_discussions(),
+					icon: IconMessages,
+					badge: data.unread || undefined
+				},
+				{ href: links.documents(slug), label: m.nav_documents(), icon: IconFiles }
+			]
+		},
+		{
+			id: 'agreed',
 			label: m.nav_group_agreed(),
 			items: [
-				{ href: links.decisions(slug), label: m.nav_decisions() },
-				{ href: links.audit(slug), label: m.nav_audit() }
+				{ href: links.decisions(slug), label: m.nav_decisions(), icon: IconGavel },
+				{ href: links.audit(slug), label: m.nav_audit(), icon: IconClipboardCheck }
 			]
 		},
 		{
 			/**
-			 * One entry, because there is one page. "Definitions" and "Standard"
-			 * both pointed here, so both lit up as the current page at once and a
-			 * screen reader announced two — and the two labels promised two
-			 * destinations that were the same screen.
+			 * Three entries, not eleven.
+			 *
+			 * The eight settings panels used to sit here, which made a group called
+			 * "Reference" the longest list on the screen and the least like one —
+			 * they live under Settings now, in a list beside the panel they change.
+			 * "Definitions" and "Standard" remain one entry for the older reason:
+			 * both pointed at this page, so both lit up at once and a screen reader
+			 * announced two destinations that were the same screen.
 			 */
+			id: 'reference',
 			label: m.nav_group_reference(),
 			items: [
-				{ href: links.standard(slug), label: m.nav_standard() },
-				{ href: links.glossary(slug), label: m.nav_glossary() },
-				{ href: links.search(slug), label: m.nav_search() },
-				{ href: links.pathSettings(slug), label: m.nav_path_settings() },
-				{ href: links.transparency(slug), label: m.nav_transparency() },
-				{ href: links.publishing(slug), label: m.nav_publishing() },
-				{ href: links.exportSettings(slug), label: m.nav_export() },
-				{ href: links.mirror(slug), label: m.nav_mirror() },
-				{ href: links.language(slug), label: m.nav_language() },
-				{ href: links.aiSettings(slug), label: m.nav_ai_settings() },
-				{ href: links.feedback(slug), label: m.nav_feedback() }
+				{ href: links.standard(slug), label: m.nav_standard(), icon: IconBook },
+				{ href: links.glossary(slug), label: m.nav_glossary(), icon: IconVocabulary },
+				{ href: links.members(slug), label: m.nav_members(), icon: IconUsers }
+			]
+		},
+		{
+			id: 'community',
+			label: null,
+			items: [
+				{ href: links.settings(slug), label: m.nav_settings(), icon: IconSettings },
+				{ href: links.feedback(slug), label: m.nav_feedback(), icon: IconMessageReport }
 			]
 		}
 	]);
@@ -108,13 +150,19 @@
 			a lookup you have to navigate to is one nobody uses mid-argument.
 		-->
 		<form method="GET" action={links.search(slug)} class="border-border border-b px-3 py-2.5">
-			<input
-				type="search"
-				name="q"
-				placeholder="Search this community"
-				aria-label="Search this community's governance"
-				class="border-border bg-raised text-fg placeholder:text-fg-muted h-8 w-full min-w-0 rounded-(--radius-control) border px-2.5 text-[13px]"
-			/>
+			<div class="relative">
+				<IconSearch
+					class="text-fg-muted pointer-events-none absolute top-1/2 left-2.5 h-4 w-4 -translate-y-1/2"
+					aria-hidden="true"
+				/>
+				<input
+					type="search"
+					name="q"
+					placeholder="Search this community"
+					aria-label="Search this community's governance"
+					class="border-border bg-raised text-fg placeholder:text-fg-muted h-8 w-full min-w-0 rounded-(--radius-control) border py-1 pr-2.5 pl-8 text-[13px]"
+				/>
+			</div>
 		</form>
 
 		<!--
@@ -125,7 +173,7 @@
 		-->
 		<nav class="flex-1 overflow-x-auto p-2" aria-label="Community">
 			<ul class="flex gap-1 lg:flex-col">
-				{#each groups as group (group.label ?? 'top')}
+				{#each groups as group (group.id)}
 					{#if group.label}
 						<li
 							class="text-fg-muted mt-3 hidden px-2.5 text-[10.5px] tracking-wider uppercase lg:block"
@@ -134,12 +182,14 @@
 						</li>
 					{/if}
 					{#each group.items as item (item.href)}
+						{@const ItemIcon = item.icon}
 						<li>
 							<a
 								href={item.href}
 								aria-current={isCurrent(item.href, item.exact) ? 'page' : undefined}
 								class="aria-[current=page]:bg-raised aria-[current=page]:text-fg text-fg-secondary hover:text-fg flex items-center gap-2 rounded-(--radius-control) px-2.5 py-1.5 whitespace-nowrap"
 							>
+								<ItemIcon class="h-4 w-4 flex-none" aria-hidden="true" />
 								{item.label}
 								{#if item.badge}
 									<span
@@ -182,9 +232,11 @@
 			<form method="POST" action="/sign-out" class="ml-auto">
 				<button
 					type="submit"
-					class="text-fg-muted hover:text-fg text-meta cursor-pointer underline underline-offset-2"
-					>{m.nav_sign_out()}</button
+					class="text-fg-muted hover:text-fg text-meta flex cursor-pointer items-center gap-1.5"
 				>
+					<IconLogout class="h-3.5 w-3.5" aria-hidden="true" />
+					{m.nav_sign_out()}
+				</button>
 			</form>
 		</div>
 	</aside>
@@ -199,7 +251,15 @@
 			</p>
 		{/if}
 		{@render children()}
-		<Footer standard={data.standardLicence} {slug} />
+		<!--
+			`mt-auto` rather than a wrapper around the children: on a short page the
+			footer was sitting halfway up the screen, under two lines of content,
+			which reads as the end of the page arriving early. An auto margin in a
+			flex column takes the slack without changing any page's own box.
+		-->
+		<div class="mt-auto">
+			<Footer standard={data.standardLicence} {slug} />
+		</div>
 	</div>
 </div>
 

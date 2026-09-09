@@ -137,11 +137,12 @@ Reading a community's members MUST show an erased person as their former-member
 label rather than omitting them, so that the count a community sees agrees with
 the tallies in its own register.
 
-Showing somebody who has **left** is deliberately not stated here: ending a
-membership already excludes it from the list, and whether a departed member
-should be visible is a question for the member-list screen, which does not exist
-yet — `listMembers` has never had one. A requirement written for a screen nobody
-has built is the kind of thing a spec should not claim.
+Somebody who has **left** MUST be readable too, as a separate list rather than
+mixed into the current members: ending a membership ends access and keeps the
+row, so a screen that showed only current members would print a count that
+disagrees with the tallies of decisions those people consented to. The question
+was left open while `listMembers` had no screen; the member list at
+`/c/[slug]/members` is that screen, and this is its answer.
 
 #### Scenario: A member joins
 - **WHEN** a membership is created
@@ -154,6 +155,10 @@ has built is the kind of thing a spec should not claim.
 #### Scenario: The members are read afterwards
 - **WHEN** a steward reads the community's members
 - **THEN** the erased member is among them, as a former member rather than as a gap
+
+#### Scenario: A member leaves
+- **WHEN** a steward ends somebody's membership
+- **THEN** they leave the current members and appear among those who have left, with their number and the date they left
 
 #### Scenario: A number is not reused
 - **WHEN** somebody joins after an erasure

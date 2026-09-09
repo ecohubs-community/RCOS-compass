@@ -5,6 +5,7 @@
 	import Markdown from '$lib/components/ui/Markdown.svelte';
 	import StatusChip from '$lib/components/ui/StatusChip.svelte';
 	import { links } from '$lib/links';
+	import IconSparkles from '~icons/tabler/sparkles';
 
 	let { data, form } = $props();
 	const slug = $derived(data.community.slug);
@@ -123,7 +124,9 @@
 				<LinterPanel findings={form?.linter ?? data.version.linter} class="mt-6" />
 				{#if data.assist && !form?.linter}
 					<form method="POST" action="?/assist" class="mt-3" use:enhance>
-						<Button type="submit" variant="secondary">Check it more closely</Button>
+						<Button type="submit" variant="secondary" icon={IconSparkles}
+							>Check it more closely</Button
+						>
 						<p class="text-fg-muted text-meta mt-2">
 							Two more questions, answered with AI assistance: whether an auditor could verify this,
 							and whether it reads as the type it is labelled.

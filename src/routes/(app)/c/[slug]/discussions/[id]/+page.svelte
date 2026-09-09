@@ -5,6 +5,14 @@
 	import Markdown from '$lib/components/ui/Markdown.svelte';
 	import TextField from '$lib/components/ui/TextField.svelte';
 	import { links } from '$lib/links';
+	import IconArrowBackUp from '~icons/tabler/arrow-back-up';
+	import IconCheckbox from '~icons/tabler/checkbox';
+	import IconFilePlus from '~icons/tabler/file-plus';
+	import IconGavel from '~icons/tabler/gavel';
+	import IconHandStop from '~icons/tabler/hand-stop';
+	import IconNotes from '~icons/tabler/notes';
+	import IconSend from '~icons/tabler/send';
+	import IconSnowflake from '~icons/tabler/snowflake';
 
 	let { data, form } = $props();
 	const slug = $derived(data.community.slug);
@@ -85,7 +93,7 @@
 					rows="3"
 					required
 					class="border-border bg-raised text-fg rounded-(--radius-control) border p-2"></textarea>
-				<Button type="submit" class="self-start">Post</Button>
+				<Button type="submit" icon={IconSend} class="self-start">Post</Button>
 				{#if errorFor('comment')}<p role="alert" class="text-danger">{errorFor('comment')}</p>{/if}
 			</form>
 		{/if}
@@ -102,7 +110,9 @@
 					rows="4"
 					required
 					class="border-border bg-raised text-fg rounded-(--radius-control) border p-2"></textarea>
-				<Button type="submit" variant="secondary" class="self-start">Post proposal</Button>
+				<Button type="submit" variant="secondary" icon={IconFilePlus} class="self-start"
+					>Post proposal</Button
+				>
 				{#if errorFor('propose')}<p role="alert" class="text-danger">{errorFor('propose')}</p>{/if}
 			</form>
 
@@ -129,7 +139,7 @@
 						required
 						class="border-border bg-raised text-fg rounded-(--radius-control) border p-2"
 					></textarea>
-					<Button type="submit" class="self-start">Record the meeting</Button>
+					<Button type="submit" icon={IconNotes} class="self-start">Record the meeting</Button>
 					{#if errorFor('offline')}<p role="alert" class="text-danger">
 							{errorFor('offline')}
 						</p>{/if}
@@ -190,7 +200,7 @@
 						class="min-w-56 flex-1"
 						required
 					/>
-					<Button type="submit" variant="danger">Object</Button>
+					<Button type="submit" variant="danger" icon={IconHandStop}>Object</Button>
 				</form>
 				{#if errorFor('object')}<p role="alert" class="text-danger mt-2">
 						{errorFor('object')}
@@ -230,7 +240,7 @@
 								label="Reason, if you object"
 								class="min-w-48 flex-1"
 							/>
-							<Button type="submit">Respond</Button>
+							<Button type="submit" icon={IconArrowBackUp}>Respond</Button>
 						</form>
 					{/if}
 				</section>
@@ -249,14 +259,16 @@
 						value="7"
 						class="w-56"
 					/>
-					<Button type="submit">Open a round</Button>
+					<Button type="submit" icon={IconCheckbox}>Open a round</Button>
 				</form>
 			{/if}
 			{#if errorFor('round')}<p role="alert" class="text-danger mt-2">{errorFor('round')}</p>{/if}
 
 			{#if data.can.freeze && data.thread.status !== 'frozen'}
 				<div class="mt-6">
-					<Button variant="primary" onclick={() => (freezeOpen = true)}>Freeze</Button>
+					<Button variant="primary" icon={IconSnowflake} onclick={() => (freezeOpen = true)}
+						>Freeze</Button
+					>
 					<p class="text-fg-muted text-meta mt-2">
 						Recording is a human act with a name on it. A round informs it; it never performs it.
 					</p>
@@ -330,7 +342,7 @@
 					class="border-border bg-raised text-fg rounded-(--radius-control) border p-2"></textarea>
 
 				<div class="flex items-center gap-3">
-					<Button type="submit" variant="primary">Record decision</Button>
+					<Button type="submit" variant="primary" icon={IconGavel}>Record decision</Button>
 					<button
 						type="button"
 						class="text-fg-secondary hover:text-fg cursor-pointer underline underline-offset-2"

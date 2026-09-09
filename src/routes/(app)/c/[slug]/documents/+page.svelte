@@ -2,6 +2,7 @@
 	import { enhance } from '$app/forms';
 	import Button from '$lib/components/ui/Button.svelte';
 	import { links } from '$lib/links';
+	import IconUpload from '~icons/tabler/upload';
 
 	let { data, form } = $props();
 	const slug = $derived(data.community.slug);
@@ -56,7 +57,7 @@
 				required
 				class="border-border bg-raised text-fg rounded-(--radius-control) border p-2"
 			/>
-			<Button type="submit" variant="primary" class="self-start">Upload</Button>
+			<Button type="submit" variant="primary" icon={IconUpload} class="self-start">Upload</Button>
 			{#if form?.error}<p role="alert" class="text-danger">{form.error}</p>{/if}
 		</form>
 	{/if}

@@ -3,6 +3,7 @@
 	import Button from '$lib/components/ui/Button.svelte';
 	import TextField from '$lib/components/ui/TextField.svelte';
 	import { links } from '$lib/links';
+	import IconPlus from '~icons/tabler/plus';
 
 	let { data, form } = $props();
 	const slug = $derived(data.community.slug);
@@ -41,7 +42,7 @@
 				value={data.clauseKey}
 				class="w-44"
 			/>
-			<Button type="submit" variant="primary">Start</Button>
+			<Button type="submit" variant="primary" icon={IconPlus}>Start</Button>
 		</form>
 		{#if form?.error}
 			<p role="alert" class="text-danger mt-2">{form.error}</p>

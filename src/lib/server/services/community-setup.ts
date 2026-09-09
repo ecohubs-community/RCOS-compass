@@ -1,7 +1,9 @@
 import type { Db } from '../db/index.js';
 import { newId } from '../db/id.js';
 import { communityArtifact } from '../db/schema/definitions.js';
+import { communityStandard } from '../db/schema/tenancy.js';
 import { reached } from './funnel.js';
+import { CORE_STANDARD_ID, CORE_STANDARD_VERSION } from './readiness.js';
 
 /**
  * What a community comes with on its first day.
@@ -19,6 +21,32 @@ export function seedCommunityDefaults(
 	tx: Db,
 	{ communityId, now }: { communityId: string; now: number }
 ): void {
+	/**
+	 * The standard the community is answering to.
+	 *
+	 * Without this row a community is inert: `activeStandardView` returns null,
+	 * and the Path, the glossary, the interview, the standard screen and
+	 * readiness all render empty — a product that looks broken on the first
+	 * morning of every tenant created through the console. It was missing because
+	 * the one place a community got made in anger was the test seed, which
+	 * inserted the row itself immediately afterwards and so hid the hole from
+	 * every suite.
+	 *
+	 * Adopted rather than offered: there is one core standard and one vendored
+	 * version, and a community that has not chosen one cannot do anything at all.
+	 */
+	tx.insert(communityStandard)
+		.values({
+			id: newId(),
+			communityId,
+			standardId: CORE_STANDARD_ID,
+			version: CORE_STANDARD_VERSION,
+			status: 'active',
+			adoptedAt: new Date(now),
+			retiredAt: null
+		})
+		.run();
+
 	// The shelf a community's own rules go on. Created with the community rather
 	// than on demand: a community that has to build a container before writing
 	// its first house rule will write the house rule somewhere else.

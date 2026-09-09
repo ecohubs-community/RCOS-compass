@@ -23,6 +23,10 @@ export const links = {
 	document: (slug: string, id: string) => resolve('/(app)/c/[slug]/documents/[id]', { slug, id }),
 	documentFile: (slug: string, id: string) =>
 		resolve('/(app)/c/[slug]/documents/[id]/file', { slug, id }),
+	/** Who is here, who holds which role, and who has left. */
+	members: (slug: string) => resolve('/(app)/c/[slug]/members', { slug }),
+	/** The settings section itself; its layout carries the list of panels. */
+	settings: (slug: string) => resolve('/(app)/c/[slug]/settings', { slug }),
 	aiSettings: (slug: string) => resolve('/(app)/c/[slug]/settings/ai', { slug }),
 	pathSettings: (slug: string) => resolve('/(app)/c/[slug]/settings/path', { slug }),
 	transparency: (slug: string) => resolve('/(app)/c/[slug]/settings/transparency', { slug }),

@@ -16,7 +16,8 @@
 </script>
 
 <script lang="ts">
-	import type { HTMLButtonAttributes } from 'svelte/elements';
+	import type { Component } from 'svelte';
+	import type { HTMLButtonAttributes, SvelteHTMLElements } from 'svelte/elements';
 	import { cn } from './cn.js';
 
 	type Props = HTMLButtonAttributes & {
@@ -24,6 +25,13 @@
 		size?: ButtonSize;
 		/** Shows a busy state and blocks repeat submits. */
 		pending?: boolean;
+		/**
+		 * A tabler glyph before the label — decorative, never the meaning.
+		 *
+		 * It occupies the same slot as the busy spinner, so a button does not
+		 * change width the moment it is pressed.
+		 */
+		icon?: Component<SvelteHTMLElements['svg']>;
 		class?: string;
 		children: import('svelte').Snippet;
 	};
@@ -32,6 +40,7 @@
 		variant = 'secondary',
 		size = 'md',
 		pending = false,
+		icon: Icon = undefined,
 		disabled = false,
 		class: className = '',
 		children,
@@ -57,6 +66,8 @@
 			class="border-fg-muted border-t-fg h-3 w-3 animate-spin rounded-full border-[1.5px]"
 			aria-hidden="true"
 		></span>
+	{:else if Icon}
+		<Icon class="h-4 w-4 flex-none" aria-hidden="true" />
 	{/if}
 	{@render children()}
 </button>

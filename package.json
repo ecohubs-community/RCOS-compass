@@ -38,6 +38,7 @@
 	"devDependencies": {
 		"@axe-core/playwright": "4.13.0",
 		"@eslint/js": "10.0.1",
+		"@iconify-json/tabler": "^1.2.38",
 		"@inlang/paraglide-js": "^2.25.0",
 		"@playwright/test": "1.62.1",
 		"@sveltejs/adapter-node": "5.5.7",
@@ -62,6 +63,7 @@
 		"tsx": "^4.23.13",
 		"typescript": "6.0.3",
 		"typescript-eslint": "8.69.0",
+		"unplugin-icons": "^23.0.1",
 		"vite": "8.2.2",
 		"vitest": "4.1.11"
 	},

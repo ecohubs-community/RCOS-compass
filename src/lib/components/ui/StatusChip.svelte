@@ -44,6 +44,38 @@
 
 <script lang="ts">
 	import { cn } from './cn.js';
+	import IconAlertTriangle from '~icons/tabler/alert-triangle';
+	import IconCheckbox from '~icons/tabler/checkbox';
+	import IconCircle from '~icons/tabler/circle';
+	import IconCircleCheck from '~icons/tabler/circle-check';
+	import IconCircleDashed from '~icons/tabler/circle-dashed';
+	import IconHome from '~icons/tabler/home';
+	import IconMessageCircle from '~icons/tabler/message-circle';
+	import IconPencil from '~icons/tabler/pencil';
+	import IconSparkles from '~icons/tabler/sparkles';
+
+	/**
+	 * A glyph per status, so the chip carries a third signal.
+	 *
+	 * The label was already doing the work colour must never do alone
+	 * (guidelines §6); the shape is what makes a column of chips scannable
+	 * without reading each one. It replaces the dot rather than joining it — two
+	 * marks and a word is a badge, not a chip.
+	 */
+	const STATUS_ICONS: Record<Status, typeof IconCircle> = {
+		not_started: IconCircle,
+		drafting: IconPencil,
+		in_discussion: IconMessageCircle,
+		in_vote: IconCheckbox,
+		adopted: IconCircleCheck,
+		needs_review: IconAlertTriangle
+	};
+
+	const MODIFIER_ICONS: Record<Modifier, typeof IconCircle> = {
+		provisional: IconCircleDashed,
+		ai_drafted: IconSparkles,
+		local: IconHome
+	};
 
 	type Props = {
 		status?: Status;
@@ -59,6 +91,7 @@
 	and the AI modifier carries a mark as well as a colour.
 -->
 {#if status}
+	{@const StatusIcon = STATUS_ICONS[status]}
 	<span
 		class={cn(
 			'text-meta inline-flex items-center gap-1.5 rounded-full border px-2 py-0.5 leading-none',
@@ -66,12 +99,13 @@
 			className
 		)}
 	>
-		<span class="h-1.5 w-1.5 rounded-full bg-current" aria-hidden="true"></span>
+		<StatusIcon class="h-3 w-3 flex-none" aria-hidden="true" />
 		{STATUS_LABELS[status]}
 	</span>
 {/if}
 
 {#if modifier}
+	{@const ModifierIcon = MODIFIER_ICONS[modifier]}
 	<span
 		class={cn(
 			'text-meta inline-flex items-center gap-1 rounded-full border px-2 py-0.5 leading-none',
@@ -79,7 +113,7 @@
 			className
 		)}
 	>
-		{#if modifier === 'ai_drafted'}<span aria-hidden="true">✦</span>{/if}
+		<ModifierIcon class="h-3 w-3 flex-none" aria-hidden="true" />
 		{MODIFIER_LABELS[modifier]}
 	</span>
 {/if}

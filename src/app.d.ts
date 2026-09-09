@@ -1,3 +1,5 @@
+/// <reference types="unplugin-icons/types/svelte" />
+
 import type { Logger } from 'pino';
 import type { User } from '$lib/server/db/schema/auth';
 import type { Community, Membership } from '$lib/server/db/schema/tenancy';
