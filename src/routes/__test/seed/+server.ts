@@ -110,6 +110,18 @@ export const POST: RequestHandler = async ({ request }) => {
 	const invited = inviteMember(ctx, { email: memberEmail, role: 'member' }, { db });
 	acceptInvitation(db, systemClock, { token: invited.token, userId: member.id });
 
+	/**
+	 * A third address, invited and left that way.
+	 *
+	 * The acceptance page is the one screen a spec cannot reach by signing in as
+	 * somebody: it needs a live token, and the raw token exists in the email and
+	 * nowhere else. Handing one back here is the same bargain the rest of this
+	 * route makes — the invitation is made through `inviteMember`, so what the
+	 * spec drives is a state the product produces rather than one a fixture drew.
+	 */
+	const pendingEmail = `bruno-${slug}@valle-verde.test`;
+	const pending = inviteMember(ctx, { email: pendingEmail, role: 'member' }, { db });
+
 	let valleVerde: ValleVerde | null = null;
 	if (body.shape === 'valle-verde') {
 		valleVerde = await seedValleVerde(db, systemClock, { ctx, slug, password });
@@ -126,6 +138,7 @@ export const POST: RequestHandler = async ({ request }) => {
 		password,
 		communityId,
 		member: { email: memberEmail, password },
+		invitation: { email: pendingEmail, token: pending.token },
 		clauseKey: first.key,
 		clauseRef: first.ref,
 		valleVerde

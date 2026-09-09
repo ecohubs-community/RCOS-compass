@@ -9,7 +9,7 @@ import { rateLimitRequest } from '$lib/server/http/rate-limit-request';
 import { recordError } from '$lib/server/services/errors';
 import { resolveActor } from '$lib/server/auth/session';
 import { requirePlatformAdmin } from '$lib/server/auth/admin';
-import { publicLocale, resolveTenant } from '$lib/server/http/resolve-tenant';
+import { invitationLocale, publicLocale, resolveTenant } from '$lib/server/http/resolve-tenant';
 import { DIGEST_INTERVAL_MS, handlers } from '$lib/server/jobs/handlers';
 import { enqueueOnce, startWorker } from '$lib/server/jobs';
 import { systemClock } from '$lib/server/clock';
@@ -127,12 +127,16 @@ export const handle: Handle = async ({ event, resolve }) => {
 	 *
 	 * `publicLocale` is the third source rather than an afterthought: the public
 	 * group has no `Ctx` and no membership, so without it every published page
-	 * answered in English however the community works.
+	 * answered in English however the community works. `invitationLocale` is the
+	 * fourth for the same reason and one screen earlier — the person reading an
+	 * invitation is not a member yet, and that is no reason to greet them in a
+	 * language their community does not use.
 	 */
 	const response = await withLocale(
 		event.locals.ctx?.community.locale ??
 			event.locals.community?.locale ??
 			publicLocale(event, db) ??
+			invitationLocale(event, db) ??
 			baseLocale,
 		event.url.origin,
 		() => resolve(event)

@@ -12,6 +12,8 @@ export type Fixture = {
 	password: string;
 	communityId: string;
 	member: { email: string; password: string };
+	/** Invited and not accepted, so a spec can drive the acceptance page. */
+	invitation: { email: string; token: string };
 	clauseKey: string;
 	clauseRef: string;
 };

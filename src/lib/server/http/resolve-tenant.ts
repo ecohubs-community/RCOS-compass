@@ -20,6 +20,7 @@ import { resolveCommunity, resolveSlugRedirect } from '../services/tenancy.js';
  */
 const TENANT_PATH = /^\/c\/([^/]+)(\/|$)/;
 const PUBLIC_PATH = /^\/p\/([^/]+)(\/|$)/;
+const INVITATION_PATH = /^\/invitations\//;
 
 /**
  * The language a request is answered in, when there is no member to ask.
@@ -39,6 +40,30 @@ export function publicLocale(event: RequestEvent, db: Db): string | null {
 		.select({ locale: community.locale })
 		.from(community)
 		.where(and(eq(community.slug, decodeURIComponent(match[1]!)), eq(community.status, 'active')))
+		.get();
+	return row?.locale ?? null;
+}
+
+/**
+ * The language an invitation is read in.
+ *
+ * An invited person has no membership and no tenant, so neither of the first two
+ * sources exists — and the very first screen of the product is the worst place
+ * to fall back to English at. The slug comes from the `?c=` that
+ * `mail/messages.ts` puts on every invitation link, which is a hint and not a
+ * credential: it chooses a language and nothing else. What the page is allowed
+ * to say is still decided by the token alone.
+ */
+export function invitationLocale(event: RequestEvent, db: Db): string | null {
+	if (!INVITATION_PATH.test(event.url.pathname)) return null;
+
+	const slug = event.url.searchParams.get('c');
+	if (!slug) return null;
+
+	const row = db
+		.select({ locale: community.locale })
+		.from(community)
+		.where(and(eq(community.slug, slug), eq(community.status, 'active')))
 		.get();
 	return row?.locale ?? null;
 }

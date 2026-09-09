@@ -10,6 +10,7 @@ import {
 	INVITATION_TTL_MS,
 	acceptInvitation,
 	hashToken,
+	inspectInvitation,
 	inviteMember,
 	listInvitations,
 	revokeInvitation
@@ -100,6 +101,68 @@ describe('creating an invitation', () => {
 			membership: { ...ctx.membership, role: 'member', isOwner: false }
 		};
 		expect(() => inviteMember(plain, { email: 'x@example.org' }, { db })).toThrow();
+	});
+});
+
+describe('reading an invitation without consuming it', () => {
+	const look = (token: string) => inspectInvitation(db, clock, token);
+
+	it('names the community and the address it was sent to', () => {
+		const { token } = invite();
+
+		const view = look(token);
+
+		expect(view.kind).toBe('open');
+		if (view.kind !== 'open') return;
+		expect(view.communitySlug).toBe('valle-verde');
+		expect(view.email).toBe('marco@example.org');
+		expect(view.role).toBe('member');
+		expect(view.grantsOwner).toBe(false);
+	});
+
+	it('leaves the invitation usable — reading is not accepting', () => {
+		const { token } = invite();
+		look(token);
+		look(token);
+
+		const marco = makeUser(db, { email: 'marco@example.org' });
+		// A mail client that prefetches the link, or a person who opens it twice,
+		// must not spend the one use it has.
+		expect(acceptInvitation(db, clock, { token, userId: marco.id }).kind).toBe('accepted');
+	});
+
+	it('says expired rather than unknown, so the screen can explain', () => {
+		const { token } = invite();
+		clock.advance(INVITATION_TTL_MS + 1);
+
+		const view = look(token);
+
+		expect(view.kind).toBe('expired');
+		if (view.kind !== 'expired') return;
+		// Named: whoever holds it needs to know who to ask for another.
+		expect(view.communityName).toBeTruthy();
+	});
+
+	it('says already used once it has been', () => {
+		const { token } = invite();
+		const marco = makeUser(db, { email: 'marco@example.org' });
+		acceptInvitation(db, clock, { token, userId: marco.id });
+
+		expect(look(token).kind).toBe('already_used');
+	});
+
+	it('says already used for one that was revoked', () => {
+		const { token, invitation: row } = invite();
+		revokeInvitation(ctx, row.id, { db });
+
+		// The holder is not told it was withdrawn. That is a fact about somebody
+		// else's decision, and "this no longer works" is the whole of what they
+		// need.
+		expect(look(token).kind).toBe('already_used');
+	});
+
+	it('gives nothing away for a token that hashes to nothing', () => {
+		expect(look('not-a-real-token')).toEqual({ kind: 'unknown' });
 	});
 });
 

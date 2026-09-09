@@ -174,9 +174,24 @@ describe('instance status', () => {
 	});
 
 	it('says plainly when mail is not configured', () => {
-		// The vitest environment leaves SMTP_URL unset, which is exactly the state
-		// an operator needs the page to shout about.
+		// Stated rather than inherited. This read whatever the developer's own
+		// `.env` happened to say, and passed only for as long as nobody had run a
+		// local mail catcher — so the day somebody set `SMTP_URL` to a Mailpit on
+		// their laptop, a green suite went red for a reason that had nothing to do
+		// with the code.
+		vi.stubEnv('SMTP_URL', '');
+		resetConfigForTests();
+
 		expect(instanceStatus(db).subsystems.mail).toBe('unconfigured');
+	});
+
+	it('says so when mail is configured', () => {
+		// The other half, so the assertion above is known to be driven by the
+		// setting rather than by the answer never changing.
+		vi.stubEnv('SMTP_URL', 'smtp://localhost:1025');
+		resetConfigForTests();
+
+		expect(instanceStatus(db).subsystems.mail).toBe('smtp');
 	});
 });
 

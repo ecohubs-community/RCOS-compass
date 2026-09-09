@@ -31,6 +31,30 @@ test.describe('accessibility', () => {
 	});
 
 	/**
+	 * The one screen somebody meets before they are anybody.
+	 *
+	 * Three shapes, scanned in turn: the form that makes an account, the refusal
+	 * that follows a token matching nothing, and the mismatch a signed-in
+	 * stranger is shown. They share a heading and nothing else, so scanning one
+	 * would say very little about the other two.
+	 */
+	test('the invitation page has no violations in any of its states', async ({ page }) => {
+		test.slow();
+		const fixture = await seed(page);
+		const url = `/invitations/${fixture.invitation.token}?c=${fixture.slug}`;
+
+		await visit(page, url);
+		expect((await scan(page).analyze()).violations, 'creating an account').toEqual([]);
+
+		await visit(page, `/invitations/not-a-real-token?c=${fixture.slug}`);
+		expect((await scan(page).analyze()).violations, 'a link that is not one').toEqual([]);
+
+		await signIn(page, fixture.email, fixture.password);
+		await visit(page, url);
+		expect((await scan(page).analyze()).violations, 'signed in as somebody else').toEqual([]);
+	});
+
+	/**
 	 * Every screen of the loop, at whichever viewport this project runs.
 	 * docs/06 §7: the matrix is 375 / 768 / 1024 / 1440, and mobile is a
 	 * supported surface rather than a courtesy — the definition triad becomes

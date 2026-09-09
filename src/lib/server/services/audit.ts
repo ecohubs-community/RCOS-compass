@@ -36,6 +36,9 @@ export type AuditAction =
 	| 'community.restored'
 	| 'community.ownership_transferred'
 	| 'community.exported'
+	/** An account made on the way through an invitation — the only way one is
+	    made at all. Carries no community: the join that follows records that. */
+	| 'account.created'
 	/** Somebody asked to be forgotten. Never carries who. */
 	| 'account.erased';
 

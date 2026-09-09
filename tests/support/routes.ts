@@ -41,6 +41,11 @@ export const ROUTES: RouteCoverage[] = [
 		coveredBy: 'reached only mid-enrolment; the two-factor spec drives it'
 	},
 	{ id: '(account)/account', scan: 'a11y', path: () => '/account' },
+	{
+		id: '(account)/invitations/[token]',
+		scan: 'a11y',
+		coveredBy: 'the invitation page has no violations in any of its states'
+	},
 	{ id: '(account)/account/two-factor', scan: 'a11y', path: () => '/account/two-factor' },
 	{ id: '(app)/c/[slug]', scan: 'a11y', path: (slug) => `/c/${slug}` },
 	{ id: '(app)/c/[slug]/audit', scan: 'a11y', path: (slug) => `/c/${slug}/audit` },

@@ -118,7 +118,8 @@ palette. Components use the semantic name, never the hex:
   --color-accent-deep: #064E3B;
   --color-attention: #D97706;   --color-info: #3E82C4;  --color-danger: #DC5B4A;
   --radius-card: 8px;           --radius-control: 6px;
-  --text-body: 13px; --text-meta: 12px;
+  --text-body: 14px; --text-meta: 12px;
+  --text-title: 16px; --text-section: 19px; --text-page: 24px;
 }
 ```
 

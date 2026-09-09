@@ -172,6 +172,65 @@ export function revokeInvitation(ctx: Ctx, invitationId: string, options: { db?:
 	);
 }
 
+/**
+ * What an invitation link points at, without consuming it.
+ *
+ * The acceptance screen has to say *something* before anyone presses a button —
+ * which community, which address, and whether the link is still good. Reading
+ * that is not accepting it: nothing here writes, so a link opened twice, or
+ * prefetched by a mail client, still has exactly one acceptance left in it.
+ *
+ * The token is the authorisation. There is no `Ctx` because there is no
+ * membership yet — whoever holds a token that hashes to a stored one was sent
+ * it, and what they learn is the name of the community that invited them and the
+ * address it was sent to. Both are things the email already told them.
+ */
+export type InvitationView =
+	| {
+			kind: 'open';
+			communityName: string;
+			communitySlug: string;
+			communityLocale: string;
+			email: string;
+			role: 'steward' | 'member';
+			grantsOwner: boolean;
+	  }
+	| { kind: 'expired'; communityName: string }
+	| { kind: 'already_used'; communityName: string }
+	| { kind: 'unknown' };
+
+export function inspectInvitation(db: Db, clock: Clock, token: string): InvitationView {
+	const found = db
+		.select()
+		.from(invitation)
+		.where(eq(invitation.tokenHash, hashToken(token)))
+		.get();
+	if (!found) return { kind: 'unknown' };
+
+	const target = db.select().from(community).where(eq(community.id, found.communityId)).get();
+	// A deleted community is not a place to arrive at, and saying so by name
+	// would be describing something that no longer exists to someone who was
+	// never in it.
+	if (!target || target.status === 'deleted') return { kind: 'unknown' };
+
+	if (found.acceptedAt || found.revokedAt) {
+		return { kind: 'already_used', communityName: target.name };
+	}
+	if (found.expiresAt.getTime() <= clock.now()) {
+		return { kind: 'expired', communityName: target.name };
+	}
+
+	return {
+		kind: 'open',
+		communityName: target.name,
+		communitySlug: target.slug,
+		communityLocale: target.locale,
+		email: found.email,
+		role: found.role,
+		grantsOwner: found.grantsOwner
+	};
+}
+
 export type AcceptResult =
 	| { kind: 'accepted'; communitySlug: string; membershipId: string }
 	| { kind: 'expired' }
