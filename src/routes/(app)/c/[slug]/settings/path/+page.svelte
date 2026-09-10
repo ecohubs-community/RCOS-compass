@@ -1,30 +1,45 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
+	import { links } from '$lib/links';
 	import IconDeviceFloppy from '~icons/tabler/device-floppy';
 	import IconRestore from '~icons/tabler/restore';
 
 	let { data, form } = $props();
 
+	const slug = $derived(data.community.slug);
+
+	/**
+	 * Four inputs, each said twice: what it looks at, and what happens if you
+	 * turn it down. The second half is the one that was missing — "how much it
+	 * holds up" describes a quantity without saying what changes when you halve
+	 * it, and a steward reading four bare numbers had nothing to reason with.
+	 */
 	const FIELDS = [
 		{
 			id: 'dependency',
-			label: 'What has to come first',
-			help: 'A question whose answer depends on one nobody has written yet gets answered in the dark.'
+			label: 'Answer what unblocks other things first',
+			looks:
+				'Whether the questions this one leans on have been answered yet, and how early in the standard it sits.',
+			turn: 'Turn it down and the list stops being something you can work straight through — questions arrive before the ones they depend on.'
 		},
 		{
 			id: 'severity',
-			label: 'How much it holds up',
-			help: 'How many of the standard’s requirements this one section answers.'
+			label: 'How much of the standard one answer settles',
+			looks: 'The number of the standard’s requirements a single section answers.',
+			turn: 'Turn it down and a section answering nine requirements sits level with one answering a single requirement.'
 		},
 		{
 			id: 'risk',
 			label: 'What you told us about yourselves',
-			help: 'Your answers about land, money, children on site, ownership and how you meet.'
+			looks: 'Your answers about land, money, children on site, ownership and how you meet.',
+			turn: 'Turn it down and the order stops reflecting your situation — every community gets the same list.'
 		},
 		{
 			id: 'attention',
-			label: 'What you already have',
-			help: 'An open discussion or a rule that refers to this raises it; language already in one of your documents lowers it.'
+			label: 'What is already going on',
+			looks:
+				'An open discussion, or an adopted rule that leans on this one, raises it. Language already in one of your documents lowers it, because you are not starting from a blank page.',
+			turn: 'Turn it down and what the group is already talking about stops pulling anything upwards.'
 		}
 	] as const;
 
@@ -37,56 +52,96 @@
 <main class="mx-auto w-full max-w-3xl px-6 py-8">
 	<h1 class="text-page font-medium">How the path is ordered</h1>
 	<p class="text-fg-secondary mt-2">
-		Compass has an opinion about what to decide next. These are the four things it weighs, and the
-		numbers are yours to change. A weight of zero switches an input off entirely.
+		Compass suggests what to decide next. It has four reasons for the order it suggests, and this is
+		where you argue with them — turn one down and the list re-sorts, set one to zero and it stops
+		being taken into account at all.
+	</p>
+	<p class="text-fg-secondary mt-2">
+		The numbers are strengths measured against each other, not scores out of anything. What each one
+		is actually doing to your {data.questions} open questions is written under it.
 	</p>
 
 	<p class="text-fg-muted text-meta mt-3">
 		{#if data.isDefault}
-			These are the numbers Compass ships with.
+			These are the strengths Compass ships with.
 		{:else}
 			Changed{#if data.changedAt}
-				on {day(data.changedAt)}{/if}. The previous numbers are below.
+				on {day(data.changedAt)}{/if}. What they were before is at the bottom.
 		{/if}
-	</p>
-
-	<!--
-		Why the first number is so much larger, said on the screen rather than
-		buried in a comment. "A community that changes nothing sees no change" is
-		only true for a particular shape of default, and somebody tuning these to
-		look tidier would break it.
-	-->
-	<p
-		class="border-border bg-surface text-fg-secondary text-meta mt-5 rounded-(--radius-card) border p-3"
-	>
-		The first number is deliberately much larger than the others. It is what keeps the list in an
-		order that makes sense structurally — everything you can answer today before anything you
-		cannot. The other three reorder within that.
 	</p>
 
 	{#if form?.error}
 		<p role="alert" class="text-attention mt-4">{form.error}</p>
 	{/if}
 
-	<form method="POST" action="?/save" use:enhance class="mt-6 flex flex-col gap-5">
+	<!--
+		`reset: false`: a successful `use:enhance` submit calls `form.reset()`, and
+		Svelte carries these values as properties rather than attributes — so reset
+		emptied every box, Svelte rewrote only the one whose value had changed, and
+		the next save posted blanks for the rest. That silently zeroed weights
+		nobody had touched. Found in a steward's own history: 250/10/10/8 became
+		50/12/0/0 across two saves.
+	-->
+	<form
+		method="POST"
+		action="?/save"
+		use:enhance={() =>
+			async ({ update }) =>
+				update({ reset: false })}
+		class="mt-6 flex flex-col gap-4"
+	>
 		{#each FIELDS as field (field.id)}
-			<div class="flex flex-col gap-1">
-				<label for={field.id} class="text-fg font-medium">{field.label}</label>
-				<p class="text-fg-muted text-meta">{field.help}</p>
-				<div class="flex items-center gap-3">
-					<input
-						id={field.id}
-						name={field.id}
-						type="number"
-						min="0"
-						step="1"
-						value={data.weights[field.id]}
-						disabled={!data.can.manage}
-						class="border-border bg-raised text-fg h-9 w-28 rounded-(--radius-control) border px-3"
-						data-tabular
-					/>
-					<span class="text-fg-muted text-meta">Compass ships {data.defaults[field.id]}</span>
+			{@const influence = data.influence[field.id]}
+			<div class="border-border bg-surface rounded-(--radius-card) border p-4">
+				<div class="flex flex-wrap items-start justify-between gap-x-4 gap-y-2">
+					<label for={field.id} class="text-fg min-w-0 flex-1 font-medium">{field.label}</label>
+					<div class="flex flex-none items-center gap-2">
+						<input
+							id={field.id}
+							name={field.id}
+							type="number"
+							min="0"
+							step="1"
+							required
+							value={data.weights[field.id]}
+							disabled={!data.can.manage}
+							class="border-border bg-raised text-fg h-9 w-24 rounded-(--radius-control) border px-3"
+							data-tabular
+						/>
+						<span class="text-fg-muted text-meta whitespace-nowrap"
+							>ships {data.defaults[field.id]}</span
+						>
+					</div>
 				</div>
+
+				<p class="text-fg-secondary mt-2">{field.looks}</p>
+				<p class="text-fg-muted text-meta mt-1">{field.turn}</p>
+
+				<!--
+					Measured from this community's own list rather than asserted: an
+					input set to 40 that nothing in their situation triggers is deciding
+					nothing, and the number on its own looks busy.
+				-->
+				<div class="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1">
+					<div class="bg-border h-1 min-w-24 flex-1 overflow-hidden rounded-full">
+						<div class="bg-accent h-full" style:width="{influence.share}%"></div>
+					</div>
+					<span class="text-fg-muted text-meta whitespace-nowrap" data-tabular>
+						{#if influence.share === 0}
+							deciding nothing right now
+						{:else}
+							{influence.share}% of the order · speaks about {influence.affects} of {data.questions}
+						{/if}
+					</span>
+				</div>
+
+				{#if field.id === 'risk'}
+					<p class="text-meta mt-2">
+						<a href={links.interview(slug)} class="text-accent-fg underline underline-offset-2"
+							>Change what you told us</a
+						>
+					</p>
+				{/if}
 			</div>
 		{/each}
 
@@ -111,6 +166,9 @@
 
 	<section class="mt-10" aria-labelledby="preview">
 		<h2 id="preview" class="text-section font-medium">What that produces</h2>
+		<p class="text-fg-muted text-meta mt-1">
+			The first eight, each with the reason it is where it is. Save and this re-sorts.
+		</p>
 		<ol class="mt-3 flex flex-col gap-2">
 			{#each data.preview as item, index (item.sectionKey)}
 				<li class="border-border bg-surface flex gap-3 rounded-(--radius-card) border p-3">

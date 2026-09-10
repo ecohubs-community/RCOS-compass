@@ -51,7 +51,7 @@
 		community sidebar does — a phone still has to reach every setting.
 	-->
 	<nav
-		class="border-border flex-none border-b p-3 lg:w-56 lg:border-r lg:border-b-0"
+		class="border-border flex-none border-b p-2 lg:w-56 lg:border-r lg:border-b-0"
 		aria-label={m.settings_nav_label()}
 	>
 		<h2 class="text-fg-muted mb-2 hidden px-2.5 text-[10.5px] tracking-wider uppercase lg:block">

@@ -7,6 +7,7 @@
 	import { links } from '$lib/links';
 	import IconBook from '~icons/tabler/book';
 	import IconClipboardCheck from '~icons/tabler/clipboard-check';
+	import IconDiamond from '~icons/tabler/diamond';
 	import IconFiles from '~icons/tabler/files';
 	import IconGavel from '~icons/tabler/gavel';
 	import IconLayoutDashboard from '~icons/tabler/layout-dashboard';
@@ -78,6 +79,7 @@
 			label: m.nav_group_agreed(),
 			items: [
 				{ href: links.decisions(slug), label: m.nav_decisions(), icon: IconGavel },
+				{ href: links.artifacts(slug), label: m.nav_artifacts(), icon: IconDiamond },
 				{ href: links.audit(slug), label: m.nav_audit(), icon: IconClipboardCheck }
 			]
 		},

@@ -60,7 +60,14 @@
 			</p>
 
 			{#if data.can.manage}
-				<form method="POST" action="?/unlink" use:enhance class="mt-3">
+				<form
+					method="POST"
+					action="?/unlink"
+					use:enhance={() =>
+						async ({ update }) =>
+							update({ reset: false })}
+					class="mt-3"
+				>
 					<button
 						type="submit"
 						class="text-fg-secondary hover:text-fg text-meta inline-flex cursor-pointer items-center gap-1.5"
@@ -77,7 +84,14 @@
 	{/if}
 
 	{#if data.can.manage}
-		<form method="POST" action="?/link" use:enhance class="mt-6 flex flex-col gap-4">
+		<form
+			method="POST"
+			action="?/link"
+			use:enhance={() =>
+				async ({ update }) =>
+					update({ reset: false })}
+			class="mt-6 flex flex-col gap-4"
+		>
 			<div class="flex flex-col gap-1">
 				<label for="url" class="text-fg font-medium">Repository URL</label>
 				<p class="text-fg-muted text-meta">

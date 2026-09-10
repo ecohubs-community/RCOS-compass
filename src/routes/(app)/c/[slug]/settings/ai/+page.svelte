@@ -44,7 +44,14 @@
 			</p>
 
 			{#if data.can.manage}
-				<form method="POST" action="?/toggle" class="mt-4" use:enhance>
+				<form
+					method="POST"
+					action="?/toggle"
+					class="mt-4"
+					use:enhance={() =>
+						async ({ update }) =>
+							update({ reset: false })}
+				>
 					<input type="hidden" name="enabled" value={data.ai.enabled ? 'off' : 'on'} />
 					<Button type="submit" variant={data.ai.enabled ? 'secondary' : 'primary'}>
 						{data.ai.enabled ? 'Switch it off' : 'Switch it on'}

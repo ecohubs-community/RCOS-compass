@@ -79,27 +79,56 @@ test.describe('the path a community can argue with', () => {
 		await expect(page.getByText('The ordering puts it at')).toBeHidden();
 	});
 
-	test('shows the weights, and what changing them produces', async ({ page }) => {
+	test('shows the weights, says what each is doing, and keeps the ones you did not touch', async ({
+		page
+	}) => {
 		test.slow();
 		const fixture = await seed(page);
 		await signIn(page, fixture.email, fixture.password);
 		await visit(page, `/c/${fixture.slug}/settings/path`);
 
-		await expect(page.getByText('These are the numbers Compass ships with')).toBeVisible();
+		await expect(page.getByText('These are the strengths Compass ships with')).toBeVisible();
 
-		await page.getByLabel('What you told us about yourselves').fill('200');
-		await page.getByRole('button', { name: 'Save' }).click();
-		await expect(page.getByText('These are the numbers Compass ships with')).toBeHidden();
+		const weights = {
+			dependency: page.getByLabel('Answer what unblocks other things first'),
+			severity: page.getByLabel('How much of the standard one answer settles'),
+			risk: page.getByLabel('What you told us about yourselves'),
+			attention: page.getByLabel('What is already going on')
+		};
 
-		// The previous opinion stays readable from the second change onward — the
-		// first one supersedes the shipped defaults, which are on the screen beside
-		// every field rather than being a row.
-		await page.getByLabel('What you told us about yourselves').fill('5');
+		await weights.dependency.fill('50');
 		await page.getByRole('button', { name: 'Save' }).click();
+		await expect(page.getByText('These are the strengths Compass ships with')).toBeHidden();
+
+		/**
+		 * The regression this test exists for.
+		 *
+		 * A successful `use:enhance` submit calls `form.reset()`, and these inputs
+		 * carry their value as a property rather than an attribute — so every box
+		 * emptied, Svelte rewrote only the one whose value had changed, and the
+		 * next save posted blanks for the rest. `Number('')` is 0, so editing one
+		 * number and saving twice silently zeroed the three nobody had touched. It
+		 * happened to a steward before it was caught here.
+		 */
+		await expect(weights.severity).not.toHaveValue('');
+		await expect(weights.risk).not.toHaveValue('');
+		await expect(weights.attention).not.toHaveValue('');
+
+		await weights.severity.fill('12');
+		await page.getByRole('button', { name: 'Save' }).click();
+
+		await visit(page, `/c/${fixture.slug}/settings/path`);
+		await expect(weights.dependency).toHaveValue('50');
+		await expect(weights.severity).toHaveValue('12');
+		await expect(weights.risk).toHaveValue('10');
+		await expect(weights.attention).toHaveValue('8');
 
 		await expect(page.getByRole('heading', { name: 'What it was before' })).toBeVisible();
 		await expect(page.getByRole('heading', { name: 'What that produces' })).toBeVisible();
+		// The numbers explain themselves from the community's own list.
+		await expect(page.getByText(/% of the order/).first()).toBeVisible();
 	});
+
 	test('the interview says what each answer will do, before it is answered', async ({ page }) => {
 		test.slow();
 		const fixture = await seed(page);

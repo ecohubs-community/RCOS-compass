@@ -49,6 +49,7 @@ export const ROUTES: RouteCoverage[] = [
 	{ id: '(account)/account/two-factor', scan: 'a11y', path: () => '/account/two-factor' },
 	{ id: '(app)/c/[slug]', scan: 'a11y', path: (slug) => `/c/${slug}` },
 	{ id: '(app)/c/[slug]/audit', scan: 'a11y', path: (slug) => `/c/${slug}/audit` },
+	{ id: '(app)/c/[slug]/artifacts', scan: 'a11y', path: (slug) => `/c/${slug}/artifacts` },
 	{
 		id: '(app)/c/[slug]/d/[ref]',
 		scan: 'a11y',

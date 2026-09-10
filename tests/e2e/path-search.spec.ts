@@ -56,10 +56,10 @@ test.describe('a community that needs to know what to do first', () => {
 
 		// --- and it can be argued with ------------------------------------------
 		await visit(page, `/c/${slug}/settings/path`);
-		await expect(page.getByLabel('What has to come first')).toBeVisible();
+		await expect(page.getByLabel('Answer what unblocks other things first')).toBeVisible();
 		await expect(page.getByLabel('What you told us about yourselves')).toBeVisible();
 		// The weights are the community's, and it can see they are the defaults.
-		await expect(page.getByText('These are the numbers Compass ships with')).toBeVisible();
+		await expect(page.getByText('These are the strengths Compass ships with')).toBeVisible();
 	});
 
 	test('answers the water-pump question with citations and nothing else', async ({ page }) => {
