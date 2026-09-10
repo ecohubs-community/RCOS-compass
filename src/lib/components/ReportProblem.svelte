@@ -22,7 +22,7 @@
 	let open = $state(false);
 </script>
 
-<div class="mt-3">
+<div class={open ? 'mt-2 w-full' : ''}>
 	{#if open}
 		<form
 			method="POST"
@@ -66,7 +66,7 @@
 			<div class="flex gap-2">
 				<button
 					type="submit"
-					class="bg-accent-deep text-fg h-8 cursor-pointer rounded-(--radius-control) px-3 font-medium"
+					class="bg-accent-solid hover:bg-accent-solid-hover text-white h-8 cursor-pointer rounded-(--radius-control) px-3 font-medium"
 					>{m.feedback_send()}</button
 				>
 				<button

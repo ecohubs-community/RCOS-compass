@@ -18,7 +18,7 @@
 
 <svelte:head><title>{d.ref} · {data.community.name}</title></svelte:head>
 
-<main class="mx-auto w-full max-w-3xl px-6 py-8">
+<main class="mx-auto w-full max-w-6xl px-6 py-8">
 	<p class="text-fg-muted text-meta">
 		<a href={links.decisions(slug)} class="hover:text-fg underline underline-offset-2">Decisions</a>
 		<span aria-hidden="true"> · </span><span data-tabular>{d.ref}</span>

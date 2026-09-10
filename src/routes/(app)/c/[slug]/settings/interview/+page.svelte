@@ -28,7 +28,7 @@
 
 <svelte:head><title>About this community · {data.community.name}</title></svelte:head>
 
-<main class="mx-auto w-full max-w-2xl px-6 py-8">
+<main class="mx-auto w-full max-w-6xl px-6 py-8">
 	<h1 class="text-page font-medium">About this community</h1>
 	<p class="text-fg-secondary mt-2">
 		Five questions. Each one changes what Compass suggests you decide next, and each says what it
@@ -91,7 +91,7 @@
 		{#if data.can.manage}
 			<button
 				type="submit"
-				class="bg-accent-deep text-fg inline-flex h-9 w-fit cursor-pointer items-center gap-2 rounded-(--radius-control) px-3 font-medium"
+				class="bg-accent-solid hover:bg-accent-solid-hover text-white inline-flex h-9 w-fit cursor-pointer items-center gap-2 rounded-(--radius-control) px-3 font-medium"
 				><IconDeviceFloppy class="h-4 w-4 flex-none" aria-hidden="true" />Save</button
 			>
 		{:else}

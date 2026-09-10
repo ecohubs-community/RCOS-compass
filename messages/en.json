@@ -168,5 +168,21 @@
 	"artifacts_public_index": "Public page",
 	"artifacts_self_audit": "Self-audit",
 	"artifacts_none": "This community has not adopted a standard yet, so there is nothing to complete.",
-	"artifacts_layer": "Layer {layer}"
+	"artifacts_layer": "Layer {layer}",
+	"nav_about": "About & licences",
+	"about_title": "About & licences",
+	"about_intro": "What this tool is licensed under, and what the standard it carries is licensed under. The documents your community agreed to are linked at the bottom of every screen and here.",
+	"about_app_heading": "This application",
+	"about_standard_heading": "The standard",
+	"about_standard_none": "This community has not adopted a standard yet.",
+	"about_legal_heading": "What you agreed to",
+	"path_move_up": "Move up",
+	"path_move_down": "Move down",
+	"path_release": "Put it back where the ordering had it",
+	"path_start_discussion": "Start discussion",
+	"path_open_discussion": "Open discussion",
+	"path_drag": "Drag to reorder",
+	"path_more_below": "{count} more below.",
+	"path_show_all": "Show all {total}",
+	"path_show_fewer": "Show fewer"
 }

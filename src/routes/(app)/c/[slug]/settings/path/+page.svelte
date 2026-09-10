@@ -49,7 +49,7 @@
 
 <svelte:head><title>How the path is ordered · {data.community.name}</title></svelte:head>
 
-<main class="mx-auto w-full max-w-3xl px-6 py-8">
+<main class="mx-auto w-full max-w-6xl px-6 py-8">
 	<h1 class="text-page font-medium">How the path is ordered</h1>
 	<p class="text-fg-secondary mt-2">
 		Compass suggests what to decide next. It has four reasons for the order it suggests, and this is
@@ -149,7 +149,7 @@
 			<div class="flex flex-wrap gap-2">
 				<button
 					type="submit"
-					class="bg-accent-deep text-fg inline-flex h-9 cursor-pointer items-center gap-2 rounded-(--radius-control) px-3 font-medium"
+					class="bg-accent-solid hover:bg-accent-solid-hover text-white inline-flex h-9 cursor-pointer items-center gap-2 rounded-(--radius-control) px-3 font-medium"
 					><IconDeviceFloppy class="h-4 w-4 flex-none" aria-hidden="true" />Save</button
 				>
 				<button

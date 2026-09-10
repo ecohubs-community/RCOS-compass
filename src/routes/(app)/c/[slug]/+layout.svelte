@@ -180,14 +180,22 @@
 	);
 </script>
 
-<div class="flex min-h-screen flex-col lg:flex-row">
+<!--
+	The sidebar and the bar stay; the page scrolls under them.
+	
+	One document scrolling took the nav off the top of the screen exactly when a
+	long list made it most useful. Below 1024px the sidebar is a horizontal strip
+	and the document scrolls normally, because a phone has no room to give a
+	column of navigation permanently.
+-->
+<div class="flex min-h-screen flex-col lg:h-screen lg:min-h-0 lg:flex-row lg:overflow-hidden">
 	<!--
 		Below 1024px the sidebar becomes a horizontal strip rather than disappearing
 		behind a button: mobile is a supported surface (docs/02 §7), and a community
 		on a phone still needs to reach the register.
 	-->
 	<aside
-		class="border-border bg-surface flex flex-none flex-col border-b lg:h-screen lg:w-60 lg:border-r lg:border-b-0"
+		class="border-border bg-surface flex flex-none flex-col border-b lg:h-screen lg:w-64 lg:border-r lg:border-b-0"
 	>
 		<div class="border-border flex items-center gap-2 border-b px-3 py-3">
 			<!--
@@ -208,7 +216,16 @@
 			checks the attribute rather than the value's provenance, so it cannot see
 			that through the array.
 		-->
-		<nav class="flex-1 overflow-x-auto p-2" aria-label="Community">
+		<!--
+		`overflow-x-auto` is the horizontal strip's, below 1024px. Left on at every
+		width it gave the column a scrollbar a few pixels wide, because the longest
+		label is a hair wider than the column — a scroll nobody wants and everybody
+		notices.
+	-->
+		<nav
+			class="flex-1 overflow-x-auto p-2 lg:overflow-x-visible lg:overflow-y-auto"
+			aria-label="Community"
+		>
 			<ul class="flex gap-1 lg:flex-col">
 				{#each groups as group (group.id)}
 					{#if group.label}
@@ -224,7 +241,7 @@
 							<a
 								href={item.href}
 								aria-current={isCurrent(item.href, item.exact) ? 'page' : undefined}
-								class="aria-[current=page]:bg-raised aria-[current=page]:text-fg text-fg-secondary hover:text-fg flex items-center gap-2 rounded-(--radius-control) px-2.5 py-1.5 whitespace-nowrap"
+								class="aria-[current=page]:bg-raised aria-[current=page]:text-fg text-fg-secondary hover:text-fg flex items-center gap-2 rounded-(--radius-control) px-2.5 py-1.5 whitespace-nowrap lg:whitespace-normal"
 							>
 								<ItemIcon class="h-4 w-4 flex-none" aria-hidden="true" />
 								{item.label}
@@ -292,7 +309,7 @@
 		</div>
 	</aside>
 
-	<div class="flex min-w-0 flex-1 flex-col">
+	<div class="flex min-w-0 flex-1 flex-col lg:overflow-y-auto">
 		<TopBar community={data.community.name} {slug} {crumb} />
 		{#if data.readOnly}
 			<p
@@ -310,7 +327,7 @@
 			flex column takes the slack without changing any page's own box.
 		-->
 		<div class="mt-auto">
-			<Footer standard={data.standardLicence} {slug} />
+			<Footer {slug} />
 		</div>
 	</div>
 </div>

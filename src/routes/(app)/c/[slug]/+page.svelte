@@ -19,7 +19,7 @@
 
 <svelte:head><title>{data.community.name} · RCOS Compass</title></svelte:head>
 
-<main class="mx-auto w-full max-w-5xl px-6 py-8">
+<main class="mx-auto w-full max-w-6xl px-6 py-8">
 	<h1 class="text-page font-medium">{data.community.name}</h1>
 
 	<!-- (b) in the mockup, first here: the questions are the point, the bars are context. -->

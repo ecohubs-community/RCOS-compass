@@ -6,7 +6,7 @@
 
 <svelte:head><title>Communities · RCOS Compass</title></svelte:head>
 
-<main class="mx-auto max-w-5xl px-6 py-8">
+<main class="mx-auto w-full max-w-6xl px-6 py-8">
 	<div class="flex flex-wrap items-center justify-between gap-3">
 		<h1 class="text-page font-medium">Communities</h1>
 		<a

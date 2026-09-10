@@ -76,8 +76,17 @@
 	 * white on it is 7.7:1. Found by the gallery accessibility test.
 	 */
 	--color-accent: #059669;
-	--color-accent-solid: #065f46;
-	--color-accent-solid-hover: #047857;
+	/*
+	 * The filled-control background, as bright as WCAG AA allows.
+	 *
+	 * The mockups fill buttons with `--color-accent` itself and it is the better
+	 * looking green — but white on #059669 is 3.77:1 and AA wants 4.5. #047857 is
+	 * the design's own hover colour, reads as the same green, and carries white at
+	 * 5.48:1. Hover then goes *darker* rather than lighter, which is the direction
+	 * the mockups take too (#059669 → #047857); both states pass.
+	 */
+	--color-accent-solid: #047857;
+	--color-accent-solid-hover: #065f46;
 	--color-accent-hover: #047857;
 	--color-accent-fg: #10b981;
 	--color-accent-deep: #064e3b;

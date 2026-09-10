@@ -17,7 +17,7 @@
 
 <svelte:head><title>Discussions · {data.community.name}</title></svelte:head>
 
-<main class="mx-auto w-full max-w-4xl px-6 py-8">
+<main class="mx-auto w-full max-w-6xl px-6 py-8">
 	<h1 class="text-page font-medium">Discussions</h1>
 
 	{#if data.canStart}

@@ -10,7 +10,7 @@
 
 <svelte:head><title>Instance status · RCOS Compass</title></svelte:head>
 
-<main class="mx-auto max-w-4xl px-6 py-8">
+<main class="mx-auto w-full max-w-6xl px-6 py-8">
 	<h1 class="text-page font-medium">Instance status</h1>
 
 	{#if status.deadJobs.length > 0}

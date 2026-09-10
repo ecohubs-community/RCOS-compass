@@ -166,5 +166,21 @@
 	"artifacts_public_index": "Página pública",
 	"artifacts_self_audit": "Autoauditoría",
 	"artifacts_none": "Esta comunidad todavía no ha adoptado ningún estándar, así que no hay nada que completar.",
-	"artifacts_layer": "Capa {layer}"
+	"artifacts_layer": "Capa {layer}",
+	"nav_about": "Acerca de y licencias",
+	"about_title": "Acerca de y licencias",
+	"about_intro": "Bajo qué licencia está esta herramienta, y bajo cuál está el estándar que trae consigo. Los documentos que vuestra comunidad aceptó están enlazados al pie de cada pantalla, y aquí.",
+	"about_app_heading": "Esta aplicación",
+	"about_standard_heading": "El estándar",
+	"about_standard_none": "Esta comunidad todavía no ha adoptado ningún estándar.",
+	"about_legal_heading": "Lo que aceptasteis",
+	"path_move_up": "Subir",
+	"path_move_down": "Bajar",
+	"path_release": "Devolverla al lugar que le daba el orden",
+	"path_start_discussion": "Abrir un debate",
+	"path_open_discussion": "Ir al debate",
+	"path_drag": "Arrastra para reordenar",
+	"path_more_below": "{count} más debajo.",
+	"path_show_all": "Ver las {total}",
+	"path_show_fewer": "Ver menos"
 }

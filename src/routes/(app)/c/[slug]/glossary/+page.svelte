@@ -10,7 +10,7 @@
 
 <svelte:head><title>Glossary · {data.community.name}</title></svelte:head>
 
-<main class="mx-auto w-full max-w-3xl px-6 py-8">
+<main class="mx-auto w-full max-w-6xl px-6 py-8">
 	<h1 class="text-page font-medium">Glossary</h1>
 	<p class="text-fg-secondary mt-2">
 		Every word the standard defines, with what this community has decided it means. Nothing here is

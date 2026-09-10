@@ -7,6 +7,7 @@
 	import IconDownload from '~icons/tabler/download';
 	import IconEyeOff from '~icons/tabler/eye-off';
 	import IconGitBranch from '~icons/tabler/git-branch';
+	import IconInfoCircle from '~icons/tabler/info-circle';
 	import IconLanguage from '~icons/tabler/language';
 	import IconSparkles from '~icons/tabler/sparkles';
 	import IconWorld from '~icons/tabler/world';
@@ -36,7 +37,8 @@
 		{ href: links.transparency(slug), label: m.nav_transparency(), icon: IconEyeOff },
 		{ href: links.publishing(slug), label: m.nav_publishing(), icon: IconWorld },
 		{ href: links.exportSettings(slug), label: m.nav_export(), icon: IconDownload },
-		{ href: links.mirror(slug), label: m.nav_mirror(), icon: IconGitBranch }
+		{ href: links.mirror(slug), label: m.nav_mirror(), icon: IconGitBranch },
+		{ href: links.about(slug), label: m.nav_about(), icon: IconInfoCircle }
 	]);
 </script>
 
@@ -57,7 +59,7 @@
 		<h2 class="text-fg-muted mb-2 hidden px-2.5 text-[10.5px] tracking-wider uppercase lg:block">
 			{m.nav_settings()}
 		</h2>
-		<ul class="flex gap-1 overflow-x-auto lg:flex-col">
+		<ul class="flex gap-1 overflow-x-auto lg:flex-col lg:overflow-x-visible">
 			{#each panels as panel (panel.href)}
 				{@const PanelIcon = panel.icon}
 				<li>
@@ -66,7 +68,7 @@
 						aria-current={new URL(panel.href, page.url).pathname === page.url.pathname
 							? 'page'
 							: undefined}
-						class="aria-[current=page]:bg-raised aria-[current=page]:text-fg text-fg-secondary hover:text-fg flex items-center gap-2 rounded-(--radius-control) px-2.5 py-1.5 whitespace-nowrap"
+						class="aria-[current=page]:bg-raised aria-[current=page]:text-fg text-fg-secondary hover:text-fg flex items-center gap-2 rounded-(--radius-control) px-2.5 py-1.5 whitespace-nowrap lg:whitespace-normal"
 					>
 						<PanelIcon class="h-4 w-4 flex-none" aria-hidden="true" />
 						{panel.label}

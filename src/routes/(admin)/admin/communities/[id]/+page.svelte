@@ -28,7 +28,7 @@
 	{/if}
 {/snippet}
 
-<main class="mx-auto max-w-3xl px-6 py-8">
+<main class="mx-auto w-full max-w-6xl px-6 py-8">
 	<p class="text-fg-muted text-meta">
 		<a
 			href={resolve('/(admin)/admin/communities')}

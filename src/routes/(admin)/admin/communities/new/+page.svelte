@@ -10,7 +10,7 @@
 
 <svelte:head><title>New community · RCOS Compass</title></svelte:head>
 
-<main class="mx-auto max-w-2xl px-6 py-8">
+<main class="mx-auto w-full max-w-6xl px-6 py-8">
 	<h1 class="text-page font-medium">New community</h1>
 	<p class="text-fg-secondary mt-2">
 		Creates the community and emails its owner an invitation. You do not become a member — the

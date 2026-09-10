@@ -39,7 +39,7 @@
 
 <svelte:head><title>{m.artifacts_title()} · {data.community.name}</title></svelte:head>
 
-<main class="mx-auto w-full max-w-5xl px-6 py-8">
+<main class="mx-auto w-full max-w-6xl px-6 py-8">
 	<div class="flex flex-wrap items-start justify-between gap-3">
 		<div class="min-w-0">
 			<h1 class="text-page font-medium">{m.artifacts_title()}</h1>

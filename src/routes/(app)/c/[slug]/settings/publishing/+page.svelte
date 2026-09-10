@@ -10,7 +10,7 @@
 
 <svelte:head><title>Publishing · {data.community.name}</title></svelte:head>
 
-<main class="mx-auto w-full max-w-3xl px-6 py-8">
+<main class="mx-auto w-full max-w-6xl px-6 py-8">
 	<h1 class="text-page font-medium">Publishing</h1>
 	<p class="text-fg-secondary mt-2">
 		Everything in Compass is visible to your members and to nobody else, until you decide otherwise.

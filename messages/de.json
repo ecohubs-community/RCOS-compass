@@ -166,5 +166,21 @@
 	"artifacts_public_index": "Öffentliche Seite",
 	"artifacts_self_audit": "Selbstprüfung",
 	"artifacts_none": "Diese Gemeinschaft hat noch keinen Standard übernommen, es gibt also nichts zu vervollständigen.",
-	"artifacts_layer": "Ebene {layer}"
+	"artifacts_layer": "Ebene {layer}",
+	"nav_about": "Über & Lizenzen",
+	"about_title": "Über & Lizenzen",
+	"about_intro": "Unter welcher Lizenz dieses Werkzeug steht und unter welcher der Standard steht, den es mitbringt. Die Dokumente, denen eure Gemeinschaft zugestimmt hat, sind unten auf jedem Bildschirm verlinkt — und hier.",
+	"about_app_heading": "Diese Anwendung",
+	"about_standard_heading": "Der Standard",
+	"about_standard_none": "Diese Gemeinschaft hat noch keinen Standard übernommen.",
+	"about_legal_heading": "Wozu ihr zugestimmt habt",
+	"path_move_up": "Nach oben",
+	"path_move_down": "Nach unten",
+	"path_release": "Dahin zurücklegen, wo die Sortierung sie hatte",
+	"path_start_discussion": "Diskussion beginnen",
+	"path_open_discussion": "Diskussion öffnen",
+	"path_drag": "Zum Sortieren ziehen",
+	"path_more_below": "{count} weitere darunter.",
+	"path_show_all": "Alle {total} anzeigen",
+	"path_show_fewer": "Weniger anzeigen"
 }

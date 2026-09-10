@@ -10,7 +10,7 @@
 
 <svelte:head><title>Legal documents · Compass admin</title></svelte:head>
 
-<main class="mx-auto w-full max-w-3xl px-6 py-8">
+<main class="mx-auto w-full max-w-6xl px-6 py-8">
 	<h1 class="text-page font-medium">Legal documents</h1>
 	<p class="text-fg-secondary mt-2">
 		The text lives in the repository and deploys with the code it describes. What is recorded here

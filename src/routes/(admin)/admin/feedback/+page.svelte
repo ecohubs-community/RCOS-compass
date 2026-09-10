@@ -4,7 +4,7 @@
 
 <svelte:head><title>Pilot feedback · Compass admin</title></svelte:head>
 
-<main class="mx-auto w-full max-w-3xl px-6 py-8">
+<main class="mx-auto w-full max-w-6xl px-6 py-8">
 	<h1 class="text-page font-medium">Pilot feedback</h1>
 	<p class="text-fg-secondary mt-2">
 		Open reports across the instance, grouped by the screen they are about — three people confused

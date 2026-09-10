@@ -8,7 +8,7 @@
 
 <svelte:head><title>Audit log · RCOS Compass</title></svelte:head>
 
-<main class="mx-auto max-w-6xl px-6 py-8">
+<main class="mx-auto w-full max-w-6xl px-6 py-8">
 	<h1 class="text-page font-medium">Audit log</h1>
 	<p class="text-fg-secondary mt-2">
 		Every administrative and security event on this instance, newest first. Append-only — nobody,

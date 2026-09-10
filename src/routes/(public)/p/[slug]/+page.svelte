@@ -22,7 +22,7 @@
 	/>
 </svelte:head>
 
-<main class="mx-auto w-full max-w-3xl px-6 py-8">
+<main class="mx-auto w-full max-w-6xl px-6 py-8">
 	{#if data.claim}
 		<section aria-labelledby="claim">
 			<h1 id="claim" class="text-page font-medium">

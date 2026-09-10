@@ -24,7 +24,7 @@
 
 <svelte:head><title>{data.document.filename} · {data.community.name}</title></svelte:head>
 
-<main class="mx-auto w-full max-w-3xl px-6 py-8">
+<main class="mx-auto w-full max-w-6xl px-6 py-8">
 	<p class="text-fg-muted text-meta">
 		<a href={links.documents(slug)} class="hover:text-fg underline underline-offset-2">Documents</a>
 	</p>

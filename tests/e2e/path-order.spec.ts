@@ -38,7 +38,7 @@ test.describe('the path a community can argue with', () => {
 		const item = page
 			.getByRole('list', { name: 'What to decide next' })
 			.getByRole('listitem')
-			.filter({ has: page.getByRole('link', { name: 'Start', exact: true }) })
+			.filter({ has: page.getByRole('link', { name: 'Start discussion', exact: true }) })
 			.first();
 
 		// The item's own wording, read off the screen rather than assumed: the
@@ -47,7 +47,7 @@ test.describe('the path a community can argue with', () => {
 		const question = (await item.locator('p').first().textContent())!.trim();
 		expect(question, 'a path item asks something rather than naming a container').toMatch(/\?$/);
 
-		await item.getByRole('link', { name: 'Start', exact: true }).click();
+		await item.getByRole('link', { name: 'Start discussion', exact: true }).click();
 
 		// Both halves arrive filled: the clause the item answers, and the question
 		// the whole community has been reading in the Path. Typing it again from a
@@ -75,7 +75,10 @@ test.describe('the path a community can argue with', () => {
 		await expect(items.first()).toContainText(second.split('\n')[0]!);
 		await expect(items.first()).toContainText('The ordering puts it at 2');
 
-		await page.getByRole('button', { name: 'Release' }).click();
+		await page
+			.getByRole('button', { name: /Put it back where the ordering had it/ })
+			.first()
+			.click();
 		await expect(page.getByText('The ordering puts it at')).toBeHidden();
 	});
 
