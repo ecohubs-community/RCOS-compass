@@ -12,9 +12,20 @@ export const links = {
 	dashboard: (slug: string) => resolve('/(app)/c/[slug]', { slug }),
 	standard: (slug: string) => resolve('/(app)/c/[slug]/standard', { slug }),
 	discussions: (slug: string) => resolve('/(app)/c/[slug]/discussions', { slug }),
-	/** The same page with the clause already in the box. */
-	startDiscussion: (slug: string, clauseKey: string) =>
-		`${resolve('/(app)/c/[slug]/discussions', { slug })}?clause=${encodeURIComponent(clauseKey)}`,
+	/**
+	 * The same page with the clause already in the box — and, when the link comes
+	 * from a Path item, that item's question already in the title.
+	 *
+	 * The question is the better title than anything a member would type from a
+	 * blank field: it is the wording the whole community has been reading in the
+	 * Path, so the thread that comes back is recognisably about the thing they
+	 * clicked. It is a default rather than a decision — the field is still a
+	 * field, and it arrives editable.
+	 */
+	startDiscussion: (slug: string, clauseKey: string, title?: string) => {
+		const url = `${resolve('/(app)/c/[slug]/discussions', { slug })}?clause=${encodeURIComponent(clauseKey)}`;
+		return title ? `${url}&title=${encodeURIComponent(title)}` : url;
+	},
 	discussion: (slug: string, id: string) =>
 		resolve('/(app)/c/[slug]/discussions/[id]', { slug, id }),
 	definition: (slug: string, id: string) =>

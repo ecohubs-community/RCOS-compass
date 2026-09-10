@@ -33,6 +33,7 @@
 				label="Start a discussion"
 				class="min-w-56 flex-1"
 				placeholder="What happens when someone stops showing up?"
+				value={data.title}
 				required
 			/>
 			<TextField

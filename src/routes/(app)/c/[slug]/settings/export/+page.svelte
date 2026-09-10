@@ -3,6 +3,7 @@
 	import { invalidateAll } from '$app/navigation';
 	import { resolve } from '$app/paths';
 	import * as m from '$lib/paraglide/messages';
+	import IconDownload from '~icons/tabler/download';
 
 	let { data, form } = $props();
 
@@ -63,8 +64,8 @@
 	>
 		<button
 			type="submit"
-			class="bg-accent-deep text-fg h-9 cursor-pointer rounded-(--radius-control) px-3 font-medium"
-			>Export this community</button
+			class="bg-accent-deep text-fg inline-flex h-9 cursor-pointer items-center gap-2 rounded-(--radius-control) px-3 font-medium"
+			><IconDownload class="h-4 w-4 flex-none" aria-hidden="true" />Export this community</button
 		>
 	</form>
 

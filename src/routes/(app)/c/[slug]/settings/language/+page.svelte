@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
 	import * as m from '$lib/paraglide/messages';
+	import IconDeviceFloppy from '~icons/tabler/device-floppy';
 
 	let { data, form } = $props();
 
@@ -60,8 +61,11 @@
 
 			<button
 				type="submit"
-				class="bg-accent-deep text-fg h-9 w-fit cursor-pointer rounded-(--radius-control) px-3 font-medium"
-				>{m.language_save()}</button
+				class="bg-accent-deep text-fg inline-flex h-9 w-fit cursor-pointer items-center gap-2 rounded-(--radius-control) px-3 font-medium"
+				><IconDeviceFloppy
+					class="h-4 w-4 flex-none"
+					aria-hidden="true"
+				/>{m.language_save()}</button
 			>
 		</form>
 	{:else}

@@ -9,9 +9,12 @@ export const load: PageServerLoad = ({ locals, url }) => {
 	const ctx = locals.ctx!;
 	return {
 		canStart: ctxCan(ctx, 'discussion.create'),
-		// Arrived from the dashboard's "Start discussion": the question is already
-		// chosen, so the clause should not have to be typed again.
+		// Arrived from the dashboard, the Path or a search result: the question is
+		// already chosen, so neither the clause nor the title should have to be
+		// typed again. Both are suggestions in editable fields — the thread is the
+		// community's, not the Path's.
 		clauseKey: url.searchParams.get('clause') ?? '',
+		title: url.searchParams.get('title') ?? '',
 		discussions: listDiscussions(ctx).map((thread) => ({
 			id: thread.id,
 			title: thread.title,

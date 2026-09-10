@@ -352,12 +352,30 @@ describe('the vendored copy is pinned to its source', () => {
 }, 30_000);
 
 describe('annotations', () => {
-	it('covers Layers 0 and 1, which is what P3 needs', () => {
-		const layer01 = view.artifacts
-			.filter((a) => a.layer === 0 || a.layer === 1)
-			.flatMap((a) => a.sectionKeys);
-		for (const key of layer01) {
-			expect(view.annotation(key), `${key} has no annotation`).toBeDefined();
+	it('covers every authored section, so the Path is questions rather than headings', () => {
+		/**
+		 * Layers 0 and 1 were annotated first and 2-6 followed. The reason to
+		 * assert the whole set rather than the two layers P3 needed: a Path that
+		 * mixes "Why does this community exist — in one sentence that will still be
+		 * true in ten years?" with "Entry Format" is asking a group to recognise
+		 * its own situation in a table of contents, and the second kind of title
+		 * comes back the moment a section is added upstream without one.
+		 */
+		const missing = view
+			.authoredSections()
+			.filter((section) => !view.annotation(section.key)?.question)
+			.map((section) => section.key);
+
+		expect(missing, `sections with no question: ${missing.join(', ')}`).toEqual([]);
+	});
+
+	it('asks something, rather than naming a container', () => {
+		// Not a style rule for its own sake: the question is offered as the title
+		// of a discussion (`links.startDiscussion`), and "Overview" is not a thing
+		// a community can hold a discussion about.
+		for (const key of view.annotatedSectionKeys) {
+			const question = view.annotation(key)!.question;
+			expect(question.endsWith('?'), `${key}: ${question}`).toBe(true);
 		}
 	});
 
@@ -401,10 +419,27 @@ describe('annotations', () => {
 		expect(() => view.annotatedSectionKeys.forEach((k) => visit(k, []))).not.toThrow();
 	});
 
-	it('is optional — an unannotated section still loads and is answerable', () => {
-		const unannotated = view.sections.find((s) => !view.annotation(s.key));
-		expect(unannotated, 'Layers 2-6 are not annotated yet').toBeDefined();
-		expect(unannotated!.i18n.en?.title).toBeTruthy();
+	it('is optional — a standard with no annotations at all still loads', () => {
+		/**
+		 * This used to prove the point by finding a section nobody had annotated
+		 * yet, which stopped being possible the day the last one was written. The
+		 * mechanism is what matters and it is still worth holding: a module
+		 * vendored without Compass's opinions must load and be answerable, showing
+		 * its own titles.
+		 */
+		const dir = mkdtempSync(join(tmpdir(), 'compass-unannotated-'));
+		try {
+			cpSync(join(standardRoot, 'rcos-core'), join(dir, 'rcos-core'), { recursive: true });
+			rmSync(join(dir, 'rcos-core', '0.1', 'annotations.yaml'));
+
+			const bare = loadStandard('rcos-core', '0.1', { root: dir, useCache: false });
+			const section = bare.sections[0]!;
+
+			expect(Object.keys(bare.annotations)).toEqual([]);
+			expect(section.i18n.en?.title).toBeTruthy();
+		} finally {
+			rmSync(dir, { recursive: true, force: true });
+		}
 	});
 });
 

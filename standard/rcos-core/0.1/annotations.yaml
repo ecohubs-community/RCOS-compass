@@ -11,8 +11,19 @@
 #   dependsOn  sections that make this one easier or safer to answer first. The
 #              Path treats these as structural ordering.
 #
-# Layers 0 and 1 are annotated here. That is what P3 and a pilot community's
-# first month need; Layers 2–6 land before P5 (docs/08-roadmap-mvp.md P1).
+# Every authored section is annotated. Layers 0 and 1 came first, for P3 and a
+# pilot community's first month; 2–6 followed, because a Path that mixed "Why
+# does this community exist — in one sentence that will still be true in ten
+# years?" with "Entry Format" and "Triggers" was asking a group to recognise its
+# own situation in a table of contents. A section title names a container; a
+# question names the thing a community has to decide, and it is a title somebody
+# can open a discussion under without rewriting it.
+#
+# Layers 2–6 all carry `effort: one_meeting` and no dependencies — the same
+# values the Path already assumed for an unannotated section. That is deliberate
+# rather than lazy: adding questions was meant to change the wording and nothing
+# else, so the order of the Path is exactly what it was. Sharpening effort and
+# dependencies for these layers is its own piece of work, with its own argument.
 #
 # Annotations are optional: a section without one still loads and is still
 # answerable. It simply appears in the Path with its template title instead of a
@@ -202,3 +213,347 @@ sections:
     question: Who adopted this exit protocol, when, and how was it decided?
     effort: one_conversation
     dependsOn: [exit-protocol.voluntary-exit]
+
+  # ---- Layer 2 · Governance ------------------------------------------------
+
+  authority-registry.registered-authorities:
+    question: Who is allowed to decide what — and where does each person's authority stop?
+    effort: one_meeting
+    dependsOn: []
+
+  decision-matrix.decision-type-definitions:
+    question: What kinds of decision do we make, and how do we tell a big one from a small one?
+    effort: one_meeting
+    dependsOn: []
+
+  decision-matrix.voting-principles:
+    question: For each kind of decision, who gets a say and what counts as agreement?
+    effort: one_meeting
+    dependsOn: []
+
+  decision-matrix.matrix:
+    question: Which decisions belong to whom — in one table we can point at mid-argument?
+    effort: one_meeting
+    dependsOn: []
+
+  governance-protocol.proposal-submission:
+    question: How does someone put a proposal in front of us, and what has to be in it?
+    effort: one_meeting
+    dependsOn: []
+
+  governance-protocol.review-and-deliberation:
+    question: How long do we sit with a proposal before deciding, and who has to be heard first?
+    effort: one_meeting
+    dependsOn: []
+
+  governance-protocol.decision-execution:
+    question: Once we have decided something, who carries it out and by when?
+    effort: one_meeting
+    dependsOn: []
+
+  governance-protocol.documentation-and-publication:
+    question: Where does a decision get written down, and who can read it afterwards?
+    effort: one_meeting
+    dependsOn: []
+
+  governance-protocol.appeal-and-review:
+    question: If someone thinks a decision went wrong, how do they get it looked at again?
+    effort: one_meeting
+    dependsOn: []
+
+  governance-protocol.conflict-between-decisions:
+    question: When two of our own decisions contradict each other, which one wins?
+    effort: one_meeting
+    dependsOn: []
+
+  governance-protocol.safeguards-and-failure-modes:
+    question: What stops decision-making quietly collecting in the same few hands?
+    effort: one_meeting
+    dependsOn: []
+
+
+  # ---- Layer 3 · Resources & Economy ---------------------------------------
+
+  internal-economy-protocol.commons-vs-private-classification:
+    question: What belongs to all of us, what stays personal, and where is that written down?
+    effort: one_meeting
+    dependsOn: []
+
+  internal-economy-protocol.recognized-contribution-categories:
+    question: Which kinds of work do we count as contribution — including the work nobody sees?
+    effort: one_meeting
+    dependsOn: []
+
+  internal-economy-protocol.contribution-recognition-mechanism:
+    question: How does a contribution actually get recognised, and by whom?
+    effort: one_meeting
+    dependsOn: []
+
+  internal-economy-protocol.internal-units:
+    question: If we use our own credits or hours, who issues them and what can they be used for?
+    effort: one_meeting
+    dependsOn: []
+
+  internal-economy-protocol.accumulation-constraints:
+    question: What stops one person accumulating enough to steer everything?
+    effort: one_meeting
+    dependsOn: []
+
+  internal-economy-protocol.external-income-interfaces:
+    question: How does money from outside reach us, and on what terms?
+    effort: one_meeting
+    dependsOn: []
+
+  internal-economy-protocol.dispute-resolution-for-economic-records:
+    question: When someone says the record of their contribution is wrong, how is that settled?
+    effort: one_meeting
+    dependsOn: []
+
+  treasury-ruleset.treasury-scope:
+    question: What is held in common — and where does the shared purse end and a personal one begin?
+    effort: one_meeting
+    dependsOn: []
+
+  treasury-ruleset.income-sources:
+    question: Where does our money come from, and what are we relying on?
+    effort: one_meeting
+    dependsOn: []
+
+  treasury-ruleset.spending-authority:
+    question: Who can spend how much without asking anyone, and who approves the rest?
+    effort: one_meeting
+    dependsOn: []
+
+  treasury-ruleset.transparency-and-reporting:
+    question: Who can see the accounts, how often, and what may be held back?
+    effort: one_meeting
+    dependsOn: []
+
+  treasury-ruleset.reserve-risk-and-debt-constraints:
+    question: How much may we owe, and how much do we keep aside for a bad year?
+    effort: one_meeting
+    dependsOn: []
+
+  treasury-ruleset.conflict-of-interest-rules:
+    question: What does someone do when a decision about money would benefit them personally?
+    effort: one_meeting
+    dependsOn: []
+
+
+  # ---- Layer 4 · Conflict & Accountability ---------------------------------
+
+  accountability-protocol.triggers:
+    question: What has to happen before the accountability process starts, and who can start it?
+    effort: one_meeting
+    dependsOn: []
+
+  accountability-protocol.investigation-and-review:
+    question: Who looks into what happened, and how do they do it without taking sides?
+    effort: one_meeting
+    dependsOn: []
+
+  accountability-protocol.due-process-guarantees:
+    question: What is someone accused of something entitled to, before anything is decided?
+    effort: one_meeting
+    dependsOn: []
+
+  accountability-protocol.anti-retaliation-protections:
+    question: How do we protect someone who raises a concern from paying for it later?
+    effort: one_meeting
+    dependsOn: []
+
+  accountability-protocol.sanction-and-repair-options:
+    question: What can actually happen as a consequence — and what does repair look like?
+    effort: one_meeting
+    dependsOn: []
+
+  accountability-protocol.conditions-for-restoring-rights:
+    question: How does someone get their standing back once a sanction has run its course?
+    effort: one_meeting
+    dependsOn: []
+
+  accountability-protocol.coordination-with-layer-1:
+    question: When accountability ends in somebody leaving, which rules apply — these or the exit protocol?
+    effort: one_meeting
+    dependsOn: []
+
+  conflict-resolution-ladder.conflict-classification:
+    question: What kinds of conflict do we have names for, so nobody has to invent one mid-argument?
+    effort: one_meeting
+    dependsOn: []
+
+  conflict-resolution-ladder.resolution-ladder-steps:
+    question: What are the steps from a quiet word to a formal process, and in what order?
+    effort: one_meeting
+    dependsOn: []
+
+  conflict-resolution-ladder.non-response-withdrawal-and-deadlock:
+    question: What happens when somebody will not take part, walks out, or we simply get stuck?
+    effort: one_meeting
+    dependsOn: []
+
+  conflict-resolution-ladder.facilitator-selection-and-replacement:
+    question: Who facilitates a conflict, and how does either side get them replaced?
+    effort: one_meeting
+    dependsOn: []
+
+  conflict-resolution-ladder.privacy-and-information-access-boundaries:
+    question: Who is allowed to know what about a conflict, while it runs and afterwards?
+    effort: one_meeting
+    dependsOn: []
+
+  conflict-resolution-ladder.safeguards:
+    question: What changes when the two people in a conflict do not have equal power?
+    effort: one_meeting
+    dependsOn: []
+
+
+  # ---- Layer 5 · Operations ------------------------------------------------
+
+  role-registry.overview:
+    question: Which ongoing jobs have a name and a person, rather than being everybody's and nobody's?
+    effort: one_meeting
+    dependsOn: []
+
+  role-registry.operational-roles:
+    question: For each role that keeps things running, what is it answerable for and who reviews that?
+    effort: one_meeting
+    dependsOn: []
+
+  role-registry.functional-roles:
+    question: Which roles exist for a function rather than for daily work, and what are they for?
+    effort: one_meeting
+    dependsOn: []
+
+  operations-manual.core-operational-processes:
+    question: Which things have to keep happening every week — and are they written down anywhere?
+    effort: one_meeting
+    dependsOn: []
+
+  operations-manual.temporary-and-ad-hoc-responsibilities:
+    question: How do we stop a temporary favour becoming somebody's permanent unpaid job?
+    effort: one_meeting
+    dependsOn: []
+
+  operations-manual.role-and-domain-interfaces:
+    question: Where does one role's work end and the next one's begin?
+    effort: one_meeting
+    dependsOn: []
+
+  operations-manual.workload-boundaries:
+    question: How much can we ask of one person before it is too much, and who gets to say so?
+    effort: one_meeting
+    dependsOn: []
+
+  operations-manual.operational-continuity:
+    question: If any one of us disappeared for a month, what would stop working?
+    effort: one_meeting
+    dependsOn: []
+
+  operations-manual.information-flow-and-anti-gatekeeping:
+    question: How do we make sure nobody has to go through one person to find something out?
+    effort: one_meeting
+    dependsOn: []
+
+  operations-manual.documentation-locations-and-update-procedures:
+    question: Where do we write things down, and how does anyone know they are reading the current version?
+    effort: one_meeting
+    dependsOn: []
+
+  meeting-templates.meeting-type-operations:
+    question: How do we run the meeting where the week's work gets sorted out?
+    effort: one_meeting
+    dependsOn: []
+
+  meeting-templates.meeting-type-governance:
+    question: How do we run the meeting where decisions actually get made?
+    effort: one_meeting
+    dependsOn: []
+
+  meeting-templates.meeting-type-coordination-alignment:
+    question: How do we run the meeting that keeps separate work from drifting apart?
+    effort: one_meeting
+    dependsOn: []
+
+  meeting-templates.meeting-type-reflection-learning:
+    question: How do we run the meeting where we look back rather than forward?
+    effort: one_meeting
+    dependsOn: []
+
+  meeting-templates.meeting-type-conflict-handling:
+    question: How do we run a meeting whose subject is a conflict?
+    effort: one_meeting
+    dependsOn: []
+
+
+  # ---- Layer 6 · Change & Learning -----------------------------------------
+
+  change-protocol.how-changes-are-proposed:
+    question: How does somebody propose changing a rule we have already agreed?
+    effort: one_meeting
+    dependsOn: []
+
+  change-protocol.how-proposals-are-classified:
+    question: How do we tell a small adjustment from a change to who we are?
+    effort: one_meeting
+    dependsOn: []
+
+  change-protocol.review-and-deliberation:
+    question: How long does a proposed change have to sit before we are allowed to adopt it?
+    effort: one_meeting
+    dependsOn: []
+
+  change-protocol.adoption-and-publication:
+    question: When a change is adopted, how does everyone find out, and from when does it apply?
+    effort: one_meeting
+    dependsOn: []
+
+  change-protocol.rejection:
+    question: What happens to a rejected proposal — can it come back, and how soon?
+    effort: one_meeting
+    dependsOn: []
+
+  change-protocol.transition-and-migration:
+    question: When a rule changes, what happens to the situations already running under the old one?
+    effort: one_meeting
+    dependsOn: []
+
+  change-protocol.rollback:
+    question: If a change turns out badly, how do we undo it?
+    effort: one_meeting
+    dependsOn: []
+
+  change-protocol.emergency-changes:
+    question: What may we decide in a hurry, who may do it, and when does it expire?
+    effort: one_meeting
+    dependsOn: []
+
+  change-protocol.experiments:
+    question: How do we try something for a while without it quietly becoming permanent?
+    effort: one_meeting
+    dependsOn: []
+
+  experiment-template.required-fields:
+    question: What does somebody have to write down before we agree to try something?
+    effort: one_meeting
+    dependsOn: []
+
+  experiment-template.expiry-and-renewal:
+    question: When does an experiment end by itself, and what does it take to keep it going?
+    effort: one_meeting
+    dependsOn: []
+
+  learning-log.what-constitutes-a-learnable-event:
+    question: What kind of thing going wrong is worth writing down and learning from?
+    effort: one_meeting
+    dependsOn: []
+
+  learning-log.entry-format:
+    question: What do we record about something we learned, so it is still useful in three years?
+    effort: one_meeting
+    dependsOn: []
+
+  version-history.entry-format:
+    question: What do we record about each version of our rules, so anybody can trace what changed?
+    effort: one_meeting
+    dependsOn: []

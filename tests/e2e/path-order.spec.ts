@@ -27,6 +27,35 @@ test.describe('the path a community can argue with', () => {
 		);
 	});
 
+	test("carries the item's question into the discussion it starts", async ({ page }) => {
+		test.slow();
+		const fixture = await seed(page);
+		await signIn(page, fixture.email, fixture.password);
+		await visit(page, `/c/${fixture.slug}/path`);
+
+		// The first item with no thread yet: a seeded community already has one
+		// open against the top item, and that item's link says "Open".
+		const item = page
+			.getByRole('list', { name: 'What to decide next' })
+			.getByRole('listitem')
+			.filter({ has: page.getByRole('link', { name: 'Start', exact: true }) })
+			.first();
+
+		// The item's own wording, read off the screen rather than assumed: the
+		// point of the test is that whatever the Path says is what the discussion
+		// is called.
+		const question = (await item.locator('p').first().textContent())!.trim();
+		expect(question, 'a path item asks something rather than naming a container').toMatch(/\?$/);
+
+		await item.getByRole('link', { name: 'Start', exact: true }).click();
+
+		// Both halves arrive filled: the clause the item answers, and the question
+		// the whole community has been reading in the Path. Typing it again from a
+		// blank field is how a thread ends up called "membership stuff".
+		await expect(page.getByLabel('Start a discussion')).toHaveValue(question);
+		await expect(page.getByLabel('Clause (optional)')).not.toHaveValue('');
+	});
+
 	test('moves an item by keyboard alone, and says both positions', async ({ page }) => {
 		test.slow();
 		const fixture = await seed(page);

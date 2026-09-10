@@ -1,5 +1,7 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
+	import IconDeviceFloppy from '~icons/tabler/device-floppy';
+	import IconRestore from '~icons/tabler/restore';
 
 	let { data, form } = $props();
 
@@ -92,14 +94,14 @@
 			<div class="flex flex-wrap gap-2">
 				<button
 					type="submit"
-					class="bg-accent-deep text-fg h-9 cursor-pointer rounded-(--radius-control) px-3 font-medium"
-					>Save</button
+					class="bg-accent-deep text-fg inline-flex h-9 cursor-pointer items-center gap-2 rounded-(--radius-control) px-3 font-medium"
+					><IconDeviceFloppy class="h-4 w-4 flex-none" aria-hidden="true" />Save</button
 				>
 				<button
 					type="submit"
 					formaction="?/reset"
-					class="bg-raised border-border hover:border-border-strong h-9 cursor-pointer rounded-(--radius-control) border px-3"
-					>Back to Compass’s numbers</button
+					class="bg-raised border-border hover:border-border-strong inline-flex h-9 cursor-pointer items-center gap-2 rounded-(--radius-control) border px-3"
+					><IconRestore class="h-4 w-4 flex-none" aria-hidden="true" />Back to Compass’s numbers</button
 				>
 			</div>
 		{:else}

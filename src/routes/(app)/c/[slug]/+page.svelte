@@ -69,7 +69,7 @@
 								href={item.discussionId
 									? links.discussion(slug, item.discussionId)
 									: item.clauseKey
-										? links.startDiscussion(slug, item.clauseKey)
+										? links.startDiscussion(slug, item.clauseKey, item.question)
 										: links.discussions(slug)}
 								class="border-border hover:border-border-strong text-fg rounded-(--radius-control) border px-2.5 py-1"
 							>

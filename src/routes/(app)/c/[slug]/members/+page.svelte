@@ -3,6 +3,8 @@
 	import Button from '$lib/components/ui/Button.svelte';
 	import * as m from '$lib/paraglide/messages';
 	import type { PageData } from './$types';
+	import IconUserCog from '~icons/tabler/user-cog';
+	import IconUserMinus from '~icons/tabler/user-minus';
 
 	let { data, form } = $props();
 
@@ -110,7 +112,7 @@
 										>
 									{/each}
 								</select>
-								<Button type="submit" size="sm">{m.members_role_save()}</Button>
+								<Button type="submit" size="sm" icon={IconUserCog}>{m.members_role_save()}</Button>
 							</form>
 
 							<form method="POST" action="?/end" use:enhance>
@@ -119,6 +121,7 @@
 									type="submit"
 									variant="danger"
 									size="sm"
+									icon={IconUserMinus}
 									aria-label={m.members_end_label({ person: member.name })}
 									>{m.members_end()}</Button
 								>

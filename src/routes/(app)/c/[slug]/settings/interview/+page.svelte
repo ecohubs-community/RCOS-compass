@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
 	import { links } from '$lib/links';
+	import IconDeviceFloppy from '~icons/tabler/device-floppy';
 
 	let { data, form } = $props();
 	const slug = $derived(data.community.slug);
@@ -90,8 +91,8 @@
 		{#if data.can.manage}
 			<button
 				type="submit"
-				class="bg-accent-deep text-fg h-9 w-fit cursor-pointer rounded-(--radius-control) px-3 font-medium"
-				>Save</button
+				class="bg-accent-deep text-fg inline-flex h-9 w-fit cursor-pointer items-center gap-2 rounded-(--radius-control) px-3 font-medium"
+				><IconDeviceFloppy class="h-4 w-4 flex-none" aria-hidden="true" />Save</button
 			>
 		{:else}
 			<p class="text-fg-muted text-meta">Only a steward can answer these.</p>

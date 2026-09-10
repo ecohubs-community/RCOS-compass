@@ -1,6 +1,9 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
 	import * as m from '$lib/paraglide/messages';
+	import IconDeviceFloppy from '~icons/tabler/device-floppy';
+	import IconWorld from '~icons/tabler/world';
+	import IconWorldOff from '~icons/tabler/world-off';
 
 	let { data, form } = $props();
 </script>
@@ -32,8 +35,8 @@
 			{#if data.can.manage}
 				<button
 					type="submit"
-					class="bg-raised border-border hover:border-border-strong h-8 cursor-pointer rounded-(--radius-control) border px-3"
-					>Save</button
+					class="bg-raised border-border hover:border-border-strong inline-flex h-8 cursor-pointer items-center gap-2 rounded-(--radius-control) border px-3"
+					><IconDeviceFloppy class="h-4 w-4 flex-none" aria-hidden="true" />Save</button
 				>
 			{/if}
 		</form>
@@ -107,8 +110,14 @@
 								{/if}
 								<button
 									type="submit"
-									class="border-border hover:border-border-strong text-fg h-8 cursor-pointer rounded-(--radius-control) border px-2.5"
-									>{live === artifact.definitions.length ? 'Withdraw' : 'Publish'}</button
+									class="border-border hover:border-border-strong text-fg inline-flex h-8 cursor-pointer items-center gap-2 rounded-(--radius-control) border px-2.5"
+									>{#if live === artifact.definitions.length}<IconWorldOff
+											class="h-4 w-4 flex-none"
+											aria-hidden="true"
+										/>{:else}<IconWorld
+											class="h-4 w-4 flex-none"
+											aria-hidden="true"
+										/>{/if}{live === artifact.definitions.length ? 'Withdraw' : 'Publish'}</button
 								>
 							</form>
 						{/if}
@@ -157,8 +166,10 @@
 								<input type="hidden" name="withdraw" value="1" />
 								<button
 									type="submit"
-									class="text-fg-secondary hover:text-fg text-meta cursor-pointer underline underline-offset-2"
-									>Withdraw</button
+									class="text-fg-secondary hover:text-fg text-meta inline-flex cursor-pointer items-center gap-1.5"
+									><IconWorldOff class="h-3.5 w-3.5 flex-none" aria-hidden="true" /><span
+										class="underline underline-offset-2">Withdraw</span
+									></button
 								>
 							</form>
 						{/if}

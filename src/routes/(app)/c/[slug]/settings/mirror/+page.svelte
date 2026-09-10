@@ -1,5 +1,7 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
+	import IconGitBranch from '~icons/tabler/git-branch';
+	import IconUnlink from '~icons/tabler/unlink';
 
 	let { data, form } = $props();
 
@@ -61,8 +63,10 @@
 				<form method="POST" action="?/unlink" use:enhance class="mt-3">
 					<button
 						type="submit"
-						class="text-fg-secondary hover:text-fg text-meta cursor-pointer underline underline-offset-2"
-						>Stop pushing to this remote</button
+						class="text-fg-secondary hover:text-fg text-meta inline-flex cursor-pointer items-center gap-1.5"
+						><IconUnlink class="h-3.5 w-3.5 flex-none" aria-hidden="true" /><span
+							class="underline underline-offset-2">Stop pushing to this remote</span
+						></button
 					>
 				</form>
 				<p class="text-fg-muted text-meta mt-1">
@@ -122,8 +126,10 @@
 
 			<button
 				type="submit"
-				class="bg-accent-deep text-fg h-9 w-fit cursor-pointer rounded-(--radius-control) px-3 font-medium"
-				>{data.remote ? 'Update the remote' : 'Link this remote'}</button
+				class="bg-accent-deep text-fg inline-flex h-9 w-fit cursor-pointer items-center gap-2 rounded-(--radius-control) px-3 font-medium"
+				><IconGitBranch class="h-4 w-4 flex-none" aria-hidden="true" />{data.remote
+					? 'Update the remote'
+					: 'Link this remote'}</button
 			>
 		</form>
 	{/if}
