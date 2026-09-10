@@ -2,6 +2,7 @@
 	import { links } from '$lib/links';
 	import StatusChip from '$lib/components/ui/StatusChip.svelte';
 	import HelpTip from '$lib/components/ui/HelpTip.svelte';
+	import * as m from '$lib/paraglide/messages';
 
 	let { data } = $props();
 
@@ -33,17 +34,23 @@
 				>
 			{/if}
 		</div>
+		<p class="text-fg-muted text-meta mt-1">{m.dashboard_next_subtitle()}</p>
 
 		{#if data.next.length === 0}
 			<p class="text-fg-secondary mt-3">
 				Nothing is waiting. Every section the standard asks for has an adopted definition.
 			</p>
 		{:else}
-			<ul
+			<ol
 				class="border-border mt-3 divide-y divide-(--color-border) rounded-(--radius-card) border"
 			>
-				{#each data.next as item (item.sectionKey)}
+				{#each data.next as item, index (item.sectionKey)}
 					<li class="flex flex-wrap items-start gap-x-4 gap-y-2 p-4">
+						<span
+							class="text-fg-muted text-meta mt-0.5 w-4 flex-none"
+							data-tabular
+							aria-hidden="true">{index + 1}</span
+						>
 						<div class="min-w-0 flex-1">
 							<h3 class="text-fg font-medium">{item.question}</h3>
 							<p class="text-fg-muted text-meta mt-1">{item.reason}</p>
@@ -79,7 +86,7 @@
 						</div>
 					</li>
 				{/each}
-			</ul>
+			</ol>
 		{/if}
 	</section>
 
@@ -158,7 +165,12 @@
 
 	{#if data.attention.length > 0}
 		<section class="mt-10" aria-labelledby="attention">
-			<h2 id="attention" class="text-section font-medium">Needs attention</h2>
+			<div class="flex items-baseline gap-2">
+				<h2 id="attention" class="text-section font-medium">Needs attention</h2>
+				<span class="text-attention bg-attention-subtle text-meta rounded-full px-1.5" data-tabular
+					>{data.attention.length}</span
+				>
+			</div>
 			<ul class="mt-3 flex flex-col gap-2">
 				{#each data.attention as item (item.kind)}
 					<li

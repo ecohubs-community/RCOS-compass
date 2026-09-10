@@ -63,7 +63,9 @@
 				<li>
 					<a
 						href={panel.href}
-						aria-current={page.url.pathname === panel.href ? 'page' : undefined}
+						aria-current={new URL(panel.href, page.url).pathname === page.url.pathname
+							? 'page'
+							: undefined}
 						class="aria-[current=page]:bg-raised aria-[current=page]:text-fg text-fg-secondary hover:text-fg flex items-center gap-2 rounded-(--radius-control) px-2.5 py-1.5 whitespace-nowrap"
 					>
 						<PanelIcon class="h-4 w-4 flex-none" aria-hidden="true" />

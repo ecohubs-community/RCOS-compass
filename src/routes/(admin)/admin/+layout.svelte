@@ -22,7 +22,9 @@
 					<li>
 						<a
 							href={item.href}
-							aria-current={current.startsWith(item.href) ? 'page' : undefined}
+							aria-current={current.startsWith(new URL(item.href, page.url).pathname)
+								? 'page'
+								: undefined}
 							class="rounded-(--radius-control) px-2.5 py-1 aria-[current=page]:bg-raised aria-[current=page]:text-fg text-fg-secondary hover:text-fg"
 						>
 							{item.label}

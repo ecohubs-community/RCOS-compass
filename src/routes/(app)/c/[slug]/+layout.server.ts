@@ -60,7 +60,17 @@ export const load: LayoutServerLoad = ({ locals, depends }) => {
 			locale: ctx.community.locale,
 			timezone: ctx.community.timezone
 		},
-		membership: { role: ctx.membership.role, isOwner: ctx.membership.isOwner },
+		membership: {
+			role: ctx.membership.role,
+			isOwner: ctx.membership.isOwner,
+			/**
+			 * What to call the reader in the sidebar's own footer. The community
+			 * name wins over the account name where one is set, because that is the
+			 * name the rest of this community sees against everything they wrote.
+			 */
+			name: ctx.membership.displayName ?? ctx.user.name,
+			seq: ctx.membership.seq
+		},
 		readOnly: locals.readOnly ?? null
 	};
 };

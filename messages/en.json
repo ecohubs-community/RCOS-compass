@@ -143,5 +143,10 @@
 	"invitation_sign_in_body": "Sign in with {email} — the address this invitation was sent to — and it will be waiting.",
 	"nav_settings": "Settings",
 	"nav_interview": "About this community",
-	"settings_nav_label": "Settings"
+	"settings_nav_label": "Settings",
+	"topbar_search_placeholder": "Search decisions, clauses, definitions…",
+	"topbar_search_label": "Search this community's governance",
+	"topbar_new_discussion": "New discussion",
+	"topbar_breadcrumb": "Where you are",
+	"dashboard_next_subtitle": "The questions worth answering before anything else · ordered by the Path rules"
 }

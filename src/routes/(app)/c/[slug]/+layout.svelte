@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { page } from '$app/state';
 	import Footer from '$lib/components/legal/Footer.svelte';
+	import TopBar from '$lib/components/TopBar.svelte';
 	import GlossaryPanel from '$lib/components/GlossaryPanel.svelte';
 	import * as m from '$lib/paraglide/messages';
 	import { links } from '$lib/links';
@@ -13,7 +14,6 @@
 	import IconMessageReport from '~icons/tabler/message-report';
 	import IconMessages from '~icons/tabler/messages';
 	import IconRoute from '~icons/tabler/route';
-	import IconSearch from '~icons/tabler/search';
 	import IconSettings from '~icons/tabler/settings';
 	import IconUsers from '~icons/tabler/users';
 	import IconVocabulary from '~icons/tabler/vocabulary';
@@ -110,8 +110,64 @@
 		}
 	]);
 
+	/**
+	 * The path an href points at, whatever shape it arrives in.
+	 *
+	 * `resolve` returns links *relative* to the current page — `../../c/x/path`
+	 * from a settings screen — because `paths.relative` defaults to true and that
+	 * is what makes a build portable. Comparing one of those to
+	 * `page.url.pathname` is comparing a relative path to an absolute one, so it
+	 * was false on every item on every screen: the sidebar has never marked the
+	 * page you are on, in dev or in production, and neither the a11y suite nor
+	 * anybody reading the code noticed, because the code reads as though it does.
+	 */
+	const pathOf = (href: string) => new URL(href, page.url).pathname;
+
 	const isCurrent = (href: string, exact = false) =>
-		exact ? page.url.pathname === href : page.url.pathname.startsWith(href);
+		exact ? pathOf(href) === page.url.pathname : page.url.pathname.startsWith(pathOf(href));
+
+	/**
+	 * Where the reader is, in the nav's own words, for the breadcrumb.
+	 *
+	 * Longest matching prefix wins, so `/settings/language` says Settings rather
+	 * than stopping at the dashboard. The three additions are the screens the nav
+	 * does not list but does own: a definition belongs under the standard, a
+	 * decision under the register, and search has been a field rather than a
+	 * destination since the box moved into the shell.
+	 */
+	const crumbs = $derived([
+		...groups.flatMap((group) =>
+			group.items.map((item) => ({ href: item.href, label: item.label }))
+		),
+		{ href: links.search(slug), label: m.nav_search() },
+		{ href: `${links.dashboard(slug)}/definitions`, label: m.nav_standard() },
+		{ href: `${links.dashboard(slug)}/d`, label: m.nav_decisions() }
+	]);
+
+	const crumb = $derived(
+		crumbs
+			.map((entry) => ({ path: pathOf(entry.href), label: entry.label }))
+			.filter((entry) => page.url.pathname.startsWith(entry.path))
+			.sort((a, b) => b.path.length - a.path.length)[0]?.label ?? m.nav_dashboard()
+	);
+
+	/**
+	 * The role in the community's own vocabulary, from the same map the member
+	 * list uses — the raw column value is `steward`, and a sidebar that prints a
+	 * database value is a sidebar that will print `member` in a German community.
+	 */
+	const ROLE_LABELS: Record<string, () => string> = {
+		member: m.members_role_member,
+		steward: m.members_role_steward
+	};
+
+	const personInitials = $derived(
+		String(data.membership.name ?? '')
+			.split(/\s+/)
+			.slice(0, 2)
+			.map((word: string) => word[0]?.toUpperCase() ?? '')
+			.join('')
+	);
 
 	const initials = $derived(
 		data.community.name
@@ -143,27 +199,6 @@
 			>
 			<span class="text-fg truncate font-medium">{data.community.name}</span>
 		</div>
-
-		<!--
-			Search in the shell rather than on a page you have to find first (UI spec
-			§4.9): the moment a member wants it is while reading something else, and
-			a lookup you have to navigate to is one nobody uses mid-argument.
-		-->
-		<form method="GET" action={links.search(slug)} class="border-border border-b px-3 py-2.5">
-			<div class="relative">
-				<IconSearch
-					class="text-fg-muted pointer-events-none absolute top-1/2 left-2.5 h-4 w-4 -translate-y-1/2"
-					aria-hidden="true"
-				/>
-				<input
-					type="search"
-					name="q"
-					placeholder="Search this community"
-					aria-label="Search this community's governance"
-					class="border-border bg-raised text-fg placeholder:text-fg-muted h-8 w-full min-w-0 rounded-(--radius-control) border py-1 pr-2.5 pl-8 text-[13px]"
-				/>
-			</div>
-		</form>
 
 		<!--
 			eslint-disable svelte/no-navigation-without-resolve --
@@ -227,9 +262,23 @@
 			</div>
 		{/if}
 
+		<!--
+			The reader, named. The mockup's sidebar ends with an avatar, a name and a
+			role; this ended with a role and nothing else, so the one row on the
+			screen that answers "who am I signed in as" did not answer it.
+		-->
 		<div class="border-border flex flex-none items-center gap-2 border-t px-3 py-2.5">
-			<span class="text-fg-secondary text-meta truncate">{data.membership.role}</span>
-			<form method="POST" action="/sign-out" class="ml-auto">
+			<span
+				class="bg-raised text-fg-secondary text-meta flex h-5.5 w-5.5 flex-none items-center justify-center rounded-full font-semibold"
+				aria-hidden="true">{personInitials}</span
+			>
+			<span class="min-w-0 flex-1">
+				<span class="text-fg block truncate">{data.membership.name}</span>
+				<span class="text-fg-muted text-meta block truncate"
+					>{(ROLE_LABELS[data.membership.role] ?? (() => data.membership.role))()}</span
+				>
+			</span>
+			<form method="POST" action="/sign-out">
 				<button
 					type="submit"
 					class="text-fg-muted hover:text-fg text-meta flex cursor-pointer items-center gap-1.5"
@@ -242,6 +291,7 @@
 	</aside>
 
 	<div class="flex min-w-0 flex-1 flex-col">
+		<TopBar community={data.community.name} {slug} {crumb} />
 		{#if data.readOnly}
 			<p
 				role="status"

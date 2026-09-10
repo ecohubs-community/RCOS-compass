@@ -141,5 +141,10 @@
 	"invitation_sign_in_body": "Melde dich mit {email} an — der Adresse, an die diese Einladung ging — dann liegt sie hier bereit.",
 	"nav_settings": "Einstellungen",
 	"nav_interview": "Über diese Gemeinschaft",
-	"settings_nav_label": "Einstellungen"
+	"settings_nav_label": "Einstellungen",
+	"topbar_search_placeholder": "Entscheidungen, Klauseln, Definitionen durchsuchen …",
+	"topbar_search_label": "Die Governance dieser Gemeinschaft durchsuchen",
+	"topbar_new_discussion": "Neue Diskussion",
+	"topbar_breadcrumb": "Wo ihr gerade seid",
+	"dashboard_next_subtitle": "Die Fragen, die vor allem anderen eine Antwort verdienen · geordnet nach den Regeln des Wegs"
 }

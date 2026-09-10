@@ -141,5 +141,10 @@
 	"invitation_sign_in_body": "Inicia sesión con {email}, la dirección a la que se envió esta invitación, y aquí te estará esperando.",
 	"nav_settings": "Ajustes",
 	"nav_interview": "Sobre esta comunidad",
-	"settings_nav_label": "Ajustes"
+	"settings_nav_label": "Ajustes",
+	"topbar_search_placeholder": "Buscar decisiones, cláusulas, definiciones…",
+	"topbar_search_label": "Buscar en la gobernanza de esta comunidad",
+	"topbar_new_discussion": "Nuevo debate",
+	"topbar_breadcrumb": "Dónde estáis",
+	"dashboard_next_subtitle": "Las preguntas que merece la pena responder antes que ninguna otra · ordenadas según las reglas del Camino"
 }
