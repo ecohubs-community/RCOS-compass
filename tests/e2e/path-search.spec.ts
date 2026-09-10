@@ -29,7 +29,10 @@ test.describe('a community that needs to know what to do first', () => {
 		await visit(page, `/c/${slug}/path`);
 		// A community that has told us nothing is told that, rather than being
 		// left to assume the list is tailored to it.
-		await expect(page.getByText(/not tailored|structural/i)).toBeVisible();
+		// The sentence itself rather than the word: "structural" now also appears in
+		// the presets block, which explains that every preset leaves the structural
+		// order alone.
+		await expect(page.getByText('This order is structural', { exact: false })).toBeVisible();
 
 		// --- the interview ------------------------------------------------------
 		await page

@@ -82,6 +82,83 @@ test.describe('the path a community can argue with', () => {
 		await expect(page.getByText('The ordering puts it at')).toBeHidden();
 	});
 
+	test('keeps a reorder private until a steward publishes it', async ({ page, browser }) => {
+		test.slow();
+		const fixture = await seed(page);
+		await signIn(page, fixture.email, fixture.password);
+		await visit(page, `/c/${fixture.slug}/path`);
+
+		const items = page.getByRole('list', { name: 'What to decide next' }).getByRole('listitem');
+		const second = (await items.nth(1).locator('p').first().textContent())!.trim();
+
+		await page.getByRole('button', { name: `Move “${second}” up` }).click();
+		await expect(items.first()).toContainText(second);
+
+		// The banner the mockup draws, in the mockup's own words.
+		await expect(page.getByText('only you can see this order')).toBeVisible();
+		await expect(page.getByRole('button', { name: 'Publish this order' })).toBeVisible();
+
+		// A second member is looking at the community's order, not the steward's.
+		const other = await browser.newContext();
+		const theirs = await other.newPage();
+		await signIn(theirs, fixture.member.email, fixture.member.password);
+		await visit(theirs, `/c/${fixture.slug}/path`);
+		const theirItems = theirs
+			.getByRole('list', { name: 'What to decide next' })
+			.getByRole('listitem');
+		await expect(theirItems.first()).not.toContainText(second);
+		await expect(theirs.getByText('only you can see this order')).toBeHidden();
+
+		await page.getByRole('button', { name: 'Publish this order' }).click();
+		await expect(page.getByText('only you can see this order')).toBeHidden();
+
+		// Now it is everybody's.
+		await visit(theirs, `/c/${fixture.slug}/path`);
+		await expect(theirItems.first()).toContainText(second);
+		await expect(theirs.getByText('The community placed this here')).toBeVisible();
+		await other.close();
+	});
+
+	test("lets a member order their own list, and not the community's", async ({ page }) => {
+		test.slow();
+		const fixture = await seed(page);
+		await signIn(page, fixture.member.email, fixture.member.password);
+		await visit(page, `/c/${fixture.slug}/path`);
+
+		const items = page.getByRole('list', { name: 'What to decide next' }).getByRole('listitem');
+		const second = (await items.nth(1).locator('p').first().textContent())!.trim();
+		await page.getByRole('button', { name: `Move “${second}” up` }).click();
+
+		await expect(items.first()).toContainText(second);
+		await expect(page.getByText('only you can see this order')).toBeVisible();
+		// `path.publish` is a steward's; the banner says who does it instead of
+		// offering a button that would refuse.
+		await expect(page.getByRole('button', { name: 'Publish this order' })).toHaveCount(0);
+		await expect(page.getByText('A steward publishes an order for everybody')).toBeVisible();
+
+		await page.getByRole('button', { name: 'Discard changes' }).click();
+		await expect(page.getByText('only you can see this order')).toBeHidden();
+		await expect(items.first()).not.toContainText(second);
+	});
+
+	test('offers the mockups’ three starting points, and says what they keep', async ({ page }) => {
+		test.slow();
+		const fixture = await seed(page);
+		await signIn(page, fixture.email, fixture.password);
+		await visit(page, `/c/${fixture.slug}/path`);
+
+		await expect(page.getByRole('heading', { name: 'What should we tackle first?' })).toBeVisible();
+		await page.getByRole('button', { name: 'The riskiest gaps for us' }).click();
+		await expect(page.getByText('Order updated')).toBeVisible();
+
+		// A preset is the same setting the settings screen edits, so the numbers
+		// are visible there rather than being a second hidden opinion.
+		await visit(page, `/c/${fixture.slug}/settings/path`);
+		await expect(page.getByLabel('What you told us about yourselves')).toHaveValue('60');
+		// And it left the structural order alone, which is the promise on the tin.
+		await expect(page.getByLabel('Answer what unblocks other things first')).toHaveValue('250');
+	});
+
 	test('shows the weights, says what each is doing, and keeps the ones you did not touch', async ({
 		page
 	}) => {

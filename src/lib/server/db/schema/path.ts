@@ -108,6 +108,42 @@ export const pathOverride = sqliteTable(
 	]
 );
 
+/**
+ * One member's own order, before anybody else sees it.
+ *
+ * `docs/04-security.md` §1: "any member re-orders the Path **privately** — the
+ * mockup already says *only you can see this order*. Only a steward presses
+ * **Publish this order**." `path_override` is the published half and is keyed by
+ * community; this is the private half and is keyed by member as well, which is
+ * the whole difference between the two tables.
+ *
+ * Rows are a draft, not a record: publishing moves them into `path_override` and
+ * deletes them, and discarding deletes them. Nothing here is ever read by
+ * anybody but the member who wrote it.
+ */
+export const pathPrivateOverride = sqliteTable(
+	'path_private_override',
+	{
+		communityId: text('community_id')
+			.notNull()
+			.references(() => community.id, { onDelete: 'cascade' }),
+		/** Whose draft. Deleting the account takes the draft with it. */
+		userId: text('user_id')
+			.notNull()
+			.references(() => user.id, { onDelete: 'cascade' }),
+		sectionKey: text('section_key').notNull(),
+		position: integer('position').notNull(),
+		weightsIdAtPlacement: text('weights_id_at_placement').references(() => pathWeights.id, {
+			onDelete: 'set null'
+		}),
+		placedAt: integer('placed_at', { mode: 'timestamp_ms' }).notNull()
+	},
+	(table) => [
+		uniqueIndex('path_private_override_idx').on(table.communityId, table.userId, table.sectionKey),
+		check('path_private_override_position_ck', sql`${table.position} >= 0`)
+	]
+);
+
 /** The five answers. `null` is "not answered yet", which is not the same as "no". */
 export const MEETS_VALUES = ['in_person', 'online', 'both'] as const;
 export type Meets = (typeof MEETS_VALUES)[number];
@@ -154,6 +190,7 @@ export const riskProfile = sqliteTable(
 
 export type PathWeights = typeof pathWeights.$inferSelect;
 export type PathOverride = typeof pathOverride.$inferSelect;
+export type PathPrivateOverride = typeof pathPrivateOverride.$inferSelect;
 export type RiskProfile = typeof riskProfile.$inferSelect;
 
 /**

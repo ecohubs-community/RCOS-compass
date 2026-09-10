@@ -69,26 +69,64 @@ contributions that placed it. It MUST NOT be written or stored separately.
 - **WHEN** a weight is changed so that a different input dominates
 - **THEN** the item's reason changes with its position
 
+### Requirement: A member's own order is theirs until a steward publishes it
+
+Any member MUST be able to reorder the path for themselves. That order MUST NOT
+be visible to anybody else, and MUST be discardable in one act. Only a steward
+MUST be able to publish it as the community's order, and publishing MUST be
+recorded in the change log with who did it.
+
+#### Scenario: A member moves something
+- **WHEN** a member with `path.reorder.private` places an item
+- **THEN** their own path shows it there, marked as their placement
+- **AND** no other member's path changes
+
+#### Scenario: A member tries to publish
+- **WHEN** a member without `path.publish` publishes their order
+- **THEN** it is refused and their draft is left intact rather than half-applied
+
+#### Scenario: A steward publishes their order
+- **WHEN** a steward publishes
+- **THEN** every member's path shows those placements as the community's
+- **AND** the steward's draft is empty
+- **AND** the change log records who published and how many placements
+
+#### Scenario: A draft is discarded
+- **WHEN** a member discards their order
+- **THEN** their path returns to the community's, and nothing else changes
+
+### Requirement: Named starting points set the four weights, and say what they keep
+
+The path MUST offer named starting points that write the ordinary weights rather
+than a second ordering. Each one MUST leave the structural inputs at their
+shipped values, so that choosing one cannot quietly stop the list being workable
+in order.
+
+#### Scenario: A steward picks a starting point
+- **WHEN** a named starting point is applied
+- **THEN** the weights change, visibly, on the screen that explains them
+- **AND** `defaultsPreserveStructure` still holds
+
 ### Requirement: A community may overrule the ordering, and see what it overruled
 
 A steward MUST be able to place an item by hand, and the override MUST survive
 re-computation. The item MUST continue to show where the ordering would have put
 it.
 
-The first draft of this requirement said *a member*, which contradicts the
-permission matrix P1 already settled: `path.reorder.private` is a member's own
-view of the order, `path.publish` is putting an order in front of everybody, and
-`path_override` is keyed by community rather than by member — so every placement
-it can store is the second kind. A per-member ordering would need a column this
-table does not have, and is not part of this change.
+Both halves of the permission matrix now exist. `path.reorder.private` is a
+member's own view of the order and writes to `path_private_override`, which is
+keyed by member as well as by community; `path.publish` is putting an order in
+front of everybody and writes to `path_override`, which is keyed by community
+alone. The earlier note here said the per-member half needed a column the table
+did not have; it has its own table instead.
 
 #### Scenario: A steward drags an item to the top
 - **WHEN** an item is moved by hand
 - **THEN** it stays there when the path is recomputed
 - **AND** it shows both its placed position and its computed one
 
-#### Scenario: A member tries to move one
-- **WHEN** a member without `path.publish` places an item
+#### Scenario: A member tries to place an item for everybody
+- **WHEN** a member without `path.publish` writes to the community's order
 - **THEN** it is refused and the ordering is unchanged
 
 #### Scenario: An override is removed

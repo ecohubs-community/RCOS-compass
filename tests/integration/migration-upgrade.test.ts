@@ -38,15 +38,28 @@ afterEach(() => {
 	rmSync(dir, { recursive: true, force: true });
 });
 
-/** A migrations folder holding everything up to but excluding the newest. */
-function previousMigrations(): { folder: string; newest: string } {
+/**
+ * A migrations folder holding everything before one of them.
+ *
+ * `upTo` defaults to the newest, which is what the two general guards want: seed
+ * at the release before, apply the release, check nothing vanished. A test about
+ * one particular migration passes that migration's tag instead — otherwise it
+ * silently stops testing anything the day another migration is added, or, as
+ * happened here, starts failing because its seed data no longer fits a schema
+ * that has moved on.
+ */
+function previousMigrations(upTo?: string): { folder: string; newest: string } {
 	const journal = JSON.parse(readFileSync(join(ROOT, 'drizzle/meta/_journal.json'), 'utf8')) as {
 		entries: { tag: string }[];
 	};
-	const entries = journal.entries;
+	const all = journal.entries;
+	const at = upTo ? all.findIndex((entry) => entry.tag === upTo) : all.length - 1;
+	if (at < 0) throw new Error(`No migration tagged ${upTo}`);
+
+	const entries = all.slice(0, at + 1);
 	const newest = entries.at(-1)!.tag;
 
-	const folder = join(dir, 'previous');
+	const folder = join(dir, `previous-${newest}`);
 	mkdirSync(join(folder, 'meta'), { recursive: true });
 	for (const entry of entries.slice(0, -1)) {
 		cpSync(join(ROOT, 'drizzle', `${entry.tag}.sql`), join(folder, `${entry.tag}.sql`));
@@ -142,7 +155,11 @@ describe('upgrading a database that already has rows in it', () => {
 	});
 
 	it('numbers every membership that was already there, oldest first', () => {
-		const { folder } = previousMigrations();
+		// Pinned: this is about the migration that introduced `membership.seq`, and
+		// it seeds memberships with no number. Run against "everything but the
+		// newest" it would insert two rows into a schema that already numbers
+		// them, and collide on the unique index rather than test anything.
+		const { folder } = previousMigrations('0015_loving_thing');
 		const file = join(dir, 'seq.db');
 
 		const before = new Database(file);

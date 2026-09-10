@@ -182,5 +182,20 @@
 	"path_drag": "Zum Sortieren ziehen",
 	"path_more_below": "{count} weitere darunter.",
 	"path_show_all": "Alle {total} anzeigen",
-	"path_show_fewer": "Weniger anzeigen"
+	"path_show_fewer": "Weniger anzeigen",
+	"path_draft_heading": "Ihr habt {count} verschoben — diese Reihenfolge sieht nur du.",
+	"path_draft_steward": "Veröffentliche sie, dann sehen alle Mitglieder sie auf ihrer Übersicht.",
+	"path_draft_member": "Eine Steward-Person veröffentlicht eine Reihenfolge für alle. Deine bleibt deine, bis das jemand tut.",
+	"path_discard": "Änderungen verwerfen",
+	"path_publish": "Diese Reihenfolge veröffentlichen",
+	"path_published": "Veröffentlicht. Alle Mitglieder sehen jetzt diese Reihenfolge.",
+	"path_unpin": "Die Platzierung der Gemeinschaft hier aufheben",
+	"path_placed_by_community": "Die Gemeinschaft hat das hierher gesetzt. Die Sortierung setzt es auf {position}.",
+	"path_presets_heading": "Was nehmen wir uns zuerst vor?",
+	"path_presets_help": "Jede dieser Optionen ändert die Stärken unter „Wie der Weg sortiert wird“. Alle drei lassen die strukturelle Reihenfolge intakt — sie ändern, was innerhalb davon zieht.",
+	"path_preset_unblock": "Was anderes freischaltet",
+	"path_preset_risky": "Die riskantesten Lücken für uns",
+	"path_preset_going": "Was ohnehin schon läuft",
+	"path_preset_tune": "Stärken feinjustieren",
+	"path_preset_applied": "Reihenfolge aktualisiert. „Wie der Weg sortiert wird“ zeigt, was sich geändert hat."
 }

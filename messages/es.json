@@ -182,5 +182,20 @@
 	"path_drag": "Arrastra para reordenar",
 	"path_more_below": "{count} más debajo.",
 	"path_show_all": "Ver las {total}",
-	"path_show_fewer": "Ver menos"
+	"path_show_fewer": "Ver menos",
+	"path_draft_heading": "Has movido {count} — este orden solo lo ves tú.",
+	"path_draft_steward": "Publícalo y cada miembro lo verá en su panel.",
+	"path_draft_member": "Una persona steward publica un orden para todos. El tuyo sigue siendo tuyo hasta que alguien lo haga.",
+	"path_discard": "Descartar los cambios",
+	"path_publish": "Publicar este orden",
+	"path_published": "Publicado. Ahora todos los miembros ven este orden.",
+	"path_unpin": "Quitar aquí la colocación de la comunidad",
+	"path_placed_by_community": "La comunidad lo colocó aquí. El orden lo pone en {position}.",
+	"path_presets_heading": "¿Por dónde empezamos?",
+	"path_presets_help": "Cada una de estas cambia las intensidades de «Cómo se ordena el camino». Las tres dejan intacto el orden estructural: cambian lo que tira dentro de él.",
+	"path_preset_unblock": "Lo que desbloquea otras cosas",
+	"path_preset_risky": "Los huecos de más riesgo para nosotras",
+	"path_preset_going": "Lo que ya tenemos en marcha",
+	"path_preset_tune": "Ajustar las intensidades",
+	"path_preset_applied": "Orden actualizado. «Cómo se ordena el camino» muestra qué ha cambiado."
 }

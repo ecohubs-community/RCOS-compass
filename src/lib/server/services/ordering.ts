@@ -6,7 +6,13 @@ import { newId } from '../db/id.js';
 import { changeLog } from '../db/schema/decisions.js';
 import { discussion } from '../db/schema/discussions.js';
 import { evidence } from '../db/schema/documents.js';
-import { DEFAULT_WEIGHTS, pathOverride, pathWeights, type PathWeights } from '../db/schema/path.js';
+import {
+	DEFAULT_WEIGHTS,
+	pathOverride,
+	pathPrivateOverride,
+	pathWeights,
+	type PathWeights
+} from '../db/schema/path.js';
 import type { StandardView } from '../standard/index.js';
 import { raisedSections } from './risk-profile.js';
 
@@ -504,9 +510,213 @@ export function clearOverride(ctx: Ctx, sectionKey: string, options: { db?: Db }
 		.run();
 }
 
+/**
+ * Three named starting points for the four strengths.
+ *
+ * The mockups put "What should we tackle first?" on the Path with exactly these
+ * three answers, and they map onto three of the four inputs — which is why they
+ * are presets over machinery that already exists rather than a second ordering
+ * system.
+ *
+ * Every one of them leaves `dependency` and `severity` at the shipped values.
+ * That is not timidity: `defaultsPreserveStructure` holds while
+ * `dependency > positions × severity`, and for core 0.1 that is 250 > 20 × 10.
+ * Move either and the list stops being something a community can work straight
+ * through, which no preset should do quietly. What they change is what pulls
+ * *within* the structural order, and there the difference is worth about five
+ * positions — visible, argued for, and undone by picking another.
+ */
+export const DEFAULT_WEIGHTS_PRESETS = [
+	{
+		id: 'unblock',
+		weights: { dependency: 250, severity: 10, risk: 10, attention: 8 }
+	},
+	{
+		id: 'risky',
+		weights: { dependency: 250, severity: 10, risk: 60, attention: 8 }
+	},
+	{
+		id: 'going',
+		weights: { dependency: 250, severity: 10, risk: 10, attention: 60 }
+	}
+] as const satisfies readonly { id: string; weights: Weights }[];
+
+export type WeightsPresetId = (typeof DEFAULT_WEIGHTS_PRESETS)[number]['id'];
+
+/**
+ * Moving something in your own copy of the list.
+ *
+ * `path.reorder.private` is a member right and `path.publish` is a steward's —
+ * P1's matrix decided that and `docs/04-security.md` §1 says why: an ordering is
+ * an argument about what matters, and everybody gets to make one privately
+ * before anybody makes one for the whole community.
+ */
+export function placePrivate(
+	ctx: Ctx,
+	sectionKey: string,
+	position: number,
+	options: { db?: Db } = {}
+): void {
+	requirePermission(ctx, 'path.reorder.private');
+	requireWritableCommunity(ctx);
+	if (!Number.isInteger(position) || position < 0) error(400, 'That is not a position.');
+
+	const db = options.db ?? getDb();
+	const active = db
+		.select({ id: pathWeights.id })
+		.from(pathWeights)
+		.where(and(eq(pathWeights.communityId, ctx.community.id), eq(pathWeights.active, true)))
+		.get();
+
+	const row = {
+		communityId: ctx.community.id,
+		userId: ctx.user.id,
+		sectionKey,
+		position,
+		weightsIdAtPlacement: active?.id ?? null,
+		placedAt: new Date(ctx.now())
+	};
+
+	db.insert(pathPrivateOverride)
+		.values(row)
+		.onConflictDoUpdate({
+			target: [
+				pathPrivateOverride.communityId,
+				pathPrivateOverride.userId,
+				pathPrivateOverride.sectionKey
+			],
+			set: row
+		})
+		.run();
+}
+
+/** Drop one of your own placements. Nobody else could see it anyway. */
+export function releasePrivate(ctx: Ctx, sectionKey: string, options: { db?: Db } = {}): void {
+	requirePermission(ctx, 'path.reorder.private');
+	const db = options.db ?? getDb();
+	db.delete(pathPrivateOverride)
+		.where(
+			and(
+				eq(pathPrivateOverride.communityId, ctx.community.id),
+				eq(pathPrivateOverride.userId, ctx.user.id),
+				eq(pathPrivateOverride.sectionKey, sectionKey)
+			)
+		)
+		.run();
+}
+
+/** How many placements the reader is sitting on, for the banner to count. */
+export function privateOrderCount(db: Db, communityId: string, userId: string): number {
+	return db
+		.select()
+		.from(pathPrivateOverride)
+		.where(
+			and(eq(pathPrivateOverride.communityId, communityId), eq(pathPrivateOverride.userId, userId))
+		)
+		.all().length;
+}
+
+/** Throw the whole draft away. */
+export function discardPrivateOrder(ctx: Ctx, options: { db?: Db } = {}): void {
+	requirePermission(ctx, 'path.reorder.private');
+	const db = options.db ?? getDb();
+	db.delete(pathPrivateOverride)
+		.where(
+			and(
+				eq(pathPrivateOverride.communityId, ctx.community.id),
+				eq(pathPrivateOverride.userId, ctx.user.id)
+			)
+		)
+		.run();
+}
+
+/**
+ * Make one member's order the community's, in one transaction.
+ *
+ * Each placement is copied into `path_override` and the draft is deleted, so a
+ * publish that half-succeeded cannot leave a member looking at a draft that is
+ * already everybody's. It is written to the change log like any other act with
+ * a name on it: the Path is what the community works from, and an order that
+ * changed without a record of who changed it is the kind of quiet authority
+ * this product exists to remove.
+ */
+export function publishPrivateOrder(ctx: Ctx, options: { db?: Db } = {}): number {
+	requirePermission(ctx, 'path.publish');
+	requireWritableCommunity(ctx);
+
+	const db = options.db ?? getDb();
+	const now = new Date(ctx.now());
+
+	return db.transaction((tx) => {
+		const mine = tx
+			.select()
+			.from(pathPrivateOverride)
+			.where(
+				and(
+					eq(pathPrivateOverride.communityId, ctx.community.id),
+					eq(pathPrivateOverride.userId, ctx.user.id)
+				)
+			)
+			.all();
+		if (mine.length === 0) return 0;
+
+		for (const row of mine) {
+			const published = {
+				communityId: ctx.community.id,
+				sectionKey: row.sectionKey,
+				position: row.position,
+				weightsIdAtPlacement: row.weightsIdAtPlacement,
+				placedBy: ctx.user.id,
+				placedAt: now
+			};
+			tx.insert(pathOverride)
+				.values(published)
+				.onConflictDoUpdate({
+					target: [pathOverride.communityId, pathOverride.sectionKey],
+					set: published
+				})
+				.run();
+		}
+
+		tx.delete(pathPrivateOverride)
+			.where(
+				and(
+					eq(pathPrivateOverride.communityId, ctx.community.id),
+					eq(pathPrivateOverride.userId, ctx.user.id)
+				)
+			)
+			.run();
+
+		tx.insert(changeLog)
+			.values({
+				id: newId(),
+				communityId: ctx.community.id,
+				at: now,
+				actorId: ctx.user.id,
+				kind: 'path.reordered',
+				subjectType: 'path_override',
+				subjectId: ctx.community.id,
+				summary: `Published a new order for ${mine.length} question${mine.length === 1 ? '' : 's'}`,
+				payload: { sections: mine.map((row) => ({ key: row.sectionKey, position: row.position })) }
+			})
+			.run();
+
+		return mine.length;
+	});
+}
+
 export type Override = {
-	/** Where the community put it. */
+	/** Where it was put. */
 	position: number;
+	/**
+	 * Whose placement this is.
+	 *
+	 * `true` is the reader's own draft, which nobody else can see; `false` is the
+	 * published order every member gets. The screen has to say which, because
+	 * "you moved this here" and "this community moved this here" are different
+	 * facts and only one of them is yours to undo.
+	 */
+	mine: boolean;
 	/** Where the ordering would have put it. Both, always. */
 	computedPosition: number;
 	/**
@@ -529,13 +739,42 @@ export type Override = {
 export function applyOverrides<T extends { sectionKey: string }>(
 	db: Db,
 	communityId: string,
-	computed: T[]
+	computed: T[],
+	/** Whose draft to lay over the published order, when there is one. */
+	viewerId: string | null = null
 ): (T & { override: Override | null })[] {
-	const overrides = db
+	const published = db
 		.select()
 		.from(pathOverride)
 		.where(eq(pathOverride.communityId, communityId))
-		.all();
+		.all()
+		.map((row) => ({ ...row, mine: false }));
+
+	/**
+	 * The reader's own placements, laid over the published ones.
+	 *
+	 * Their draft wins per section: a member who moved something has said where
+	 * they want it, and showing them the published position instead would make
+	 * the move look like it failed.
+	 */
+	const drafted = viewerId
+		? db
+				.select()
+				.from(pathPrivateOverride)
+				.where(
+					and(
+						eq(pathPrivateOverride.communityId, communityId),
+						eq(pathPrivateOverride.userId, viewerId)
+					)
+				)
+				.all()
+				.map((row) => ({ ...row, mine: true }))
+		: [];
+
+	const overrides = [
+		...published.filter((row) => !drafted.some((d) => d.sectionKey === row.sectionKey)),
+		...drafted
+	];
 	if (overrides.length === 0) return computed.map((item) => ({ ...item, override: null }));
 
 	const activeId =
@@ -564,6 +803,7 @@ export function applyOverrides<T extends { sectionKey: string }>(
 			...item,
 			override: {
 				position: row.position,
+				mine: row.mine,
 				computedPosition: computedPosition.get(item.sectionKey)!,
 				stale: row.weightsIdAtPlacement !== activeId
 			}

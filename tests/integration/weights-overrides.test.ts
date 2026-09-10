@@ -7,7 +7,12 @@ import { DEFAULT_WEIGHTS } from '../../src/lib/server/db/schema/path.js';
 import { communityStandard } from '../../src/lib/server/db/schema/tenancy.js';
 import {
 	clearOverride,
+	discardPrivateOrder,
 	placeOverride,
+	placePrivate,
+	privateOrderCount,
+	publishPrivateOrder,
+	releasePrivate,
 	setWeights,
 	weightsHistory
 } from '../../src/lib/server/services/ordering.js';
@@ -145,7 +150,14 @@ describe('an override is the community disagreeing, on the record', () => {
 
 		const after = path(ana, { db });
 		expect(after[0]!.sectionKey).toBe(moved);
-		expect(after[0]!.override).toEqual({ position: 0, computedPosition: 20, stale: false });
+		// `mine: false` — a published placement, which is what `placeOverride`
+		// writes. The private half carries `mine: true` and is tested below.
+		expect(after[0]!.override).toEqual({
+			position: 0,
+			mine: false,
+			computedPosition: 20,
+			stale: false
+		});
 		// Both, always: an override that erased the computation would make the
 		// list unfalsifiable — nobody could tell later whether the ordering was
 		// wrong or the community simply disagreed.
@@ -205,5 +217,77 @@ describe('an override is the community disagreeing, on the record', () => {
 		const after = path(ana, { db });
 		expect(after.filter((item) => item.sectionKey === moved)).toHaveLength(1);
 		expect(after[3]!.sectionKey).toBe(moved);
+	});
+});
+
+describe('an order of your own', () => {
+	const keys = (ctx: Ctx) => path(ctx, { db }).map((item) => item.sectionKey);
+
+	it('lets a member move something, and shows it only to them', () => {
+		const moved = keys(lena)[20]!;
+		placePrivate(lena, moved, 0, { db });
+
+		// Theirs.
+		expect(keys(lena)[0]).toBe(moved);
+		expect(path(lena, { db })[0]!.override).toMatchObject({ mine: true });
+		// Nobody else's — this is the whole difference between the two tables.
+		expect(keys(ana)[0]).not.toBe(moved);
+		expect(path(ana, { db }).every((item) => item.override === null)).toBe(true);
+	});
+
+	it('refuses to let a member publish one', () => {
+		placePrivate(lena, keys(lena)[20]!, 0, { db });
+		expect(catchRefusal(() => publishPrivateOrder(lena, { db }))?.status).toBe(403);
+		// And the draft is still theirs, unpublished, rather than half-applied.
+		expect(privateOrderCount(db, lena.community.id, lena.user.id)).toBe(1);
+	});
+
+	it('makes it everybody’s when a steward publishes, and empties the draft', () => {
+		const moved = keys(ana)[20]!;
+		placePrivate(ana, moved, 0, { db });
+		expect(keys(lena)[0]).not.toBe(moved);
+
+		expect(publishPrivateOrder(ana, { db })).toBe(1);
+
+		expect(keys(lena)[0]).toBe(moved);
+		// It reads as the community's now, not as anybody's draft.
+		expect(path(lena, { db })[0]!.override).toMatchObject({ mine: false });
+		expect(privateOrderCount(db, ana.community.id, ana.user.id)).toBe(0);
+	});
+
+	it('writes the publish to the change log, because the Path is what the group works from', () => {
+		placePrivate(ana, keys(ana)[20]!, 0, { db });
+		publishPrivateOrder(ana, { db });
+
+		const entries = db
+			.select()
+			.from(changeLog)
+			.all()
+			.filter((row) => row.kind === 'path.reordered');
+		expect(entries).toHaveLength(1);
+		expect(entries[0]!.actorId).toBe(ana.user.id);
+	});
+
+	it('throws the whole draft away on request, and one placement on request', () => {
+		const first = keys(lena)[20]!;
+		const second = keys(lena)[21]!;
+		placePrivate(lena, first, 0, { db });
+		placePrivate(lena, second, 1, { db });
+		expect(privateOrderCount(db, lena.community.id, lena.user.id)).toBe(2);
+
+		releasePrivate(lena, first, { db });
+		expect(privateOrderCount(db, lena.community.id, lena.user.id)).toBe(1);
+
+		discardPrivateOrder(lena, { db });
+		expect(privateOrderCount(db, lena.community.id, lena.user.id)).toBe(0);
+		expect(path(lena, { db }).every((item) => item.override === null)).toBe(true);
+	});
+
+	it('keeps one member’s draft out of another member’s list', () => {
+		const moved = keys(lena)[20]!;
+		placePrivate(lena, moved, 0, { db });
+		// `ana` is a steward of the same community and still sees nothing of it.
+		expect(privateOrderCount(db, ana.community.id, ana.user.id)).toBe(0);
+		expect(keys(ana)[0]).not.toBe(moved);
 	});
 });

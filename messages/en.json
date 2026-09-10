@@ -184,5 +184,20 @@
 	"path_drag": "Drag to reorder",
 	"path_more_below": "{count} more below.",
 	"path_show_all": "Show all {total}",
-	"path_show_fewer": "Show fewer"
+	"path_show_fewer": "Show fewer",
+	"path_draft_heading": "You moved {count} — only you can see this order.",
+	"path_draft_steward": "Publish it and every member sees it on their dashboard.",
+	"path_draft_member": "A steward publishes an order for everybody. Yours stays yours until one does.",
+	"path_discard": "Discard changes",
+	"path_publish": "Publish this order",
+	"path_published": "Published. Every member sees this order now.",
+	"path_unpin": "Take the community's placement off this one",
+	"path_placed_by_community": "The community placed this here. The ordering puts it at {position}.",
+	"path_presets_heading": "What should we tackle first?",
+	"path_presets_help": "Each of these changes the strengths on “How the path is ordered”. All three keep the structural order intact — they change what pulls within it.",
+	"path_preset_unblock": "Things that unblock other things",
+	"path_preset_risky": "The riskiest gaps for us",
+	"path_preset_going": "What we already have going",
+	"path_preset_tune": "Fine-tune the strengths",
+	"path_preset_applied": "Order updated. “How the path is ordered” shows what changed."
 }

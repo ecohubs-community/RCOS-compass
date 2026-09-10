@@ -162,7 +162,12 @@ export function path(
 	// The community's own placements go on last, over a computed order that is
 	// still there underneath — an override that erased the computation would make
 	// the list unfalsifiable.
-	const ordered = applyOverrides(db, ctx.community.id, items);
+	/**
+	 * The reader's own draft goes on last, over the community's published order,
+	 * which is over the computation. Three layers, each one visible to the person
+	 * it belongs to and none of them erasing the one beneath.
+	 */
+	const ordered = applyOverrides(db, ctx.community.id, items, ctx.user.id);
 
 	const { limit } = options;
 	return limit ? ordered.slice(0, limit) : ordered;

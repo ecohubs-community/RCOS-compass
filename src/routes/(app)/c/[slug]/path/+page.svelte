@@ -8,8 +8,19 @@
 	import IconPlus from '~icons/tabler/plus';
 	import { links } from '$lib/links';
 
-	let { data } = $props();
+	let { data, form } = $props();
 	const slug = $derived(data.community.slug);
+
+	/**
+	 * The three answers the mockups offer, named once. A preset spelled at a call
+	 * site is a second copy of the vocabulary — the same reason the roles and the
+	 * statuses live in maps.
+	 */
+	const PRESET_LABELS: Record<string, () => string> = {
+		unblock: m.path_preset_unblock,
+		risky: m.path_preset_risky,
+		going: m.path_preset_going
+	};
 
 	/**
 	 * Dragging is the fast way; the buttons are the way that works.
@@ -61,6 +72,81 @@
 		>
 	</p>
 
+	{#if data.can.tune}
+		<!--
+			The mockups' "What should we tackle first?", and it is three presets over
+			the four strengths rather than a second ordering system — which is why it
+			could be built at all. Every one keeps the structural order intact; what
+			they change is what pulls within it.
+		-->
+		<section class="border-border bg-surface mt-5 rounded-(--radius-card) border p-4">
+			<h2 class="text-fg font-medium">{m.path_presets_heading()}</h2>
+			<p class="text-fg-muted text-meta mt-1">{m.path_presets_help()}</p>
+			<form
+				method="POST"
+				action="?/preset"
+				use:enhance
+				class="mt-3 flex flex-wrap items-center gap-2"
+			>
+				{#each data.presets as preset (preset)}
+					<button
+						type="submit"
+						name="preset"
+						value={preset}
+						class="border-border hover:border-border-strong text-fg rounded-(--radius-control) border px-2.5 py-1"
+						>{(PRESET_LABELS[preset] ?? (() => preset))()}</button
+					>
+				{/each}
+				<a
+					href={links.pathSettings(slug)}
+					class="text-fg-secondary hover:text-fg text-meta underline underline-offset-2"
+					>{m.path_preset_tune()}</a
+				>
+			</form>
+			{#if form?.preset}
+				<p role="status" class="text-accent-fg text-meta mt-2">{m.path_preset_applied()}</p>
+			{/if}
+		</section>
+	{/if}
+
+	{#if data.draft.count > 0}
+		<!--
+			`docs/04-security.md` §1, and the mockup's own words: a member's order is
+			theirs until a steward publishes one for everybody.
+		-->
+		<section
+			class="border-attention/40 bg-attention-subtle mt-5 flex flex-wrap items-center gap-x-4 gap-y-2 rounded-(--radius-card) border p-4"
+			aria-live="polite"
+		>
+			<div class="min-w-0 flex-1">
+				<p class="text-fg">{m.path_draft_heading({ count: data.draft.count })}</p>
+				<p class="text-fg-secondary text-meta mt-1">
+					{data.can.publish ? m.path_draft_steward() : m.path_draft_member()}
+				</p>
+			</div>
+			<div class="flex flex-none flex-wrap gap-2">
+				<form method="POST" action="?/discard" use:enhance>
+					<button
+						type="submit"
+						class="border-border hover:border-border-strong text-fg h-8 cursor-pointer rounded-(--radius-control) border px-2.5"
+						>{m.path_discard()}</button
+					>
+				</form>
+				{#if data.can.publish}
+					<form method="POST" action="?/publish" use:enhance>
+						<button
+							type="submit"
+							class="bg-accent-solid hover:bg-accent-solid-hover h-8 cursor-pointer rounded-(--radius-control) px-2.5 font-medium text-white"
+							>{m.path_publish()}</button
+						>
+					</form>
+				{/if}
+			</div>
+		</section>
+	{:else if form?.published}
+		<p role="status" class="text-accent-fg text-meta mt-4">{m.path_published()}</p>
+	{/if}
+
 	<!-- One form, reused by every drop target and every button. -->
 	<form method="POST" action="?/place" use:enhance class="hidden" id="place">
 		<input type="hidden" name="sectionKey" />
@@ -70,16 +156,16 @@
 	<ol class="mt-6 flex flex-col gap-2" aria-label="What to decide next">
 		{#each data.items as item, index (item.sectionKey)}
 			<li
-				draggable={data.can.manage}
+				draggable={data.can.reorder}
 				ondragstart={() => (dragging = item.sectionKey)}
-				ondragover={(event) => data.can.manage && event.preventDefault()}
+				ondragover={(event) => data.can.reorder && event.preventDefault()}
 				ondrop={(event) =>
-					data.can.manage &&
+					data.can.reorder &&
 					onDrop(event, index, document.getElementById('place') as HTMLFormElement)}
 				class="border-border bg-surface flex items-start gap-3 rounded-(--radius-card) border p-3"
 				class:border-accent={item.override !== null}
 			>
-				{#if data.can.manage}
+				{#if data.can.reorder}
 					<!--
 						The row has been draggable since P5 and looked exactly like a row
 						that was not. Decorative on purpose: the arrows beside it are the
@@ -107,7 +193,11 @@
 
 					{#if item.override}
 						<p class="text-fg-secondary text-meta mt-1">
-							You moved this here. The ordering puts it at {item.override.computedPosition + 1}.
+							{#if item.override.mine}
+								You moved this here. The ordering puts it at {item.override.computedPosition + 1}.
+							{:else}
+								{m.path_placed_by_community({ position: item.override.computedPosition + 1 })}
+							{/if}
 							{#if item.override.stale}
 								<!--
 									The community expressed two opinions that can conflict. Keeping
@@ -122,7 +212,7 @@
 				</div>
 
 				<div class="flex flex-none items-center gap-1">
-					{#if data.can.manage}
+					{#if data.can.reorder}
 						<form method="POST" action="?/place" use:enhance>
 							<input type="hidden" name="sectionKey" value={item.sectionKey} />
 							<input type="hidden" name="position" value={Math.max(0, index - 1)} />
@@ -148,16 +238,20 @@
 							>
 						</form>
 						{#if item.override}
-							<form method="POST" action="?/clear" use:enhance>
-								<input type="hidden" name="sectionKey" value={item.sectionKey} />
-								<button
-									type="submit"
-									aria-label="{m.path_release()}: “{item.question}”"
-									title={m.path_release()}
-									class="border-border hover:border-border-strong text-fg-secondary inline-flex h-8 w-8 cursor-pointer items-center justify-center rounded-(--radius-control) border"
-									><IconArrowBackUp class="h-4 w-4" aria-hidden="true" /></button
-								>
-							</form>
+							{@const own = item.override.mine}
+							{@const label = own ? m.path_release() : m.path_unpin()}
+							{#if own || data.can.publish}
+								<form method="POST" action={own ? '?/release' : '?/unpin'} use:enhance>
+									<input type="hidden" name="sectionKey" value={item.sectionKey} />
+									<button
+										type="submit"
+										aria-label="{label}: “{item.question}”"
+										title={label}
+										class="border-border hover:border-border-strong text-fg-secondary inline-flex h-8 w-8 cursor-pointer items-center justify-center rounded-(--radius-control) border"
+										><IconArrowBackUp class="h-4 w-4" aria-hidden="true" /></button
+									>
+								</form>
+							{/if}
 						{/if}
 					{/if}
 
