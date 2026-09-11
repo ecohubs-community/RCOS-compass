@@ -26,13 +26,13 @@ export const CAPABILITIES = [
 	'definition.draft',
 	'objection.raise',
 	'consent.respond',
+	'consent.open',
 	'document.upload',
 	'mapping.confirm',
 	'ai.run',
 	'path.reorder.private',
 	'feedback.record',
 	// Recording — authority
-	'consent.open',
 	'decision.freeze',
 	'objection.resolve',
 	'definition.ratify',
@@ -66,6 +66,7 @@ const MATRIX: Record<Capability, readonly Role[]> = {
 	'definition.draft': ['steward', 'member'],
 	'objection.raise': ['steward', 'member'],
 	'consent.respond': ['steward', 'member'],
+	'consent.open': ['steward'],
 	// Uploading and confirming a mapping produce Evidence — "we have language
 	// about this" — not an adopted definition. Gatekeeping them would strangle
 	// the one onboarding flow that works.
@@ -77,7 +78,6 @@ const MATRIX: Record<Capability, readonly Role[]> = {
 	'path.reorder.private': ['steward', 'member'],
 	'feedback.record': ['steward', 'member'],
 
-	'consent.open': ['steward'],
 	'decision.freeze': ['steward'],
 	'objection.resolve': ['steward'],
 	'definition.ratify': ['steward'],

@@ -62,6 +62,12 @@ export const post = sqliteTable(
 		/** 1, 2, 3 … across the proposals of one discussion. Null for a message. */
 		proposalVersion: integer('proposal_version'),
 		/**
+		 * What this revision changed, in the reviser's own words. Optional: a
+		 * revision without one is still a revision, and a required note would be
+		 * answered with "updated".
+		 */
+		revisionNote: text('revision_note'),
+		/**
 		 * Set inside the freeze transaction. A proposal freezes once: the
 		 * idempotency key stops one person submitting twice and cannot stop two
 		 * people submitting once each, and a second freeze would have nothing left
@@ -117,11 +123,25 @@ export const consentRound = sqliteTable(
 			.references(() => post.id, { onDelete: 'cascade' }),
 		openedBy: text('opened_by').references(() => user.id, { onDelete: 'set null' }),
 		openedAt: integer('opened_at', { mode: 'timestamp_ms' }).notNull(),
-		closesAt: integer('closes_at', { mode: 'timestamp_ms' }).notNull(),
-		status: text('status', { enum: ['open', 'closed', 'cancelled'] })
+		/**
+		 * Optional, because a round nobody opened deliberately has no deadline
+		 * anybody chose. A round opens on the first response; inventing a window
+		 * for it would mean expiring a community's question on a schedule it never
+		 * agreed to.
+		 */
+		closesAt: integer('closes_at', { mode: 'timestamp_ms' }),
+		/**
+		 * `superseded` rather than `cancelled`: nobody cancelled this round, the
+		 * text it was about stopped being the text on the table. Members read this
+		 * state, and a status that misdescribes what happened is a small lie in a
+		 * record whose whole claim is accuracy.
+		 */
+		status: text('status', { enum: ['open', 'closed', 'cancelled', 'superseded'] })
 			.notNull()
 			.default('open'),
 		closedAt: integer('closed_at', { mode: 'timestamp_ms' }),
+		/** The version that replaced the one this round was about. */
+		supersededByPostId: text('superseded_by_post_id'),
 		eligibility: text('eligibility', { enum: ['all_members', 'selected'] })
 			.notNull()
 			.default('all_members')
@@ -162,6 +182,14 @@ export const consentResponse = sqliteTable(
 		value: text('value', { enum: ['consent', 'objection', 'abstain'] }).notNull(),
 		/** An objection response carries the objection it raised. */
 		objectionId: text('objection_id').references(() => objection.id, { onDelete: 'set null' }),
+		/**
+		 * The reason, as a post in the thread.
+		 *
+		 * A reason is a thing somebody said, so it lives where the rest of what
+		 * they said lives — quotable, attributable, and readable in order. Holding
+		 * it as a string here as well would be two texts that have to agree.
+		 */
+		reasonPostId: text('reason_post_id').references(() => post.id, { onDelete: 'set null' }),
 		respondedAt: integer('responded_at', { mode: 'timestamp_ms' }).notNull()
 	},
 	(table) => [

@@ -1,81 +1,180 @@
 import { fail, redirect } from '@sveltejs/kit';
 import { randomUUID } from 'node:crypto';
+import { eq } from 'drizzle-orm';
 import { ctxCan } from '$lib/server/auth/guard';
 import { systemClock } from '$lib/server/clock';
 import { getDb } from '$lib/server/db';
+import { decision } from '$lib/server/db/schema/decisions';
 import { enqueue } from '$lib/server/jobs/queue';
 import { freeze } from '$lib/server/services/decisions';
 import {
 	addMessage,
 	addProposal,
 	getDiscussion,
-	latestProposal,
-	listPosts,
+	listPostsWithAuthors,
 	takeOffline
 } from '$lib/server/services/discussions';
-import { listObjections, raiseObjection, resolveObjection } from '$lib/server/services/objections';
+import { listObjections, resolveObjection } from '$lib/server/services/objections';
 import { isArtifactComplete, DECISION_MATRIX } from '$lib/server/services/completeness';
 import { lint } from '$lib/server/linter';
 import { membershipLabel } from '$lib/server/services/person';
 import { parseMarkdown } from '$lib/server/markdown';
-import { getVotingProvider, openRoundFor } from '$lib/server/voting';
+import { getVotingProvider } from '$lib/server/voting';
+import { listResponses, roundFor } from '$lib/server/voting/consent-round';
 import type { Actions, PageServerLoad, RequestEvent } from './$types';
 
 /**
- * One thread, and the Freeze modal. UI spec §5.1, §4.6.
+ * One thread, one version on the table, and the freeze. UI spec §5.1, §4.6.
  *
- * The modal is a `<dialog>` the server can also render open — a member without
- * JavaScript reaches the same fields, because recording a decision is not a
- * progressive enhancement.
+ * The screen is two panes: the conversation on the left, and a rail on the right
+ * showing exactly one proposal version — its text, the responses *to that
+ * version*, its linter result, and a freeze that would adopt it. The version is
+ * chosen with `?v=`, so it is linkable and the rail works with no JavaScript.
+ *
+ * That the rail follows a selection rather than always showing the newest is the
+ * whole point. A community can vote v3 through, watch v4 draw objections, and
+ * record v3 — and every number on screen has to belong to the version it is
+ * shown beside, because the freeze quotes them into a register that keeps them
+ * forever.
  */
 export const load: PageServerLoad = ({ locals, params, url }) => {
 	const ctx = locals.ctx!;
 	const db = getDb();
 
 	const thread = getDiscussion(ctx, params.id, { db });
-	const posts = listPosts(ctx, params.id, { db });
-	const proposal = latestProposal(ctx, params.id, { db });
-	const round = proposal ? openRoundFor(db, proposal.id) : undefined;
+	const posts = listPostsWithAuthors(ctx, params.id, { db });
+	const proposals = posts.filter((entry) => entry.kind === 'proposal');
+
+	/**
+	 * The version on screen.
+	 *
+	 * An unknown or malformed `?v=` falls back to the newest rather than erroring:
+	 * a stale link is a stale link, and an error page is a worse answer than the
+	 * version the reader would have got anyway.
+	 */
+	const asked = Number(url.searchParams.get('v') ?? '');
+	const selected =
+		proposals.find((entry) => entry.proposalVersion === asked) ?? proposals.at(-1) ?? null;
+
+	/** What a version's button says: never frozen, in force, or superseded. */
+	const decisions = new Map(
+		db
+			.select()
+			.from(decision)
+			.where(eq(decision.communityId, ctx.community.id))
+			.all()
+			.map((row) => [row.id, row])
+	);
+	const frozenState = (frozenDecisionId: string | null) => {
+		if (!frozenDecisionId) return { state: 'open' as const, ref: null };
+		const found = decisions.get(frozenDecisionId);
+		// Derived from the decision rather than stored on the post, so it cannot
+		// drift from the decision it describes when a later freeze supersedes it.
+		return {
+			state: found?.status === 'superseded' ? ('superseded' as const) : ('in_force' as const),
+			ref: found?.ref ?? null
+		};
+	};
+
+	const round = selected ? roundFor(db, selected.id) : undefined;
+	const inForce = thread.frozenDecisionId ? decisions.get(thread.frozenDecisionId) : undefined;
+
+	/**
+	 * What the previous version was told, so the rail can say it did not carry.
+	 * "v2 held 5 consents — not carried, the text changed."
+	 */
+	const previous = selected
+		? proposals[proposals.findIndex((entry) => entry.id === selected.id) - 1]
+		: undefined;
+	const previousRound = previous ? roundFor(db, previous.id) : undefined;
+	const previousTally =
+		previousRound && previous
+			? {
+					version: previous.proposalVersion,
+					...getVotingProvider().tally(ctx, previousRound.id, { db })
+				}
+			: null;
 
 	return {
+		/** Two panes that scroll on their own, so the shell stops scrolling as one. */
+		fullHeight: true,
+		/**
+		 * Which composer is open, from the URL rather than from component state.
+		 *
+		 * Writing a proposal and writing up a meeting are the two acts that produce
+		 * everything the register later quotes. A member with no JavaScript could
+		 * reach neither while the mode lived in a rune — the reply box was the only
+		 * thing that rendered. `docs/01` §the-server-client-contract: the form works
+		 * before the bundle arrives, or it does not work.
+		 */
+		mode:
+			(['revise', 'meeting'] as const).find((m) => m === url.searchParams.get('mode')) ?? 'reply',
 		thread: {
 			id: thread.id,
 			title: thread.title,
 			status: thread.status,
 			origin: thread.origin,
 			clauseKey: thread.clauseKey,
-			frozenDecisionId: thread.frozenDecisionId
+			decidedRef: inForce?.ref ?? null,
+			decidedTitle: inForce?.title ?? null
 		},
 		posts: posts.map((entry) => ({
 			id: entry.id,
 			kind: entry.kind,
 			proposalVersion: entry.proposalVersion,
+			revisionNote: entry.revisionNote,
+			author: entry.author,
 			body: parseMarkdown(entry.body),
 			createdAt: entry.createdAt.getTime(),
-			frozen: entry.frozenDecisionId !== null
+			...frozenState(entry.frozenDecisionId)
 		})),
-		proposal: proposal && {
-			id: proposal.id,
-			version: proposal.proposalVersion,
-			body: parseMarkdown(proposal.body),
+		versions: proposals.map((entry) => ({
+			id: entry.id,
+			version: entry.proposalVersion,
+			...frozenState(entry.frozenDecisionId)
+		})),
+		proposal: selected && {
+			id: selected.id,
+			version: selected.proposalVersion,
+			author: selected.author,
+			createdAt: selected.createdAt.getTime(),
+			raw: selected.body,
+			body: parseMarkdown(selected.body),
+			isLatest: selected.id === proposals.at(-1)?.id,
+			...frozenState(selected.frozenDecisionId),
 			// Advice on the text that would be adopted, never a gate on adopting it.
-			linter: lint({ body: proposal.body, locale: ctx.community.locale }).findings,
-			objections: listObjections(ctx, proposal.id, { db }).map((objection) => ({
+			linter: lint({ body: selected.body, locale: ctx.community.locale }).findings,
+			objections: listObjections(ctx, selected.id, { db }).map((objection) => ({
 				id: objection.id,
 				reason: objection.reason,
 				state: objection.state
 			}))
 		},
+		/**
+		 * The version before this one, so a reader can see what a revision did to
+		 * the words they had already agreed to.
+		 */
+		comparison:
+			previous && selected && url.searchParams.get('compare') === '1'
+				? { fromVersion: previous.proposalVersion, from: previous.body, to: selected.body }
+				: null,
+		previousVersion: previous?.proposalVersion ?? null,
+		/** The later version, when the reader is looking at an older one. */
+		laterVersion:
+			selected && selected.id !== proposals.at(-1)?.id ? proposals.at(-1)!.proposalVersion : null,
 		round: round && {
 			id: round.id,
-			closesAt: round.closesAt.getTime(),
-			tally: getVotingProvider().tally(ctx, round.id, { db })
+			status: round.status,
+			openedAt: round.openedAt.getTime(),
+			closesAt: round.closesAt?.getTime() ?? null,
+			tally: getVotingProvider().tally(ctx, round.id, { db }),
+			responses: listResponses(ctx, round.id, { db })
 		},
+		previousTally,
 		can: {
 			comment: ctxCan(ctx, 'discussion.comment'),
 			propose: ctxCan(ctx, 'proposal.create'),
 			freeze: ctxCan(ctx, 'decision.freeze'),
-			openRound: ctxCan(ctx, 'consent.open'),
 			respond: ctxCan(ctx, 'consent.respond')
 		},
 		// Told before the modal is confirmed, not after (UI spec §5.1).
@@ -125,18 +224,37 @@ export const actions: Actions = {
 
 	propose: async (event) => {
 		const form = await event.request.formData();
-		return run('propose', () =>
+		const outcome = await run('propose', () =>
 			addProposal(
 				event.locals.ctx!,
-				{ discussionId: event.params.id, body: String(form.get('body') ?? '') },
+				{
+					discussionId: event.params.id,
+					body: String(form.get('body') ?? ''),
+					revisionNote: String(form.get('revisionNote') ?? '') || null
+				},
 				{ db: getDb() }
 			)
+		);
+		if ('status' in outcome) return outcome;
+
+		/**
+		 * Land on the version that was just written.
+		 *
+		 * The composer is reached at `?v=3&mode=revise`, and without this the
+		 * reader would still be pinned to v3 while v4 is now the text on the
+		 * table — looking at an old version, with a banner telling them so, right
+		 * after writing the new one.
+		 */
+		const written = outcome.result as { proposalVersion: number | null };
+		redirect(
+			303,
+			`/c/${event.params.slug}/discussions/${event.params.id}?v=${written.proposalVersion}`
 		);
 	},
 
 	offline: async (event) => {
 		const form = await event.request.formData();
-		return run('offline', () =>
+		const outcome = await run('offline', () =>
 			takeOffline(
 				event.locals.ctx!,
 				{
@@ -147,19 +265,14 @@ export const actions: Actions = {
 				{ db: getDb() }
 			)
 		);
-	},
+		if ('status' in outcome) return outcome;
 
-	object: async (event) => {
-		const form = await event.request.formData();
-		return run('object', () =>
-			raiseObjection(
-				event.locals.ctx!,
-				{
-					proposalPostId: String(form.get('proposalPostId') ?? ''),
-					reason: String(form.get('reason') ?? '')
-				},
-				{ db: getDb() }
-			)
+		// Same reason as `propose`: a meeting produces a version, and the rail
+		// should be showing it.
+		const { proposal } = outcome.result as { proposal: { proposalVersion: number | null } };
+		redirect(
+			303,
+			`/c/${event.params.slug}/discussions/${event.params.id}?v=${proposal.proposalVersion}`
 		);
 	},
 
@@ -177,34 +290,21 @@ export const actions: Actions = {
 		);
 	},
 
-	openRound: async (event) => {
-		const form = await event.request.formData();
-		// Validated rather than coerced: `Number('seven')` is NaN, `NaN <= now` is
-		// false so the service's future-deadline guard does not fire, and the
-		// Invalid Date that follows hits a NOT NULL column as a 500.
-		const days = Number(String(form.get('days') ?? '7').trim());
-		if (!Number.isInteger(days) || days < 1 || days > 90) {
-			return fail(400, { step: 'round', error: 'Give a number of days between 1 and 90.' });
-		}
-		return run('round', () =>
-			getVotingProvider().openRound(
-				event.locals.ctx!,
-				{
-					proposalPostId: String(form.get('proposalPostId') ?? ''),
-					closesAt: event.locals.ctx!.now() + days * 86_400_000
-				},
-				{ db: getDb() }
-			)
-		);
-	},
-
+	/**
+	 * One door onto a response.
+	 *
+	 * Objecting used to be its own action beside the round, which meant an
+	 * objection could exist with no response behind it and a tally that did not
+	 * know about it. A member now answers a proposal, and an objection is one of
+	 * the three things that answer can be.
+	 */
 	respond: async (event) => {
 		const form = await event.request.formData();
 		return run('round', () =>
 			getVotingProvider().respond(
 				event.locals.ctx!,
 				{
-					roundId: String(form.get('roundId') ?? ''),
+					proposalPostId: String(form.get('proposalPostId') ?? ''),
 					value: String(form.get('value') ?? 'consent') as 'consent',
 					reason: String(form.get('reason') ?? '') || undefined
 				},
@@ -239,17 +339,40 @@ export const actions: Actions = {
 			return fail(400, { step: 'freeze', error: 'A tally is a whole number of people.' });
 		}
 
+		const reviewRaw = String(form.get('reviewDueAt') ?? '').trim();
+		const reviewDueAt = reviewRaw ? Date.parse(reviewRaw) : null;
+		if (reviewRaw && Number.isNaN(reviewDueAt)) {
+			return fail(400, { step: 'freeze', error: 'A review date has to be a date.' });
+		}
+
+		/**
+		 * Who was present, and who agreed to be named for it.
+		 *
+		 * Asked at the freeze because nobody can go back and ask the room later
+		 * (`docs/03` §10). The checkbox is per attendee: a community-level setting
+		 * must never be able to publish somebody who did not consent.
+		 */
+		const attendees = form.getAll('attendee').map((value) => ({
+			membershipId: String(value),
+			consentedToPublish: form.getAll('attendeePublish').includes(String(value))
+		}));
+
 		const outcome = await run('freeze', () =>
 			freeze(
 				event.locals.ctx!,
 				{
 					discussionId: event.params.id,
+					// The version the form was opened on, never "whatever is newest
+					// now" — a steward who read v3 must not record v4's words.
+					proposalPostId: String(form.get('proposalPostId') ?? '') || undefined,
 					idempotencyKey: String(form.get('idempotencyKey') ?? ''),
 					title: String(form.get('title') ?? ''),
 					type: String(form.get('type') ?? 'operational') as 'operational',
 					mechanism: String(form.get('mechanism') ?? ''),
 					threshold: String(form.get('threshold') ?? '') || null,
 					...counts,
+					reviewDueAt,
+					attendees,
 					rationale: String(form.get('rationale') ?? '') || null
 				},
 				{ db: getDb() }

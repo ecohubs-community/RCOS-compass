@@ -377,10 +377,30 @@ describe('a member may propose; recording remains with a steward', () => {
 	});
 });
 
-describe('a decided thread takes no more writes', () => {
-	it('refuses posts once it has been frozen', () => {
+describe('a thread survives its decisions, and only abandoning ends it', () => {
+	it('keeps taking messages and versions after a freeze', () => {
+		// The same argument can come back. v5 written months after v3 was adopted
+		// belongs in the thread that produced v3, and the second decision
+		// supersedes the first — which is what `freeze` already does.
 		const opened = open();
 		db.update(discussion).set({ status: 'frozen' }).where(eq(discussion.id, opened.id)).run();
+
+		expect(() =>
+			addMessage(ctx, { discussionId: opened.id, body: 'One more thing.' }, { db })
+		).not.toThrow();
+
+		const next = addProposal(ctx, { discussionId: opened.id, body: 'Another go.' }, { db });
+		expect(next.proposalVersion).toBe(1);
+
+		// A new question on the table is an open discussion again, whatever the
+		// thread had already decided.
+		const after = db.select().from(discussion).where(eq(discussion.id, opened.id)).get()!;
+		expect(after.status).toBe('open');
+	});
+
+	it('refuses posts once it has been abandoned', () => {
+		const opened = open();
+		db.update(discussion).set({ status: 'abandoned' }).where(eq(discussion.id, opened.id)).run();
 
 		expect(() =>
 			addMessage(ctx, { discussionId: opened.id, body: 'One more thing.' }, { db })
@@ -390,10 +410,10 @@ describe('a decided thread takes no more writes', () => {
 		).toThrow(expect.objectContaining({ status: 409 }));
 	});
 
-	it('still lets everyone read it', () => {
+	it('still lets everyone read an abandoned one', () => {
 		const opened = open();
 		addProposal(ctx, { discussionId: opened.id, body: 'The rule.' }, { db });
-		db.update(discussion).set({ status: 'frozen' }).where(eq(discussion.id, opened.id)).run();
+		db.update(discussion).set({ status: 'abandoned' }).where(eq(discussion.id, opened.id)).run();
 
 		expect(listPosts(ctx, opened.id, { db })).toHaveLength(1);
 	});

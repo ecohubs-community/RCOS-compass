@@ -49,6 +49,11 @@ export type Attendee = {
 
 export type FreezeInput = {
 	discussionId: string;
+	/**
+	 * The version to adopt. Absent means the thread's most recent, which is what
+	 * the freeze did unconditionally before a version could be chosen.
+	 */
+	proposalPostId?: string;
 	/** Minted when the form rendered. Makes one person's double submit idempotent. */
 	idempotencyKey: string;
 	title: string;
@@ -184,7 +189,10 @@ export function freeze(ctx: Ctx, input: FreezeInput, options: { db?: Db } = {}):
 	// Refuses a thread with nothing to record, one already decided, and a
 	// proposal already recorded — the guard the idempotency key cannot provide,
 	// because two people freezing produce two keys.
-	const proposal = proposalToFreeze(ctx, input.discussionId, { db });
+	const proposal = proposalToFreeze(ctx, input.discussionId, {
+		db,
+		proposalPostId: input.proposalPostId
+	});
 
 	const standard = activeStandardView(db, ctx);
 	if (!standard) error(409, 'This community has not adopted a standard yet.');
@@ -373,6 +381,14 @@ export function freeze(ctx: Ctx, input: FreezeInput, options: { db?: Db } = {}):
 		// them as the same act.
 		tx.update(post).set({ frozenDecisionId: decisionId }).where(eq(post.id, proposal.id)).run();
 
+		/**
+		 * The thread records what it has decided, and stays open.
+		 *
+		 * `frozenDecisionId` is the most recent decision this thread produced, not
+		 * its last word: the same argument can produce v5 and a second decision
+		 * months later, and that decision supersedes this one through
+		 * `definition.adoptedVersionId` above.
+		 */
 		tx.update(discussion)
 			.set({ status: 'frozen', frozenDecisionId: decisionId, lastActivityAt: new Date(now) })
 			.where(eq(discussion.id, thread.id))

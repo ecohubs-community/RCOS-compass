@@ -48,7 +48,10 @@
  * is a token so a light or high-contrast theme is a token file, not a rewrite.
  *
  * Contrast, measured against --color-bg and --color-surface (WCAG 2.1 AA target,
- * docs/02-component-guidelines.md §6):
+ * docs/02-component-guidelines.md §6). **Not --color-raised**: it is lighter
+ * than both, and `muted` on it is 4.33:1, below AA. `raised` is for chips and
+ * small fills, never a panel that carries muted body text — the discussion rail
+ * was built on it and the axe run caught it.
  *   fg          15.8 / 14.6
  *   secondary    7.4 /  6.9
  *   muted        5.1 /  4.7   ← lifted from the mockup's #6B7574 (4.0 / 3.7, below AA)

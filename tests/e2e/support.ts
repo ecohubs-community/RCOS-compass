@@ -59,10 +59,35 @@ export async function seedWithProposal(page: Page): Promise<Fixture> {
 	await page.getByLabel('Start a discussion').fill('Can someone leave at any time?');
 	await page.getByLabel('Clause (optional)').fill(fixture.clauseKey);
 	await page.getByRole('button', { name: 'Start' }).click();
-	await page
-		.getByLabel('Write a proposal', { exact: false })
-		.fill('A member may leave at any time.');
-	await page.getByRole('button', { name: 'Post proposal' }).click();
+	// Writing the rule is its own act on the composer, not the reply box.
+	await page.getByRole('link', { name: 'Write a proposal' }).click();
+	await expect(page.getByRole('button', { name: 'Save as v1' })).toBeVisible();
+	await page.getByLabel('The text a decision would adopt').fill('A member may leave at any time.');
+	await page.getByRole('button', { name: 'Save as v1' }).click();
+	await expect(page.getByRole('heading', { name: 'Responses to v1' })).toBeVisible();
 
 	return fixture;
+}
+
+/**
+ * Write the proposal on the table, through the composer a member uses.
+ *
+ * Three specs had this block copied out, and all three broke together the day
+ * the composer stopped being a second textarea below the thread. One place, so
+ * the next change to that screen is one edit rather than a hunt.
+ */
+export async function proposeOnOpenThread(page: Page, text: string) {
+	await page.getByRole('link', { name: 'Write a proposal' }).click();
+	await expect(page.getByRole('button', { name: /^Save as v/ })).toBeVisible();
+	await page.getByLabel('The text a decision would adopt').fill(text);
+	await page.getByRole('button', { name: /^Save as v/ }).click();
+	await expect(page.getByRole('heading', { name: /^Responses to v/ })).toBeVisible();
+}
+
+/** Freeze the version on the table, with the least the form will accept. */
+export async function freezeOnOpenThread(page: Page, mechanism = 'consent') {
+	await page.getByRole('button', { name: /^Freeze v\d+$/ }).click();
+	const form = page.getByRole('region', { name: /^Freeze v\d+ into a decision$/ });
+	await form.getByLabel('Mechanism').fill(mechanism);
+	await form.getByRole('button', { name: 'Record decision' }).click();
 }

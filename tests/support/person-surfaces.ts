@@ -13,6 +13,14 @@ import { outwardAttribution } from '../../src/lib/server/services/attribution.js
 import { feedbackReport } from '../../src/lib/server/db/schema/operations.js';
 import { listFeedback } from '../../src/lib/server/services/feedback.js';
 import { listInvitations } from '../../src/lib/server/services/invitations.js';
+import {
+	addMessage,
+	addProposal,
+	listPostsWithAuthors,
+	openDiscussion
+} from '../../src/lib/server/services/discussions.js';
+import { listResponses } from '../../src/lib/server/voting/consent-round.js';
+import { getVotingProvider } from '../../src/lib/server/voting/index.js';
 import { listPlatformAudit } from '../../src/lib/server/services/admin/audit.js';
 import { getTenant } from '../../src/lib/server/services/admin/communities.js';
 
@@ -81,6 +89,12 @@ export type Subject = {
 
 const DECISION_ID = '01a00000-0000-7000-8000-000000000001';
 
+/** Set by the thread surface's seed, read by its `read`. */
+let threadForPersonSurface = '';
+
+/** Set by the vote-block surface's seed, read by its `read`. */
+let roundForPersonSurface = '';
+
 export const PERSON_SURFACES: PersonSurface[] = [
 	{
 		name: 'members.listMembers',
@@ -104,6 +118,64 @@ export const PERSON_SURFACES: PersonSurface[] = [
 				.run();
 		},
 		read: (ctx) => listFormerMembers(ctx).map((row) => row.name)
+	},
+	{
+		name: 'discussions.listPostsWithAuthors',
+		module: 'discussions.ts',
+		/**
+		 * The thread names whoever wrote each post, which is the first surface
+		 * where a person's name sits beside something they *said* rather than in a
+		 * list of members. What they wrote stays — erasure removes the name, not
+		 * the conversation other people answered.
+		 */
+		seed: (db, ctx, subject) => {
+			const subjectCtx = {
+				...ctx,
+				user: { ...ctx.user, id: subject.userId },
+				membership: { ...ctx.membership, id: subject.membershipId }
+			} as Ctx;
+			const opened = openDiscussion(
+				subjectCtx,
+				{ title: 'Exit and separation', about: { kind: 'open_question' } },
+				{ db }
+			);
+			addMessage(subjectCtx, { discussionId: opened.id, body: 'I think we should.' }, { db });
+			threadForPersonSurface = opened.id;
+		},
+		read: (ctx, db) =>
+			listPostsWithAuthors(ctx, threadForPersonSurface, { db }).map((row) => row.author.label)
+	},
+	{
+		name: 'voting.listResponses',
+		module: 'voting/consent-round.ts',
+		/**
+		 * The vote block names everyone who answered. An erased member is still
+		 * listed and still counted — dropping their row would silently change a
+		 * tally the community was given, and a decision may already quote it.
+		 */
+		seed: (db, ctx, subject) => {
+			const subjectCtx = {
+				...ctx,
+				user: { ...ctx.user, id: subject.userId },
+				membership: { ...ctx.membership, id: subject.membershipId }
+			} as Ctx;
+			const opened = openDiscussion(
+				subjectCtx,
+				{ title: 'Exit and separation', about: { kind: 'open_question' } },
+				{ db }
+			);
+			const proposal = addProposal(
+				subjectCtx,
+				{ discussionId: opened.id, body: 'Members may leave.' },
+				{ db }
+			);
+			roundForPersonSurface = getVotingProvider().respond(
+				subjectCtx,
+				{ proposalPostId: proposal.id, value: 'consent' },
+				{ db }
+			).id;
+		},
+		read: (ctx, db) => listResponses(ctx, roundForPersonSurface, { db }).map((row) => row.who)
 	},
 	{
 		name: 'ai-settings.usageByMember',
@@ -308,7 +380,9 @@ export const NOT_A_PERSON_SURFACE: Record<string, string> = {
  * definition. This is the backstop: any service module importing the `user`
  * table is a module that can print a person, and it must appear above.
  */
-export function personModulesInSource(root = 'src/lib/server/services'): string[] {
+export function personModulesInSource(
+	roots: string[] = ['src/lib/server/services', 'src/lib/server/voting']
+): string[] {
 	const found: string[] = [];
 
 	const walk = (dir: string, prefix: string) => {
@@ -327,6 +401,12 @@ export function personModulesInSource(root = 'src/lib/server/services'): string[
 		}
 	};
 
-	walk(root, '');
+	// `voting/` as well as `services/`: the consent provider prints the people who
+	// responded, and a module that can name somebody is in scope for this promise
+	// wherever it happens to live. Its entries carry a `voting/` prefix so the
+	// registry's module names stay unambiguous.
+	for (const root of roots) {
+		walk(root, root.endsWith('/voting') ? 'voting/' : '');
+	}
 	return found.sort();
 }

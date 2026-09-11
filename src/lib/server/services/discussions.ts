@@ -4,7 +4,16 @@ import { requirePermission, requireWritableCommunity, type Ctx } from '../auth/g
 import { getDb, type Db } from '../db/index.js';
 import { newId } from '../db/id.js';
 import { definition } from '../db/schema/definitions.js';
-import { discussion, post, type Discussion, type Post } from '../db/schema/discussions.js';
+import {
+	consentRound,
+	discussion,
+	post,
+	type Discussion,
+	type Post
+} from '../db/schema/discussions.js';
+import { user } from '../db/schema/auth.js';
+import { membership } from '../db/schema/tenancy.js';
+import { initialsOf, personLabel } from './person.js';
 import { activeStandardView } from './completeness.js';
 import { discussionParticipants, notify } from './notifications.js';
 import { indexDiscussion } from './search.js';
@@ -156,6 +165,52 @@ export function listDiscussions(ctx: Ctx, options: { db?: Db } = {}): Discussion
 		.all();
 }
 
+export type PostAuthor = { label: string; initials: string };
+
+/**
+ * The thread, with a name against everything in it.
+ *
+ * Names go through `personLabel` like every other surface (`docs/03` §10), and
+ * the membership is joined in for the `seq` that a former member's label needs —
+ * the label is community-local, so it cannot be produced from the account alone.
+ */
+export function listPostsWithAuthors(
+	ctx: Ctx,
+	discussionId: string,
+	options: { db?: Db } = {}
+): (Post & { author: PostAuthor })[] {
+	getDiscussion(ctx, discussionId, options);
+	const db = options.db ?? getDb();
+
+	const rows = db
+		.select({
+			post,
+			name: user.name,
+			erasedAt: user.erasedAt,
+			displayName: membership.displayName,
+			seq: membership.seq
+		})
+		.from(post)
+		.leftJoin(user, eq(user.id, post.authorId))
+		.leftJoin(
+			membership,
+			and(eq(membership.userId, post.authorId), eq(membership.communityId, ctx.community.id))
+		)
+		.where(eq(post.discussionId, discussionId))
+		.orderBy(post.createdAt)
+		.all();
+
+	return rows.map((row) => {
+		const label = personLabel({
+			erasedAt: row.erasedAt ?? null,
+			name: row.name,
+			displayName: row.displayName,
+			seq: row.seq
+		});
+		return { ...row.post, author: { label, initials: initialsOf(label) } };
+	});
+}
+
 export function listPosts(ctx: Ctx, discussionId: string, options: { db?: Db } = {}): Post[] {
 	getDiscussion(ctx, discussionId, options);
 	const db = options.db ?? getDb();
@@ -167,11 +222,19 @@ export function listPosts(ctx: Ctx, discussionId: string, options: { db?: Db } =
 		.all();
 }
 
-/** A thread that has been frozen or abandoned takes no more writes. */
+/**
+ * A thread that has been abandoned takes no more writes. A decided one does.
+ *
+ * `frozen` used to end a discussion, which made sense while a thread produced at
+ * most one decision. It cannot survive a rail where a version is chosen: v5,
+ * written months after v3 was adopted, has to live somewhere, and the only
+ * honest place is the thread that produced v3 — the argument is the same
+ * argument. What is spent is the proposal, not the discussion, and that guard
+ * lives on the proposal (`proposalToFreeze`).
+ *
+ * Abandoning is now the only act that ends a thread.
+ */
 function requireWritable(found: Discussion): void {
-	if (found.status === 'frozen') {
-		error(409, 'This discussion has been decided. Start a new one to change it.');
-	}
 	if (found.status === 'abandoned') error(409, 'This discussion was abandoned.');
 }
 
@@ -205,7 +268,7 @@ export function addMessage(
  */
 export function addProposal(
 	ctx: Ctx,
-	input: { discussionId: string; body: string },
+	input: { discussionId: string; body: string; revisionNote?: string | null },
 	options: { db?: Db } = {}
 ): Post {
 	requirePermission(ctx, 'proposal.create');
@@ -217,20 +280,17 @@ export function addProposal(
 	if (!body) error(400, 'A proposal needs some text.');
 
 	const db = options.db ?? getDb();
-	const previous = db
-		.select()
-		.from(post)
-		.where(and(eq(post.discussionId, input.discussionId), eq(post.kind, 'proposal')))
-		.orderBy(desc(post.proposalVersion))
-		.get();
 
-	const written = writePost(ctx, options, {
-		discussionId: input.discussionId,
-		body,
-		kind: 'proposal',
-		// v1, v2, v3 … and every earlier one stays readable.
-		proposalVersion: (previous?.proposalVersion ?? 0) + 1
-	});
+	/**
+	 * The new version and the closure of the old round, or neither.
+	 *
+	 * Two commits would leave a window where v3 and v4 both look like the text on
+	 * the table, and a response landing in it would be counted into a tally for a
+	 * version nobody is being asked about any more.
+	 */
+	const written = db.transaction((tx) =>
+		writeProposal(ctx, tx as unknown as Db, found, { body, revisionNote: input.revisionNote })
+	);
 
 	// The people who have written in this thread, not everyone: a notification
 	// everybody gets is a notification nobody reads.
@@ -241,6 +301,88 @@ export function addProposal(
 		summary: found.title,
 		recipients: discussionParticipants(db, ctx.community.id, input.discussionId)
 	});
+
+	return written;
+}
+
+/**
+ * Write the next version, inside a transaction the caller owns.
+ *
+ * Factored out because `takeOffline` already runs in one and SQLite has no
+ * nested transactions — and because closing the previous version's round has to
+ * happen in the same commit either way.
+ */
+function writeProposal(
+	ctx: Ctx,
+	tx: Db,
+	found: Discussion,
+	values: { body: string; revisionNote?: string | null }
+): Post {
+	const previous = tx
+		.select()
+		.from(post)
+		.where(and(eq(post.discussionId, found.id), eq(post.kind, 'proposal')))
+		.orderBy(desc(post.proposalVersion))
+		.get();
+
+	const written = writePost(
+		ctx,
+		{ db: tx },
+		{
+			discussionId: found.id,
+			body: values.body,
+			kind: 'proposal',
+			// v1, v2, v3 … and every earlier one stays readable.
+			proposalVersion: (previous?.proposalVersion ?? 0) + 1,
+			// Only a revision has something to have changed.
+			revisionNote: previous ? values.revisionNote?.trim() || null : null
+		}
+	);
+
+	/**
+	 * The previous version's round, closed as superseded.
+	 *
+	 * Not cancelled: nobody cancelled it, the text it was about stopped being the
+	 * text on the table. Its responses stay exactly where they are — they are what
+	 * that version was told, they are what a freeze of that version should quote,
+	 * and they are not consents to these new words.
+	 */
+	if (previous) {
+		tx.update(consentRound)
+			.set({
+				status: 'superseded',
+				closedAt: new Date(ctx.now()),
+				supersededByPostId: written.id
+			})
+			.where(and(eq(consentRound.proposalPostId, previous.id), eq(consentRound.status, 'open')))
+			.run();
+	}
+
+	/**
+	 * Open again: there is a new question on the table.
+	 *
+	 * A thread that produced a decision and then produced a new version is not
+	 * decided any more — it is being argued about again, and the dashboard's
+	 * stalled arithmetic and the discussion list both read this.
+	 */
+	if (found.status === 'frozen' || found.status === 'decided_offline') {
+		tx.update(discussion).set({ status: 'open' }).where(eq(discussion.id, found.id)).run();
+	}
+
+	/**
+	 * The version now in flight on the definition this thread is about.
+	 *
+	 * Written for the first time here. The column has always existed and has only
+	 * ever been set to null, which was harmless while a freeze ended the thread —
+	 * now that a thread can produce v5 months after v3 was decided, "the proposal
+	 * currently in flight" is a question with a real answer.
+	 */
+	if (found.definitionId) {
+		tx.update(definition)
+			.set({ openProposalId: written.id })
+			.where(eq(definition.id, found.definitionId))
+			.run();
+	}
 
 	return written;
 }
@@ -279,19 +421,7 @@ export function takeOffline(
 			proposalVersion: null
 		});
 
-		const previous = tx
-			.select()
-			.from(post)
-			.where(and(eq(post.discussionId, input.discussionId), eq(post.kind, 'proposal')))
-			.orderBy(desc(post.proposalVersion))
-			.get();
-
-		const proposalPost = writePost(ctx, withTx, {
-			discussionId: input.discussionId,
-			body: proposalText,
-			kind: 'proposal',
-			proposalVersion: (previous?.proposalVersion ?? 0) + 1
-		});
+		const proposalPost = writeProposal(ctx, withTx.db, found, { body: proposalText });
 
 		tx.update(discussion)
 			.set({ status: 'decided_offline', origin: 'offline' })
@@ -302,6 +432,33 @@ export function takeOffline(
 	});
 }
 
+/**
+ * A message written by something other than the composer.
+ *
+ * The reason somebody gave with their vote is a thing they said, so it belongs
+ * in the thread with everything else they said rather than in a column the
+ * conversation cannot see. Exported so the voting provider can write one without
+ * reaching into `post` itself — the permission that allowed the vote is the
+ * permission that allows this, and it has already been checked by the caller.
+ */
+export function writeThreadPost(
+	ctx: Ctx,
+	db: Db,
+	values: { discussionId: string; body: string }
+): Post {
+	return writePost(
+		ctx,
+		{ db },
+		{
+			discussionId: values.discussionId,
+			body: values.body,
+			kind: 'message',
+			proposalVersion: null,
+			revisionNote: null
+		}
+	);
+}
+
 function writePost(
 	ctx: Ctx,
 	options: { db?: Db },
@@ -310,6 +467,7 @@ function writePost(
 		body: string;
 		kind: 'message' | 'proposal' | 'offline_summary';
 		proposalVersion: number | null;
+		revisionNote?: string | null;
 	}
 ): Post {
 	const db = options.db ?? getDb();
@@ -324,6 +482,7 @@ function writePost(
 			body: values.body,
 			kind: values.kind,
 			proposalVersion: values.proposalVersion,
+			revisionNote: values.revisionNote ?? null,
 			frozenDecisionId: null,
 			createdAt: new Date(now),
 			editedAt: null
@@ -364,13 +523,25 @@ export function latestProposal(
  * decision and "there is nothing to record" is worth saying plainly. Freezing is
  * built in group 5; this is the question it asks.
  */
-export function proposalToFreeze(ctx: Ctx, discussionId: string, options: { db?: Db } = {}): Post {
-	const found = getDiscussion(ctx, discussionId, options);
-	if (found.status === 'frozen') {
-		error(409, 'This discussion has already been decided.');
-	}
+export function proposalToFreeze(
+	ctx: Ctx,
+	discussionId: string,
+	options: { db?: Db; proposalPostId?: string } = {}
+): Post {
+	getDiscussion(ctx, discussionId, options);
 
-	const proposal = latestProposal(ctx, discussionId, options);
+	/**
+	 * The version the steward chose, not the thread's most recent.
+	 *
+	 * A community can vote v3 through, watch v4 draw objections, and want v3.
+	 * Resolving the latest at submission time made that impossible in one
+	 * direction and silently recorded the wrong text in the other — a steward who
+	 * read v3 and submitted after v4 landed adopted v4's words under v3's tally.
+	 */
+	const proposal = options.proposalPostId
+		? proposalInDiscussion(discussionId, options.proposalPostId, options)
+		: latestProposal(ctx, discussionId, options);
+
 	if (!proposal) {
 		error(409, 'There is no proposal to record yet. Write one first, then freeze it.');
 	}
@@ -380,8 +551,31 @@ export function proposalToFreeze(ctx: Ctx, discussionId: string, options: { db?:
 	return proposal;
 }
 
+/** A proposal, but only if it is this discussion's. */
+function proposalInDiscussion(
+	discussionId: string,
+	proposalPostId: string,
+	options: { db?: Db }
+): Post | null {
+	const db = options.db ?? getDb();
+	const found = db
+		.select()
+		.from(post)
+		.where(and(eq(post.id, proposalPostId), eq(post.discussionId, discussionId)))
+		.get();
+	// A proposal from a different thread is not a proposal this freeze may adopt,
+	// and saying which it was would confirm it exists.
+	if (!found || found.kind !== 'proposal') error(404, 'Not found');
+	return found;
+}
+
 registerTenantService({ name: 'discussions.get', subject: 'discussion', call: getDiscussion });
 registerTenantService({ name: 'discussions.posts', subject: 'discussion', call: listPosts });
+registerTenantService({
+	name: 'discussions.postsWithAuthors',
+	subject: 'discussion',
+	call: listPostsWithAuthors
+});
 registerTenantService({
 	name: 'discussions.latestProposal',
 	subject: 'discussion',

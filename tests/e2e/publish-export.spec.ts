@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test';
 import type { Page } from '@playwright/test';
-import { seed, signIn, visit } from './support.js';
+import { freezeOnOpenThread, proposeOnOpenThread, seed, signIn, visit } from './support.js';
 
 /**
  * P6's exit criteria. `openspec/changes/publishing-export-i18n`.
@@ -39,15 +39,12 @@ async function adoptSomething(page: Page, fixture: { slug: string; clauseKey: st
 	await page.getByLabel('Start a discussion').fill('What do we exist for?');
 	await page.getByLabel('Clause (optional)').fill(fixture.clauseKey);
 	await page.getByRole('button', { name: 'Start' }).click();
-	await page
-		.getByLabel('Write a proposal', { exact: false })
-		.fill('We steward this land together, and decide together how it is used.');
-	await page.getByRole('button', { name: 'Post proposal' }).click();
+	await proposeOnOpenThread(
+		page,
+		'We steward this land together, and decide together how it is used.'
+	);
 
-	await page.getByRole('button', { name: 'Freeze', exact: true }).click();
-	const form = page.getByRole('region', { name: 'Record this decision' });
-	await form.getByLabel('Mechanism').fill('consent');
-	await form.getByRole('button', { name: 'Record decision' }).click();
+	await freezeOnOpenThread(page);
 	await expect(page).toHaveURL(new RegExp(`/c/${fixture.slug}/d/DEC-`));
 }
 

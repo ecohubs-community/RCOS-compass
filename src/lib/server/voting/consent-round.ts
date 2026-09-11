@@ -1,4 +1,4 @@
-import { and, count, eq, isNull } from 'drizzle-orm';
+import { and, count, eq, gt, isNull } from 'drizzle-orm';
 import { error } from '@sveltejs/kit';
 import { requirePermission, requireWritableCommunity, type Ctx } from '../auth/guard.js';
 import { getDb, type Db } from '../db/index.js';
@@ -12,7 +12,10 @@ import {
 	post
 } from '../db/schema/discussions.js';
 import { membership } from '../db/schema/tenancy.js';
+import { user } from '../db/schema/auth.js';
+import { initialsOf, personLabel } from '../services/person.js';
 import { countUnresolved, raiseObjection } from '../services/objections.js';
+import { writeThreadPost } from '../services/discussions.js';
 import { notify } from '../services/notifications.js';
 import { registerTenantService } from '../services/registry.js';
 import { RESPONSE_VALUES } from './provider.js';
@@ -27,6 +30,127 @@ import type { OpenRoundInput, ResponseValue, Round, Tally, VotingProvider } from
  * no version, no change-log entry: a person still has to press Freeze, with
  * their name on it.
  */
+
+/**
+ * The proposal, if it belongs to this community and is still the text on the
+ * table.
+ *
+ * A version somebody has already replaced takes no more responses: v4 is what
+ * the community is being asked about, and a vote arriving on v3 afterwards would
+ * be counted into a tally that a freeze of v3 might later quote.
+ */
+function respondableProposal(db: Db, ctx: Ctx, proposalPostId: string) {
+	const found = db
+		.select({ post })
+		.from(post)
+		.innerJoin(discussion, eq(discussion.id, post.discussionId))
+		.where(and(eq(post.id, proposalPostId), eq(discussion.communityId, ctx.community.id)))
+		.get();
+	if (!found || found.post.kind !== 'proposal') error(404, 'Not found');
+
+	const later = db
+		.select({ id: post.id })
+		.from(post)
+		.where(
+			and(
+				eq(post.discussionId, found.post.discussionId),
+				eq(post.kind, 'proposal'),
+				gt(post.proposalVersion, found.post.proposalVersion ?? 0)
+			)
+		)
+		.get();
+	if (later) {
+		error(409, 'A newer version is on the table. Respond to that one.');
+	}
+	return found.post;
+}
+
+/**
+ * Open a round, with no view about who is allowed to.
+ *
+ * Shared by the deliberate act and by the first response that finds no round,
+ * which is why the permission check lives in the callers: opening decides
+ * nothing — the spec is explicit that a round informs a freeze and never
+ * performs one — so a member's first response may cause one, and `openedBy`
+ * stays null to say that nobody opened it.
+ */
+function createRound(
+	tx: Db,
+	ctx: Ctx,
+	input: {
+		proposalPostId: string;
+		discussionId: string;
+		closesAt: number | null;
+		membershipIds?: string[];
+		openedBy: string | null;
+	}
+): string {
+	const roundId = newId();
+	const now = ctx.now();
+
+	tx.insert(consentRound)
+		.values({
+			id: roundId,
+			communityId: ctx.community.id,
+			proposalPostId: input.proposalPostId,
+			openedBy: input.openedBy,
+			openedAt: new Date(now),
+			closesAt: input.closesAt === null ? null : new Date(input.closesAt),
+			status: 'open',
+			closedAt: null,
+			supersededByPostId: null,
+			eligibility: input.membershipIds ? 'selected' : 'all_members'
+		})
+		.run();
+
+	/**
+	 * Who may respond, captured now.
+	 *
+	 * A snapshot rather than a live query: someone who joins tomorrow is not
+	 * eligible, and "9 of 11 responded" must not change meaning because a
+	 * twelfth person arrived. The denominator a community was told about at
+	 * the start is the one it is held to at the end.
+	 */
+	const current = tx
+		.select({ id: membership.id })
+		.from(membership)
+		.where(and(eq(membership.communityId, ctx.community.id), isNull(membership.endedAt)))
+		.all()
+		.map((m) => m.id);
+
+	// A named subset is intersected with this community's own memberships
+	// rather than trusted. The boundary is not "the only caller passes the
+	// right ids" — an id from elsewhere would otherwise become an
+	// eligibility row and a notification delivered into another community.
+	const eligibleIds = input.membershipIds
+		? input.membershipIds.filter((id) => current.includes(id))
+		: current;
+
+	if (eligibleIds.length === 0) error(409, 'There is nobody to ask.');
+
+	for (const membershipId of eligibleIds) {
+		tx.insert(consentEligible).values({ roundId, membershipId }).run();
+	}
+
+	/**
+	 * Everyone entitled to answer, told that they can.
+	 *
+	 * Worded for what is true on both paths. A round now usually opens because
+	 * somebody responded, so "a consent round is open" would be a sentence about
+	 * bookkeeping; what the recipient needs to know is that there is a proposal
+	 * waiting for them. `notify` drops the actor, so the person whose response
+	 * opened the round is not told about their own click.
+	 */
+	notify(tx, ctx, {
+		kind: 'consent.opened',
+		subjectType: 'discussion',
+		subjectId: input.discussionId,
+		summary: 'A proposal is open for your response',
+		recipients: eligibleIds
+	});
+
+	return roundId;
+}
 
 function roundInCommunity(db: Db, ctx: Ctx, roundId: string) {
 	const found = db
@@ -43,7 +167,7 @@ function toRound(row: typeof consentRound.$inferSelect, eligible: number): Round
 		id: row.id,
 		proposalPostId: row.proposalPostId,
 		openedAt: row.openedAt.getTime(),
-		closesAt: row.closesAt.getTime(),
+		closesAt: row.closesAt?.getTime() ?? null,
 		status: row.status,
 		closedAt: row.closedAt?.getTime() ?? null,
 		eligible
@@ -82,7 +206,9 @@ function closeIfDue(db: Db, roundId: string, now: number): void {
 		.all();
 
 	const everyoneAnswered = eligible > 0 && (responded?.n ?? 0) >= eligible;
-	const deadlinePassed = now >= row.closesAt.getTime();
+	// A round with no deadline has none to pass. It ends when everyone has
+	// answered, when the text it is about is replaced, or at the freeze.
+	const deadlinePassed = row.closesAt !== null && now >= row.closesAt.getTime();
 	if (!everyoneAnswered && !deadlinePassed) return;
 
 	db.update(consentRound)
@@ -94,22 +220,26 @@ function closeIfDue(db: Db, roundId: string, now: number): void {
 export const consentRoundProvider: VotingProvider = {
 	id: 'consent-round',
 
+	/**
+	 * Open a round deliberately, with a deadline somebody chose.
+	 *
+	 * No longer how a round usually begins — the first response opens one. This
+	 * stays because choosing a deadline *is* a governance act, because the
+	 * provider interface is the seam a second provider implements, and because a
+	 * permission nothing guards would be a claim about the system that is not
+	 * true. It is simply not reachable from the discussion screen.
+	 */
 	openRound(ctx: Ctx, input: OpenRoundInput, options: { db?: Db } = {}): Round {
 		requirePermission(ctx, 'consent.open');
 		requireWritableCommunity(ctx);
 		const db = options.db ?? getDb();
 		const now = ctx.now();
 
-		if (input.closesAt <= now) error(400, 'A round has to close in the future.');
+		if (input.closesAt != null && input.closesAt <= now) {
+			error(400, 'A round has to close in the future.');
+		}
 
-		// The proposal must be this community's.
-		const proposal = db
-			.select({ post })
-			.from(post)
-			.innerJoin(discussion, eq(discussion.id, post.discussionId))
-			.where(and(eq(post.id, input.proposalPostId), eq(discussion.communityId, ctx.community.id)))
-			.get();
-		if (!proposal || proposal.post.kind !== 'proposal') error(404, 'Not found');
+		const proposal = respondableProposal(db, ctx, input.proposalPostId);
 
 		const alreadyOpen = db
 			.select()
@@ -120,70 +250,25 @@ export const consentRoundProvider: VotingProvider = {
 			.get();
 		if (alreadyOpen) error(409, 'A round is already open on this proposal.');
 
-		const roundId = newId();
-
 		return db.transaction((tx) => {
-			tx.insert(consentRound)
-				.values({
-					id: roundId,
-					communityId: ctx.community.id,
-					proposalPostId: input.proposalPostId,
-					openedBy: ctx.user.id,
-					openedAt: new Date(now),
-					closesAt: new Date(input.closesAt),
-					status: 'open',
-					closedAt: null,
-					eligibility: input.membershipIds ? 'selected' : 'all_members'
-				})
-				.run();
-
-			/**
-			 * Who may respond, captured now.
-			 *
-			 * A snapshot rather than a live query: someone who joins tomorrow is not
-			 * eligible, and "9 of 11 responded" must not change meaning because a
-			 * twelfth person arrived. The denominator a community was told about at
-			 * the start is the one it is held to at the end.
-			 */
-			const current = db
-				.select({ id: membership.id })
-				.from(membership)
-				.where(and(eq(membership.communityId, ctx.community.id), isNull(membership.endedAt)))
-				.all()
-				.map((m) => m.id);
-
-			// A named subset is intersected with this community's own memberships
-			// rather than trusted. The boundary is not "the only caller passes the
-			// right ids" — an id from elsewhere would otherwise become an
-			// eligibility row and a notification delivered into another community.
-			const eligibleIds = input.membershipIds
-				? input.membershipIds.filter((id) => current.includes(id))
-				: current;
-
-			if (eligibleIds.length === 0) error(409, 'There is nobody to ask.');
-
-			for (const membershipId of eligibleIds) {
-				tx.insert(consentEligible).values({ roundId, membershipId }).run();
-			}
-
-			notify(tx as unknown as Db, ctx, {
-				kind: 'consent.opened',
-				subjectType: 'discussion',
-				subjectId: proposal.post.discussionId,
-				summary: 'A consent round is open',
-				recipients: eligibleIds
+			const roundId = createRound(tx as unknown as Db, ctx, {
+				proposalPostId: input.proposalPostId,
+				discussionId: proposal.discussionId,
+				closesAt: input.closesAt ?? null,
+				membershipIds: input.membershipIds,
+				openedBy: ctx.user.id
 			});
 
 			return toRound(
 				tx.select().from(consentRound).where(eq(consentRound.id, roundId)).get()!,
-				eligibleIds.length
+				countEligible(tx as unknown as Db, roundId)
 			);
 		});
 	},
 
 	respond(
 		ctx: Ctx,
-		input: { roundId: string; value: ResponseValue; reason?: string },
+		input: { proposalPostId: string; value: ResponseValue; reason?: string },
 		options: { db?: Db } = {}
 	): Round {
 		requirePermission(ctx, 'consent.respond');
@@ -199,27 +284,62 @@ export const consentRoundProvider: VotingProvider = {
 		const db = options.db ?? getDb();
 		const now = ctx.now();
 
-		const round = roundInCommunity(db, ctx, input.roundId);
-		closeIfDue(db, round.id, now);
-
-		const current = db.select().from(consentRound).where(eq(consentRound.id, round.id)).get()!;
-		if (current.status !== 'open') error(409, 'That round has closed.');
-
-		const eligible = db
-			.select()
-			.from(consentEligible)
-			.where(
-				and(
-					eq(consentEligible.roundId, round.id),
-					eq(consentEligible.membershipId, ctx.membership.id)
-				)
-			)
-			.get();
-		// Not eligible and not a member are the same answer: neither gets to learn
-		// anything about a round they are not part of.
-		if (!eligible) error(404, 'Not found');
+		const proposal = respondableProposal(db, ctx, input.proposalPostId);
+		const reason = input.reason?.trim() || null;
+		if (input.value === 'objection' && !reason) {
+			error(400, 'An objection needs a reason, so it can be addressed.');
+		}
 
 		return db.transaction((tx) => {
+			const inTx = tx as unknown as Db;
+
+			/**
+			 * The round, opened here if this is the first answer.
+			 *
+			 * One transaction with the response it carries: a round with an
+			 * eligibility snapshot and nobody in it would claim a denominator the
+			 * community was never actually asked against.
+			 */
+			let current = tx
+				.select()
+				.from(consentRound)
+				.where(
+					and(
+						eq(consentRound.proposalPostId, input.proposalPostId),
+						eq(consentRound.status, 'open')
+					)
+				)
+				.get();
+
+			if (!current) {
+				const roundId = createRound(inTx, ctx, {
+					proposalPostId: input.proposalPostId,
+					discussionId: proposal.discussionId,
+					// Nobody chose a deadline, so the round does not have one.
+					closesAt: null,
+					openedBy: null
+				});
+				current = tx.select().from(consentRound).where(eq(consentRound.id, roundId)).get()!;
+			} else {
+				closeIfDue(inTx, current.id, now);
+				current = tx.select().from(consentRound).where(eq(consentRound.id, current.id)).get()!;
+				if (current.status !== 'open') error(409, 'That round has closed.');
+			}
+
+			const eligible = tx
+				.select()
+				.from(consentEligible)
+				.where(
+					and(
+						eq(consentEligible.roundId, current.id),
+						eq(consentEligible.membershipId, ctx.membership.id)
+					)
+				)
+				.get();
+			// Not eligible and not a member are the same answer: neither gets to learn
+			// anything about a round they are not part of.
+			if (!eligible) error(404, 'Not found');
+
 			/**
 			 * Whatever this person said last time, withdrawn.
 			 *
@@ -228,13 +348,16 @@ export const consentRoundProvider: VotingProvider = {
 			 * otherwise changing your mind to consent leaves the round reporting no
 			 * objections while the freeze permanently records "1 unresolved
 			 * objection", and objecting twice leaves two.
+			 *
+			 * The post carrying their earlier reason is left exactly where it is. It
+			 * is a thing they said, in a conversation other people answered.
 			 */
 			const previous = tx
 				.select()
 				.from(consentResponse)
 				.where(
 					and(
-						eq(consentResponse.roundId, round.id),
+						eq(consentResponse.roundId, current.id),
 						eq(consentResponse.membershipId, ctx.membership.id)
 					)
 				)
@@ -252,37 +375,48 @@ export const consentRoundProvider: VotingProvider = {
 					.run();
 			}
 
+			/**
+			 * The reason, in the thread.
+			 *
+			 * Consent and abstain carry one as readily as an objection does, and "I
+			 * agree, but only because of X" is the most useful sentence a quiet member
+			 * says. It is written as an ordinary message so that every surface that
+			 * renders the conversation renders it too.
+			 */
+			const reasonPostId = reason
+				? writeThreadPost(ctx, inTx, { discussionId: proposal.discussionId, body: reason }).id
+				: null;
+
 			let objectionId: string | null = null;
 			if (input.value === 'objection') {
-				const reason = input.reason?.trim();
-				if (!reason) error(400, 'An objection needs a reason, so it can be addressed.');
 				objectionId = raiseObjection(
 					ctx,
-					{ proposalPostId: current.proposalPostId, reason },
-					{ db: tx as unknown as Db }
+					{ proposalPostId: current.proposalPostId, reason: reason! },
+					{ db: inTx }
 				).id;
 			}
 
 			// Changing your mind replaces your answer; it never adds a second voice.
 			tx.insert(consentResponse)
 				.values({
-					roundId: round.id,
+					roundId: current.id,
 					membershipId: ctx.membership.id,
 					value: input.value,
 					objectionId,
+					reasonPostId,
 					respondedAt: new Date(now)
 				})
 				.onConflictDoUpdate({
 					target: [consentResponse.roundId, consentResponse.membershipId],
-					set: { value: input.value, objectionId, respondedAt: new Date(now) }
+					set: { value: input.value, objectionId, reasonPostId, respondedAt: new Date(now) }
 				})
 				.run();
 
-			closeIfDue(tx as unknown as Db, round.id, now);
+			closeIfDue(inTx, current.id, now);
 
 			return toRound(
-				tx.select().from(consentRound).where(eq(consentRound.id, round.id)).get()!,
-				countEligible(tx as unknown as Db, round.id)
+				tx.select().from(consentRound).where(eq(consentRound.id, current.id)).get()!,
+				countEligible(inTx, current.id)
 			);
 		});
 	},
@@ -329,10 +463,85 @@ registerTenantService({
 });
 registerTenantService({
 	name: 'consent.respond',
-	subject: 'consentRound',
+	subject: 'proposal',
 	call: (ctx, subjectId) =>
-		consentRoundProvider.respond(ctx, { roundId: subjectId, value: 'consent' })
+		consentRoundProvider.respond(ctx, { proposalPostId: subjectId, value: 'consent' })
 });
+
+export type LabelledResponse = {
+	value: ResponseValue;
+	/** So the freeze can pre-fill attendance from the people who answered. */
+	membershipId: string;
+	who: string;
+	initials: string;
+	reason: string | null;
+	respondedAt: number;
+};
+
+/**
+ * Every response to one version, with a name against each.
+ *
+ * What the vote block lists when it is expanded. Names go through `personLabel`
+ * like everywhere else (`docs/03` §10) — somebody who has been erased is still
+ * counted and still listed, under their community's former-member label, because
+ * removing their vote would change a tally the community was given.
+ */
+export function listResponses(
+	ctx: Ctx,
+	roundId: string,
+	options: { db?: Db } = {}
+): LabelledResponse[] {
+	requirePermission(ctx, 'discussion.read');
+	const db = options.db ?? getDb();
+	const round = roundInCommunity(db, ctx, roundId);
+
+	return db
+		.select({
+			value: consentResponse.value,
+			membershipId: consentResponse.membershipId,
+			respondedAt: consentResponse.respondedAt,
+			reason: post.body,
+			name: user.name,
+			erasedAt: user.erasedAt,
+			displayName: membership.displayName,
+			seq: membership.seq
+		})
+		.from(consentResponse)
+		.innerJoin(membership, eq(membership.id, consentResponse.membershipId))
+		.leftJoin(user, eq(user.id, membership.userId))
+		.leftJoin(post, eq(post.id, consentResponse.reasonPostId))
+		.where(eq(consentResponse.roundId, round.id))
+		.orderBy(consentResponse.respondedAt)
+		.all()
+		.map((row) => {
+			const who = personLabel({
+				erasedAt: row.erasedAt ?? null,
+				name: row.name,
+				displayName: row.displayName,
+				seq: row.seq
+			});
+			return {
+				value: row.value,
+				membershipId: row.membershipId,
+				who,
+				initials: initialsOf(who),
+				reason: row.reason,
+				respondedAt: row.respondedAt.getTime()
+			};
+		});
+}
+
+/** The round on a proposal whatever its state — the rail reads superseded ones. */
+export function roundFor(
+	db: Db,
+	proposalPostId: string
+): typeof consentRound.$inferSelect | undefined {
+	return db
+		.select()
+		.from(consentRound)
+		.where(eq(consentRound.proposalPostId, proposalPostId))
+		.get();
+}
 
 /** Which round, if any, is open on a proposal. */
 export function openRoundFor(

@@ -120,6 +120,13 @@
       "when": 1789058972951,
       "tag": "0016_fancy_shape",
       "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "6",
+      "when": 1789090826061,
+      "tag": "0017_lumpy_makkari",
+      "breakpoints": true
     }
   ]
 }

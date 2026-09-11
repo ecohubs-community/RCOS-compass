@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test';
 import { getStandard } from '../../src/lib/server/standard/index.js';
-import { seed, signIn, visit } from './support';
+import { freezeOnOpenThread, proposeOnOpenThread, seed, signIn, visit } from './support';
 
 /**
  * The clause the "Commons" term is answered by, derived rather than written
@@ -50,15 +50,9 @@ test.describe('the glossary nobody maintains', () => {
 		await page.getByLabel('Start a discussion').fill('What do we hold in common?');
 		await page.getByLabel('Clause (optional)').fill(COMMONS_CLAUSE.key);
 		await page.getByRole('button', { name: 'Start' }).click();
-		await page
-			.getByLabel('Write a proposal', { exact: false })
-			.fill('Land and buildings are held in common by the whole circle.');
-		await page.getByRole('button', { name: 'Post proposal' }).click();
+		await proposeOnOpenThread(page, 'Land and buildings are held in common by the whole circle.');
 
-		await page.getByRole('button', { name: 'Freeze', exact: true }).click();
-		const form = page.getByRole('region', { name: 'Record this decision' });
-		await form.getByLabel('Mechanism').fill('consent');
-		await form.getByRole('button', { name: 'Record decision' }).click();
+		await freezeOnOpenThread(page);
 		await expect(page).toHaveURL(new RegExp(`/c/${fixture.slug}/d/DEC-\\d{4}-\\d{3}$`));
 
 		await visit(page, `/c/${fixture.slug}/glossary`);

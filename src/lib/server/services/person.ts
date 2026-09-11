@@ -35,6 +35,24 @@ export const ERASED_WITHOUT_COMMUNITY = 'Erased account';
 
 export const membershipLabel = (seq: number): string => `M-${String(seq).padStart(4, '0')}`;
 
+/**
+ * Initials for an avatar, taken from the label rather than from the name.
+ *
+ * The rail shows avatars instead of first names so a response row is the same
+ * width for three people and for nineteen. Derived from what `personLabel` has
+ * already decided this person may be called, so an erased member reads `FM` from
+ * "Former member (M-0142)" and never the initials of a name nobody may print.
+ */
+export function initialsOf(label: string): string {
+	const words = label.replace(/\(.*\)/g, ' ').match(/\p{L}[\p{L}'’-]*/gu) ?? [];
+	return (
+		words
+			.slice(0, 2)
+			.map((word) => word[0]!.toLocaleUpperCase())
+			.join('') || '?'
+	);
+}
+
 export function personLabel(person: Person): string {
 	if (person.erasedAt) {
 		return typeof person.seq === 'number' && person.seq > 0

@@ -7,11 +7,11 @@
 </head>
 <body>
 <x-dc>
-<helmet data-dc-atomics>
+<helmet data-dc-atomics="">
 <meta name="design_doc_mode" content="canvas">
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Newsreader:ital,opsz,wght@0,6..72,400;1,6..72,400&display=swap" rel="stylesheet">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&amp;family=Newsreader:ital,opsz,wght@0,6..72,400;1,6..72,400&amp;display=swap" rel="stylesheet">
 <style>body{margin:0;background:#0B0D0D;-webkit-font-smoothing:antialiased}a{color:#10B981;text-decoration:none}a:hover{color:#34D399}</style>
 </helmet>
 
@@ -74,12 +74,12 @@
                   <span style="width:26px;text-align:right;font-size:12px;color:#E8EAE9;font-variant-numeric:tabular-nums">9</span>
                 </div>
                 <div style="display:flex;align-items:center;gap:10px">
-                  <span style="width:104px;flex:none;font-size:12px;color:#9BA3A1">Concern</span>
+                  <span style="width:104px;flex:none;font-size:12px;color:#9BA3A1">Abstain</span>
                   <span style="flex:1;height:6px;border-radius:3px;background:#262B2C;overflow:hidden"><span style="display:block;width:10.5%;height:100%;background:#D97706"></span></span>
                   <span style="width:26px;text-align:right;font-size:12px;color:#E8EAE9;font-variant-numeric:tabular-nums">2</span>
                 </div>
                 <div style="display:flex;align-items:center;gap:10px">
-                  <span style="width:104px;flex:none;font-size:12px;color:#9BA3A1">Objection</span>
+                  <span style="width:104px;flex:none;font-size:12px;color:#9BA3A1">Object</span>
                   <span style="flex:1;height:6px;border-radius:3px;background:#262B2C;overflow:hidden"><span style="display:block;width:5.2%;height:100%;background:#DC5B4A"></span></span>
                   <span style="width:26px;text-align:right;font-size:12px;color:#E8EAE9;font-variant-numeric:tabular-nums">1</span>
                 </div>
@@ -135,10 +135,14 @@
               <div style="font-size:11px;color:#6B7574;letter-spacing:.06em;text-transform:uppercase;margin-bottom:9px">Your response</div>
               <div style="display:flex;flex-direction:column;gap:7px">
                 <span style="display:flex;align-items:center;gap:9px;font-size:12.5px;color:#E8EAE9;border:1px solid #2E4A42;background:rgba(5,150,105,0.12);border-radius:6px;padding:9px 12px"><span style="width:10px;height:10px;border-radius:50%;border:3px solid #10B981"></span>I consent</span>
-                <span style="display:flex;align-items:center;gap:9px;font-size:12.5px;color:#9BA3A1;border:1px solid #262B2C;border-radius:6px;padding:9px 12px"><span style="width:10px;height:10px;border-radius:50%;border:1px solid #3A4142"></span>I have a concern</span>
+                <span style="display:flex;align-items:center;gap:9px;font-size:12.5px;color:#9BA3A1;border:1px solid #262B2C;border-radius:6px;padding:9px 12px"><span style="width:10px;height:10px;border-radius:50%;border:1px solid #3A4142"></span>I abstain</span>
                 <span style="display:flex;align-items:center;gap:9px;font-size:12.5px;color:#9BA3A1;border:1px solid #262B2C;border-radius:6px;padding:9px 12px"><span style="width:10px;height:10px;border-radius:50%;border:1px solid #3A4142"></span>I object</span>
               </div>
-              <div style="font-size:11.5px;color:#6B7574;margin-top:9px">A concern is recorded and does not block. An objection has to be answered before the round can close.</div>
+              <div style="display:flex;align-items:center;gap:9px;margin-top:9px;border:1px solid #262B2C;border-radius:6px;background:#0E1011;padding:9px 11px">
+                <span style="font-size:12px;color:#6B7574;flex:1">Your reason — optional on all three…</span>
+                <span style="font-size:11px;color:#4E5756">recorded with your name</span>
+              </div>
+              <div style="font-size:11.5px;color:#6B7574;margin-top:9px">An abstention is recorded and does not block. An objection has to be answered or overruled before the round can close.</div>
             </div>
             <div style="margin-top:auto;display:flex;flex-direction:column;gap:8px">
               <span style="font-size:12.5px;color:#6B7574;background:#1D2122;border:1px solid #262B2C;border-radius:6px;padding:9px 0;text-align:center">Freeze into a decision</span>
@@ -202,38 +206,74 @@
               <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
                 <span style="font-size:11px;color:#6B7574;letter-spacing:.06em;text-transform:uppercase">What we said</span>
                 <span style="font-family:ui-monospace,Menlo,monospace;font-size:11px;color:#9BA3A1;border:1px solid #262B2C;border-radius:4px;padding:1px 7px">v3 · adopted 2026-05-21</span>
+                <span style="flex:1"></span>
+                <span style="display:inline-flex;flex:none;border:1px solid #262B2C;border-radius:5px;font-size:11px;white-space:nowrap">
+                  <span style="padding:3px 9px;color:#6B7574;border-right:1px solid #262B2C;border-radius:4px 0 0 4px">Plain text</span>
+                  <span style="padding:3px 9px;background:#1D2122;color:#E8EAE9;border-radius:0 4px 4px 0">Line by line</span>
+                </span>
+                <span style="font-size:11px;color:#6B7574;flex:none;white-space:nowrap">ran 21 May</span>
+                <a href="#" style="font-size:11px;flex:none">Re-run</a>
               </div>
-              <div style="font-size:14px;line-height:1.65;color:#E8EAE9;text-wrap:pretty">One shared meal a week, Thursday, 19:30, in the common house. Cooking rotates between the four households in a published order; the cooking household spends from the common fund up to €4 per person and is excused from washing up. Anyone may bring a guest without asking. Nobody has to come. If the cooking household cannot cook, they swap with the next in the order and say so in the channel before Wednesday evening.</div>
+              
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:1px">
+              <span style="font-size:11px;color:#6B7574">Each line does one job</span>
+              <span style="flex:1;height:1px;background:#1F2324"></span>
+              <span style="display:flex;align-items:center;gap:10px;font-size:10.5px;color:#6B7574">
+                <span style="display:inline-flex;align-items:center;gap:5px"><span style="width:15px;height:14px;border-radius:3px;background:rgba(5,150,105,0.14);color:#10B981;font-family:ui-monospace,Menlo,monospace;font-size:9px;display:inline-flex;align-items:center;justify-content:center">E</span>enforceable</span>
+                <span style="display:inline-flex;align-items:center;gap:5px"><span style="width:15px;height:14px;border-radius:3px;background:rgba(62,130,196,0.14);color:#6FA8DC;font-family:ui-monospace,Menlo,monospace;font-size:9px;display:inline-flex;align-items:center;justify-content:center">I</span>interpretive</span>
+                <span style="display:inline-flex;align-items:center;gap:5px"><span style="width:15px;height:14px;border-radius:3px;background:rgba(155,163,161,0.12);color:#B6BFBD;font-family:ui-monospace,Menlo,monospace;font-size:9px;display:inline-flex;align-items:center;justify-content:center">X</span>expressive</span>
+                <span style="display:inline-flex;align-items:center;gap:5px"><span style="width:15px;height:14px;border-radius:3px;background:rgba(217,119,6,0.16);color:#D97706;font-family:ui-monospace,Menlo,monospace;font-size:9px;display:inline-flex;align-items:center;justify-content:center">?</span>unlabelled</span>
+              </span>
             </div>
-
-            <div style="border:1px solid #2E4A42;background:rgba(5,150,105,0.10);border-radius:8px;padding:14px 16px">
-              <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
-                <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="#10B981" stroke-width="1.3"><circle cx="8" cy="8" r="5.5"></circle><path d="M8 7.4v3.2M8 5.2v.6"></path></svg>
-                <span style="font-size:12px;color:#10B981;letter-spacing:.03em;text-transform:uppercase">In plain words</span>
+            <div style="display:flex;flex-direction:column">
+              <div style="display:flex;gap:11px;padding:6px 0;border-top:1px solid #1F2324;background:transparent">
+                <span style="width:19px;height:17px;flex:none;border-radius:4px;background:rgba(5,150,105,0.14);color:#10B981;font-family:ui-monospace,Menlo,monospace;font-size:10px;display:flex;align-items:center;justify-content:center;margin-top:3px">E</span>
+                <span style="flex:1;min-width:0">
+                  <span style="display:block;font-size:13.5px;line-height:1.55;color:#E8EAE9;text-wrap:pretty">One shared meal a week, Thursday, 19:30, in the common house.</span>
+                </span>
               </div>
-              <div style="font-size:14px;line-height:1.6;color:#D7DEDB;text-wrap:pretty">Thursday, half seven, common house. Your household cooks when it is your turn, you can spend €4 a head, and you do not wash up that night. Bring whoever you like. Coming is not compulsory. If you cannot cook, swap and say so before Wednesday night.</div>
+              <div style="display:flex;gap:11px;padding:6px 0;border-top:1px solid #1F2324;background:transparent">
+                <span style="width:19px;height:17px;flex:none;border-radius:4px;background:rgba(5,150,105,0.14);color:#10B981;font-family:ui-monospace,Menlo,monospace;font-size:10px;display:flex;align-items:center;justify-content:center;margin-top:3px">E</span>
+                <span style="flex:1;min-width:0">
+                  <span style="display:block;font-size:13.5px;line-height:1.55;color:#E8EAE9;text-wrap:pretty">Cooking rotates between the four households in a published order; the cooking household spends from the common fund up to €4 per person and is excused from washing up.</span>
+                  <span style="display:flex;gap:8px;margin-top:6px"><span style="flex:none;font-size:11.5px;color:#9BA3A1">◦</span><span style="font-size:11.5px;color:#9BA3A1;line-height:1.45">“the published order” lives in the channel, not in a definition. Point at something versioned.</span></span>
+                </span>
+              </div>
+              <div style="display:flex;gap:11px;padding:6px 0;border-top:1px solid #1F2324;background:transparent">
+                <span style="width:19px;height:17px;flex:none;border-radius:4px;background:rgba(155,163,161,0.12);color:#B6BFBD;font-family:ui-monospace,Menlo,monospace;font-size:10px;display:flex;align-items:center;justify-content:center;margin-top:3px">X</span>
+                <span style="flex:1;min-width:0">
+                  <span style="display:block;font-size:13.5px;line-height:1.55;color:#E8EAE9;text-wrap:pretty">Nobody has to come — this line is an invitation, not an obligation.</span>
+                  <span style="display:flex;gap:8px;margin-top:6px"><span style="flex:none;font-size:11.5px;color:#10B981">✓</span><span style="font-size:11.5px;color:#9BA3A1;line-height:1.45">Labelled non-binding, so it is safe sitting next to the rules above.</span></span>
+                </span>
+              </div>
+              <div style="display:flex;gap:11px;padding:6px 0;border-top:1px solid #1F2324;background:transparent">
+                <span style="width:19px;height:17px;flex:none;border-radius:4px;background:rgba(62,130,196,0.14);color:#6FA8DC;font-family:ui-monospace,Menlo,monospace;font-size:10px;display:flex;align-items:center;justify-content:center;margin-top:3px">I</span>
+                <span style="flex:1;min-width:0">
+                  <span style="display:block;font-size:13.5px;line-height:1.55;color:#E8EAE9;text-wrap:pretty">Presence over punctuality, by default; a household that cannot cook swaps with the next in the order and says so before Wednesday evening.</span>
+                  <span style="display:flex;gap:8px;margin-top:6px"><span style="flex:none;font-size:11.5px;color:#10B981">✓</span><span style="font-size:11.5px;color:#9BA3A1;line-height:1.45">Names a trade-off, says “by default”, and the override is announced — an interpretive line doing its job.</span></span>
+                </span>
+              </div>
             </div>
-
+            </div>
+            <div style="border:1px solid #2E4A42;background:rgba(5,150,105,0.10);border-radius:8px;padding:12px 14px">
+              <div style="display:flex;align-items:center;gap:8px;margin-bottom:7px">
+                <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="#10B981" stroke-width="1.3"><circle cx="8" cy="8" r="5.5"></circle><path d="M8 7.4v3.2M8 5.2v.6"></path></svg>
+                <span style="font-size:11px;color:#10B981;letter-spacing:.03em;text-transform:uppercase">In plain words</span>
+              </div>
+              <div style="font-size:13.5px;line-height:1.55;color:#D7DEDB;text-wrap:pretty">Thursday, half seven, common house. Your household cooks when it is your turn, you can spend €4 a head, and you do not wash up that night. Coming is not compulsory. If you cannot cook, swap and say so before Wednesday night.</div>
+            </div>
             <div style="border:1px solid #262B2C;border-radius:8px;background:#16191A;overflow:hidden">
-              <div style="padding:12px 16px;border-bottom:1px solid #262B2C;display:flex;align-items:center;gap:10px">
-                <span style="font-size:13px;font-weight:550">Definition linter</span>
-                <span style="font-size:11.5px;color:#6B7574">what kind of rule is this meant to be?</span>
-                <span style="width:14px;height:14px;border-radius:50%;border:1px solid #3A4142;color:#9BA3A1;font-size:9.5px;display:inline-flex;align-items:center;justify-content:center">?</span>
+              <div style="padding:11px 16px;border-bottom:1px solid #262B2C;display:flex;align-items:center;gap:9px">
+                <span style="font-size:13px;font-weight:550;flex:none">Definition linter</span>
+                <span style="font-size:10.5px;color:#9BA3A1;border:1px solid #3A4142;border-radius:4px;padding:0 6px;flex:none;white-space:nowrap">advice</span>
+                <span style="flex:1"></span>
+                <span style="font-size:11.5px;color:#6B7574;flex:none;white-space:nowrap">Primary job <span style="color:#B6BFBD">Expressive</span></span>
+                <a href="#" style="font-size:11px;flex:none;white-space:nowrap">change</a>
               </div>
-              <div style="padding:14px 16px;display:flex;flex-direction:column;gap:13px">
-                <div style="display:flex;gap:8px">
-                  <span style="display:inline-flex;align-items:center;gap:7px;font-size:12px;padding:5px 11px;border-radius:6px;border:1px solid #262B2C;color:#9BA3A1"><span style="width:9px;height:9px;border-radius:50%;border:1px solid #3A4142"></span>Enforceable</span>
-                  <span style="display:inline-flex;align-items:center;gap:7px;font-size:12px;padding:5px 11px;border-radius:6px;border:1px solid #262B2C;color:#9BA3A1"><span style="width:9px;height:9px;border-radius:50%;border:1px solid #3A4142"></span>Interpretive</span>
-                  <span style="display:inline-flex;align-items:center;gap:7px;font-size:12px;padding:5px 11px;border-radius:6px;border:1px solid #2E4A42;background:rgba(5,150,105,0.14);color:#10B981"><span style="width:9px;height:9px;border-radius:50%;border:3px solid #10B981"></span>Expressive</span>
-                </div>
-                <div style="display:flex;flex-direction:column;gap:9px">
-                  <div style="display:flex;align-items:flex-start;gap:9px;font-size:12.5px;color:#9BA3A1"><span style="color:#10B981">✓</span><span><span style="color:#E8EAE9">Nothing to enforce</span> — attendance is explicitly optional, so no consequence is needed</span></div>
-                  <div style="display:flex;align-items:flex-start;gap:9px;font-size:12.5px;color:#9BA3A1"><span style="color:#10B981">✓</span><span><span style="color:#E8EAE9">The money part is enforceable and bounded</span> — €4 per person, from the common fund</span></div>
-                  <div style="display:flex;align-items:flex-start;gap:9px;font-size:12.5px;color:#9BA3A1"><span style="color:#10B981">✓</span><span><span style="color:#E8EAE9">Has a fallback</span> — swap with the next household, announced before Wednesday</span></div>
-                  <div style="display:flex;align-items:flex-start;gap:9px;font-size:12.5px;color:#9BA3A1"><span style="color:#D97706">⚠</span><span><span style="color:#E8EAE9">“the published order”</span> — the order exists in the channel, not in a definition</span></div>
-                </div>
-              </div>
-              <div style="padding:12px 16px;border-top:1px solid #262B2C;display:flex;align-items:center;gap:9px">
+              <div style="padding:9px 16px;display:flex;align-items:center;gap:12px">
+                <span style="font-size:12.5px;color:#9BA3A1;flex:1;line-height:1.45"><span style="color:#E8EAE9">Four lines, four different jobs — and every one of them is labelled.</span> That is what makes mixing safe: a reader can tell which line binds them.</span>
+                <span style="font-size:11.5px;color:#6B7574;flex:none">run on v3 · 21 May</span>
+              </div><div style="padding:12px 16px;border-top:1px solid #262B2C;display:flex;align-items:center;gap:9px">
                 <span style="font-size:12.5px;color:#E8EAE9;border:1px solid #3A4142;border-radius:6px;padding:7px 13px">Propose change</span>
                 <span style="font-size:12.5px;color:#9BA3A1;border:1px solid #262B2C;border-radius:6px;padding:7px 13px">Run the linter</span>
                 <span style="flex:1"></span>
@@ -475,19 +515,28 @@
               <span style="font-family:ui-monospace,Menlo,monospace;font-size:11px;color:#9BA3A1;border:1px solid #262B2C;border-radius:4px;padding:1px 7px">v2 · 1 Jun 2026</span>
               <span style="font-size:11.5px;color:#6B7574">v3 in discussion</span>
             </div>
-            <div style="font-size:14.5px;line-height:1.6;color:#E8EAE9;text-wrap:pretty">A person admitted by the Welcome Circle holds candidate status for six months. Candidates take part in all discussions and hold no blocking right. Candidates become full members by a consent decision of the assembly at the end of the six months.</div>
+            <div style="font-size:14.5px;line-height:1.6;color:#E8EAE9;text-wrap:pretty">A person admitted by the Welcome Circle holds candidate status for six months. Candidates become full members by a consent decision of the assembly at the end of it.</div>
             <div style="border:1px solid #2E4A42;background:rgba(5,150,105,0.10);border-radius:8px;padding:12px 14px">
-              <div style="font-size:11px;color:#10B981;letter-spacing:.03em;text-transform:uppercase;margin-bottom:7px">In plain words</div>
-              <div style="font-size:13.5px;line-height:1.55;color:#D7DEDB;text-wrap:pretty">You are a candidate for six months. You can speak in everything and block nothing. At six months the assembly decides out loud — it does not happen automatically.</div>
+              <div style="font-size:11px;color:#10B981;letter-spacing:.03em;text-transform:uppercase;margin-bottom:6px">In plain words</div>
+              <div style="font-size:13px;line-height:1.5;color:#D7DEDB;text-wrap:pretty">You are a candidate for six months. You can speak in everything and block nothing. At six months the assembly decides out loud.</div>
             </div>
-            <div style="border:1px solid #262B2C;border-radius:8px;padding:12px 14px">
-              <div style="display:flex;align-items:center;gap:8px;margin-bottom:9px">
-                <span style="font-size:12.5px;color:#E8EAE9">Linter · 2 warnings</span>
-                <span style="width:22px;height:22px;border-radius:50%;border:1px solid #3A4142;color:#9BA3A1;font-size:10px;display:inline-flex;align-items:center;justify-content:center">?</span>
-                <span style="flex:1"></span>
+            <div style="border:1px solid #262B2C;border-radius:8px;padding:11px 12px">
+              <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+                <span style="font-size:12.5px;color:#E8EAE9;flex:1">Linter · 1 line needs a side</span>
                 <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="#6B7574" stroke-width="1.4"><path d="M4 6.5 8 10l4-3.5"></path></svg>
               </div>
-              <div style="font-size:12.5px;color:#9BA3A1;line-height:1.5"><span style="color:#D97706">⚠</span> No consequence if the criteria are not met<br><span style="color:#D97706">⚠</span> Vague word: “regularly”</div>
+              <div style="display:flex;gap:9px;padding:9px 10px;border:1px solid #7A5518;border-radius:6px;background:rgba(217,119,6,0.07)">
+                <span style="width:17px;height:15px;flex:none;border-radius:4px;background:rgba(217,119,6,0.16);color:#D97706;font-family:ui-monospace,Menlo,monospace;font-size:9.5px;display:flex;align-items:center;justify-content:center;margin-top:1px">?</span>
+                <span style="flex:1;min-width:0">
+                  <span style="display:block;font-size:12.5px;color:#E8EAE9;line-height:1.45">“Candidates are expected to show up with humility.”</span>
+                  <span style="display:block;font-size:12px;color:#9BA3A1;margin-top:5px;line-height:1.45">Sounds binding, has no test. Make it a rule or label it non-binding.</span>
+                  <span style="display:flex;align-items:center;gap:12px;margin-top:9px">
+                    <span style="flex:1;height:44px;border-radius:8px;border:1px solid #2E4A42;background:rgba(5,150,105,0.12);color:#10B981;font-size:13px;display:flex;align-items:center;justify-content:center">Make it a rule</span>
+                    <a href="#" style="font-size:12.5px;flex:none">Label non-binding</a>
+                  </span>
+                </span>
+              </div>
+
             </div>
           </div>
           <div style="flex:none;padding:12px 16px;border-top:1px solid #262B2C;display:flex;gap:9px">
@@ -875,7 +924,7 @@
 
   <div style="display:flex;flex-direction:column;gap:10px" data-screen-label="03 Definition detail">
     <div style="display:flex;align-items:baseline;gap:10px;font-family:ui-monospace,Menlo,monospace;font-size:11px;color:#6B7574"><span style="color:#9BA3A1">03</span><span>Definition detail — the requirement / what we said / how we got here</span><span style="color:#3A4142">1440 × 900</span></div>
-    <div style="width:1440px;height:900px;background:#0E1011;border:1px solid #262B2C;border-radius:8px;overflow:hidden;display:flex;color:#E8EAE9;font-size:13px">
+    <div style="width: 1444px; height: 1000px; background: #0E1011; border: 1px solid #262B2C; border-radius: 8px; overflow: hidden; display: flex; color: #E8EAE9; font-size: 13px">
       <dc-import name="Sidebar" active="definitions" hint-size="240px,900px" style="width:240px;flex:none"></dc-import>
       <div style="flex:1;min-width:0;display:flex;flex-direction:column">
         <dc-import name="TopBar" crumb="Definitions" sub="Probationary period" hint-size="100%,52px" style="width:100%;flex:none"></dc-import>
@@ -922,45 +971,93 @@
             <div style="margin-top:auto;font-size:11.5px;color:#6B7574;line-height:1.5">Related refs: §4.1.3 (who admits), §6.2.1 (disputed exits).</div>
           </div>
 
-          <div style="flex:1;min-width:0;padding:20px 26px;display:flex;flex-direction:column;gap:16px;overflow:hidden">
+          <div style="flex: 1; min-width: 0; padding: 20px 26px; display: flex; flex-direction: column; gap: 16px; overflow: hidden; width: 495px; height: 819px">
             <div>
               <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
                 <span style="font-size:11px;color:#6B7574;letter-spacing:.06em;text-transform:uppercase">What we said</span>
                 <span style="font-family:ui-monospace,Menlo,monospace;font-size:11px;color:#9BA3A1;border:1px solid #262B2C;border-radius:4px;padding:1px 7px">v2 · adopted 2026-06-01</span>
-                <span style="font-size:11.5px;color:#6B7574">superseded draft v3 in discussion</span>
-              </div>
-              <div style="font-size:14px;line-height:1.65;color:#E8EAE9;text-wrap:pretty">A person admitted by the Welcome Circle holds <span style="color:#fff">candidate</span> status for six months from the date of their arrival. Candidates take part in all discussions and hold no blocking right in consent decisions. Candidates who attend the assembly regularly and complete their contribution hours become full members by a consent decision of the assembly at the end of the six months. The assembly may extend candidacy once, by three months, with reasons recorded.</div>
-            </div>
 
-            <div style="border:1px solid #2E4A42;background:rgba(5,150,105,0.10);border-radius:8px;padding:14px 16px">
-              <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
-                <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="#10B981" stroke-width="1.3"><circle cx="8" cy="8" r="5.5"></circle><path d="M8 7.4v3.2M8 5.2v.6"></path></svg>
-                <span style="font-size:12px;color:#10B981;letter-spacing:.03em;text-transform:uppercase">In plain words</span>
-              </div>
-              <div style="font-size:14px;line-height:1.6;color:#D7DEDB;text-wrap:pretty">You are a candidate for your first six months. You can speak in everything and block nothing. At six months the assembly decides out loud whether you are a member — it does not happen automatically. If people need more time, they can add three months once, and they have to say why.</div>
-            </div>
-
-            <div style="border:1px solid #262B2C;border-radius:8px;background:#16191A;overflow:hidden">
-              <div style="padding:12px 16px;border-bottom:1px solid #262B2C;display:flex;align-items:center;gap:10px">
-                <span style="font-size:13px;font-weight:550">Definition linter</span>
-                <span style="font-size:11.5px;color:#6B7574">what kind of rule is this meant to be?</span>
                 <span style="flex:1"></span>
-                <span style="font-size:11px;color:#4E5756">✦ AI-assisted check</span>
+                <span style="display:inline-flex;flex:none;border:1px solid #262B2C;border-radius:5px;font-size:11px;white-space:nowrap">
+                  <span style="padding:3px 9px;color:#6B7574;border-right:1px solid #262B2C;border-radius:4px 0 0 4px">Plain text</span>
+                  <span style="padding:3px 9px;background:#1D2122;color:#E8EAE9;border-radius:0 4px 4px 0">Line by line</span>
+                </span>
+                <span style="font-size:11px;color:#6B7574;flex:none;white-space:nowrap">ran 3 Aug</span>
+                <a href="#" style="font-size:11px;flex:none">Re-run</a>
               </div>
-              <div style="padding:14px 16px;display:flex;flex-direction:column;gap:13px">
-                <div style="display:flex;gap:8px">
-                  <span style="display:inline-flex;align-items:center;gap:7px;font-size:12px;padding:5px 11px;border-radius:6px;border:1px solid #2E4A42;background:rgba(5,150,105,0.14);color:#10B981"><span style="width:9px;height:9px;border-radius:50%;border:3px solid #10B981"></span>Enforceable</span>
-                  <span style="display:inline-flex;align-items:center;gap:7px;font-size:12px;padding:5px 11px;border-radius:6px;border:1px solid #262B2C;color:#9BA3A1"><span style="width:9px;height:9px;border-radius:50%;border:1px solid #3A4142"></span>Interpretive</span>
-                  <span style="display:inline-flex;align-items:center;gap:7px;font-size:12px;padding:5px 11px;border-radius:6px;border:1px solid #262B2C;color:#9BA3A1"><span style="width:9px;height:9px;border-radius:50%;border:1px solid #3A4142"></span>Expressive</span>
-                </div>
-                <div style="display:flex;flex-direction:column;gap:9px">
-                  <div style="display:flex;align-items:flex-start;gap:9px;font-size:12.5px;color:#9BA3A1"><span style="color:#10B981">✓</span><span><span style="color:#E8EAE9">Has a subject</span> — “a person admitted by the Welcome Circle”</span></div>
-                  <div style="display:flex;align-items:flex-start;gap:9px;font-size:12.5px;color:#9BA3A1"><span style="color:#10B981">✓</span><span><span style="color:#E8EAE9">Has a process</span> — consent decision of the assembly</span></div>
-                  <div style="display:flex;align-items:flex-start;gap:9px;font-size:12.5px;color:#9BA3A1"><span style="color:#D97706">⚠</span><span><span style="color:#E8EAE9">No consequence if the criteria are not met</span> — what happens to a candidate the assembly does not confirm?</span></div>
-                  <div style="display:flex;align-items:flex-start;gap:9px;font-size:12.5px;color:#9BA3A1"><span style="color:#D97706">⚠</span><span><span style="color:#E8EAE9">Vague word: “regularly”</span> — no measurable frequency, so two members can both be right</span></div>
-                </div>
+              
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:1px">
+              <span style="font-size:11px;color:#6B7574">Each line does one job</span>
+              <span style="flex:1;height:1px;background:#1F2324"></span>
+              <span style="display:flex;align-items:center;gap:10px;font-size:10.5px;color:#6B7574">
+                <span style="display:inline-flex;align-items:center;gap:5px"><span style="width:15px;height:14px;border-radius:3px;background:rgba(5,150,105,0.14);color:#10B981;font-family:ui-monospace,Menlo,monospace;font-size:9px;display:inline-flex;align-items:center;justify-content:center">E</span>enforceable</span>
+                <span style="display:inline-flex;align-items:center;gap:5px"><span style="width:15px;height:14px;border-radius:3px;background:rgba(62,130,196,0.14);color:#6FA8DC;font-family:ui-monospace,Menlo,monospace;font-size:9px;display:inline-flex;align-items:center;justify-content:center">I</span>interpretive</span>
+                <span style="display:inline-flex;align-items:center;gap:5px"><span style="width:15px;height:14px;border-radius:3px;background:rgba(155,163,161,0.12);color:#B6BFBD;font-family:ui-monospace,Menlo,monospace;font-size:9px;display:inline-flex;align-items:center;justify-content:center">X</span>expressive</span>
+                <span style="display:inline-flex;align-items:center;gap:5px"><span style="width:15px;height:14px;border-radius:3px;background:rgba(217,119,6,0.16);color:#D97706;font-family:ui-monospace,Menlo,monospace;font-size:9px;display:inline-flex;align-items:center;justify-content:center">?</span>unlabelled</span>
+              </span>
+            </div>
+            <div style="display:flex;flex-direction:column">
+              <div style="display:flex;gap:11px;padding:6px 0;border-top:1px solid #1F2324;background:transparent">
+                <span style="width:19px;height:17px;flex:none;border-radius:4px;background:rgba(5,150,105,0.14);color:#10B981;font-family:ui-monospace,Menlo,monospace;font-size:10px;display:flex;align-items:center;justify-content:center;margin-top:3px">E</span>
+                <span style="flex:1;min-width:0">
+                  <span style="display:block;font-size:13.5px;line-height:1.55;color:#E8EAE9;text-wrap:pretty">A person admitted by the Welcome Circle holds <span style="color:#fff">candidate</span> status for six months from the date of their arrival.</span>
+                </span>
               </div>
-              <div style="padding:12px 16px;border-top:1px solid #262B2C;display:flex;align-items:center;gap:9px">
+              <div style="display:flex;gap:11px;padding:6px 0;border-top:1px solid #1F2324;background:transparent">
+                <span style="width:19px;height:17px;flex:none;border-radius:4px;background:rgba(5,150,105,0.14);color:#10B981;font-family:ui-monospace,Menlo,monospace;font-size:10px;display:flex;align-items:center;justify-content:center;margin-top:3px">E</span>
+                <span style="flex:1;min-width:0">
+                  <span style="display:block;font-size:13.5px;line-height:1.55;color:#E8EAE9;text-wrap:pretty">Candidates take part in all discussions and hold no blocking right in consent decisions.</span>
+                </span>
+              </div>
+              <div style="display:flex;gap:11px;padding:6px 0;border-top:1px solid #1F2324;background:transparent">
+                <span style="width:19px;height:17px;flex:none;border-radius:4px;background:rgba(5,150,105,0.14);color:#10B981;font-family:ui-monospace,Menlo,monospace;font-size:10px;display:flex;align-items:center;justify-content:center;margin-top:3px">E</span>
+                <span style="flex:1;min-width:0">
+                  <span style="display:block;font-size:13.5px;line-height:1.55;color:#E8EAE9;text-wrap:pretty">Candidates who attend the assembly <span style="border-bottom:1px dotted #D97706;background:rgba(217,119,6,0.10)">regularly</span> and complete their contribution hours become full members by a consent decision of the assembly at the end of the six months.</span>
+                  <span style="display:flex;gap:8px;margin-top:6px"><span style="flex:none;font-size:11.5px;color:#D97706">⚠</span><span style="font-size:11.5px;color:#9BA3A1;line-height:1.45">Vague — no measurable frequency, so two members can both be right. Say how often.</span></span>
+                  <span style="display:flex;gap:8px;margin-top:6px"><span style="flex:none;font-size:11.5px;color:#D97706">⚠</span><span style="font-size:11.5px;color:#9BA3A1;line-height:1.45">No consequence stated for a candidate the assembly does not confirm.</span></span>
+                </span>
+              </div>
+              <div style="display:flex;gap:11px;padding:6px 0;border-top:1px solid #1F2324;background:rgba(217,119,6,0.05)">
+                <span style="width:19px;height:17px;flex:none;border-radius:4px;background:rgba(217,119,6,0.16);color:#D97706;font-family:ui-monospace,Menlo,monospace;font-size:10px;display:flex;align-items:center;justify-content:center;margin-top:3px">?</span>
+                <span style="flex:1;min-width:0">
+                  <span style="display:block;font-size:13.5px;line-height:1.55;color:#E8EAE9;text-wrap:pretty">Candidates are expected to show up with humility and a willingness to learn.</span>
+                  <span style="display:flex;flex-direction:column;gap:7px;margin-top:7px;padding:9px 11px;border:1px solid #7A5518;border-radius:6px;background:rgba(217,119,6,0.07)">
+                    <span style="font-size:11.5px;color:#E8C88E;line-height:1.45"><span style="color:#D97706">⚠</span> <span style="color:#E8EAE9">The ambiguous middle.</span> This sounds binding but nothing here could be checked yes or no — so it will be enforced informally, by whoever feels strongly. Push it to one side.</span>
+                    <span style="display:flex;gap:7px">
+                      <span style="font-size:11.5px;color:#10B981;border:1px solid #2E4A42;background:rgba(5,150,105,0.12);border-radius:5px;padding:4px 10px">Make it enforceable</span>
+                      <span style="font-size:11.5px;color:#9BA3A1;border:1px solid #3A4142;border-radius:5px;padding:4px 10px">Label it non-binding</span>
+                      <a href="#" style="font-size:11.5px;align-self:center">Delete the line</a>
+                    </span>
+                  </span>
+                </span>
+              </div>
+              <div style="display:flex;gap:11px;padding:6px 0;border-top:1px solid #1F2324;background:transparent">
+                <span style="width:19px;height:17px;flex:none;border-radius:4px;background:rgba(5,150,105,0.14);color:#10B981;font-family:ui-monospace,Menlo,monospace;font-size:10px;display:flex;align-items:center;justify-content:center;margin-top:3px">E</span>
+                <span style="flex:1;min-width:0">
+                  <span style="display:block;font-size:13.5px;line-height:1.55;color:#E8EAE9;text-wrap:pretty">The assembly may extend candidacy once, by three months, with reasons recorded.</span>
+                </span>
+              </div>
+            </div>
+            </div>
+            <div style="border:1px solid #2E4A42;background:rgba(5,150,105,0.10);border-radius:8px;padding:12px 14px">
+              <div style="display:flex;align-items:center;gap:8px;margin-bottom:7px">
+                <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="#10B981" stroke-width="1.3"><circle cx="8" cy="8" r="5.5"></circle><path d="M8 7.4v3.2M8 5.2v.6"></path></svg>
+                <span style="font-size:11px;color:#10B981;letter-spacing:.03em;text-transform:uppercase">In plain words</span>
+              </div>
+              <div style="font-size:13.5px;line-height:1.55;color:#D7DEDB;text-wrap:pretty">You are a candidate for your first six months. You can speak in everything and block nothing. At six months the assembly decides out loud whether you are a member — it does not happen automatically.</div>
+            </div>
+            <div style="border:1px solid #262B2C;border-radius:8px;background:#16191A;overflow:hidden">
+              <div style="padding:11px 16px;border-bottom:1px solid #262B2C;display:flex;align-items:center;gap:9px">
+                <span style="font-size:13px;font-weight:550;flex:none">Definition linter</span>
+                <span style="font-size:10.5px;color:#9BA3A1;border:1px solid #3A4142;border-radius:4px;padding:0 6px;flex:none;white-space:nowrap">advice</span>
+                <span style="flex:1"></span>
+                <span style="font-size:11.5px;color:#6B7574;flex:none;white-space:nowrap">Primary job <span style="color:#10B981">Enforceable</span></span>
+                <a href="#" style="font-size:11px;flex:none;white-space:nowrap">change</a>
+              </div>
+              <div style="padding:9px 16px;display:flex;align-items:center;gap:12px">
+                <span style="font-size:12.5px;color:#9BA3A1;flex:1;line-height:1.45"><span style="color:#E8EAE9">4 of 5 lines are enforceable and carry a test.</span> One line is unlabelled and needs a side before this reads cleanly.</span>
+                <span style="font-size:11.5px;color:#6B7574;flex:none">run on v2 · 3 Aug</span>
+              </div><div style="padding:12px 16px;border-top:1px solid #262B2C;display:flex;align-items:center;gap:9px">
                 <span style="font-size:12.5px;color:#fff;background:#059669;border-radius:6px;padding:7px 13px">Start discussion</span>
                 <span style="font-size:12.5px;color:#E8EAE9;border:1px solid #3A4142;border-radius:6px;padding:7px 13px">Propose change</span>
                 <span style="flex:1"></span>
@@ -1004,6 +1101,30 @@
           </div>
         </div>
       </div>
+    </div>
+  </div>
+
+  <div style="display:flex;flex-direction:column;gap:10px" data-screen-label="03b Before the linter has run">
+    <div style="display:flex;align-items:baseline;gap:10px;font-family:ui-monospace,Menlo,monospace;font-size:11px;color:#6B7574"><span style="color:#9BA3A1">03b</span><span>The same definition before the linter has ever run — plain text is the default</span><span style="color:#3A4142">560 × auto</span></div>
+    <div style="width:560px;background:#0E1011;border:1px solid #262B2C;border-radius:8px;padding:20px 24px;color:#E8EAE9;font-size:13px;display:flex;flex-direction:column;gap:16px">
+      <div style="display:flex;align-items:center;gap:10px">
+        <span style="font-size:11px;color:#6B7574;letter-spacing:.06em;text-transform:uppercase">What we said</span>
+        <span style="font-family:ui-monospace,Menlo,monospace;font-size:11px;color:#9BA3A1;border:1px solid #262B2C;border-radius:4px;padding:1px 7px">v2 · adopted 2026-06-01</span>
+        <span style="flex:1"></span>
+        <span style="display:inline-flex;flex:none;border:1px solid #262B2C;border-radius:5px;font-size:11px;white-space:nowrap">
+          <span style="padding:3px 9px;background:#1D2122;color:#E8EAE9;border-right:1px solid #262B2C;border-radius:4px 0 0 4px">Plain text</span>
+          <span style="padding:3px 9px;color:#3A4142;border-radius:0 4px 4px 0">Line by line</span>
+        </span>
+      </div>
+      <div style="font-size:14px;line-height:1.65;color:#E8EAE9;text-wrap:pretty">A person admitted by the Welcome Circle holds <span style="color:#fff">candidate</span> status for six months from the date of their arrival. Candidates take part in all discussions and hold no blocking right in consent decisions. Candidates who attend the assembly regularly and complete their contribution hours become full members by a consent decision of the assembly at the end of the six months. Candidates are expected to show up with humility and a willingness to learn. The assembly may extend candidacy once, by three months, with reasons recorded.</div>
+      <div style="display:flex;align-items:center;gap:12px;border:1px dashed #3A4142;border-radius:8px;padding:13px 15px">
+        <div style="flex:1">
+          <div style="font-size:13px;color:#E8EAE9">The linter has not run on this definition</div>
+          <div style="font-size:11.5px;color:#6B7574;margin-top:3px;line-height:1.5">It splits the text into lines and judges each one against its own job. Until it runs there is nothing to split by, so “Line by line” stays unavailable.</div>
+        </div>
+        <span style="font-size:12.5px;color:#fff;background:#059669;border-radius:6px;padding:8px 13px;flex:none">Run the linter</span>
+      </div>
+      <div style="font-size:11.5px;color:#6B7574;line-height:1.5">Once it has run, the toggle switches between the prose and the annotated result, and the result stays attached to this version — re-running is explicit, never automatic on read.</div>
     </div>
   </div>
 
@@ -1222,7 +1343,9 @@
           <span style="font-size:12px;color:#9BA3A1;border:1px solid #262B2C;border-radius:6px;padding:6px 11px;flex:none">Open definition</span>
         </div>
 
-        <div style="flex:1;min-height:0;padding:18px 26px;display:flex;flex-direction:column;gap:14px;overflow:hidden">
+        <div style="flex:1;min-height:0;display:flex;overflow:hidden">
+        <div style="flex:1;min-width:0;display:flex;flex-direction:column;border-right:1px solid #262B2C">
+        <div style="flex:1;min-height:0;padding:18px 24px;display:flex;flex-direction:column;gap:14px;overflow:hidden">
           <sc-for list="{{ messages }}" as="m" hint-placeholder-count="4">
             <div style="display:flex;gap:12px">
               <div style="width:28px;height:28px;flex:none;border-radius:50%;background:{{ m.avBg }};color:{{ m.avFg }};display:flex;align-items:center;justify-content:center;font-size:10.5px;font-weight:600">{{ m.initials }}</div>
@@ -1236,43 +1359,220 @@
             </div>
           </sc-for>
 
-          <div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-top:1px solid #1F2324;border-bottom:1px solid #1F2324">
-            <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="#4E5756" stroke-width="1.25"><circle cx="8" cy="8" r="5.5"></circle><path d="M8 5v3.2l2 1.2"></path></svg>
-            <span style="font-size:12px;color:#6B7574">Taken offline — meeting 14 Aug · summary added by Marco</span>
-            <a href="#" style="font-size:12px;color:#6B7574">read summary</a>
+          <div style="display:flex;align-items:center;gap:12px">
+            <span style="flex:1;height:1px;background:#1F2324"></span>
+            <span style="display:inline-flex;align-items:center;gap:7px;font-size:11px;color:#9BA3A1;letter-spacing:.03em"><svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="#6B7574" stroke-width="1.25"><rect x="2.5" y="3.5" width="11" height="10" rx="1.5"></rect><path d="M2.5 6.5h11M5.5 2v3M10.5 2v3"></path></svg>Continued in the common house · 14 Aug</span>
+            <span style="flex:1;height:1px;background:#1F2324"></span>
+          </div>
+          <div style="display:flex;gap:12px;padding-left:2px">
+            <div style="width:28px;flex:none;display:flex;justify-content:center;padding-top:3px">
+              <span style="width:8px;height:8px;border-radius:50%;border:2px solid #3A4142"></span>
+            </div>
+            <div style="flex:1;min-width:0">
+              <div style="display:flex;align-items:baseline;gap:9px">
+                <span style="font-size:12.5px;color:#9BA3A1">11 present · written up by Marco Silva</span>
+                <span style="font-size:11.5px;color:#6B7574">15 Aug, 09:12</span>
+              </div>
+              <div style="margin-top:6px;font-family:Newsreader,Georgia,serif;font-size:14px;line-height:1.6;color:#CFD4D2;text-wrap:pretty">We agreed that leaving should not require notice, and that the difficulty is settlement rather than departure. Naming one person to do the settling mattered to everyone in the room. Two people asked that objects bought with common money be treated separately from a capital share.</div>
+              <div style="margin-top:7px;font-size:11.5px;color:#6B7574">Nobody has contested this summary in 26 days.</div>
+            </div>
           </div>
 
-          <div style="border:1px solid #262B2C;border-left:3px solid #059669;border-radius:6px;background:#16191A;padding:14px 16px">
-            <div style="display:flex;align-items:center;gap:10px;margin-bottom:9px">
-              <span style="font-size:11px;color:#10B981;letter-spacing:.06em;text-transform:uppercase">Proposal · v3</span>
-              <span style="font-size:11.5px;color:#6B7574">by Marco Silva, 19 Aug · 3 support · 1 objection</span>
-            </div>
-            <div style="font-size:14px;line-height:1.6;color:#E8EAE9;text-wrap:pretty">A member may leave at any time by telling the assembly in writing. Within three months of that notice, the treasurer and one other member settle what is owed in both directions: capital share, outstanding contribution hours, and any community objects held privately. Objects bought with common money stay with the community. The settlement is recorded in the decision register, and the leaving member signs it.</div>
-            <div style="display:flex;align-items:center;gap:10px;margin-top:12px;padding-top:11px;border-top:1px solid #262B2C;font-size:11.5px">
-              <span style="color:#6B7574">Linter on this proposal:</span>
-              <span style="color:#9BA3A1"><span style="color:#10B981">✓</span> subject</span>
-              <span style="color:#9BA3A1"><span style="color:#10B981">✓</span> process</span>
-              <span style="color:#9BA3A1"><span style="color:#10B981">✓</span> consequence</span>
-              <span style="color:#9BA3A1"><span style="color:#D97706">⚠</span> “what is owed in both directions” is vague</span>
-              <span style="flex:1"></span>
-              <span style="color:#6B7574">run 19 Aug · re-run</span>
-            </div>
-            <div style="display:flex;align-items:center;gap:8px;margin-top:12px;padding-top:12px;border-top:1px solid #262B2C">
-              <span style="display:inline-flex;align-items:center;gap:6px;font-size:12px;color:#E8EAE9;border:1px solid #3A4142;border-radius:6px;padding:6px 12px">Support</span>
-              <span style="display:inline-flex;align-items:center;gap:6px;font-size:12px;color:#E8EAE9;border:1px solid #3A4142;border-radius:6px;padding:6px 12px">Object</span>
-              <span style="display:inline-flex;align-items:center;gap:6px;font-size:12px;color:#E8EAE9;border:1px solid #3A4142;border-radius:6px;padding:6px 12px"><svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3"><path d="M10.5 2.9 13.1 5.5 5.6 13H3v-2.6z"></path></svg>Suggest an edit</span>
-              <span style="display:inline-flex;align-items:center;gap:6px;font-size:12px;color:#9BA3A1;border:1px solid #262B2C;border-radius:6px;padding:6px 12px">Run the linter</span>
-              <span style="flex:1"></span>
-              <span style="display:inline-flex;align-items:center;gap:7px;font-size:12.5px;color:#fff;background:#059669;border-radius:6px;padding:7px 14px">
-                <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3"><path d="M8 2.5v11M3.5 5.2l9 5.6M12.5 5.2l-9 5.6"></path></svg>Freeze into a decision
+          <div style="display:flex;gap:12px;padding:2px 0">
+            <span style="width:28px;flex:none;display:flex;justify-content:center;padding-top:3px"><span style="width:8px;height:8px;border-radius:50%;background:#DC5B4A"></span></span>
+            <span style="flex:1;min-width:0">
+              <span style="display:flex;align-items:baseline;gap:9px">
+                <span style="font-size:12.5px;color:#E8EAE9">Tomás objected to v3</span>
+                <span style="font-size:10.5px;color:#D9A0AE;border:1px solid #4A2B26;border-radius:4px;padding:0 6px">open</span>
+                <span style="font-size:11.5px;color:#6B7574">20 Aug</span>
               </span>
+              <span style="display:block;font-size:13px;color:#CFD4D2;line-height:1.5;margin-top:4px">“Three months is too long to leave someone waiting for their money.”</span>
+            </span>
+          </div>
+
+          <div style="display:flex;align-items:center;gap:10px;padding:2px 0">
+            <span style="width:28px;flex:none;display:flex;justify-content:center"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="#10B981" stroke-width="1.3"><path d="M8 3v10M4.8 6.2 8 3l3.2 3.2"></path></svg></span>
+            <span style="font-size:12.5px;color:#9BA3A1">Marco revised the proposal to <span style="color:#E8EAE9">v3</span> — settlement window, named settler, objects split out</span>
+            <span style="font-size:11.5px;color:#6B7574">19 Aug</span>
+            <span style="flex:1"></span>
+            <a href="#" style="font-size:12px">see the change</a>
+          </div>
+
+        </div>
+
+          <div style="flex:none;padding:12px 24px 14px;border-top:1px solid #262B2C;background:#131617;display:flex;flex-direction:column;gap:9px">
+            <div style="display:flex;align-items:center;gap:10px">
+              <span style="display:inline-flex;border:1px solid #262B2C;border-radius:6px;overflow:hidden;font-size:12px">
+                <span style="padding:5px 11px;background:#1D2122;color:#E8EAE9;border-right:1px solid #262B2C">Reply</span>
+                <span style="padding:5px 11px;color:#9BA3A1;border-right:1px solid #262B2C">Revise the proposal</span>
+                <span style="padding:5px 11px;color:#9BA3A1">Write up a meeting</span>
+              </span>
+              <span style="font-size:11.5px;color:#6B7574">Revising opens v3 in an editor and saves as v4 — responses to v3 stay with v3.</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:10px;border:1px solid #262B2C;border-radius:6px;background:#0E1011;padding:10px 12px">
+              <span style="font-size:12.5px;color:#6B7574;flex:1">Reply to the thread…</span>
+              <span style="font-size:11.5px;color:#4E5756">✦ Summarise this thread</span>
+              <span style="font-size:12px;color:#fff;background:#059669;border-radius:6px;padding:5px 12px">Send</span>
+            </div>
+          </div>
+        </div>
+
+        <div style="width:430px;flex:none;background:#121516;display:flex;flex-direction:column;overflow:hidden">
+          <div style="flex:none;padding:14px 18px 12px;border-bottom:1px solid #262B2C">
+            <div style="display:flex;align-items:center;gap:10px">
+              <span style="font-size:11px;color:#6B7574;letter-spacing:.06em;text-transform:uppercase">On the table</span>
+              <span style="flex:1"></span>
+              <span style="display:inline-flex;border:1px solid #262B2C;border-radius:5px;overflow:hidden;font-size:11px">
+                <span style="padding:2px 8px;color:#6B7574;border-right:1px solid #262B2C">v1</span>
+                <span style="padding:2px 8px;color:#6B7574;border-right:1px solid #262B2C">v2</span>
+                <span style="padding:2px 8px;color:#E8EAE9;background:#1D2122">v3</span>
+              </span>
+              <span style="font-size:11px;color:#10B981">current</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:8px;margin-top:7px">
+              <span style="font-size:11.5px;color:#6B7574;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">v3 · Marco, 19 Aug</span>
+              <span style="display:inline-flex;flex:none;border:1px solid #262B2C;border-radius:5px;font-size:11px;white-space:nowrap">
+                <span style="padding:2px 8px;color:#6B7574;border-right:1px solid #262B2C;border-radius:4px 0 0 4px">Text</span>
+                <span style="padding:2px 8px;background:#1D2122;color:#E8EAE9;border-radius:0 4px 4px 0">Line by line</span>
+              </span>
+              <a href="#" style="font-size:11px;flex:none">Re-run</a>
             </div>
           </div>
 
-          <div style="margin-top:auto;display:flex;align-items:center;gap:10px;border:1px solid #262B2C;border-radius:6px;background:#131617;padding:9px 12px">
-            <span style="font-size:12.5px;color:#6B7574;flex:1">Reply to the thread…</span>
-            <span style="display:inline-flex;align-items:center;gap:6px;font-size:11.5px;color:#9BA3A1;border:1px solid #262B2C;border-radius:6px;padding:5px 10px"><svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3"><circle cx="8" cy="8" r="5.5"></circle><path d="M8 5v3.2l2 1.2"></path></svg>Add an offline summary</span>
-            <span style="font-size:11.5px;color:#4E5756">✦ Summarise this thread</span>
+          <div style="flex:1;min-height:0;overflow:hidden;display:flex;flex-direction:column">
+          <div style="flex:none;padding:13px 18px 0">
+            <div style="display:flex;flex-direction:column">
+              <div style="display:flex;gap:9px;padding:4px 0;border-top:1px solid #1F2324;background:transparent">
+                <span style="width:17px;height:15px;flex:none;border-radius:4px;background:rgba(5,150,105,0.14);color:#10B981;font-family:ui-monospace,Menlo,monospace;font-size:9.5px;display:flex;align-items:center;justify-content:center;margin-top:2px">E</span>
+                <span style="flex:1;min-width:0;font-size:12.5px;line-height:1.5;color:#E8EAE9;text-wrap:pretty">A member may leave at any time by telling the assembly in writing.</span>
+              </div>
+              <div style="display:flex;gap:9px;padding:4px 0;border-top:1px solid #1F2324;background:transparent">
+                <span style="width:17px;height:15px;flex:none;border-radius:4px;background:rgba(5,150,105,0.14);color:#10B981;font-family:ui-monospace,Menlo,monospace;font-size:9.5px;display:flex;align-items:center;justify-content:center;margin-top:2px">E</span>
+                <span style="flex:1;min-width:0;font-size:12.5px;line-height:1.5;color:#E8EAE9;text-wrap:pretty">Within three months the treasurer and one other settle <span style="border-bottom:1px dotted #D97706;background:rgba(217,119,6,0.10)">what is owed in both directions</span>.</span>
+              </div>
+              <div style="display:flex;gap:9px;padding:4px 0;border-top:1px solid #1F2324;background:rgba(217,119,6,0.05)">
+                <span style="width:17px;height:15px;flex:none;border-radius:4px;background:rgba(217,119,6,0.16);color:#D97706;font-family:ui-monospace,Menlo,monospace;font-size:9.5px;display:flex;align-items:center;justify-content:center;margin-top:2px">?</span>
+                <span style="flex:1;min-width:0;font-size:12.5px;line-height:1.5;color:#E8EAE9;text-wrap:pretty">We expect people to leave well and hand things over properly.</span>
+              </div>
+              <div style="display:flex;gap:9px;padding:4px 0;border-top:1px solid #1F2324;background:transparent">
+                <span style="width:17px;height:15px;flex:none;border-radius:4px;background:rgba(5,150,105,0.14);color:#10B981;font-family:ui-monospace,Menlo,monospace;font-size:9.5px;display:flex;align-items:center;justify-content:center;margin-top:2px">E</span>
+                <span style="flex:1;min-width:0;font-size:12.5px;line-height:1.5;color:#E8EAE9;text-wrap:pretty">The settlement is recorded in the register and signed.</span>
+              </div>
+            </div>
+            <div style="display:flex;align-items:center;gap:8px;margin-top:12px">
+              <span style="display:inline-flex;align-items:center;gap:6px;font-size:12px;color:#E8EAE9;border:1px solid #3A4142;border-radius:6px;padding:6px 12px"><svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3"><path d="M10.5 2.9 13.1 5.5 5.6 13H3v-2.6z"></path></svg>Revise → v4</span>
+              <span style="font-size:12px;color:#9BA3A1;border:1px solid #262B2C;border-radius:6px;padding:6px 12px">Compare v2 → v3</span>
+              <span style="flex:1"></span>
+              <span style="font-size:11.5px;color:#6B7574">2 earlier versions</span>
+            </div>
+          </div>
+
+          <div style="flex:none;margin:10px 18px 0;border:1px solid #262B2C;border-radius:8px;background:#16191A;overflow:hidden">
+            <div style="padding:10px 14px;border-bottom:1px solid #262B2C;display:flex;align-items:center;gap:9px">
+              <span style="font-size:12.5px;font-weight:550">Responses to v3</span>
+              <span style="width:14px;height:14px;border-radius:50%;border:1px solid #3A4142;color:#9BA3A1;font-size:9.5px;display:inline-flex;align-items:center;justify-content:center">?</span>
+              <span style="flex:1"></span>
+              <span style="font-size:11.5px;color:#9BA3A1;font-variant-numeric:tabular-nums">5 of 19 · 14 not yet</span>
+            </div>
+            <div style="padding:9px 14px;display:flex;flex-direction:column;gap:6px">
+              <div style="display:flex;align-items:center;gap:10px">
+                <span style="width:52px;flex:none;font-size:12px;color:#9BA3A1">Consent</span>
+                <span style="width:70px;flex:none;height:5px;border-radius:3px;background:#262B2C;overflow:hidden"><span style="display:block;width:60%;height:100%;background:#059669"></span></span>
+                <span style="width:13px;flex:none;font-size:12px;color:#E8EAE9;font-variant-numeric:tabular-nums">3</span>
+                <span style="flex:1;min-width:0;display:flex;align-items:center;gap:6px">
+                  <span style="font-size:11.5px;color:#6B7574;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Ana, Marco, Sofía</span>
+                  <a href="#" style="font-size:11px;flex:none">1 reason</a>
+                </span>
+              </div>
+              <div style="display:flex;align-items:center;gap:10px">
+                <span style="width:52px;flex:none;font-size:12px;color:#9BA3A1">Abstain</span>
+                <span style="width:70px;flex:none;height:5px;border-radius:3px;background:#262B2C;overflow:hidden"><span style="display:block;width:20%;height:100%;background:#6B7574"></span></span>
+                <span style="width:13px;flex:none;font-size:12px;color:#E8EAE9;font-variant-numeric:tabular-nums">1</span>
+                <span style="flex:1;min-width:0;font-size:11.5px;color:#6B7574;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Pablo — “not mine to judge”</span>
+              </div>
+              <div style="display:flex;align-items:center;gap:10px">
+                <span style="width:52px;flex:none;font-size:12px;color:#9BA3A1">Object</span>
+                <span style="width:70px;flex:none;height:5px;border-radius:3px;background:#262B2C;overflow:hidden"><span style="display:block;width:20%;height:100%;background:#DC5B4A"></span></span>
+                <span style="width:13px;flex:none;font-size:12px;color:#E8EAE9;font-variant-numeric:tabular-nums">1</span>
+                <span style="flex:1;min-width:0;display:flex;align-items:center;gap:6px">
+                  <span style="font-size:11.5px;color:#6B7574;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Tomás — “three months is too long”</span>
+                  <span style="font-size:10.5px;color:#D9A0AE;border:1px solid #4A2B26;border-radius:4px;padding:0 6px;flex:none">open</span>
+                </span>
+              </div>
+            </div>
+            <div style="padding:0 14px 8px">
+              <div style="display:flex;align-items:center;gap:8px;border:1px solid #262B2C;border-radius:6px;background:#0E1011;padding:8px 10px">
+                <span style="font-size:11.5px;color:#6B7574;flex:1">Add a reason — optional on all three…</span>
+                <span style="font-size:10.5px;color:#4E5756;flex:none;white-space:nowrap">posts to the thread</span>
+              </div>
+            </div>
+            <div style="padding:0 14px 10px;display:flex;align-items:center;gap:7px">
+              <span style="flex:1;height:32px;border:1px solid #2E4A42;background:rgba(5,150,105,0.12);border-radius:6px;color:#10B981;font-size:12px;display:flex;align-items:center;justify-content:center">Consent</span>
+              <span style="flex:1;height:32px;border:1px solid #3A4142;border-radius:6px;color:#E8EAE9;font-size:12px;display:flex;align-items:center;justify-content:center">Abstain</span>
+              <span style="flex:1;height:32px;border:1px solid #3A4142;border-radius:6px;color:#E8EAE9;font-size:12px;display:flex;align-items:center;justify-content:center">Object</span>
+            </div>
+            <div style="padding:8px 14px;border-top:1px solid #262B2C;font-size:11.5px;color:#6B7574">Reasons post into the thread, so they read as part of the conversation. v2 held 5 consents — not carried, the text changed.</div>
+          </div>
+
+          <div style="flex:none;margin:10px 18px 0;border:1px solid #262B2C;border-radius:8px;background:#16191A;overflow:hidden">
+            <div style="padding:9px 14px;border-bottom:1px solid #262B2C;display:flex;align-items:center;gap:8px">
+              <span style="font-size:12.5px;font-weight:550;flex:none">Linter on v3</span>
+              <span style="font-size:10.5px;color:#9BA3A1;border:1px solid #3A4142;border-radius:4px;padding:0 6px;flex:none">advice</span>
+              <span style="flex:1"></span>
+              <span style="font-size:11px;color:#6B7574;flex:none;white-space:nowrap">Primary job <span style="color:#E8EAE9">Enforceable</span></span>
+            </div>
+            <div style="padding:0 14px 8px;display:flex;flex-direction:column">
+              <div style="display:flex;gap:10px;padding:6px 0;border-top:1px solid #1F2324">
+                <span style="width:12px;flex:none;color:#10B981;font-size:11.5px;text-align:center">✓</span>
+                <span style="flex:1;min-width:0;font-size:11.5px;color:#9BA3A1;line-height:1.45"><span style="color:#E8EAE9">3 of 4 lines carry a test</span> — subject, process, consequence. <a href="#" style="font-size:11.5px">2 more findings on line 2 →</a></span>
+              </div>
+              <div style="display:flex;gap:10px;padding:7px 0;border-top:1px solid #1F2324">
+                <span style="width:12px;flex:none;color:#D97706;font-size:11.5px;text-align:center">⚠</span>
+                <span style="flex:1;min-width:0">
+                  <span style="font-size:11.5px;color:#E8EAE9">Line 3 is the ambiguous middle</span>
+                  <span style="display:block;font-size:11.5px;color:#6B7574;margin-top:3px;line-height:1.45">Sounds binding, has no test.</span>
+                  <span style="display:flex;gap:6px;margin-top:7px">
+                    <span style="font-size:11px;color:#10B981;border:1px solid #2E4A42;background:rgba(5,150,105,0.12);border-radius:5px;padding:3px 9px">Make it enforceable</span>
+                    <span style="font-size:11px;color:#9BA3A1;border:1px solid #3A4142;border-radius:5px;padding:3px 9px">Label it non-binding</span>
+                  </span>
+                </span>
+              </div>
+            </div>
+          </div>
+          </div>
+
+          <div style="flex:none;padding:11px 18px;border-top:1px solid #262B2C;background:#16191A;display:flex;align-items:center;gap:12px">
+            <span style="display:inline-flex;align-items:center;gap:7px;font-size:12.5px;color:#fff;background:#059669;border-radius:6px;padding:8px 13px;flex:none">
+              <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3"><path d="M8 2.5v11M3.5 5.2l9 5.6M12.5 5.2l-9 5.6"></path></svg>Freeze v3
+            </span>
+            <span style="font-size:11.5px;color:#6B7574;flex:1;line-height:1.45">Allowed with Tomás’ objection open — the record will read “frozen with 1 unresolved objection”.</span>
+          </div>
+        </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <div style="display:flex;flex-direction:column;gap:10px" data-screen-label="06b Freeze into a decision">
+    <div style="display:flex;align-items:baseline;gap:10px;font-family:ui-monospace,Menlo,monospace;font-size:11px;color:#6B7574"><span style="color:#9BA3A1">06b</span><span>Freeze a specific version into a decision</span><span style="color:#3A4142">1440 × 900</span></div>
+    <div style="width:1440px;height:900px;background:#0E1011;border:1px solid #262B2C;border-radius:8px;overflow:hidden;display:flex;position:relative;color:#E8EAE9;font-size:13px">
+      <dc-import name="Sidebar" active="discussions" hint-size="240px,900px" style="width:240px;flex:none"></dc-import>
+      <div style="flex:1;min-width:0;display:flex;flex-direction:column">
+        <dc-import name="TopBar" crumb="Discussions" sub="Exit &amp; separation" hint-size="100%,52px" style="width:100%;flex:none"></dc-import>
+        <div style="flex:1;min-height:0;display:flex">
+          <div style="flex:1;min-width:0;padding:18px 24px;display:flex;flex-direction:column;gap:12px;border-right:1px solid #262B2C">
+            <div style="font-size:18px;font-weight:550;letter-spacing:-.01em;color:#4E5756">What happens to someone’s things when they leave?</div>
+            <div style="height:11px;border-radius:3px;background:#16191A;width:78%"></div>
+            <div style="height:11px;border-radius:3px;background:#16191A;width:64%"></div>
+            <div style="height:11px;border-radius:3px;background:#16191A;width:71%"></div>
+            <div style="height:11px;border-radius:3px;background:#16191A;width:46%"></div>
+          </div>
+          <div style="width:430px;flex:none;background:#121516;padding:18px;display:flex;flex-direction:column;gap:12px">
+            <div style="font-size:11px;color:#3A4142;letter-spacing:.06em;text-transform:uppercase">On the table · v3</div>
+            <div style="height:11px;border-radius:3px;background:#16191A;width:88%"></div>
+            <div style="height:11px;border-radius:3px;background:#16191A;width:76%"></div>
+            <div style="height:11px;border-radius:3px;background:#16191A;width:82%"></div>
           </div>
         </div>
       </div>
@@ -1281,8 +1581,8 @@
         <div style="width:520px;background:#16191A;border:1px solid #3A4142;border-radius:8px;overflow:hidden">
           <div style="padding:16px 20px;border-bottom:1px solid #262B2C;display:flex;align-items:center">
             <div style="flex:1">
-              <div style="font-size:15px;font-weight:550">Freeze into a decision</div>
-              <div style="font-size:12px;color:#6B7574;margin-top:3px">Proposal v3 · Exit &amp; separation · §3.6</div>
+              <div style="font-size:15px;font-weight:550">Freeze v3 into a decision</div>
+              <div style="font-size:12px;color:#6B7574;margin-top:3px">Exit &amp; separation · §3.6 · v3 of 3, as written on 19 Aug</div>
             </div>
             <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="#6B7574" stroke-width="1.3"><path d="m4.5 4.5 7 7m0-7-7 7"></path></svg>
           </div>
@@ -1342,6 +1642,32 @@
             <span style="font-size:12.5px;color:#fff;background:#059669;border-radius:6px;padding:7px 14px">Record decision</span>
           </div>
         </div>
+      </div>
+    </div>
+  </div>
+
+  <div style="display:flex;flex-direction:column;gap:10px" data-screen-label="06c Rail before any proposal">
+    <div style="display:flex;align-items:baseline;gap:10px;font-family:ui-monospace,Menlo,monospace;font-size:11px;color:#6B7574"><span style="color:#9BA3A1">06c</span><span>The same rail before anyone has proposed anything — no second text area, just a slot</span><span style="color:#3A4142">430 × 470</span></div>
+    <div style="width:430px;background:#121516;border:1px solid #262B2C;border-radius:8px;overflow:hidden;color:#E8EAE9;font-size:13px;display:flex;flex-direction:column">
+      <div style="flex:none;padding:14px 18px 12px;border-bottom:1px solid #262B2C;display:flex;align-items:center;gap:10px">
+        <span style="font-size:11px;color:#6B7574;letter-spacing:.06em;text-transform:uppercase">On the table</span>
+        <span style="flex:1"></span>
+        <span style="font-size:11px;color:#6B7574">nothing yet</span>
+      </div>
+      <div style="padding:18px;display:flex;flex-direction:column;gap:14px">
+        <div style="border:1px dashed #3A4142;border-radius:8px;padding:16px;display:flex;flex-direction:column;gap:11px">
+          <div style="font-size:13.5px;color:#E8EAE9">No proposal on the table</div>
+          <div style="font-size:12px;color:#6B7574;line-height:1.55;text-wrap:pretty">The thread can run as long as it needs to. When somebody is ready to write the rule itself, it goes here — one text, versioned, and responses attach to the version they were given.</div>
+          <div style="display:flex;gap:8px">
+            <span style="font-size:12px;color:#fff;background:#059669;border-radius:6px;padding:7px 12px">Write a proposal</span>
+            <span style="display:inline-flex;align-items:center;gap:6px;font-size:12px;color:#9BA3A1;border:1px solid #262B2C;border-radius:6px;padding:7px 12px">✦ Draft one from the thread</span>
+          </div>
+        </div>
+        <div style="display:flex;gap:10px;border:1px solid #262B2C;border-radius:8px;padding:12px 14px">
+          <span style="width:12px;flex:none;color:#4E5756;font-size:11.5px;text-align:center">◦</span>
+          <span style="font-size:11.5px;color:#6B7574;line-height:1.5">The linter, the version list and the response tallies appear here as soon as there is a text to run them against.</span>
+        </div>
+        <div style="font-size:11.5px;color:#6B7574;line-height:1.5">The reply box below the thread stays a reply box. It never doubles as the proposal editor — revising is an explicit act that produces a new version.</div>
       </div>
     </div>
   </div>

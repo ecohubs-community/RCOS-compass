@@ -122,6 +122,78 @@ describe('upgrading a database that already has rows in it', () => {
 		after.close();
 	});
 
+	it('closes rounds left open on a version a later one replaced, keeping their responses', () => {
+		const { folder } = previousMigrations();
+		const file = join(dir, 'orphan-round.db');
+
+		const before = new Database(file);
+		before.pragma('foreign_keys = ON');
+		migrate(drizzle(before), { migrationsFolder: folder });
+
+		// v2 with a round and a response, then v3 — the shape `openRoundFor` has
+		// always left behind, because it looks a round up by the thread's latest
+		// proposal and nothing ever closed the one before it.
+		before.exec(`
+			insert into community (id, slug, name, locale, timezone, status, publish_names_policy,
+				ai_enabled, git_mirror_enabled, public_index_enabled, created_at, updated_at)
+			values ('c1', 'vv', 'Valle Verde', 'en', 'UTC', 'active', 'roles_and_counts', 0, 0, 0, 1, 1);
+
+			insert into user (id, name, email, email_verified, two_factor_enabled, locale, created_at, updated_at)
+			values ('u1', 'Ana', 'ana@example.org', 1, 0, 'en', 1, 1);
+
+			insert into membership (id, community_id, user_id, role, is_owner, rcos_state, joined_at, seq)
+			values ('m1', 'c1', 'u1', 'member', 0, 'full', 1000, 1);
+
+			insert into discussion (id, community_id, title, status, origin, opened_at, last_activity_at)
+			values ('d1', 'c1', 'Exit and separation', 'open', 'clause', 1000, 3000);
+
+			insert into post (id, discussion_id, author_id, body, kind, proposal_version, created_at)
+			values ('p2', 'd1', 'u1', 'v2 text', 'proposal', 2, 1000),
+				('p3', 'd1', 'u1', 'v3 text', 'proposal', 3, 2000);
+
+			insert into consent_round (id, community_id, proposal_post_id, opened_by, opened_at,
+				closes_at, status, eligibility)
+			values ('r2', 'c1', 'p2', 'u1', 1000, 9999, 'open', 'all_members'),
+				('r3', 'c1', 'p3', 'u1', 2000, 9999, 'open', 'all_members');
+
+			insert into consent_eligible (round_id, membership_id) values ('r2', 'm1'), ('r3', 'm1');
+
+			insert into consent_response (round_id, membership_id, value, responded_at)
+			values ('r2', 'm1', 'consent', 1500);
+		`);
+		before.close();
+
+		const after = new Database(file);
+		after.pragma('foreign_keys = ON');
+		migrate(drizzle(after), { migrationsFolder: join(ROOT, 'drizzle') });
+
+		const rounds = after
+			.prepare('select id, status, superseded_by_post_id from consent_round order by id')
+			.all() as { id: string; status: string; superseded_by_post_id: string | null }[];
+
+		expect(rounds).toEqual([
+			{ id: 'r2', status: 'superseded', superseded_by_post_id: 'p3' },
+			// v3 is still the text on the table, so its round is untouched.
+			{ id: 'r3', status: 'open', superseded_by_post_id: null }
+		]);
+
+		// The responses v2 was given are what v2 was given. Rebuilding
+		// `consent_round` drops and recreates it, and `consent_response` cascades
+		// off it — the exact shape of the bug this suite exists for.
+		const responses = after
+			.prepare("select count(*) n from consent_response where round_id = 'r2'")
+			.get() as { n: number };
+		expect(responses.n, 'the table rebuild cascaded and ate the responses').toBe(1);
+
+		const eligible = after.prepare('select count(*) n from consent_eligible').get() as {
+			n: number;
+		};
+		expect(eligible.n).toBe(2);
+
+		expect(after.pragma('foreign_key_check')).toEqual([]);
+		after.close();
+	});
+
 	it('leaves every existing subject member-visible', () => {
 		const { folder } = previousMigrations();
 		const file = join(dir, 'defaults.db');

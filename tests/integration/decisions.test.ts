@@ -8,7 +8,12 @@ import {
 	definition,
 	definitionVersion
 } from '../../src/lib/server/db/schema/definitions.js';
-import { changeLog, decision, decisionClause } from '../../src/lib/server/db/schema/decisions.js';
+import {
+	changeLog,
+	decision,
+	decisionAttendee,
+	decisionClause
+} from '../../src/lib/server/db/schema/decisions.js';
 import { discussion, post } from '../../src/lib/server/db/schema/discussions.js';
 import { communityStandard } from '../../src/lib/server/db/schema/tenancy.js';
 import {
@@ -261,7 +266,7 @@ describe('two different duplicates, and one key stops only the first', () => {
 		expect(db.select().from(decision).all()).toHaveLength(1);
 	});
 
-	it('marks the proposal and the thread as spent', () => {
+	it('marks the proposal spent, and records the decision on the thread', () => {
 		const thread = threadWithProposal();
 		const recorded = freezeIt(ctx, thread.id);
 
@@ -271,9 +276,91 @@ describe('two different duplicates, and one key stops only the first', () => {
 			.all()
 			.find((p) => p.kind === 'proposal')!;
 		expect(proposal.frozenDecisionId).toBe(recorded.id);
-		expect(db.select().from(discussion).where(eq(discussion.id, thread.id)).get()!.status).toBe(
-			'frozen'
+
+		const row = db.select().from(discussion).where(eq(discussion.id, thread.id)).get()!;
+		expect(row.status).toBe('frozen');
+		expect(row.frozenDecisionId).toBe(recorded.id);
+	});
+});
+
+describe('a thread can decide more than once over its life', () => {
+	it('freezes a later version and supersedes the decision before it', () => {
+		const thread = threadWithProposal();
+		const first = freezeIt(ctx, thread.id);
+
+		// Months later, the same argument comes back and produces a new version.
+		const v2 = addProposal(ctx, { discussionId: thread.id, body: 'A settled version.' }, { db });
+		const second = freezeIt(ctx, thread.id);
+
+		expect(second.id).not.toBe(first.id);
+		expect(second.ref).not.toBe(first.ref);
+
+		const earlier = db.select().from(decision).where(eq(decision.id, first.id)).get()!;
+		expect(earlier.status).toBe('superseded');
+		expect(earlier.supersededById).toBe(second.id);
+		// Its own record is untouched — it says what was true then.
+		expect(earlier.ref).toBe(first.ref);
+		expect(earlier.proposalText).toBe('Members may leave at any time.');
+		expect(earlier.tallyPresent).toBe(9);
+
+		expect(db.select().from(post).where(eq(post.id, v2.id)).get()!.frozenDecisionId).toBe(
+			second.id
 		);
+		// The thread now names the decision in force.
+		expect(
+			db.select().from(discussion).where(eq(discussion.id, thread.id)).get()!.frozenDecisionId
+		).toBe(second.id);
+	});
+
+	it("adopts the version the steward chose, not the thread's latest", () => {
+		// v1 was agreed; v2 drew objections. The community records v1.
+		const thread = threadWithProposal();
+		const v1 = db
+			.select()
+			.from(post)
+			.all()
+			.find((p) => p.kind === 'proposal')!;
+		addProposal(ctx, { discussionId: thread.id, body: 'A version nobody liked.' }, { db });
+
+		const recorded = freezeIt(ctx, thread.id, { proposalPostId: v1.id });
+
+		expect(recorded.proposalText).toBe('Members may leave at any time.');
+		expect(db.select().from(post).where(eq(post.id, v1.id)).get()!.frozenDecisionId).toBe(
+			recorded.id
+		);
+	});
+
+	it('leaves a newer version freezable after an earlier one is recorded', () => {
+		const thread = threadWithProposal();
+		const v1 = db
+			.select()
+			.from(post)
+			.all()
+			.find((p) => p.kind === 'proposal')!;
+		const v2 = addProposal(ctx, { discussionId: thread.id, body: 'The later text.' }, { db });
+
+		freezeIt(ctx, thread.id, { proposalPostId: v1.id });
+		const second = freezeIt(ctx, thread.id, { proposalPostId: v2.id });
+
+		expect(second.proposalText).toBe('The later text.');
+		expect(db.select().from(decision).all()).toHaveLength(2);
+	});
+
+	it('refuses a version from a different discussion, and consumes no reference', () => {
+		const thread = threadWithProposal();
+		const other = threadWithProposal(ctx, "Someone else's rule.");
+		const foreign = db
+			.select()
+			.from(post)
+			.where(eq(post.discussionId, other.id))
+			.all()
+			.find((p) => p.kind === 'proposal')!;
+
+		const before = db.select().from(decision).all().length;
+		const refusal = catchRefusal(() => freezeIt(ctx, thread.id, { proposalPostId: foreign.id }));
+
+		expect(refusal?.status).toBe(404);
+		expect(db.select().from(decision).all()).toHaveLength(before);
 	});
 });
 
@@ -495,5 +582,38 @@ describe('the platform writes the Ratification Record', () => {
 		const rows = db.select().from(definition).all();
 		expect(rows.every((row) => row.sectionKey !== null)).toBe(true);
 		expect(rows.every((row) => !row.sectionKey!.endsWith('ratification-record'))).toBe(true);
+	});
+});
+
+describe('the freeze carries a review date and who was present', () => {
+	it('records a review date, and its absence is not an error', () => {
+		const thread = threadWithProposal();
+		const withDate = freezeIt(ctx, thread.id, { reviewDueAt: Date.UTC(2027, 7, 1) });
+		expect(withDate.reviewDueAt?.getTime()).toBe(Date.UTC(2027, 7, 1));
+
+		const other = threadWithProposal(ctx, 'A second rule.');
+		const without = freezeIt(ctx, other.id);
+		expect(without.reviewDueAt).toBeNull();
+	});
+
+	it('stores an attendee who did not consent to be named, and still counts them', () => {
+		const thread = threadWithProposal();
+		const recorded = freezeIt(ctx, thread.id, {
+			attendees: [
+				{ membershipId: ctx.membership.id, consentedToPublish: false },
+				{ externalName: 'A neighbour', consentedToPublish: true }
+			]
+		});
+
+		const rows = db
+			.select()
+			.from(decisionAttendee)
+			.where(eq(decisionAttendee.decisionId, recorded.id))
+			.all();
+
+		expect(rows).toHaveLength(2);
+		expect(rows.find((row) => row.membershipId === ctx.membership.id)!.consentedToPublish).toBe(
+			false
+		);
 	});
 });

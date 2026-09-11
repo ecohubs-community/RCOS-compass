@@ -5,7 +5,13 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import type { Ctx } from '../../src/lib/server/auth/guard.js';
 import { newId } from '../../src/lib/server/db/id.js';
 import { setDbForTests, type Db } from '../../src/lib/server/db/index.js';
-import { consentResponse, objection } from '../../src/lib/server/db/schema/discussions.js';
+import {
+	consentEligible,
+	consentResponse,
+	consentRound,
+	objection,
+	post
+} from '../../src/lib/server/db/schema/discussions.js';
 import { communityStandard, membership } from '../../src/lib/server/db/schema/tenancy.js';
 import { addProposal, openDiscussion } from '../../src/lib/server/services/discussions.js';
 import {
@@ -14,6 +20,7 @@ import {
 	resolveObjection
 } from '../../src/lib/server/services/objections.js';
 import { getVotingProvider } from '../../src/lib/server/voting/index.js';
+import { openRoundFor } from '../../src/lib/server/voting/consent-round.js';
 import { createTestDb } from '../support/db.js';
 import { catchRefusal } from '../support/errors.js';
 import { makeCommunity, makeMembership, makeUser } from '../support/factories.js';
@@ -212,8 +219,8 @@ describe('a consent round collects one response per member and closes', () => {
 
 	it('replaces a second response rather than duplicating it', () => {
 		const round = openRound();
-		provider().respond(members[1]!, { roundId: round.id, value: 'consent' }, { db });
-		provider().respond(members[1]!, { roundId: round.id, value: 'abstain' }, { db });
+		provider().respond(members[1]!, { proposalPostId: proposalId, value: 'consent' }, { db });
+		provider().respond(members[1]!, { proposalPostId: proposalId, value: 'abstain' }, { db });
 
 		const rows = db
 			.select()
@@ -231,12 +238,12 @@ describe('a consent round collects one response per member and closes', () => {
 		const round = openRound();
 		provider().respond(
 			members[1]!,
-			{ roundId: round.id, value: 'objection', reason: 'Nothing about assets.' },
+			{ proposalPostId: proposalId, value: 'objection', reason: 'Nothing about assets.' },
 			{ db }
 		);
 		expect(provider().tally(ctx, round.id, { db }).unresolvedObjections).toBe(1);
 
-		provider().respond(members[1]!, { roundId: round.id, value: 'consent' }, { db });
+		provider().respond(members[1]!, { proposalPostId: proposalId, value: 'consent' }, { db });
 
 		const tally = provider().tally(ctx, round.id, { db });
 		expect(tally.objection).toBe(0);
@@ -253,12 +260,12 @@ describe('a consent round collects one response per member and closes', () => {
 		const round = openRound();
 		provider().respond(
 			members[1]!,
-			{ roundId: round.id, value: 'objection', reason: 'First reason.' },
+			{ proposalPostId: proposalId, value: 'objection', reason: 'First reason.' },
 			{ db }
 		);
 		provider().respond(
 			members[1]!,
-			{ roundId: round.id, value: 'objection', reason: 'Second, better reason.' },
+			{ proposalPostId: proposalId, value: 'objection', reason: 'Second, better reason.' },
 			{ db }
 		);
 
@@ -273,18 +280,26 @@ describe('a consent round collects one response per member and closes', () => {
 		// "everyone has answered", and appear in none of the three totals.
 		const round = openRound();
 		const refusal = catchRefusal(() =>
-			provider().respond(members[1]!, { roundId: round.id, value: 'banana' as 'consent' }, { db })
+			provider().respond(
+				members[1]!,
+				{ proposalPostId: proposalId, value: 'banana' as 'consent' },
+				{ db }
+			)
 		);
 		expect(refusal?.status).toBe(400);
 		expect(provider().tally(ctx, round.id, { db }).responded).toBe(0);
 	});
 
 	it('refuses someone from another community, telling them nothing', () => {
-		const round = openRound();
+		openRound();
 		const other = seedCommunity('other-place', ['marco2@example.org']);
 
 		const refusal = catchRefusal(() =>
-			provider().respond(other.contexts[0]!, { roundId: round.id, value: 'consent' }, { db })
+			provider().respond(
+				other.contexts[0]!,
+				{ proposalPostId: proposalId, value: 'consent' },
+				{ db }
+			)
 		);
 		// 404, not 403: they do not get to learn a round exists.
 		expect(refusal?.status).toBe(404);
@@ -299,7 +314,7 @@ describe('a consent round collects one response per member and closes', () => {
 
 		expect(
 			catchRefusal(() =>
-				provider().respond(lateCtx, { roundId: round.id, value: 'consent' }, { db })
+				provider().respond(lateCtx, { proposalPostId: proposalId, value: 'consent' }, { db })
 			)?.status
 		).toBe(404);
 		// And the denominator a community was told about does not move.
@@ -308,7 +323,7 @@ describe('a consent round collects one response per member and closes', () => {
 
 	it('keeps the response of someone who leaves mid-round', () => {
 		const round = openRound();
-		provider().respond(members[1]!, { roundId: round.id, value: 'consent' }, { db });
+		provider().respond(members[1]!, { proposalPostId: proposalId, value: 'consent' }, { db });
 
 		db.update(membership)
 			.set({ endedAt: new Date(NOW + 1000) })
@@ -322,18 +337,22 @@ describe('a consent round collects one response per member and closes', () => {
 
 	it('closes when the last eligible member answers', () => {
 		const round = openRound();
-		provider().respond(members[0]!, { roundId: round.id, value: 'consent' }, { db });
-		provider().respond(members[1]!, { roundId: round.id, value: 'consent' }, { db });
+		provider().respond(members[0]!, { proposalPostId: proposalId, value: 'consent' }, { db });
+		provider().respond(members[1]!, { proposalPostId: proposalId, value: 'consent' }, { db });
 		expect(provider().tally(ctx, round.id, { db }).closedAt).toBeNull();
 
 		// A community of three should not wait a day once the third has answered.
-		const after = provider().respond(members[2]!, { roundId: round.id, value: 'abstain' }, { db });
+		const after = provider().respond(
+			members[2]!,
+			{ proposalPostId: proposalId, value: 'abstain' },
+			{ db }
+		);
 		expect(after.status).toBe('closed');
 	});
 
 	it('closes at the deadline with people still silent', () => {
 		const round = openRound();
-		provider().respond(members[1]!, { roundId: round.id, value: 'consent' }, { db });
+		provider().respond(members[1]!, { proposalPostId: proposalId, value: 'consent' }, { db });
 
 		const tally = provider().tally(at(ctx, NOW + DAY + 1), round.id, { db });
 		expect(tally.closedAt).toBe(NOW + DAY + 1);
@@ -342,11 +361,12 @@ describe('a consent round collects one response per member and closes', () => {
 	});
 
 	it('refuses a response after it has closed', () => {
-		const round = openRound();
+		openRound();
 		const late = at(members[1]!, NOW + DAY + 1);
 		expect(
-			catchRefusal(() => provider().respond(late, { roundId: round.id, value: 'consent' }, { db }))
-				?.status
+			catchRefusal(() =>
+				provider().respond(late, { proposalPostId: proposalId, value: 'consent' }, { db })
+			)?.status
 		).toBe(409);
 	});
 
@@ -363,7 +383,7 @@ describe('a consent round collects one response per member and closes', () => {
 		const round = openRound();
 		provider().respond(
 			members[1]!,
-			{ roundId: round.id, value: 'objection', reason: 'Nothing about assets.' },
+			{ proposalPostId: proposalId, value: 'objection', reason: 'Nothing about assets.' },
 			{ db }
 		);
 
@@ -374,10 +394,10 @@ describe('a consent round collects one response per member and closes', () => {
 	});
 
 	it('refuses an objection response with no reason', () => {
-		const round = openRound();
+		openRound();
 		expect(
 			catchRefusal(() =>
-				provider().respond(members[1]!, { roundId: round.id, value: 'objection' }, { db })
+				provider().respond(members[1]!, { proposalPostId: proposalId, value: 'objection' }, { db })
 			)?.status
 		).toBe(400);
 		// Nothing was recorded — not a half-response, not an objection.
@@ -390,7 +410,7 @@ describe('a round informs a freeze and never performs one', () => {
 	it('creates no decision when it closes', () => {
 		const round = openRound();
 		for (const member of members) {
-			provider().respond(member, { roundId: round.id, value: 'consent' }, { db });
+			provider().respond(member, { proposalPostId: proposalId, value: 'consent' }, { db });
 		}
 
 		expect(provider().tally(ctx, round.id, { db }).closedAt).not.toBeNull();
@@ -400,13 +420,13 @@ describe('a round informs a freeze and never performs one', () => {
 
 	it('produces the numbers a freeze is pre-filled from', () => {
 		const round = openRound();
-		provider().respond(members[0]!, { roundId: round.id, value: 'consent' }, { db });
+		provider().respond(members[0]!, { proposalPostId: proposalId, value: 'consent' }, { db });
 		provider().respond(
 			members[1]!,
-			{ roundId: round.id, value: 'objection', reason: 'Assets.' },
+			{ proposalPostId: proposalId, value: 'objection', reason: 'Assets.' },
 			{ db }
 		);
-		provider().respond(members[2]!, { roundId: round.id, value: 'abstain' }, { db });
+		provider().respond(members[2]!, { proposalPostId: proposalId, value: 'abstain' }, { db });
 
 		const tally = provider().tally(ctx, round.id, { db });
 		expect(tally).toMatchObject({
@@ -424,7 +444,7 @@ describe('a round informs a freeze and never performs one', () => {
 		const round = openRound();
 		provider().respond(
 			members[1]!,
-			{ roundId: round.id, value: 'objection', reason: 'Assets.' },
+			{ proposalPostId: proposalId, value: 'objection', reason: 'Assets.' },
 			{ db }
 		);
 
@@ -472,5 +492,252 @@ describe('the seam that lets VoteCast arrive later', () => {
 			if (!field) continue;
 			expect(field[1], line).toMatch(/^(string|number|string \| null|number \| null)$/);
 		}
+	});
+});
+
+describe('a round opens on the first response', () => {
+	const discussionIdOf = (postId: string) =>
+		db.select().from(post).where(eq(post.id, postId)).get()!.discussionId;
+
+	it('opens on a plain member answering, naming nobody as having opened it', () => {
+		const round = provider().respond(
+			members[1]!,
+			{ proposalPostId: proposalId, value: 'consent' },
+			{ db }
+		);
+
+		expect(round.status).toBe('open');
+		// Nobody opened it, so nobody is recorded as having done so, and it carries
+		// no deadline because nobody chose one.
+		const row = db.select().from(consentRound).where(eq(consentRound.id, round.id)).get()!;
+		expect(row.openedBy).toBeNull();
+		expect(row.closesAt).toBeNull();
+
+		const rows = db
+			.select()
+			.from(consentResponse)
+			.where(eq(consentResponse.roundId, round.id))
+			.all();
+		expect(rows).toHaveLength(1);
+	});
+
+	it('does not let a plain member open one deliberately', () => {
+		const refusal = catchRefusal(() =>
+			provider().openRound(members[1]!, { proposalPostId: proposalId, closesAt: NOW + DAY }, { db })
+		);
+		expect(refusal!.status).toBe(403);
+		expect(db.select().from(consentRound).all()).toHaveLength(0);
+	});
+
+	it('joins the second response to the same round', () => {
+		const first = provider().respond(
+			members[1]!,
+			{ proposalPostId: proposalId, value: 'consent' },
+			{ db }
+		);
+		const second = provider().respond(
+			members[2]!,
+			{ proposalPostId: proposalId, value: 'consent' },
+			{ db }
+		);
+
+		expect(second.id).toBe(first.id);
+		expect(db.select().from(consentRound).all()).toHaveLength(1);
+	});
+
+	it('counts a member who joined before the first response, and not one who joined after', () => {
+		// The denominator is the community as it stood when this text was first
+		// answered — not when it was written, which would shut out anyone who
+		// arrived in between.
+		const early = makeUser(db, { email: 'early@example.org' });
+		const earlySeat = makeMembership(db, ctx.community.id, early.id, { role: 'member' });
+
+		provider().respond(members[1]!, { proposalPostId: proposalId, value: 'consent' }, { db });
+
+		const late = makeUser(db, { email: 'late@example.org' });
+		const lateSeat = makeMembership(db, ctx.community.id, late.id, { role: 'member' });
+
+		const eligible = db
+			.select()
+			.from(consentEligible)
+			.all()
+			.map((row) => row.membershipId);
+		expect(eligible).toContain(earlySeat.id);
+		expect(eligible).not.toContain(lateSeat.id);
+		expect(eligible).toHaveLength(4);
+	});
+
+	it('opens no round for a member of another community', () => {
+		const other = seedCommunity('fruit-haven', ['bo@example.org']);
+		const refusal = catchRefusal(() =>
+			provider().respond(
+				other.contexts[0]!,
+				{ proposalPostId: proposalId, value: 'consent' },
+				{ db }
+			)
+		);
+
+		expect(refusal!.status).toBe(404);
+		expect(db.select().from(consentRound).all()).toHaveLength(0);
+		// Nothing was written into the other community's notifications either.
+		expect(db.select().from(post).where(eq(post.kind, 'message')).all()).toHaveLength(0);
+	});
+
+	it('records neither the round nor the response when the response fails', () => {
+		// An objection with no reason is refused after the round would have been
+		// created — the two are one transaction, so neither survives.
+		const refusal = catchRefusal(() =>
+			provider().respond(members[1]!, { proposalPostId: proposalId, value: 'objection' }, { db })
+		);
+
+		expect(refusal!.status).toBe(400);
+		expect(db.select().from(consentRound).all()).toHaveLength(0);
+		expect(db.select().from(consentResponse).all()).toHaveLength(0);
+	});
+
+	it('stays open past a deadline it never had', () => {
+		const round = provider().respond(
+			members[1]!,
+			{ proposalPostId: proposalId, value: 'consent' },
+			{ db }
+		);
+
+		const muchLater = at(ctx, NOW + 400 * DAY);
+		const tally = provider().tally(muchLater, round.id, { db });
+
+		expect(tally.responded).toBe(1);
+		expect(tally.closedAt).toBeNull();
+	});
+
+	it('closes once the last eligible member has answered, with no deadline', () => {
+		provider().respond(members[0]!, { proposalPostId: proposalId, value: 'consent' }, { db });
+		provider().respond(members[1]!, { proposalPostId: proposalId, value: 'consent' }, { db });
+		const last = provider().respond(
+			members[2]!,
+			{ proposalPostId: proposalId, value: 'consent' },
+			{ db }
+		);
+
+		expect(last.status).toBe('closed');
+	});
+
+	it('writes a reason into the thread for every value, and none when there is no reason', () => {
+		const thread = discussionIdOf(proposalId);
+		provider().respond(
+			members[1]!,
+			{ proposalPostId: proposalId, value: 'consent', reason: 'It names who settles.' },
+			{ db }
+		);
+		provider().respond(
+			members[2]!,
+			{ proposalPostId: proposalId, value: 'abstain', reason: 'Not mine to judge.' },
+			{ db }
+		);
+		provider().respond(members[0]!, { proposalPostId: proposalId, value: 'consent' }, { db });
+
+		const messages = db
+			.select()
+			.from(post)
+			.where(eq(post.discussionId, thread))
+			.all()
+			.filter((row) => row.kind === 'message');
+
+		expect(messages.map((m) => m.body)).toEqual(['It names who settles.', 'Not mine to judge.']);
+		// The reason is attributed to the person who gave it, not to the thread.
+		expect(messages[0]!.authorId).toBe(members[1]!.user.id);
+
+		const linked = db
+			.select()
+			.from(consentResponse)
+			.where(eq(consentResponse.membershipId, members[0]!.membership.id))
+			.get()!;
+		expect(linked.reasonPostId).toBeNull();
+	});
+
+	it('leaves the earlier reason in the thread when somebody changes their mind', () => {
+		const thread = discussionIdOf(proposalId);
+		provider().respond(
+			members[1]!,
+			{ proposalPostId: proposalId, value: 'objection', reason: 'Three months is too long.' },
+			{ db }
+		);
+		provider().respond(
+			members[1]!,
+			{ proposalPostId: proposalId, value: 'consent', reason: 'The revision answers it.' },
+			{ db }
+		);
+
+		const messages = db
+			.select()
+			.from(post)
+			.where(eq(post.discussionId, thread))
+			.all()
+			.filter((row) => row.kind === 'message')
+			.map((row) => row.body);
+
+		// What they said first is still readable: other people answered it.
+		expect(messages).toEqual(['Three months is too long.', 'The revision answers it.']);
+	});
+});
+
+describe('a new version supersedes the previous round', () => {
+	it('closes the old round, keeps its responses, and starts the new version from nothing', () => {
+		const thread = db.select().from(post).where(eq(post.id, proposalId)).get()!.discussionId;
+		const v1 = provider().respond(
+			members[1]!,
+			{ proposalPostId: proposalId, value: 'consent' },
+			{ db }
+		);
+		provider().respond(members[2]!, { proposalPostId: proposalId, value: 'consent' }, { db });
+
+		const v2 = addProposal(
+			ctx,
+			{ discussionId: thread, body: 'Members may leave, settled.' },
+			{ db }
+		);
+
+		const old = db.select().from(consentRound).where(eq(consentRound.id, v1.id)).get()!;
+		expect(old.status).toBe('superseded');
+		expect(old.supersededByPostId).toBe(v2.id);
+
+		// The two consents were consents to v1's words, and they stay against v1.
+		expect(
+			db.select().from(consentResponse).where(eq(consentResponse.roundId, v1.id)).all()
+		).toHaveLength(2);
+
+		// v2 starts with nothing: the text changed, so the agreement did not carry.
+		expect(openRoundFor(db, v2.id)).toBeUndefined();
+	});
+
+	it('refuses a response to a version that has been replaced', () => {
+		const thread = db.select().from(post).where(eq(post.id, proposalId)).get()!.discussionId;
+		provider().respond(members[1]!, { proposalPostId: proposalId, value: 'consent' }, { db });
+		addProposal(ctx, { discussionId: thread, body: 'A second version.' }, { db });
+
+		const refusal = catchRefusal(() =>
+			provider().respond(members[2]!, { proposalPostId: proposalId, value: 'consent' }, { db })
+		);
+		expect(refusal!.status).toBe(409);
+
+		// The count v1 was given is unchanged.
+		const rows = db.select().from(consentResponse).all();
+		expect(rows).toHaveLength(1);
+	});
+
+	it('leaves the previous round open when writing the new version fails', () => {
+		const thread = db.select().from(post).where(eq(post.id, proposalId)).get()!.discussionId;
+		const round = provider().respond(
+			members[1]!,
+			{ proposalPostId: proposalId, value: 'consent' },
+			{ db }
+		);
+
+		expect(
+			catchRefusal(() => addProposal(ctx, { discussionId: thread, body: '   ' }, { db }))!.status
+		).toBe(400);
+
+		expect(db.select().from(consentRound).where(eq(consentRound.id, round.id)).get()!.status).toBe(
+			'open'
+		);
 	});
 });

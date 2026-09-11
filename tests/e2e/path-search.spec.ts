@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { seed, signIn, visit } from './support.js';
+import { freezeOnOpenThread, proposeOnOpenThread, seed, signIn, visit } from './support.js';
 
 /**
  * P5's exit criteria. `openspec/changes/path-glossary-search`.
@@ -76,16 +76,11 @@ test.describe('a community that needs to know what to do first', () => {
 		await page.getByLabel('Start a discussion').fill('What can we spend without asking?');
 		await page.getByLabel('Clause (optional)').fill(clauseKey);
 		await page.getByRole('button', { name: 'Start' }).click();
-		await page
-			.getByLabel('Write a proposal', { exact: false })
-			.fill(
-				'Any spend over €500 needs a consent decision of the assembly. Below that a steward may decide alone.'
-			);
-		await page.getByRole('button', { name: 'Post proposal' }).click();
-		await page.getByRole('button', { name: 'Freeze', exact: true }).click();
-		const form = page.getByRole('region', { name: 'Record this decision' });
-		await form.getByLabel('Mechanism').fill('consent');
-		await form.getByRole('button', { name: 'Record decision' }).click();
+		await proposeOnOpenThread(
+			page,
+			'Any spend over €500 needs a consent decision of the assembly. Below that a steward may decide alone.'
+		);
+		await freezeOnOpenThread(page);
 		await expect(page).toHaveURL(new RegExp(`/c/${slug}/d/DEC-`));
 
 		// --- the question, in a member's own words ------------------------------

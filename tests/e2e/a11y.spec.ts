@@ -197,9 +197,11 @@ test.describe('accessibility', () => {
 	test('the freeze form has no violations, open', async ({ page }) => {
 		test.slow();
 		await seedWithProposal(page);
-		// Opened by the server, so this holds with no JavaScript too.
-		await page.goto(`${page.url()}?freeze=1`);
-		await expect(page.getByRole('region', { name: 'Record this decision' })).toBeVisible();
+		// Opened by the server, so this holds with no JavaScript too. Built from
+		// the pathname because the page now carries `?v=` for the selected version.
+		const here = new URL(page.url());
+		await page.goto(`${here.origin}${here.pathname}?freeze=1`);
+		await expect(page.getByRole('region', { name: /^Freeze v\d+ into a decision$/ })).toBeVisible();
 
 		const results = await scan(page).analyze();
 		expect(results.violations).toEqual([]);

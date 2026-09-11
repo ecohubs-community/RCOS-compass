@@ -22,6 +22,18 @@
 	let { data, children } = $props();
 
 	/**
+	 * A page that manages its own height, rather than scrolling as one column.
+	 *
+	 * The discussion detail is two panes that scroll independently under a
+	 * composer pinned to the bottom of one of them, which the shell's single
+	 * scrolling box cannot express. A page asks for this by returning
+	 * `fullHeight` from its load, so the next screen that needs it uses the same
+	 * mechanism instead of inventing a second one — and the footer goes with it,
+	 * because a footer below a pane that never ends is a footer nobody reaches.
+	 */
+	const fullHeight = $derived(page.data.fullHeight === true);
+
+	/**
 	 * The shell. Design: `design_files/platform/Sidebar.dc.html` and `TopBar.dc.html`.
 	 *
 	 * The nav is grouped rather than flat, because the flat list in the first
@@ -309,7 +321,9 @@
 		</div>
 	</aside>
 
-	<div class="flex min-w-0 flex-1 flex-col lg:overflow-y-auto">
+	<div
+		class="flex min-w-0 flex-1 flex-col {fullHeight ? 'lg:overflow-hidden' : 'lg:overflow-y-auto'}"
+	>
 		<TopBar community={data.community.name} {slug} {crumb} />
 		{#if data.readOnly}
 			<p
@@ -320,15 +334,17 @@
 			</p>
 		{/if}
 		{@render children()}
-		<!--
-			`mt-auto` rather than a wrapper around the children: on a short page the
-			footer was sitting halfway up the screen, under two lines of content,
-			which reads as the end of the page arriving early. An auto margin in a
-			flex column takes the slack without changing any page's own box.
-		-->
-		<div class="mt-auto">
-			<Footer {slug} />
-		</div>
+		{#if !fullHeight}
+			<!--
+				`mt-auto` rather than a wrapper around the children: on a short page the
+				footer was sitting halfway up the screen, under two lines of content,
+				which reads as the end of the page arriving early. An auto margin in a
+				flex column takes the slack without changing any page's own box.
+			-->
+			<div class="mt-auto">
+				<Footer {slug} />
+			</div>
+		{/if}
 	</div>
 </div>
 

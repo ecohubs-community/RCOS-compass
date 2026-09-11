@@ -61,20 +61,29 @@ test.describe('the core loop, on a fresh community', () => {
 			page.getByRole('heading', { name: 'Can someone leave at any time?' })
 		).toBeVisible();
 
+		// Writing the rule itself is a deliberate act, not the reply box: the rail
+		// says there is nothing on the table, and offers the editor.
+		await expect(page.getByText('No proposal on the table')).toBeVisible();
+		await page.getByRole('link', { name: 'Write a proposal' }).click();
+		await expect(page.getByRole('button', { name: /^Save as v/ })).toBeVisible();
 		await page
-			.getByLabel('Write a proposal', { exact: false })
+			.getByLabel('The text a decision would adopt')
 			.fill(
 				'A member may leave at any time by telling a steward, and their share is settled within 30 days.'
 			);
-		await page.getByRole('button', { name: 'Post proposal' }).click();
-		await expect(page.getByText('Proposal v1')).toBeVisible();
+		await page.getByRole('button', { name: 'Save as v1' }).click();
+
+		// It lands on the rail as the version on the table, and the version button
+		// is the rail's navigation.
+		await expect(page.getByRole('heading', { name: 'Responses to v1' })).toBeVisible();
+		await expect(page.getByRole('link', { name: 'v1' })).toBeVisible();
 
 		// The linter is advice, and it is visible.
 		await expect(page.getByRole('heading', { name: 'Definition linter' })).toBeVisible();
 
 		// --- decide it ---------------------------------------------------------
-		await page.getByRole('button', { name: 'Freeze', exact: true }).click();
-		const form = page.getByRole('region', { name: 'Record this decision' });
+		await page.getByRole('button', { name: 'Freeze v1' }).click();
+		const form = page.getByRole('region', { name: 'Freeze v1 into a decision' });
 
 		// A fresh community has no Decision Matrix, and is told so *before* it
 		// confirms rather than afterwards.
@@ -140,26 +149,24 @@ test.describe('the core loop, on a fresh community', () => {
 		await page.getByLabel('Clause (optional)').fill(clauseKey);
 		await page.getByRole('button', { name: 'Start' }).click();
 
+		await page.getByRole('link', { name: 'Write a proposal' }).click();
+		await expect(page.getByRole('button', { name: /^Save as v/ })).toBeVisible();
 		await page
-			.getByLabel('Write a proposal', { exact: false })
+			.getByLabel('The text a decision would adopt')
 			.fill(
 				'A steward checks in after four weeks of absence, and the assembly decides after eight.'
 			);
-		await page.getByRole('button', { name: 'Post proposal' }).click();
-		await expect(page.getByText('Proposal v1')).toBeVisible();
+		await page.getByRole('button', { name: 'Save as v1' }).click();
 
-		// A consent round, on a phone, because that is where a steward opens one.
-		await page.getByLabel('Open a consent round for (days)').fill('7');
-		await page.getByRole('button', { name: 'Open a round' }).click();
-		const round = page.getByRole('region', { name: 'Consent round open' });
-		await expect(round).toBeVisible();
+		// Agreeing takes one press and no steward: the round opens on the first
+		// response, on a phone, which is where most of them will be cast.
+		const round = page.getByRole('region', { name: 'Responses to v1' });
+		await expect(round).toContainText('nobody yet');
+		await round.getByRole('button', { name: 'Consent' }).click();
+		await expect(round).toContainText('1 of 2');
 
-		await round.getByLabel('Your response').selectOption('consent');
-		await round.getByRole('button', { name: 'Respond' }).click();
-		await expect(round).toContainText('1 of 2 responded');
-
-		await page.getByRole('button', { name: 'Freeze', exact: true }).click();
-		const form = page.getByRole('region', { name: 'Record this decision' });
+		await page.getByRole('button', { name: 'Freeze v1' }).click();
+		const form = page.getByRole('region', { name: 'Freeze v1 into a decision' });
 
 		// The round informs the record and does not write it: the tally arrives
 		// pre-filled, and a person still has to press the button.
@@ -183,16 +190,21 @@ test.describe('the core loop, on a fresh community', () => {
 		await page.getByLabel('Clause (optional)').fill(seeded.clauseKey);
 		await page.getByRole('button', { name: 'Start' }).click();
 
-		await page.getByLabel('Write a proposal', { exact: false }).fill('Chickens are allowed.');
-		await page.getByRole('button', { name: 'Post proposal' }).click();
-		await expect(page.getByText('Proposal v1')).toBeVisible();
+		await page.getByRole('link', { name: 'Write a proposal' }).click();
+		await expect(page.getByRole('button', { name: /^Save as v/ })).toBeVisible();
+		await page.getByLabel('The text a decision would adopt').fill('Chickens are allowed.');
+		await page.getByRole('button', { name: 'Save as v1' }).click();
+		await expect(page.getByRole('heading', { name: 'Responses to v1' })).toBeVisible();
 
 		// The button is not offered…
-		await expect(page.getByRole('button', { name: 'Freeze', exact: true })).toHaveCount(0);
+		await expect(page.getByRole('button', { name: /^Freeze/ })).toHaveCount(0);
 
 		// …and the action refuses anyway, because a hidden button is not a control.
-		const refused = await page.request.post(`${page.url()}?/freeze`, {
-			headers: { origin: new URL(page.url()).origin },
+		// From the pathname: the page now carries `?v=` for the selected version,
+		// and `url?v=1?/freeze` is not an action URL at all.
+		const here = new URL(page.url());
+		const refused = await page.request.post(`${here.origin}${here.pathname}?/freeze`, {
+			headers: { origin: here.origin },
 			form: {
 				idempotencyKey: 'member-tries-anyway',
 				title: 'Chickens',

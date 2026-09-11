@@ -21,13 +21,14 @@ import type { Db } from '../db/index.js';
  * dissent nobody read.
  */
 
-export type RoundStatus = 'open' | 'closed' | 'cancelled';
+export type RoundStatus = 'open' | 'closed' | 'cancelled' | 'superseded';
 
 export type Round = {
 	id: string;
 	proposalPostId: string;
 	openedAt: number;
-	closesAt: number;
+	/** Null when nobody chose one. A round opened by the first response has none. */
+	closesAt: number | null;
 	status: RoundStatus;
 	closedAt: number | null;
 	/** How many people were entitled to respond when it opened. */
@@ -60,7 +61,8 @@ export type Tally = {
 
 export type OpenRoundInput = {
 	proposalPostId: string;
-	closesAt: number;
+	/** Absent means the round runs until everyone answers or the text moves on. */
+	closesAt?: number | null;
 	/** Absent means every current member. */
 	membershipIds?: string[];
 };
@@ -68,9 +70,16 @@ export type OpenRoundInput = {
 export interface VotingProvider {
 	readonly id: string;
 	openRound(ctx: Ctx, input: OpenRoundInput, options?: { db?: Db }): Round;
+	/**
+	 * A member answers a *proposal*, not a round.
+	 *
+	 * The round is the provider's bookkeeping, and asking a member to name one
+	 * before they may agree is what made supporting a proposal wait on a steward.
+	 * A provider with no rounds at all still implements this.
+	 */
 	respond(
 		ctx: Ctx,
-		input: { roundId: string; value: ResponseValue; reason?: string },
+		input: { proposalPostId: string; value: ResponseValue; reason?: string },
 		options?: { db?: Db }
 	): Round;
 	tally(ctx: Ctx, roundId: string, options?: { db?: Db }): Tally;
