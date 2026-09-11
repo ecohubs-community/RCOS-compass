@@ -1,6 +1,8 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
 	import Button from '$lib/components/ui/Button.svelte';
+	import * as m from '$lib/paraglide/messages';
+	import IconDeviceFloppy from '~icons/tabler/device-floppy';
 	import LinterPanel from '$lib/components/ui/LinterPanel.svelte';
 	import LinterNotRun from '$lib/components/ui/LinterNotRun.svelte';
 	import Markdown from '$lib/components/ui/Markdown.svelte';
@@ -9,6 +11,19 @@
 	import IconSparkles from '~icons/tabler/sparkles';
 
 	let { data, form } = $props();
+
+	/**
+	 * The text that is actually saved, when somebody else got there first.
+	 *
+	 * Read defensively rather than through the action's inferred type: this page
+	 * has four actions and only one of them carries these fields, so the union is
+	 * the wrong shape to reach through. A stale save is refused, never merged
+	 * silently, and what comes back is what is there — the editor decides between
+	 * keeping theirs, taking the other, or merging by hand (`docs/01` §1).
+	 */
+	const conflict = $derived(
+		form && 'theirs' in form ? (form as { theirs?: string; theirPlainLanguage?: string }) : null
+	);
 
 	/**
 	 * Prose, or the text annotated line by line.
@@ -191,7 +206,9 @@
 						>, page {data.origin.page}.
 					</p>
 				{/if}
-				<Markdown blocks={data.draft.body} class="mt-3" />
+				{#if data.draft.written}
+					<Markdown blocks={data.draft.body} class="mt-3" />
+				{/if}
 				<p class="text-fg-secondary mt-4">
 					Nothing here binds anyone yet. Take it to a discussion, propose it, and freeze it — that
 					is what makes it the community's answer.
@@ -202,17 +219,82 @@
 					result is the record of what the community was told when they
 					adopted it, and re-running would judge those words by today's rules.
 				-->
-				{#if data.draft.linter}
-					<LinterPanel result={data.draft.linter} class="mt-6" />
-				{:else}
-					<div class="mt-6">
-						<LinterNotRun canRun={data.can.draft} />
-					</div>
-				{/if}
 			{:else}
 				<p class="text-fg-secondary mt-3">
 					Nothing has been adopted yet. A proposal in a discussion becomes the first version.
 				</p>
+			{/if}
+
+			{#if data.draft && data.can.draft}
+				<!--
+					The editor, for every definition rather than only an unadopted one.
+					`freeze` reads the draft's plain-language mirror when it records a
+					version, so a community revising something already adopted writes it
+					here — and a definition with nothing in it has somewhere to start.
+				-->
+				<div class="border-border mt-8 border-t pt-6">
+					<h3 class="text-title font-medium">
+						{data.version ? m.draft_section_next() : m.draft_section_first()}
+					</h3>
+					<p class="text-fg-muted text-meta mt-1">
+						{m.draft_section_why()}
+					</p>
+
+					<!--
+						The draft's own result, beside the draft. The adopted version has one
+						too, further up: they judge different words, so they are two panels
+						rather than one that changes its mind.
+					-->
+					{#if data.draft.linter}
+						<LinterPanel result={data.draft.linter} heading="Linter on the draft" class="mt-4" />
+					{:else if data.draft.written}
+						<div class="mt-4">
+							<LinterNotRun canRun={data.can.draft} />
+						</div>
+					{/if}
+
+					{#if data.can.draft}
+						<!--
+						The editor. Autosave would be the wrong shape here: a member should
+						be able to write badly for ten minutes without the community seeing
+						it, so saving is a button they press.
+					-->
+						<form method="POST" action="?/save" class="mt-6 flex flex-col gap-3" use:enhance>
+							<input type="hidden" name="editToken" value={data.draft.editToken} />
+
+							<label for="draft-body" class="text-fg font-medium">{m.draft_body_label()}</label>
+							<textarea
+								id="draft-body"
+								name="body"
+								rows="8"
+								value={conflict?.theirs ?? data.draft.raw}
+								class="border-border bg-raised text-fg rounded-(--radius-control) border p-2"
+							></textarea>
+
+							<label for="draft-plain" class="text-fg font-medium">
+								{m.draft_plain_label()}
+								<span class="text-fg-muted text-meta font-normal">{m.draft_plain_hint()}</span>
+							</label>
+							<textarea
+								id="draft-plain"
+								name="plainLanguage"
+								rows="3"
+								value={conflict?.theirPlainLanguage ?? data.draft.plainLanguage ?? ''}
+								class="border-border bg-raised text-fg rounded-(--radius-control) border p-2"
+							></textarea>
+
+							<div class="flex flex-wrap items-center gap-3">
+								<Button type="submit" icon={IconDeviceFloppy}>{m.draft_save()}</Button>
+								{#if form?.step === 'save' && 'saved' in form && form.saved}
+									<p role="status" class="text-fg-secondary text-meta">{m.draft_saved()}</p>
+								{/if}
+							</div>
+							{#if form?.step === 'save' && form?.error}
+								<p role="alert" class="text-danger">{form.error}</p>
+							{/if}
+						</form>
+					{/if}
+				</div>
 			{/if}
 		</section>
 

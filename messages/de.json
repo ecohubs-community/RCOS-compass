@@ -202,5 +202,13 @@
 	"linter_not_run_stale": "Der Text hat sich geändert, seit der Linter zuletzt lief",
 	"linter_not_run_why": "Er zerlegt den Text in Zeilen und beurteilt jede nach ihrer eigenen Aufgabe. Solange er nicht gelaufen ist, gibt es nichts zu zerlegen, und die kommentierte Ansicht bleibt nicht verfügbar.",
 	"linter_not_run_action": "Linter ausführen",
-	"linter_not_run_after": "Nach dem Lauf bleibt das Ergebnis an dieser Version hängen — ein erneuter Lauf ist ausdrücklich und geschieht nie automatisch beim Lesen."
+	"linter_not_run_after": "Nach dem Lauf bleibt das Ergebnis an dieser Version hängen — ein erneuter Lauf ist ausdrücklich und geschieht nie automatisch beim Lesen.",
+	"draft_body_label": "Der Text",
+	"draft_plain_label": "In einfachen Worten",
+	"draft_plain_hint": "— optional, und das, was die meisten tatsächlich lesen",
+	"draft_save": "Entwurf speichern",
+	"draft_saved": "Gespeichert.",
+	"draft_section_next": "An der nächsten Fassung arbeiten",
+	"draft_section_first": "Schreib es",
+	"draft_section_why": "Für die Gemeinschaft sichtbar gespeichert und für niemanden bindend. Es wird zur Antwort, wenn ein Vorschlag damit eingefroren wird."
 }

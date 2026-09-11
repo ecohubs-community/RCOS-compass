@@ -20,6 +20,8 @@ import { membershipLabel } from '$lib/server/services/person';
 import { parseMarkdown } from '$lib/server/markdown';
 import { isCurrentShape } from '$lib/shared/linter';
 import { getVotingProvider } from '$lib/server/voting';
+import { aiAvailability } from '$lib/server/ai/run';
+import { draftProposalFromThread, summariseThread } from '$lib/server/ai/tasks/summarise-thread';
 import { listResponses, roundFor } from '$lib/server/voting/consent-round';
 import type { Actions, PageServerLoad, RequestEvent } from './$types';
 
@@ -177,6 +179,14 @@ export const load: PageServerLoad = ({ locals, params, url }) => {
 			responses: listResponses(ctx, round.id, { db })
 		},
 		previousTally,
+		/**
+		 * Whether the two thread suggestions can be offered.
+		 *
+		 * Not run here. Each costs a member a task from their daily allowance, and
+		 * spending that because somebody opened a page would empty an allowance
+		 * nobody chose to use.
+		 */
+		assist: aiAvailability(ctx, { db }) === null,
 		can: {
 			comment: ctxCan(ctx, 'discussion.comment'),
 			propose: ctxCan(ctx, 'proposal.create'),
@@ -280,6 +290,46 @@ export const actions: Actions = {
 			303,
 			`/c/${event.params.slug}/discussions/${event.params.id}?v=${proposal.proposalVersion}`
 		);
+	},
+
+	/**
+	 * Ask for a summary of the thread, or for the rule it is reaching for.
+	 *
+	 * Neither writes anything. What comes back is text in a box a member edits and
+	 * submits under their own name — `docs/00`: a model drafts, structures,
+	 * questions and maps, and never adopts. With no provider the button is not
+	 * offered, and this action still refuses rather than guessing.
+	 */
+	suggest: async (event) => {
+		const ctx = event.locals.ctx!;
+		const db = getDb();
+		const form = await event.request.formData();
+		const kind = String(form.get('kind') ?? 'summary');
+
+		const posts = listPostsWithAuthors(ctx, event.params.id, { db }).map((entry) => ({
+			kind: entry.kind,
+			body: entry.body
+		}));
+		if (posts.length === 0) {
+			return fail(409, { step: 'suggest', error: 'There is nothing here to read yet.' });
+		}
+
+		const outcome =
+			kind === 'draft'
+				? await draftProposalFromThread(ctx, posts, { db })
+				: await summariseThread(ctx, posts, { db });
+
+		if (outcome.text === null) {
+			return fail(409, {
+				step: 'suggest',
+				error: outcome.result.ok
+					? 'The suggestion did not come back in a usable form. Nothing was changed.'
+					: outcome.result.reason
+			});
+		}
+
+		// Returned, never posted: it lands in a field with a Send button beside it.
+		return { step: 'suggest', suggestion: outcome.text, suggestionKind: kind };
 	},
 
 	resolveObjection: async (event) => {

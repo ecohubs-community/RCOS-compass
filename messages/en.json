@@ -204,5 +204,13 @@
 	"linter_not_run_stale": "The text changed since the linter last ran",
 	"linter_not_run_why": "It splits the text into lines and judges each one against its own job. Until it runs there is nothing to split by, so the annotated view stays unavailable.",
 	"linter_not_run_action": "Run the linter",
-	"linter_not_run_after": "Once it has run, the result stays attached to this version — re-running is explicit, never automatic on read."
+	"linter_not_run_after": "Once it has run, the result stays attached to this version — re-running is explicit, never automatic on read.",
+	"draft_body_label": "The text",
+	"draft_plain_label": "In plain words",
+	"draft_plain_hint": "— optional, and what most people will actually read",
+	"draft_save": "Save the draft",
+	"draft_saved": "Saved.",
+	"draft_section_next": "Working on the next version",
+	"draft_section_first": "Write it",
+	"draft_section_why": "Saved for the community to see, and binding on nobody. It becomes an answer when a proposal carrying it is frozen."
 }

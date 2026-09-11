@@ -252,9 +252,30 @@
 								rows="3"
 								required
 								placeholder="Reply to the thread…"
+								value={form?.suggestionKind === 'summary' ? (form?.suggestion ?? '') : ''}
 								class="border-border bg-bg text-fg rounded-(--radius-control) border p-2"
 							></textarea>
-							<Button type="submit" icon={IconSend} class="self-start">Send</Button>
+							{#if errorFor('suggest')}<p role="alert" class="text-danger">
+									{errorFor('suggest')}
+								</p>{/if}
+							<div class="flex flex-wrap items-center gap-3">
+								<Button type="submit" icon={IconSend}>Send</Button>
+								{#if data.assist}
+									<!--
+										A suggestion, in the box, with Send still to press. Nothing
+										here posts anything — a member edits it and sends it under
+										their own name.
+									-->
+									<button
+										type="submit"
+										formaction="?/suggest"
+										name="kind"
+										value="summary"
+										class="text-fg-secondary hover:text-fg text-meta cursor-pointer underline underline-offset-2"
+										>✦ Summarise this thread</button
+									>
+								{/if}
+							</div>
 							{#if errorFor('comment')}<p role="alert" class="text-danger">
 									{errorFor('comment')}
 								</p>{/if}
@@ -274,18 +295,35 @@
 								name="body"
 								rows="6"
 								required
-								value={data.proposal?.raw ?? ''}
+								value={form?.suggestionKind === 'draft'
+									? (form?.suggestion ?? '')
+									: (data.proposal?.raw ?? '')}
 								class="border-border bg-bg text-fg rounded-(--radius-control) border p-2"
 							></textarea>
+							{#if errorFor('suggest')}<p role="alert" class="text-danger">
+									{errorFor('suggest')}
+								</p>{/if}
 							<TextField
 								id="revision-note"
 								name="revisionNote"
 								label="What changed"
 								hint="Optional — a line in the thread saying what this revision did."
 							/>
-							<Button type="submit" variant="secondary" icon={IconFilePlus} class="self-start">
-								Save as v{(data.versions.at(-1)?.version ?? 0) + 1}
-							</Button>
+							<div class="flex flex-wrap items-center gap-3">
+								<Button type="submit" variant="secondary" icon={IconFilePlus}>
+									Save as v{(data.versions.at(-1)?.version ?? 0) + 1}
+								</Button>
+								{#if data.assist}
+									<button
+										type="submit"
+										formaction="?/suggest"
+										name="kind"
+										value="draft"
+										class="text-fg-secondary hover:text-fg text-meta cursor-pointer underline underline-offset-2"
+										>✦ Draft one from the thread</button
+									>
+								{/if}
+							</div>
 							{#if errorFor('propose')}<p role="alert" class="text-danger">
 									{errorFor('propose')}
 								</p>{/if}
@@ -414,11 +452,23 @@
 							and responses attach to the version they were given.
 						</p>
 						{#if data.can.propose}
-							<a
-								href={modeHref('revise')}
-								class="bg-accent-solid hover:bg-accent-solid-hover mt-3 inline-flex items-center gap-1.5 rounded-(--radius-control) px-3 py-1.5 font-medium text-white"
-								>Write a proposal</a
-							>
+							<div class="mt-3 flex flex-wrap items-center gap-3">
+								<a
+									href={modeHref('revise')}
+									class="bg-accent-solid hover:bg-accent-solid-hover inline-flex items-center gap-1.5 rounded-(--radius-control) px-3 py-1.5 font-medium text-white"
+									>Write a proposal</a
+								>
+								{#if data.assist}
+									<form method="POST" action="?/suggest" use:enhance>
+										<input type="hidden" name="kind" value="draft" />
+										<button
+											type="submit"
+											class="text-fg-secondary hover:text-fg text-meta cursor-pointer underline underline-offset-2"
+											>✦ Draft one from the thread</button
+										>
+									</form>
+								{/if}
+							</div>
 						{/if}
 					</div>
 					<p class="text-fg-muted text-meta">

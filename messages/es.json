@@ -202,5 +202,13 @@
 	"linter_not_run_stale": "El texto cambió desde la última vez que se ejecutó el linter",
 	"linter_not_run_why": "Divide el texto en líneas y juzga cada una según su propia función. Hasta que se ejecute no hay nada por lo que dividir, así que la vista anotada sigue sin estar disponible.",
 	"linter_not_run_action": "Ejecutar el linter",
-	"linter_not_run_after": "Una vez ejecutado, el resultado queda unido a esta versión — volver a ejecutarlo es un acto explícito, nunca automático al leer."
+	"linter_not_run_after": "Una vez ejecutado, el resultado queda unido a esta versión — volver a ejecutarlo es un acto explícito, nunca automático al leer.",
+	"draft_body_label": "El texto",
+	"draft_plain_label": "En palabras sencillas",
+	"draft_plain_hint": "— opcional, y lo que la mayoría leerá en realidad",
+	"draft_save": "Guardar el borrador",
+	"draft_saved": "Guardado.",
+	"draft_section_next": "Trabajando en la siguiente versión",
+	"draft_section_first": "Escríbelo",
+	"draft_section_why": "Guardado para que la comunidad lo vea, y no obliga a nadie. Se convierte en una respuesta cuando se congela una propuesta que lo lleva."
 }

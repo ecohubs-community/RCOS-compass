@@ -4,7 +4,9 @@ import {
 	adoptedVersion,
 	getDefinition,
 	getDraft,
-	runLinter
+	runLinter,
+	saveDraft,
+	StaleDraftError
 } from '$lib/server/services/definitions';
 import { definitionOrigin } from '$lib/server/services/evidence';
 import { activeStandardView } from '$lib/server/services/completeness';
@@ -37,7 +39,15 @@ export const load: PageServerLoad = ({ locals, params }) => {
 	 * member has already written — and a definition pre-filled from their own
 	 * document would be invisible on the one screen that exists to show it.
 	 */
-	const draft = version ? null : getDraft(ctx, params.id, { db });
+	/**
+	 * Always, not only when nothing is adopted.
+	 *
+	 * A definition that has been adopted is the one most likely to be revised, and
+	 * `freeze` reads the draft's plain-language mirror when it records the next
+	 * version. Nulling it here left the editor in a branch of the page no
+	 * definition the application creates could ever be in.
+	 */
+	const draft = getDraft(ctx, params.id, { db });
 
 	const section =
 		found.sectionKey && standard ? standard.view.section(found.sectionKey) : undefined;
@@ -87,13 +97,22 @@ export const load: PageServerLoad = ({ locals, params }) => {
 			 */
 			linter: readStored(version.linterResult)
 		},
-		draft: draft &&
-			draft.body.trim() !== '' && {
-				body: parseMarkdown(draft.body),
-				raw: draft.body,
-				linter: readStored(draft.linterResult),
-				updatedAt: draft.updatedAt
-			},
+		/**
+		 * The draft, whether or not anything has been written in it.
+		 *
+		 * Sent even when empty, because an empty draft is exactly the state the
+		 * editor exists to fill — the screen used to hide it, so a definition with
+		 * nothing in it offered no way to put anything there.
+		 */
+		draft: draft && {
+			body: parseMarkdown(draft.body),
+			raw: draft.body,
+			plainLanguage: draft.plainLanguage,
+			written: draft.body.trim() !== '',
+			linter: readStored(draft.linterResult),
+			editToken: draft.editToken,
+			updatedAt: draft.updatedAt
+		},
 		/** The passage this began as, when it began as one. */
 		origin: definitionOrigin(ctx, params.id, { db }),
 		/**
@@ -121,6 +140,50 @@ function readStored(stored: unknown): LintResult | null {
 }
 
 export const actions: Actions = {
+	/**
+	 * Write the draft.
+	 *
+	 * A stale token is refused rather than overwritten: silent last-write-wins on
+	 * governance text is a bug a community notices only after quoting the wrong
+	 * version. What comes back is what is actually there, so the editor can
+	 * decide between keeping theirs, taking the other, or merging by hand
+	 * (`docs/01` §1).
+	 */
+	save: async (event) => {
+		const ctx = event.locals.ctx!;
+		const form = await event.request.formData();
+		try {
+			saveDraft(
+				ctx,
+				{
+					definitionId: event.params.id,
+					editToken: String(form.get('editToken') ?? ''),
+					body: String(form.get('body') ?? ''),
+					plainLanguage: String(form.get('plainLanguage') ?? '') || null
+				},
+				{ db: getDb() }
+			);
+		} catch (problem) {
+			if (problem instanceof StaleDraftError) {
+				return fail(409, {
+					step: 'save',
+					error: 'This draft changed while you were editing it. What is saved now is below.',
+					theirs: problem.current.body,
+					theirPlainLanguage: problem.current.plainLanguage
+				});
+			}
+			const http = problem as { status?: number; body?: { message?: string } };
+			if (http.status === 400 || http.status === 409) {
+				return fail(http.status, {
+					step: 'save',
+					error: http.body?.message ?? 'That did not work.'
+				});
+			}
+			throw problem;
+		}
+		return { step: 'save', saved: true };
+	},
+
 	/** Run the rule set on this definition's draft, and keep the result. */
 	run: async (event) => {
 		const ctx = event.locals.ctx!;
