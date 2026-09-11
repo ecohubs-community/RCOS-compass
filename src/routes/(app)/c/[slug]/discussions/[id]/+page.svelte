@@ -146,8 +146,9 @@
 									<span class="text-fg-muted text-meta">{time(entry.createdAt)}</span>
 									{#if entry.kind !== 'message'}
 										<span class="text-fg-muted text-meta"
-											>· {KIND_LABEL[entry.kind]}{#if entry.proposalVersion}
-												v{entry.proposalVersion}{/if}</span
+											>· {KIND_LABEL[
+												entry.kind
+											]}{#if entry.proposalVersion}&nbsp;v{entry.proposalVersion}{/if}</span
 										>
 									{/if}
 									{#if entry.state === 'in_force'}
