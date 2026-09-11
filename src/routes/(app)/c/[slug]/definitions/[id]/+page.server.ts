@@ -1,5 +1,5 @@
-import { getDb } from '$lib/server/db';
-import { ctxCan } from '$lib/server/auth/guard';
+import { getDb, type Db } from '$lib/server/db';
+import { ctxCan, type Ctx } from '$lib/server/auth/guard';
 import {
 	adoptedVersion,
 	getDefinition,
@@ -33,21 +33,14 @@ export const load: PageServerLoad = ({ locals, params }) => {
 	const version = adoptedVersion(ctx, params.id, { db });
 	const standard = activeStandardView(db, ctx);
 	/**
-	 * The draft, when nothing is adopted yet.
-	 *
-	 * Without this the middle column says "nothing has been adopted" over text a
-	 * member has already written — and a definition pre-filled from their own
-	 * document would be invisible on the one screen that exists to show it.
-	 */
-	/**
-	 * Always, not only when nothing is adopted.
+	 * The draft — always, not only when nothing is adopted.
 	 *
 	 * A definition that has been adopted is the one most likely to be revised, and
 	 * `freeze` reads the draft's plain-language mirror when it records the next
 	 * version. Nulling it here left the editor in a branch of the page no
 	 * definition the application creates could ever be in.
 	 */
-	const draft = getDraft(ctx, params.id, { db });
+	const draft = draftIfAny(ctx, params.id, db);
 
 	const section =
 		found.sectionKey && standard ? standard.view.section(found.sectionKey) : undefined;
@@ -137,6 +130,24 @@ export const load: PageServerLoad = ({ locals, params }) => {
  */
 function readStored(stored: unknown): LintResult | null {
 	return isCurrentShape(stored) ? stored : null;
+}
+
+/**
+ * The draft, or nothing, rather than a 404 for the whole page.
+ *
+ * Every path that creates a definition creates its draft in the same
+ * transaction, so a definition without one should not exist — but this load
+ * runs for every definition, and a page that refuses to show an adopted version
+ * because a *draft* row is missing would hide the community's own answer over a
+ * detail no reader cares about. Missing means "nothing to edit here", not "gone".
+ */
+function draftIfAny(ctx: Ctx, definitionId: string, db: Db) {
+	try {
+		return getDraft(ctx, definitionId, { db });
+	} catch (problem) {
+		if ((problem as { status?: number }).status === 404) return null;
+		throw problem;
+	}
 }
 
 export const actions: Actions = {

@@ -74,3 +74,47 @@ test.describe('writing a definition draft', () => {
 		await expect(page.getByText('The ambiguous middle')).toBeVisible();
 	});
 });
+
+test.describe('asking the thread for a suggestion', () => {
+	test('reaches the action with an empty box, and degrades to a sentence', async ({ page }) => {
+		const fixture = await seed(page);
+		await signIn(page, fixture.email, fixture.password);
+		await visit(page, `/c/${fixture.slug}/discussions`);
+		await page.getByLabel('Start a discussion').fill('Does the button submit?');
+		await page.getByRole('button', { name: 'Start' }).click();
+		await page.getByLabel('Reply to the thread').fill('Something to read.');
+		await page.getByRole('button', { name: 'Send' }).click();
+
+		/**
+		 * The box the ✦ button fills is `required`, so without `formnovalidate` the
+		 * browser refuses the submit whenever it is empty — which is exactly when
+		 * somebody asks for a suggestion. Posted directly here because the button
+		 * itself is correctly hidden under `AI_PROVIDER=null`.
+		 */
+		const here = new URL(page.url());
+		const posted = await page.request.post(`${here.origin}${here.pathname}?/suggest`, {
+			headers: { origin: here.origin },
+			form: { kind: 'summary' },
+			maxRedirects: 0
+		});
+
+		// Reached, and answered with words rather than a stack trace. A SvelteKit
+		// action failure is a 200 carrying the refusal, so the status the member
+		// gets is in the body: with no provider the suggestion degrades to a
+		// sentence, never to a guess.
+		expect(posted.status()).toBe(200);
+		const body = await posted.text();
+		expect(body).toContain('"status":409');
+		expect(body).toMatch(/not switched on/i);
+	});
+
+	test('does not offer the buttons when there is no provider', async ({ page }) => {
+		const fixture = await seed(page);
+		await signIn(page, fixture.email, fixture.password);
+		await visit(page, `/c/${fixture.slug}/discussions`);
+		await page.getByLabel('Start a discussion').fill('Nothing to suggest with.');
+		await page.getByRole('button', { name: 'Start' }).click();
+
+		await expect(page.getByRole('button', { name: /Summarise this thread/ })).toHaveCount(0);
+	});
+});

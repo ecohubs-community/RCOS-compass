@@ -266,9 +266,16 @@
 										here posts anything — a member edits it and sends it under
 										their own name.
 									-->
+									<!--
+										`formnovalidate` because the box this button fills is
+										`required`: without it the browser refuses the submit
+										whenever the field is empty, which is exactly when somebody
+										asks for a suggestion.
+									-->
 									<button
 										type="submit"
 										formaction="?/suggest"
+										formnovalidate
 										name="kind"
 										value="summary"
 										class="text-fg-secondary hover:text-fg text-meta cursor-pointer underline underline-offset-2"
@@ -314,9 +321,16 @@
 									Save as v{(data.versions.at(-1)?.version ?? 0) + 1}
 								</Button>
 								{#if data.assist}
+									<!--
+										`formnovalidate` because the box this button fills is
+										`required`: without it the browser refuses the submit
+										whenever the field is empty, which is exactly when somebody
+										asks for a suggestion.
+									-->
 									<button
 										type="submit"
 										formaction="?/suggest"
+										formnovalidate
 										name="kind"
 										value="draft"
 										class="text-fg-secondary hover:text-fg text-meta cursor-pointer underline underline-offset-2"
