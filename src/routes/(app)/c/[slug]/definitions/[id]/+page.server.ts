@@ -1,9 +1,14 @@
 import { getDb } from '$lib/server/db';
 import { ctxCan } from '$lib/server/auth/guard';
-import { adoptedVersion, getDefinition, getDraft } from '$lib/server/services/definitions';
+import {
+	adoptedVersion,
+	getDefinition,
+	getDraft,
+	runLinter
+} from '$lib/server/services/definitions';
 import { definitionOrigin } from '$lib/server/services/evidence';
 import { activeStandardView } from '$lib/server/services/completeness';
-import { lint } from '$lib/server/linter';
+import { isCurrentShape, type LintResult } from '$lib/shared/linter';
 import { parseMarkdown } from '$lib/server/markdown';
 import { fail } from '@sveltejs/kit';
 import { aiAvailability } from '$lib/server/ai/run';
@@ -74,16 +79,19 @@ export const load: PageServerLoad = ({ locals, params }) => {
 			plainLanguage: version.plainLanguage,
 			type: version.type,
 			adoptedAt: version.adoptedAt?.getTime() ?? null,
-			linter: lint({
-				body: version.body,
-				plainLanguage: version.plainLanguage,
-				type: version.type,
-				locale: ctx.community.locale
-			}).findings
+			raw: version.body,
+			/**
+			 * The run that judged this text, as it was stored — never one computed
+			 * now. A verdict that can change without anybody editing anything is not
+			 * a record of what the community was told when they adopted it.
+			 */
+			linter: readStored(version.linterResult)
 		},
 		draft: draft &&
 			draft.body.trim() !== '' && {
 				body: parseMarkdown(draft.body),
+				raw: draft.body,
+				linter: readStored(draft.linterResult),
 				updatedAt: draft.updatedAt
 			},
 		/** The passage this began as, when it began as one. */
@@ -96,11 +104,38 @@ export const load: PageServerLoad = ({ locals, params }) => {
 		 * empty an allowance nobody chose to use.
 		 */
 		assist: aiAvailability(ctx, { db }) === null,
-		can: { propose: ctxCan(ctx, 'proposal.create') }
+		can: { propose: ctxCan(ctx, 'proposal.create'), draft: ctxCan(ctx, 'definition.draft') }
 	};
 };
 
+/**
+ * What a screen may draw beside the text.
+ *
+ * A result written before per-line linting existed describes a body, not lines.
+ * It is still readable as findings; it is not something to annotate sentences
+ * with — and rendering it as an empty annotation would read as "this definition
+ * is clean", which is the worst thing a linter can say by accident.
+ */
+function readStored(stored: unknown): LintResult | null {
+	return isCurrentShape(stored) ? stored : null;
+}
+
 export const actions: Actions = {
+	/** Run the rule set on this definition's draft, and keep the result. */
+	run: async (event) => {
+		const ctx = event.locals.ctx!;
+		try {
+			runLinter(ctx, event.params.id, { db: getDb() });
+		} catch (problem) {
+			const http = problem as { status?: number; body?: { message?: string } };
+			if (http.status === 409 || http.status === 400) {
+				return fail(http.status, { error: http.body?.message ?? 'That did not work.' });
+			}
+			throw problem;
+		}
+		return { ran: true };
+	},
+
 	/**
 	 * The two questions a word list cannot answer, asked on request.
 	 *
@@ -124,13 +159,12 @@ export const actions: Actions = {
 			{
 				body,
 				plainLanguage: version?.plainLanguage ?? draft?.plainLanguage ?? null,
-				type: version?.type ?? draft?.type ?? null,
 				locale: ctx.community.locale,
 				layer: found.layer
 			},
 			{ db }
 		);
 
-		return { linter: result.findings, assisted: result.assisted };
+		return { linter: result, assisted: result.assisted };
 	}
 };

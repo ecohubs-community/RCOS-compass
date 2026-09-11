@@ -2,12 +2,22 @@
 	import { enhance } from '$app/forms';
 	import Button from '$lib/components/ui/Button.svelte';
 	import LinterPanel from '$lib/components/ui/LinterPanel.svelte';
+	import LinterNotRun from '$lib/components/ui/LinterNotRun.svelte';
 	import Markdown from '$lib/components/ui/Markdown.svelte';
 	import StatusChip from '$lib/components/ui/StatusChip.svelte';
 	import { links } from '$lib/links';
 	import IconSparkles from '~icons/tabler/sparkles';
 
 	let { data, form } = $props();
+
+	/**
+	 * Prose, or the text annotated line by line.
+	 *
+	 * Plain text is the default, and the toggle only exists once a run has been
+	 * stored — until then there is nothing to split the body by, and a view built
+	 * from no result would be an empty annotation, which reads as "clean".
+	 */
+	let reading = $state<'text' | 'lines'>('text');
 	const slug = $derived(data.community.slug);
 
 	/**
@@ -107,7 +117,29 @@
 					v{data.version.n} · adopted {day(data.version.adoptedAt)}
 					{#if data.version.type}· {data.version.type}{/if}
 				</p>
-				<Markdown blocks={data.version.body} class="mt-3" />
+				<!--
+					Plain text is what shows. The annotated view needs a stored run to
+					split by, so the toggle only appears once there is one — and never
+					offers a view built from a result that judged different words.
+				-->
+				{#if data.version.linter}
+					<div class="mt-3 flex flex-wrap gap-1">
+						{#each [['text', 'Plain text'], ['lines', 'Line by line']] as [value, label] (value)}
+							<button
+								type="button"
+								aria-pressed={reading === value}
+								class="border-border text-meta cursor-pointer rounded-(--radius-control) border px-2.5 py-1 {reading ===
+								value
+									? 'bg-raised text-fg'
+									: 'text-fg-secondary hover:text-fg'}"
+								onclick={() => (reading = value as typeof reading)}>{label}</button
+							>
+						{/each}
+					</div>
+				{/if}
+				{#if reading === 'text' || !data.version.linter}
+					<Markdown blocks={data.version.body} class="mt-3" />
+				{/if}
 
 				{#if data.version.plainLanguage}
 					<div class="border-accent/40 bg-accent-subtle mt-5 rounded-(--radius-card) border p-4">
@@ -121,7 +153,23 @@
 					asked for — never on load, which would spend a member's daily
 					allowance because they opened a page.
 				-->
-				<LinterPanel findings={form?.linter ?? data.version.linter} class="mt-6" />
+				{#if form?.linter ?? data.version.linter}
+					<LinterPanel
+						result={form?.linter ?? data.version.linter}
+						annotate={reading === 'lines'}
+						class="mt-6"
+					/>
+				{:else}
+					<!--
+						An adopted version whose result predates per-line linting, or which
+						never carried one. Re-running would judge the text by today's rules
+						and store that against a version the community adopted under the
+						old ones, so the run is offered on the draft and not here.
+					-->
+					<div class="mt-6">
+						<LinterNotRun canRun={false} />
+					</div>
+				{/if}
 				{#if data.assist && !form?.linter}
 					<form method="POST" action="?/assist" class="mt-3" use:enhance>
 						<Button type="submit" variant="secondary" icon={IconSparkles}
@@ -148,6 +196,19 @@
 					Nothing here binds anyone yet. Take it to a discussion, propose it, and freeze it — that
 					is what makes it the community's answer.
 				</p>
+
+				<!--
+					The run belongs on the draft, not on an adopted version: a version's
+					result is the record of what the community was told when they
+					adopted it, and re-running would judge those words by today's rules.
+				-->
+				{#if data.draft.linter}
+					<LinterPanel result={data.draft.linter} class="mt-6" />
+				{:else}
+					<div class="mt-6">
+						<LinterNotRun canRun={data.can.draft} />
+					</div>
+				{/if}
 			{:else}
 				<p class="text-fg-secondary mt-3">
 					Nothing has been adopted yet. A proposal in a discussion becomes the first version.

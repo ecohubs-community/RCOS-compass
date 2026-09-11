@@ -77,8 +77,16 @@ export async function assistedFindings(
 		findings.push({
 			rule: 'type.mismatch',
 			severity: 'note',
+			/**
+			 * Two readings of the same text, named as readings.
+			 *
+			 * It used to say "labelled", which was true while an author picked a
+			 * type for the whole body. Nobody labels anything now — the rule set
+			 * derives a job from the lines — so the honest sentence is that the two
+			 * halves disagree, not that the community mislabelled their own words.
+			 */
 			message:
-				`This is labelled ${input.type} but reads as ${judgement.readsAs}. ${judgement.readsAsWhy}`.trim()
+				`The rule set reads this as ${input.type}; a closer look reads it as ${judgement.readsAs}. ${judgement.readsAsWhy}`.trim()
 		});
 	}
 

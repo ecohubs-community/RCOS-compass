@@ -199,5 +199,10 @@
 	"path_preset_risky": "The riskiest gaps for us",
 	"path_preset_going": "What we already have going",
 	"path_preset_tune": "Fine-tune the strengths",
-	"path_preset_applied": "Order updated. “How the path is ordered” shows what changed."
+	"path_preset_applied": "Order updated. “How the path is ordered” shows what changed.",
+	"linter_not_run_title": "The linter has not run on this text",
+	"linter_not_run_stale": "The text changed since the linter last ran",
+	"linter_not_run_why": "It splits the text into lines and judges each one against its own job. Until it runs there is nothing to split by, so the annotated view stays unavailable.",
+	"linter_not_run_action": "Run the linter",
+	"linter_not_run_after": "Once it has run, the result stays attached to this version — re-running is explicit, never automatic on read."
 }

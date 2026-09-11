@@ -3,7 +3,7 @@ import type { Db } from '../db/index.js';
 import { assistedFindings } from '../ai/tasks/lint-definition.js';
 import { aiAvailability } from '../ai/run.js';
 import { lint, type LintInput, type LintResult } from '../linter/index.js';
-import type { Finding } from '../../shared/linter.js';
+import { allFindings, type Finding } from '../../shared/linter.js';
 
 /**
  * The rule set, plus the two questions a word list cannot answer.
@@ -47,11 +47,9 @@ export async function lintWithAssist(
 	const refusal = aiAvailability(ctx, options);
 	if (refusal) return withUnavailable(base, refusal.ok === false ? refusal.reason : '');
 
-	const outcome = await assistedFindings(
-		ctx,
-		{ body: input.body, type: input.type ?? null },
-		options
-	);
+	// The assisted rules ask about the body as a whole, so they get the job the
+	// body as a whole does — derived from its lines, not chosen by anybody.
+	const outcome = await assistedFindings(ctx, { body: input.body, type: base.primaryJob }, options);
 
 	if (outcome.findings.length === 0) {
 		return withUnavailable(
@@ -62,16 +60,21 @@ export async function lintWithAssist(
 		);
 	}
 
-	// The rule set wins where both speak. `type.mismatch` exists in both halves —
-	// the shallow one catches obligation words under an aspirational label — and
-	// two findings with the same rule would read as two problems rather than one.
-	const already = new Set(base.findings.map((finding) => finding.rule));
+	/**
+	 * The rule set wins where both speak, and the assisted findings join the
+	 * *body's* list rather than any line's: they read the text as a whole and
+	 * have no sentence to point at.
+	 */
+	const already = new Set(allFindings(base).map((finding) => finding.rule));
 	const added = outcome.findings.filter((finding) => !already.has(finding.rule));
 
-	const findings = [...base.findings, ...added];
+	const bodyFindings = [...base.bodyFindings, ...added];
 	return {
-		findings,
-		clean: findings.every((finding) => finding.severity !== 'blocker_shaped'),
+		...base,
+		bodyFindings,
+		clean: [...bodyFindings, ...base.lines.flatMap((line) => line.findings)].every(
+			(finding) => finding.severity !== 'blocker_shaped'
+		),
 		assisted: true
 	};
 }
@@ -92,7 +95,8 @@ function withUnavailable(base: LintResult, why: string): AssistedLintResult {
 	};
 
 	return {
-		findings: [...base.findings, notice],
+		...base,
+		bodyFindings: [...base.bodyFindings, notice],
 		// A check that did not happen cannot make a definition unclean.
 		clean: base.clean,
 		assisted: false

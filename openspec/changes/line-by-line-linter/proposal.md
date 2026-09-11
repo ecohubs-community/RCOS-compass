@@ -76,12 +76,17 @@ Reasoning: `docs/11-definition-linter.md` §§1–2, 7; `docs/03-data-model.md` 
 ## Impact
 
 **A requirement the code has never met.** `freeze` writes `linterResult: null`
-and `aiAssisted: false` onto every `definitionVersion` it creates
-(`services/decisions.ts:316`), and so does the other insert site
-(`services/definitions.ts:435`) — while the `definitions` spec requires that a
-version stores its linter result and whether AI assisted it. Nothing has ever
-stored either. This change closes it, because it is the change that gives a
-version a result worth storing.
+onto every `definitionVersion` it creates, and so does the other insert site —
+while the `definitions` spec requires a version to store its linter result.
+Nothing has ever stored one. This change closes that half, because it is the
+change that gives a version a result worth storing.
+
+The other half of that requirement — *whether AI assisted it* — stays open, and
+deliberately. `aiAssisted` is written `false` in both places and read nowhere,
+and **nothing anywhere records that a draft was written with help**, so there is
+no flag to carry into the version. Closing it means recording assistance at the
+point it happens, which belongs to the AI surface rather than to the linter.
+Stated here so the gap is a known one rather than a surprise.
 
 **Schema.** `post.linter_result`; `definition_version.type` and
 `definition_draft.type` become derived — written by the lint run rather than by

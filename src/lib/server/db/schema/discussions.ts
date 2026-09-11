@@ -62,6 +62,12 @@ export const post = sqliteTable(
 		/** 1, 2, 3 … across the proposals of one discussion. Null for a message. */
 		proposalVersion: integer('proposal_version'),
 		/**
+		 * The linter's per-line result for this version, stored when it was
+		 * written. Never recomputed on read: a result describes the text as it was
+		 * judged, and re-running is an act somebody takes.
+		 */
+		linterResult: text('linter_result', { mode: 'json' }),
+		/**
 		 * What this revision changed, in the reviser's own words. Optional: a
 		 * revision without one is still a revision, and a required note would be
 		 * answered with "updated".

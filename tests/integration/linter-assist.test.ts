@@ -5,6 +5,7 @@ import { resetConfigForTests } from '../../src/lib/server/config.js';
 import { setDbForTests, type Db } from '../../src/lib/server/db/index.js';
 import { community } from '../../src/lib/server/db/schema/tenancy.js';
 import { setAiProviderForTests, type AiProvider } from '../../src/lib/server/ai/index.js';
+import { allFindings } from '../../src/lib/shared/linter.js';
 import { lint } from '../../src/lib/server/linter/index.js';
 import { ASSIST_UNAVAILABLE, lintWithAssist } from '../../src/lib/server/services/linting.js';
 import { createTestDb } from '../support/db.js';
@@ -21,10 +22,13 @@ import { makeCommunity, makeMembership, makeUser } from '../support/factories.js
  */
 const NOW = Date.UTC(2026, 8, 4, 12, 0, 0);
 
-/** "We value diversity" marked Enforceable — the guide's own anti-pattern. */
+/**
+ * A line that binds nobody and names no process — the guide's anti-pattern, now
+ * without a label because nobody applies one. The rule set places it nowhere;
+ * the assisted half is the part that can say what it reads as.
+ */
 const ANTI_PATTERN = {
 	body: 'Diversity is valued here.',
-	type: 'enforceable' as const,
 	plainLanguage: 'In practice: we care about it.',
 	locale: 'en'
 };
@@ -84,9 +88,11 @@ describe('the rule set is the same with a provider and without one', () => {
 		setAiProviderForTests(modelSaying(JUDGEMENT));
 		const assisted = await lintWithAssist(ctx, ANTI_PATTERN, { db });
 
-		// Every rule-based finding, unchanged and in the same order. The AI half
-		// adds; it never edits, reorders or suppresses.
-		expect(assisted.findings.slice(0, alone.findings.length)).toEqual(alone.findings);
+		// Every rule-based finding, unchanged. The AI half adds; it never edits,
+		// reorders or suppresses — and its findings join the *body's* list, since
+		// they read the text whole and have no sentence to point at.
+		expect(assisted.lines).toEqual(alone.lines);
+		expect(assisted.bodyFindings.slice(0, alone.bodyFindings.length)).toEqual(alone.bodyFindings);
 	});
 
 	it('runs the whole rule set with no provider at all', async () => {
@@ -97,11 +103,16 @@ describe('the rule set is the same with a provider and without one', () => {
 
 		// The rules that matter most are word-and-shape rules, and they are a
 		// product promise rather than an AI feature. Every one of them still fires.
-		expect(rules(result.findings)).toEqual([
-			...rules(lint(ANTI_PATTERN).findings),
-			ASSIST_UNAVAILABLE
-		]);
-		expect(rules(result.findings)).toContain('enf.subject');
+		// Every rule-based finding survives, and the notice joins them. Compared as
+		// a set: the assisted notice lands among the body's findings, which come
+		// before the per-line ones.
+		expect(rules(allFindings(result)).sort()).toEqual(
+			[...rules(allFindings(lint(ANTI_PATTERN))), ASSIST_UNAVAILABLE].sort()
+		);
+		// Not `enf.subject`: nothing here binds anybody, so the enforceable checks
+		// correctly never ran. The rule that fires is the one that should — a line
+		// doing no job at all.
+		expect(rules(allFindings(result))).toContain('line.clutter');
 		expect(result.assisted).toBe(false);
 	});
 });
@@ -112,14 +123,14 @@ describe('a check that did not run says so', () => {
 		resetConfigForTests();
 
 		const result = await lintWithAssist(ctx, ANTI_PATTERN, { db });
-		const notice = result.findings.find((finding) => finding.rule === ASSIST_UNAVAILABLE)!;
+		const notice = allFindings(result).find((finding) => finding.rule === ASSIST_UNAVAILABLE)!;
 
 		expect(notice).toBeDefined();
 		expect(notice.message).toMatch(/were not run/);
 		// Never as a passing check: an "ok" here would tell a community their text
 		// had been examined for something nobody examined it for.
 		expect(notice.severity).toBe('note');
-		expect(rules(result.findings)).not.toContain('enf.auditable');
+		expect(rules(allFindings(result))).not.toContain('enf.auditable');
 	});
 
 	it('says the same when the community has not switched AI on', async () => {
@@ -127,7 +138,7 @@ describe('a check that did not run says so', () => {
 		setAiProviderForTests(modelSaying(JUDGEMENT));
 
 		const result = await lintWithAssist(off, ANTI_PATTERN, { db });
-		expect(rules(result.findings)).toContain(ASSIST_UNAVAILABLE);
+		expect(rules(allFindings(result))).toContain(ASSIST_UNAVAILABLE);
 		expect(result.assisted).toBe(false);
 	});
 
@@ -139,8 +150,8 @@ describe('a check that did not run says so', () => {
 		await lintWithAssist(ctx, ANTI_PATTERN, { db });
 		const second = await lintWithAssist(ctx, ANTI_PATTERN, { db });
 
-		expect(rules(second.findings)).toContain(ASSIST_UNAVAILABLE);
-		const notice = second.findings.find((f) => f.rule === ASSIST_UNAVAILABLE)!;
+		expect(rules(allFindings(second))).toContain(ASSIST_UNAVAILABLE);
+		const notice = allFindings(second).find((f) => f.rule === ASSIST_UNAVAILABLE)!;
 		expect(notice.message).toMatch(/budget for today/);
 	});
 
@@ -149,8 +160,8 @@ describe('a check that did not run says so', () => {
 		setAiProviderForTests(modelSaying('I would say this is probably fine, honestly.'));
 
 		const result = await lintWithAssist(ctx, ANTI_PATTERN, { db });
-		expect(rules(result.findings)).toContain(ASSIST_UNAVAILABLE);
-		expect(rules(result.findings)).not.toContain('enf.auditable');
+		expect(rules(allFindings(result))).toContain(ASSIST_UNAVAILABLE);
+		expect(rules(allFindings(result))).not.toContain('enf.auditable');
 	});
 
 	it('does not make a definition unclean by failing to check it', async () => {
@@ -159,13 +170,12 @@ describe('a check that did not run says so', () => {
 
 		const clean = {
 			body: 'Transparency over control, by default; an override is recorded with its reason.',
-			type: 'interpretive' as const,
 			plainLanguage: 'In practice: we share things unless there is a written reason not to.',
 			locale: 'en'
 		};
 		const result = await lintWithAssist(ctx, clean, { db });
 
-		expect(rules(result.findings)).toContain(ASSIST_UNAVAILABLE);
+		expect(rules(allFindings(result))).toContain(ASSIST_UNAVAILABLE);
 		expect(result.clean).toBe(lint(clean).clean);
 	});
 });
@@ -175,7 +185,7 @@ describe('the two assisted rules, when they do run', () => {
 		setAiProviderForTests(modelSaying(JUDGEMENT));
 
 		const result = await lintWithAssist(ctx, ANTI_PATTERN, { db });
-		const auditable = result.findings.find((f) => f.rule === 'enf.auditable')!;
+		const auditable = allFindings(result).find((f) => f.rule === 'enf.auditable')!;
 
 		expect(auditable.severity).toBe('blocker_shaped');
 		expect(auditable.message).toMatch(/could not check this yes or no/);
@@ -201,14 +211,13 @@ describe('the two assisted rules, when they do run', () => {
 			ctx,
 			{
 				body: 'A candidate is admitted by a consent decision of the assembly. Otherwise they remain a candidate.',
-				type: 'enforceable',
 				plainLanguage: 'In practice: the assembly confirms you, or you stay a candidate.',
 				locale: 'en'
 			},
 			{ db }
 		);
 
-		const auditable = result.findings.find((f) => f.rule === 'enf.auditable')!;
+		const auditable = allFindings(result).find((f) => f.rule === 'enf.auditable')!;
 		expect(auditable.severity).toBe('ok');
 	});
 
@@ -226,12 +235,19 @@ describe('the two assisted rules, when they do run', () => {
 
 		const result = await lintWithAssist(
 			ctx,
-			{ body: 'Openness matters more than speed here.', type: 'enforceable', locale: 'en' },
+			{
+				// The rule set reads this as enforceable; the model reads it as
+				// interpretive. Two readings, and the finding names both.
+				body: 'A member is removed by a consent decision of the assembly, otherwise they remain a member.',
+				locale: 'en'
+			},
 			{ db }
 		);
 
-		const mismatch = result.findings.find((f) => f.rule === 'type.mismatch')!;
-		expect(mismatch.message).toMatch(/labelled enforceable but reads as interpretive/);
+		const mismatch = allFindings(result).find((f) => f.rule === 'type.mismatch')!;
+		expect(mismatch.message).toMatch(
+			/reads this as enforceable; a closer look reads it as interpretive/
+		);
 	});
 
 	it('stays quiet when the model is unsure of the type', async () => {
@@ -250,14 +266,10 @@ describe('the two assisted rules, when they do run', () => {
 
 		const result = await lintWithAssist(
 			ctx,
-			{
-				body: 'A member is admitted by the assembly, or remains a candidate.',
-				type: 'enforceable',
-				locale: 'en'
-			},
+			{ body: 'A member is admitted by the assembly, or remains a candidate.', locale: 'en' },
 			{ db }
 		);
-		expect(rules(result.findings)).not.toContain('type.mismatch');
+		expect(rules(allFindings(result))).not.toContain('type.mismatch');
 	});
 
 	it('does not report one problem twice', async () => {
@@ -276,11 +288,16 @@ describe('the two assisted rules, when they do run', () => {
 
 		const result = await lintWithAssist(
 			ctx,
-			{ body: 'Members must show up with humility.', type: 'expressive', locale: 'en' },
+			// The rule set reads this as nothing it can place and reports the
+			// ambiguous middle; the model reads it as enforceable. One `type.mismatch`
+			// at most, whatever the two halves think.
+			{ body: 'Members are expected to show up with humility.', locale: 'en' },
 			{ db }
 		);
 
-		expect(rules(result.findings).filter((rule) => rule === 'type.mismatch')).toHaveLength(1);
+		expect(
+			rules(allFindings(result)).filter((rule) => rule === 'type.mismatch').length
+		).toBeLessThanOrEqual(1);
 	});
 });
 
@@ -291,8 +308,17 @@ describe('the linter is still advice', () => {
 
 		// It returns a verdict and no more. `freeze()` never asks the linter, which
 		// is why a community may adopt a definition it dislikes and have the
-		// disagreement stored with the version.
+		// disagreement stored with the version. Nothing here is a gate, a veto or
+		// a status anything else reads.
 		expect(result.clean).toBe(false);
-		expect(Object.keys(result).sort()).toEqual(['assisted', 'clean', 'findings']);
+		expect(Object.keys(result).sort()).toEqual([
+			'assisted',
+			'bodyFindings',
+			'clean',
+			'lines',
+			'primaryJob',
+			'ranAt',
+			'shape'
+		]);
 	});
 });

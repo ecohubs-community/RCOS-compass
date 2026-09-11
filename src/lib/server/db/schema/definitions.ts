@@ -129,7 +129,13 @@ export const definitionDraft = sqliteTable('definition_draft', {
 		.references(() => definition.id, { onDelete: 'cascade' }),
 	body: text('body').notNull().default(''),
 	plainLanguage: text('plain_language'),
+	/** Derived from `linterResult`, like the version's. Never an author's choice. */
 	type: text('type', { enum: ['enforceable', 'interpretive', 'expressive'] }),
+	/**
+	 * The last linter run on this draft, stored so the screen reads a result
+	 * rather than computing one every time somebody opens the page.
+	 */
+	linterResult: text('linter_result', { mode: 'json' }),
 	/**
 	 * Optimistic concurrency. Rotated on every successful save, so a save
 	 * presenting the token it loaded with is the only one that wins.

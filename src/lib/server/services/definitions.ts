@@ -2,6 +2,8 @@ import { randomBytes } from 'node:crypto';
 import { and, eq, isNull } from 'drizzle-orm';
 import { error } from '@sveltejs/kit';
 import { requirePermission, requireWritableCommunity, type Ctx } from '../auth/guard.js';
+import { lint } from '../linter/index.js';
+import type { LineJob, LintResult } from '../../shared/linter.js';
 import { communityOf, type Reader } from '../auth/audience.js';
 import { requireRead, visibleTo } from '../auth/visible-to.js';
 import { getDb, type Db } from '../db/index.js';
@@ -270,7 +272,10 @@ export type DraftView = {
 	definitionId: string;
 	body: string;
 	plainLanguage: string | null;
+	/** Derived from `linterResult` by the last run. Never an author's choice. */
 	type: 'enforceable' | 'interpretive' | 'expressive' | null;
+	/** The stored run, or null when nobody has linted this text yet. */
+	linterResult: unknown;
 	editToken: string;
 	updatedBy: string | null;
 	updatedAt: number;
@@ -288,6 +293,49 @@ export function getDraft(ctx: Ctx, definitionId: string, options: { db?: Db } = 
 	if (!draft) error(404, 'Not found');
 
 	return { ...draft, updatedAt: draft.updatedAt.getTime() };
+}
+
+/**
+ * Run the linter on a draft and keep the result.
+ *
+ * Explicit, and the only way a draft gets one. `docs/11` §1 says a result is
+ * stored with the text it judged and never computed on read — a panel that
+ * recomputes on every render is a panel whose verdict can change without anybody
+ * editing anything, and the version it is stored against is the record of what
+ * the community was told when they adopted it.
+ *
+ * The derived primary job is written here too, because this is the moment there
+ * is something to derive it from.
+ */
+export function runLinter(
+	ctx: Ctx,
+	definitionId: string,
+	options: { db?: Db } = {}
+): { result: LintResult; type: LineJob | null } {
+	requirePermission(ctx, 'definition.draft');
+	requireWritableCommunity(ctx);
+	getDefinition(ctx, definitionId, options);
+
+	const db = options.db ?? getDb();
+	const draft = db
+		.select()
+		.from(definitionDraft)
+		.where(eq(definitionDraft.definitionId, definitionId))
+		.get();
+	if (!draft) error(404, 'Not found');
+
+	const result = lint({
+		body: draft.body,
+		plainLanguage: draft.plainLanguage,
+		locale: ctx.community.locale
+	});
+
+	db.update(definitionDraft)
+		.set({ linterResult: result, type: result.primaryJob })
+		.where(eq(definitionDraft.definitionId, definitionId))
+		.run();
+
+	return { result, type: result.primaryJob };
 }
 
 /** What a second editor is told instead of losing their work. */
@@ -313,7 +361,6 @@ export function saveDraft(
 		editToken: string;
 		body: string;
 		plainLanguage?: string | null;
-		type?: 'enforceable' | 'interpretive' | 'expressive' | null;
 	},
 	options: { db?: Db } = {}
 ): DraftView {
@@ -342,13 +389,25 @@ export function saveDraft(
 		// old one straight back and it reappeared on the next load.
 		const plainLanguage =
 			'plainLanguage' in input ? (input.plainLanguage ?? null) : current.plainLanguage;
-		const type = 'type' in input ? (input.type ?? null) : current.type;
+
+		/**
+		 * The text changed, so the stored result no longer describes it.
+		 *
+		 * Cleared rather than recomputed: running the linter is an act somebody
+		 * takes, and a result that appeared because a draft was saved would be a
+		 * result nobody asked for — on a screen that then says "the linter has
+		 * run" about text it has not seen a person consider.
+		 */
+		const textChanged = input.body !== current.body || plainLanguage !== current.plainLanguage;
+		const linterResult = textChanged ? null : current.linterResult;
+		const type = textChanged ? null : current.type;
 
 		tx.update(definitionDraft)
 			.set({
 				body: input.body,
 				plainLanguage,
 				type,
+				linterResult,
 				editToken: nextToken,
 				updatedBy: ctx.user.id,
 				updatedAt: new Date(now)
@@ -366,6 +425,7 @@ export function saveDraft(
 			body: input.body,
 			plainLanguage,
 			type,
+			linterResult,
 			editToken: nextToken,
 			updatedBy: ctx.user.id,
 			updatedAt: now

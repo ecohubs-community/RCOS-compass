@@ -1,4 +1,12 @@
-import type { Finding } from '../../shared/linter.js';
+import {
+	LINT_SHAPE,
+	type Finding,
+	type LineJob,
+	type LintedLine,
+	type LintResult,
+	type Remedy
+} from '../../shared/linter.js';
+import { segmentLines } from './segment.js';
 import { plainText } from '../markdown.js';
 import { hasVaguenessList, VAGUE_WORDS } from './vagueness.js';
 
@@ -18,24 +26,18 @@ import { hasVaguenessList, VAGUE_WORDS } from './vagueness.js';
  *   learn to close.
  */
 
-export type { Finding, Severity } from '../../shared/linter.js';
-export type DefinitionType = 'enforceable' | 'interpretive' | 'expressive';
+export type { Finding, LineJob, LintedLine, LintResult, Severity } from '../../shared/linter.js';
+/** @deprecated A body no longer has one type. Kept for callers being migrated. */
+export type DefinitionType = LineJob;
 
 export type LintInput = {
 	body: string;
 	plainLanguage?: string | null;
-	type?: DefinitionType | null;
 	locale?: string;
 	/** Titles of adopted definitions, for the overlap check. */
 	adoptedElsewhere?: { key: string; title: string; body: string }[];
 	/** Whether this section belongs to Layer 0. */
 	layer?: number | null;
-};
-
-export type LintResult = {
-	findings: Finding[];
-	/** True when nothing is `blocker_shaped`. Advice, never a gate. */
-	clean: boolean;
 };
 
 // --- Signals ---------------------------------------------------------------
@@ -55,6 +57,17 @@ const PROCESS =
 	/\b(assembly|circle|council|consent|vote|votes|voting|decision|meeting|process|procedure|reviewed?|approves?|approval|confirms?|nominates?|elects?|appoints?)\b/i;
 const CONSEQUENCE =
 	/\b(otherwise|if not|fails?|failure|then|consequence|forfeits?|loses|removed|suspended|revoked|does not|shall not|may not|is refused|reverts?)\b/i;
+/**
+ * Language about who the community *is*, rather than what it requires.
+ *
+ * Only the clutter rule reads this, and only to stay quiet: a line that says
+ * something about identity changes who a community attracts, so deleting it
+ * changes something even though nothing in it binds. Without this signal the
+ * quietest rule in the set would tell people to cut their own values.
+ */
+const IDENTITY =
+	/\b(we are|we value|we believe|we welcome|we care|we seek|we intend|our (?:values?|culture|character|spirit|intention)|community of|committed to)\b/i;
+
 /** Who or what is bound: a named role, or a person-shaped noun. */
 const SUBJECT =
 	/\b(member|members|steward|stewards|candidate|candidates|applicant|applicants|resident|residents|person|people|anyone|everyone|the assembly|the circle|the council|treasurer|facilitator|guest|guests)\b/i;
@@ -121,31 +134,88 @@ function overlap(a: string, b: string): number {
 	return shared / Math.min(left.size, right.size);
 }
 
+/**
+ * Judge one body, line by line.
+ *
+ * The unit is the sentence, not the body. A definition mixing a rule and a value
+ * is normal, and the line the label does not fit is exactly the one that goes
+ * unchecked when a whole body carries a single type — which is how an unlabelled
+ * value ends up sitting beside real rules, the case the guide calls dangerous.
+ */
 export function lint(input: LintInput): LintResult {
-	const findings: Finding[] = [];
+	const locale = input.locale ?? 'en';
 	// The rules read prose, not Markdown: a link's URL is not part of what the
 	// definition says, and would otherwise trip the word matchers.
 	const text = plainText(input.body);
-	const locale = input.locale ?? 'en';
+	const lines = segmentLines(text, locale).map((line) => judge(line, locale, input));
 
-	// --- §2 The type -------------------------------------------------------
-	if (!input.type) {
-		findings.push(
-			warn('type.missing', 'Say what job this line does: does it bind, guide, or describe?')
-		);
+	const bodyFindings = wholeBodyFindings(text, input, locale);
+	const all = [...bodyFindings, ...lines.flatMap((line) => line.findings)];
+
+	return {
+		shape: LINT_SHAPE,
+		lines,
+		bodyFindings,
+		primaryJob: primaryJobOf(lines),
+		clean: all.every((finding) => finding.severity !== 'blocker_shaped'),
+		ranAt: Date.now()
+	};
+}
+
+/**
+ * What job a line does, inferred — nobody declares one yet.
+ *
+ * Conservative on purpose. A badge on every line looks finished, but an inferred
+ * `expressive` on a line that actually binds tells a reader it is safe to
+ * ignore. Anything that does not read unambiguously as one job stays unlabelled,
+ * and `line.ambiguous-middle` fires on the dangerous part of that.
+ */
+function inferJob(text: string): LineJob | null {
+	// An explicit non-binding marker is the author telling you outright.
+	if (NONBINDING.test(text)) return 'expressive';
+
+	// A trade-off with a default is the interpretive shape: "X over Y, unless…".
+	// Checked before identity, because "we value X over Y by default" is a
+	// principle with a default, not a sentence about who we are.
+	if (TRADEOFF.test(text) && DEFAULTING.test(text)) return 'interpretive';
+
+	/**
+	 * Somebody bound, plus something that can actually be checked.
+	 *
+	 * Two shapes, and the difference between them is the whole rule:
+	 *
+	 * - a subject and a **consequence** — "members must give notice, otherwise the
+	 *   departure is not recorded". Governance prose states rules in the
+	 *   indicative at least as often as with "must", so the modal cannot be
+	 *   required; what makes it a rule is that something turns on it.
+	 * - a subject, a named **process** and obligation language — "members must
+	 *   tell the assembly in writing". Checkable because there is a body that
+	 *   either received it or did not.
+	 *
+	 * Deliberately *not* subject + obligation on its own. That is precisely the
+	 * ambiguous middle — "candidates are expected to show up with humility" binds
+	 * somebody and offers nothing to check — and calling it enforceable would
+	 * silence the one rule this change exists for.
+	 */
+	const bound = SUBJECT.test(text);
+	if (bound && (CONSEQUENCE.test(text) || (PROCESS.test(text) && OBLIGATION.test(text)))) {
+		return 'enforceable';
 	}
 
-	// The shallow half of `type.mismatch`: obligation language under a label that
-	// says this is not an obligation. The full version is an `ai-assist` rule.
-	if (input.type === 'expressive' && OBLIGATION.test(text)) {
-		findings.push(
-			note('type.mismatch', 'This is labelled aspirational but reads as a rule. Which is it?')
-		);
-	}
+	// Last, and only if nothing above fits: a line about who the community is.
+	if (IDENTITY.test(text)) return 'expressive';
+
+	return null;
+}
+
+function judge(text: string, locale: string, input: LintInput): LintedLine {
+	const job = inferJob(text);
+	const findings: Finding[] = [];
+	const push = (finding: Finding) => findings.push(finding);
 
 	// --- §3 Enforceable ----------------------------------------------------
-	if (input.type === 'enforceable') {
-		findings.push(
+	if (job === 'enforceable') {
+		push(
 			SUBJECT.test(text)
 				? ok('enf.subject', 'Has a subject — it is clear who this binds.')
 				: warn(
@@ -153,32 +223,29 @@ export function lint(input: LintInput): LintResult {
 						'Who does this bind? A rule with no subject binds everyone and no one.'
 					)
 		);
-
-		findings.push(
+		push(
 			PROCESS.test(text)
 				? ok('enf.process', 'Has a process — it says how this happens.')
 				: warn('enf.process', 'How does this happen, and who does it?')
 		);
-
 		if (!CONSEQUENCE.test(text)) {
-			findings.push(
+			push(
 				warn(
 					'enf.consequence',
 					'No consequence if the criteria are not met — what happens to someone the process does not confirm?'
 				)
 			);
 		}
-
 		// The application satisfies §3's `enf.recorded` by construction, and says
 		// so rather than staying silent: a passing check a member can see is worth
 		// more than one they have to infer.
-		findings.push(ok('enf.recorded', 'Recorded here, versioned, and visible to every member.'));
+		push(ok('enf.recorded', 'Recorded here, versioned, and visible to every member.'));
 	}
 
 	// --- §4 Interpretive ---------------------------------------------------
-	if (input.type === 'interpretive') {
+	if (job === 'interpretive') {
 		if (!TRADEOFF.test(text)) {
-			findings.push(
+			push(
 				warn(
 					'int.tradeoff',
 					'An interpretive principle names a trade-off. What is this choosing between?'
@@ -186,7 +253,7 @@ export function lint(input: LintInput): LintResult {
 			);
 		}
 		if (!DEFAULTING.test(text)) {
-			findings.push(
+			push(
 				warn(
 					'int.default',
 					'Say this is a default. Without that word it reads as absolute, and real situations will break it.'
@@ -194,7 +261,7 @@ export function lint(input: LintInput): LintResult {
 			);
 		}
 		if (!OVERRIDE.test(text)) {
-			findings.push(
+			push(
 				note(
 					'int.overridable',
 					'Can a decision override this? Say so, and say that the reason gets recorded.'
@@ -203,7 +270,7 @@ export function lint(input: LintInput): LintResult {
 		}
 		const absolute = ABSOLUTE.exec(text);
 		if (absolute) {
-			findings.push(
+			push(
 				warn(
 					'int.absolute',
 					'This is written as an absolute. If it is a rule, mark it Enforceable; if it is a lean, soften it.',
@@ -214,18 +281,10 @@ export function lint(input: LintInput): LintResult {
 	}
 
 	// --- §5 Expressive -----------------------------------------------------
-	if (input.type === 'expressive') {
-		if (!NONBINDING.test(text)) {
-			findings.push(
-				warn(
-					'exp.nonbinding',
-					'Label this non-binding. An unlabelled value sitting next to real rules is exactly the opening for coercion.'
-				)
-			);
-		}
+	if (job === 'expressive') {
 		const obligation = OBLIGATION.exec(text);
 		if (obligation) {
-			findings.push(
+			push(
 				warn(
 					'exp.obligation',
 					'This is written as an obligation. Either make it Enforceable with a process, or drop the obligation words.',
@@ -235,11 +294,30 @@ export function lint(input: LintInput): LintResult {
 		}
 	}
 
-	// --- §6 Every type -----------------------------------------------------
+	// --- §7 The ambiguous middle -------------------------------------------
+	//
+	// The one rule the whole change exists for, and the one that could not work
+	// before: it fires on an *unlabelled* line, which is precisely what a
+	// whole-body type made unreachable. Language that binds, nothing anybody
+	// could check yes or no, and no non-binding marker.
+	const ambiguous =
+		job === null && OBLIGATION.test(text) && !CONSEQUENCE.test(text) && !NONBINDING.test(text);
+	if (ambiguous) {
+		findings.push({
+			rule: 'line.ambiguous-middle',
+			severity: 'blocker_shaped',
+			message:
+				'The ambiguous middle. This sounds binding but nothing here could be checked yes or no — so it will be enforced informally, by whoever feels strongly. Push it to one side.',
+			// Three governance acts, none of them the linter's to choose.
+			remedies: ['make_enforceable', 'label_non_binding', 'delete_line'] satisfies Remedy[]
+		});
+	}
+
+	// --- §6.1 Vagueness, per line ------------------------------------------
 	if (hasVaguenessList(locale)) {
 		for (const word of VAGUE_WORDS[locale]!) {
 			if (new RegExp(`\\b${word.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'i').test(text)) {
-				findings.push(
+				push(
 					warn(
 						'all.vague',
 						`Vague word: "${word}" — say how, or this becomes an argument later.`,
@@ -248,7 +326,66 @@ export function lint(input: LintInput): LintResult {
 				);
 			}
 		}
-	} else {
+	}
+
+	// --- §7 Clutter ---------------------------------------------------------
+	//
+	// The guide's fourth outcome, and the quietest rule of the four. Never on a
+	// line already reported as the ambiguous middle: that line's problem is that
+	// it may bind, and telling somebody to delete a possible rule is the wrong
+	// advice entirely.
+	if (!ambiguous) {
+		const duplicates = (input.adoptedElsewhere ?? []).find(
+			(other) => overlap(text, plainText(other.body)) >= 0.6
+		);
+		if (duplicates) {
+			findings.push({
+				rule: 'line.clutter',
+				severity: 'note',
+				message: `This is already binding in "${duplicates.title}". Point to it rather than restating it — a re-stated MUST starts to look optional.`,
+				remedies: ['delete_line'] satisfies Remedy[]
+			});
+		} else if (
+			job === null &&
+			!OBLIGATION.test(text) &&
+			!TRADEOFF.test(text) &&
+			!NONBINDING.test(text) &&
+			!IDENTITY.test(text) &&
+			!(SUBJECT.test(text) && PROCESS.test(text))
+		) {
+			findings.push({
+				rule: 'line.clutter',
+				severity: 'note',
+				message:
+					'If this line were deleted, what would change? If nothing, it is clutter — and clutter dilutes the lines that do matter.',
+				remedies: ['delete_line'] satisfies Remedy[]
+			});
+		}
+	}
+
+	if (LAYER0.test(text)) {
+		push(
+			note(
+				'all.layer0',
+				'This touches Layer 0. It needs the constitutional decision path, not an ordinary freeze.'
+			)
+		);
+	}
+
+	return { text, job, source: 'inferred', findings };
+}
+
+/**
+ * Findings about the body rather than about any one line.
+ *
+ * The plain-language mirror is a property of the whole definition, and the
+ * vagueness list's absence is a statement about the locale. Neither has a line
+ * to point at, which is why `Finding.line` is optional.
+ */
+function wholeBodyFindings(text: string, input: LintInput, locale: string): Finding[] {
+	const findings: Finding[] = [];
+
+	if (!hasVaguenessList(locale)) {
 		// Visibly, never silently: a community must not believe their text was
 		// checked for something nobody has written the list for yet.
 		findings.push(
@@ -256,35 +393,7 @@ export function lint(input: LintInput): LintResult {
 		);
 	}
 
-	// "What breaks if we delete this line?"
-	if (
-		text.trim().length > 0 &&
-		!SUBJECT.test(text) &&
-		!TRADEOFF.test(text) &&
-		!OBLIGATION.test(text) &&
-		!NONBINDING.test(text)
-	) {
-		findings.push(
-			note(
-				'all.kill',
-				'If this line were deleted, what would change? If nothing, it is clutter — and clutter dilutes the lines that do matter.'
-			)
-		);
-	}
-
-	for (const other of input.adoptedElsewhere ?? []) {
-		if (overlap(text, plainText(other.body)) >= 0.6) {
-			findings.push(
-				note(
-					'all.duplicate',
-					`This is already binding in "${other.title}". Point to it rather than restating it — a re-stated MUST starts to look optional.`
-				)
-			);
-			break;
-		}
-	}
-
-	if (input.layer === 0 || LAYER0.test(text)) {
+	if (input.layer === 0) {
 		findings.push(
 			note(
 				'all.layer0',
@@ -307,8 +416,18 @@ export function lint(input: LintInput): LintResult {
 		);
 	}
 
-	return {
-		findings,
-		clean: findings.every((finding) => finding.severity !== 'blocker_shaped')
-	};
+	return findings;
+}
+
+/**
+ * The strongest job present, not the commonest.
+ *
+ * A definition with four expressive lines and one enforceable line is, to anyone
+ * bound by it, an enforceable definition. A majority rule would label it
+ * expressive — which is `docs/11` §7's own "don't demote an enforced rule into a
+ * value" anti-pattern, arrived at by arithmetic.
+ */
+export function primaryJobOf(lines: { job: LineJob | null }[]): LineJob | null {
+	const order: LineJob[] = ['enforceable', 'interpretive', 'expressive'];
+	return order.find((job) => lines.some((line) => line.job === job)) ?? null;
 }

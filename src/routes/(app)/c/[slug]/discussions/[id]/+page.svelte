@@ -2,6 +2,7 @@
 	import { enhance } from '$app/forms';
 	import Button from '$lib/components/ui/Button.svelte';
 	import LinterPanel from '$lib/components/ui/LinterPanel.svelte';
+	import LinterNotRun from '$lib/components/ui/LinterNotRun.svelte';
 	import Markdown from '$lib/components/ui/Markdown.svelte';
 	import TextField from '$lib/components/ui/TextField.svelte';
 	import { links } from '$lib/links';
@@ -589,7 +590,18 @@
 						</section>
 					{/if}
 
-					<LinterPanel findings={data.proposal.linter} />
+					{#if data.proposal.linter}
+						<LinterPanel
+							result={data.proposal.linter}
+							heading="Linter on v{data.proposal.version}"
+						/>
+					{:else}
+						<!--
+							A version written before proposals were linted on write. There is
+							nothing to re-run it from here — a new version gets its own result.
+						-->
+						<LinterNotRun canRun={false} />
+					{/if}
 				{/if}
 			</div>
 

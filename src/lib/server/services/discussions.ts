@@ -14,6 +14,7 @@ import {
 import { user } from '../db/schema/auth.js';
 import { membership } from '../db/schema/tenancy.js';
 import { initialsOf, personLabel } from './person.js';
+import { lint } from '../linter/index.js';
 import { activeStandardView } from './completeness.js';
 import { discussionParticipants, notify } from './notifications.js';
 import { indexDiscussion } from './search.js';
@@ -335,7 +336,18 @@ function writeProposal(
 			// v1, v2, v3 … and every earlier one stays readable.
 			proposalVersion: (previous?.proposalVersion ?? 0) + 1,
 			// Only a revision has something to have changed.
-			revisionNote: previous ? values.revisionNote?.trim() || null : null
+			revisionNote: previous ? values.revisionNote?.trim() || null : null,
+			/**
+			 * Linted once, here, and stored with the version.
+			 *
+			 * On write rather than on read: a rail that stays blank until somebody
+			 * thinks to press a button is a rail people learn to ignore, and
+			 * `docs/11` §1's rule is that a result is never computed when a page is
+			 * *read* — a write is not a read. Each version keeps the result that
+			 * judged its own words, so a reader a year later sees what the community
+			 * was actually told.
+			 */
+			linterResult: lint({ body: values.body, locale: ctx.community.locale })
 		}
 	);
 
@@ -468,6 +480,7 @@ function writePost(
 		kind: 'message' | 'proposal' | 'offline_summary';
 		proposalVersion: number | null;
 		revisionNote?: string | null;
+		linterResult?: unknown;
 	}
 ): Post {
 	const db = options.db ?? getDb();
@@ -483,6 +496,7 @@ function writePost(
 			kind: values.kind,
 			proposalVersion: values.proposalVersion,
 			revisionNote: values.revisionNote ?? null,
+			linterResult: values.linterResult ?? null,
 			frozenDecisionId: null,
 			createdAt: new Date(now),
 			editedAt: null

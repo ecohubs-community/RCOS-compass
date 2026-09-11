@@ -12,6 +12,7 @@
 	import Markdown from '$lib/components/ui/Markdown.svelte';
 	import InlineText from '$lib/components/ui/InlineText.svelte';
 	import LinterPanel from '$lib/components/ui/LinterPanel.svelte';
+	import LinterNotRun from '$lib/components/ui/LinterNotRun.svelte';
 	import { HELP, type HelpId } from '$lib/help/registry';
 
 	let { data } = $props();
@@ -154,7 +155,15 @@
 			Warnings, notes and passing checks together. Nothing here can stop a freeze.
 		</p>
 		<div class="border-border mt-4 rounded-(--radius-card) border p-4">
-			<LinterPanel findings={data.linter} />
+			<LinterPanel result={data.linter} />
+		</div>
+
+		<p class="text-fg-muted text-meta mt-6">
+			And the state before it has run — a sentence rather than an empty panel, because an empty
+			panel reads as "nothing wrong here".
+		</p>
+		<div class="border-border mt-2 rounded-(--radius-card) border p-4">
+			<LinterNotRun canRun={false} />
 		</div>
 	</section>
 

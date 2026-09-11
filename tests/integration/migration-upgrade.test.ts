@@ -123,7 +123,11 @@ describe('upgrading a database that already has rows in it', () => {
 	});
 
 	it('closes rounds left open on a version a later one replaced, keeping their responses', () => {
-		const { folder } = previousMigrations();
+		// Pinned: this is about the migration that added `superseded`, and it seeds
+		// the orphaned round that migration exists to close. Run against "everything
+		// but the newest" the seed would land *after* that migration had already
+		// run, and the test would assert nothing at all.
+		const { folder } = previousMigrations('0017_lumpy_makkari');
 		const file = join(dir, 'orphan-round.db');
 
 		const before = new Database(file);

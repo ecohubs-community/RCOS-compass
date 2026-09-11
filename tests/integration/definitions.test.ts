@@ -15,6 +15,7 @@ import {
 	getDefinition,
 	getDraft,
 	listLocalDefinitions,
+	runLinter,
 	saveDraft
 } from '../../src/lib/server/services/definitions.js';
 import { createTestDb } from '../support/db.js';
@@ -246,8 +247,7 @@ describe('concurrent editing does not silently lose work', () => {
 				definitionId: created.id,
 				editToken: token,
 				body: 'Quiet from 22:00.',
-				plainLanguage: 'Be quiet after ten.',
-				type: 'enforceable'
+				plainLanguage: 'Be quiet after ten.'
 			},
 			{ db }
 		).editToken;
@@ -272,6 +272,56 @@ describe('concurrent editing does not silently lose work', () => {
 			{ db }
 		);
 		expect(getDraft(ctx, created.id, { db }).plainLanguage).toBeNull();
+	});
+
+	it('clears the stored lint when the text it judged changes', () => {
+		// A result describes the text it read. Carrying it across an edit would
+		// leave a panel saying "the linter has run" about words it never saw, and
+		// a derived type standing for a body that no longer exists.
+		const created = local();
+		let token = getDraft(ctx, created.id, { db }).editToken;
+
+		token = saveDraft(
+			ctx,
+			{
+				definitionId: created.id,
+				editToken: token,
+				body: 'Members must be quiet from 22:00, otherwise a steward asks them to stop.'
+			},
+			{ db }
+		).editToken;
+		runLinter(ctx, created.id, { db });
+
+		expect(getDraft(ctx, created.id, { db }).linterResult).not.toBeNull();
+		expect(getDraft(ctx, created.id, { db }).type).toBe('enforceable');
+
+		saveDraft(
+			ctx,
+			{ definitionId: created.id, editToken: token, body: 'Something else entirely.' },
+			{ db }
+		);
+
+		expect(getDraft(ctx, created.id, { db }).linterResult).toBeNull();
+		expect(getDraft(ctx, created.id, { db }).type).toBeNull();
+	});
+
+	it("derives the type from the lines rather than from anybody's choice", () => {
+		const created = local();
+		const token = getDraft(ctx, created.id, { db }).editToken;
+
+		saveDraft(
+			ctx,
+			{
+				definitionId: created.id,
+				editToken: token,
+				// Three values and one rule. The strongest present wins, because to
+				// anyone bound by it this is an enforceable definition.
+				body: 'We are a community of growers. We are a community of makers. Members must give notice in writing, otherwise the departure is not recorded.'
+			},
+			{ db }
+		);
+
+		expect(runLinter(ctx, created.id, { db }).type).toBe('enforceable');
 		expect(getDraft(ctx, created.id, { db }).type).toBe('enforceable');
 	});
 

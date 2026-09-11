@@ -197,5 +197,10 @@
 	"path_preset_risky": "Die riskantesten Lücken für uns",
 	"path_preset_going": "Was ohnehin schon läuft",
 	"path_preset_tune": "Stärken feinjustieren",
-	"path_preset_applied": "Reihenfolge aktualisiert. „Wie der Weg sortiert wird“ zeigt, was sich geändert hat."
+	"path_preset_applied": "Reihenfolge aktualisiert. „Wie der Weg sortiert wird“ zeigt, was sich geändert hat.",
+	"linter_not_run_title": "Der Linter wurde auf diesen Text noch nicht angewendet",
+	"linter_not_run_stale": "Der Text hat sich geändert, seit der Linter zuletzt lief",
+	"linter_not_run_why": "Er zerlegt den Text in Zeilen und beurteilt jede nach ihrer eigenen Aufgabe. Solange er nicht gelaufen ist, gibt es nichts zu zerlegen, und die kommentierte Ansicht bleibt nicht verfügbar.",
+	"linter_not_run_action": "Linter ausführen",
+	"linter_not_run_after": "Nach dem Lauf bleibt das Ergebnis an dieser Version hängen — ein erneuter Lauf ist ausdrücklich und geschieht nie automatisch beim Lesen."
 }

@@ -16,9 +16,9 @@ import {
 } from '$lib/server/services/discussions';
 import { listObjections, resolveObjection } from '$lib/server/services/objections';
 import { isArtifactComplete, DECISION_MATRIX } from '$lib/server/services/completeness';
-import { lint } from '$lib/server/linter';
 import { membershipLabel } from '$lib/server/services/person';
 import { parseMarkdown } from '$lib/server/markdown';
+import { isCurrentShape } from '$lib/shared/linter';
 import { getVotingProvider } from '$lib/server/voting';
 import { listResponses, roundFor } from '$lib/server/voting/consent-round';
 import type { Actions, PageServerLoad, RequestEvent } from './$types';
@@ -142,8 +142,14 @@ export const load: PageServerLoad = ({ locals, params, url }) => {
 			body: parseMarkdown(selected.body),
 			isLatest: selected.id === proposals.at(-1)?.id,
 			...frozenState(selected.frozenDecisionId),
-			// Advice on the text that would be adopted, never a gate on adopting it.
-			linter: lint({ body: selected.body, locale: ctx.community.locale }).findings,
+			/**
+			 * Advice on the text that would be adopted, never a gate on adopting it
+			 * — and read from what was stored when the version was written, not run
+			 * again now. This was the only place in the codebase that linted on a
+			 * page load, which meant the panel's verdict could change under a reader
+			 * without anybody touching the text.
+			 */
+			linter: isCurrentShape(selected.linterResult) ? selected.linterResult : null,
 			objections: listObjections(ctx, selected.id, { db }).map((objection) => ({
 				id: objection.id,
 				reason: objection.reason,

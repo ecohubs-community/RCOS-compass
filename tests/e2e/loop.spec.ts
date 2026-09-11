@@ -79,7 +79,10 @@ test.describe('the core loop, on a fresh community', () => {
 		await expect(page.getByRole('link', { name: 'v1' })).toBeVisible();
 
 		// The linter is advice, and it is visible.
-		await expect(page.getByRole('heading', { name: 'Definition linter' })).toBeVisible();
+		// Named for the version it judged: each version keeps the result that read
+		// its own words, so a panel labelled for the definition would be a panel
+		// that could not say which text it was about.
+		await expect(page.getByRole('heading', { name: 'Linter on v1' })).toBeVisible();
 
 		// --- decide it ---------------------------------------------------------
 		await page.getByRole('button', { name: 'Freeze v1' }).click();

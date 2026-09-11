@@ -22,11 +22,10 @@ export function load() {
 		// A definition with something wrong with it, and something right: the panel
 		// shows both, because one that only ever complains gets closed.
 		linter: lint({
-			type: 'enforceable',
 			body: 'Candidates attend the assembly regularly and are admitted by consent of the assembly.',
 			plainLanguage: 'In practice: come to meetings, and the assembly says yes or no.',
 			locale: 'en'
-		}).findings,
+		}),
 		// A title: inline marks with no block structure around them, which is what
 		// headings, thread titles and decision titles render with.
 		inline: parseMarkdown(

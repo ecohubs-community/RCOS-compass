@@ -195,3 +195,74 @@ test.describe('freezing the version a community actually agreed on', () => {
 		await expect(page.getByRole('button', { name: 'Freeze v2' })).toBeVisible();
 	});
 });
+
+test.describe('the linter, line by line', () => {
+	test('annotates the version on the table and names the ambiguous middle', async ({ page }) => {
+		const fixture = await seed(page);
+		await signIn(page, fixture.email, fixture.password);
+		await visit(page, `/c/${fixture.slug}/discussions`);
+		await page.getByLabel('Start a discussion').fill('What do we expect of candidates?');
+		await page.getByRole('button', { name: 'Start' }).click();
+
+		// A rule and a value in one text — the case a whole-body type could not
+		// express, and the one the linter now judges line by line.
+		await page.getByRole('link', { name: 'Write a proposal' }).click();
+		await expect(page.getByRole('button', { name: /^Save as v/ })).toBeVisible();
+		await page
+			.getByLabel('The text a decision would adopt')
+			.fill(
+				'Candidates become full members by a consent decision of the assembly, otherwise they remain candidates. Candidates are expected to show up with humility.'
+			);
+		await page.getByRole('button', { name: /^Save as v/ }).click();
+
+		const linter = page.getByRole('region', { name: 'Linter on v1' });
+		await expect(linter).toBeVisible();
+
+		// The strongest job present, derived and shown — never chosen by anybody.
+		await expect(linter).toContainText('Primary job');
+		await expect(linter).toContainText('Enforceable');
+
+		// The rule got the enforceable checks; the unlabelled line got the finding
+		// the whole change exists for, with all three ways out and none preferred.
+		await expect(linter).toContainText('Has a subject');
+		await expect(linter).toContainText('The ambiguous middle');
+		await expect(linter).toContainText(
+			'Make it enforceable · Label it non-binding · Delete the line'
+		);
+	});
+
+	test('keeps each version judged by the words it actually carries', async ({ page }) => {
+		const fixture = await seed(page);
+		await signIn(page, fixture.email, fixture.password);
+		await visit(page, `/c/${fixture.slug}/discussions`);
+		await page.getByLabel('Start a discussion').fill('Who settles what is owed?');
+		await page.getByRole('button', { name: 'Start' }).click();
+
+		await page.getByRole('link', { name: 'Write a proposal' }).click();
+		await expect(page.getByRole('button', { name: /^Save as v/ })).toBeVisible();
+		await page
+			.getByLabel('The text a decision would adopt')
+			.fill('Members are expected to settle up before they go.');
+		await page.getByRole('button', { name: /^Save as v/ }).click();
+		await expect(page.getByRole('region', { name: 'Linter on v1' })).toContainText(
+			'The ambiguous middle'
+		);
+
+		// v2 answers the finding, and is judged on its own words.
+		await revise(
+			page,
+			'Members must settle what is owed within three months, otherwise the departure is not recorded.',
+			'named the window'
+		);
+		const v2 = page.getByRole('region', { name: 'Linter on v2' });
+		await expect(v2).toBeVisible();
+		await expect(v2).not.toContainText('The ambiguous middle');
+
+		// And v1 still carries the verdict it was given — the result describes the
+		// text it read, and is never recomputed by opening the page.
+		await versions(page).getByRole('link', { name: 'v1' }).click();
+		await expect(page.getByRole('region', { name: 'Linter on v1' })).toContainText(
+			'The ambiguous middle'
+		);
+	});
+});

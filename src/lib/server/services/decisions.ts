@@ -19,6 +19,7 @@ import {
 	type Decision
 } from '../db/schema/decisions.js';
 import { discussion, post } from '../db/schema/discussions.js';
+import { isCurrentShape } from '../../shared/linter.js';
 import { countUnresolved } from './objections.js';
 import { proposalToFreeze } from './discussions.js';
 import { activeStandardView, DECISION_MATRIX, isArtifactComplete } from './completeness.js';
@@ -308,6 +309,8 @@ export function freeze(ctx: Ctx, input: FreezeInput, options: { db?: Db } = {}):
 			.where(eq(definitionDraft.definitionId, target.definitionRow.id))
 			.get();
 
+		const adoptedLint = isCurrentShape(proposal.linterResult) ? proposal.linterResult : null;
+
 		const versionId = newId();
 		tx.insert(definitionVersion)
 			.values({
@@ -317,11 +320,28 @@ export function freeze(ctx: Ctx, input: FreezeInput, options: { db?: Db } = {}):
 				// The proposal exactly as adopted: the register quotes itself.
 				body: proposal.body,
 				plainLanguage: draft?.plainLanguage ?? null,
-				type: draft?.type ?? null,
+				/**
+				 * What the linter said about the text being adopted, and the job it
+				 * derived — carried from the proposal rather than written as null.
+				 *
+				 * The `definitions` spec has always required a version to record its
+				 * linter result, and this line wrote null, so no version has ever
+				 * recorded one: a reader a year later could see that a community
+				 * froze over a warning only by re-running the linter against rules
+				 * that may since have changed.
+				 *
+				 * `aiAssisted` stays false, and that is still not the truth — nothing
+				 * anywhere records that a draft was written with help, so there is no
+				 * flag to carry. Inventing one here would be worse than the gap:
+				 * `false` is at least not a claim about a call nobody logged. Closing
+				 * it means recording assistance where it happens, which is the AI
+				 * surface's work and not this change's.
+				 */
+				type: adoptedLint?.primaryJob ?? null,
 				authorId: proposal.authorId,
 				aiAssisted: false,
 				aiTask: null,
-				linterResult: null,
+				linterResult: proposal.linterResult ?? null,
 				createdAt: new Date(now),
 				adoptedAt: new Date(now),
 				decisionId,

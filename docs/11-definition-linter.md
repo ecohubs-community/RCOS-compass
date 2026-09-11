@@ -35,15 +35,50 @@ prose lives in one place, and the rules live where they can be tested.
 
 ---
 
-## 2. Step one: the type
+## 2. Step one: the line, and the job it does
 
-The author picks **Enforceable / Interpretive / Expressive**; the linter may
-disagree and say so. Everything after this branches on the answer.
+**The unit is the line, not the definition.** This section used to say the author
+picks one type for the whole body, and its own message already said *"what job
+this **line** does"* — the wording was right and the implementation was not. A
+definition mixing a rule and a value is ordinary, and one label for the whole of
+it leaves every line the label does not fit unchecked.
+
+A body is split into sentences (within paragraphs, and per list item). Each line
+gets exactly one job, or none:
+
+| Job | The test | What it means |
+|---|---|---|
+| **Enforceable** | a decision or an audit changes | somebody is bound, and something turns on it |
+| **Interpretive** | an ambiguous call loses its default | a trade-off, framed "X over Y by default" |
+| **Expressive** | who we attract changes | says who the community is, binds nobody |
+| *(none)* | nothing changes | clutter — see §7 |
+
+**Nobody declares a job.** The linter infers it, records that it inferred it, and
+assigns one only on an unambiguous read. Anything else stays unlabelled, because
+an inferred *Expressive* on a line that actually binds tells a reader the line is
+safe to ignore — worse than no badge at all.
+
+Inference, exactly:
+
+- an explicit non-binding marker → **Expressive**
+- a trade-off **and** a default → **Interpretive**
+- a subject **and** a consequence, or a subject and a named process and
+  obligation language → **Enforceable**
+- identity language → **Expressive**
+- otherwise → none
+
+Deliberately *not* subject + obligation on its own: that is the ambiguous middle
+(§7), and calling it enforceable would silence the rule that matters most.
+
+**The definition's type is derived, never chosen.** It is the strongest job among
+its lines — Enforceable, then Interpretive, then Expressive — because a body with
+four values and one rule is, to anyone bound by it, an enforceable definition.
+Taking the commonest instead would demote an enforced rule into a value by
+arithmetic, which is the anti-pattern §7 warns about.
 
 | Rule | Check | Severity |
 |---|---|---|
-| `type.missing` | No type selected | ⚠ *Say what job this line does: does it bind, guide, or describe?* |
-| `type.mismatch` `ai-assist` | Text reads as a different type than the one chosen — e.g. marked Expressive but contains "MUST" | ◦ *This is labelled aspirational but reads as a rule. Which is it?* |
+| `type.mismatch` `ai-assist` | The rule set and the assisted pass read the same body as different jobs | ◦ *The rule set reads this as X; a closer look reads it as Y.* |
 
 ---
 
@@ -124,12 +159,33 @@ ships, the claim does not.
 
 ## 7. Two cautions from the guide, as rules
 
-1. **`all.duplicate`** implements *"don't demote an enforced rule into a value"* —
-   re-listing transparency as a soft value when it is already a binding rule makes
-   a MUST look optional.
-2. **`type.mismatch` + `int.absolute` + `exp.obligation`** together implement
-   *"beware the ambiguous middle"* — a line that sounds binding but has no test is
-   the dangerous case, and each of those rules pushes it to one side.
+1. **`line.clutter`** is the fourth outcome of §2's table, and the quietest rule
+   in the set. It fires when nothing about the community changes if the line is
+   deleted: it binds nobody, frames no trade-off, says nothing about who the
+   community is, and adds nothing to a definition already adopted — in which case
+   it names what it duplicates, implementing *"don't demote an enforced rule into
+   a value"*. It is advice (◦), never blocker-shaped, because it is the one rule
+   that tells a community to delete its own words: being wrong about "this line
+   has no consequence" is a correction; being wrong about "this line does
+   nothing" is telling somebody what they wrote does not matter.
+
+2. **`line.ambiguous-middle`** implements *"beware the ambiguous middle"* — a
+   line that sounds binding but has no test is the dangerous case, because it
+   will be enforced informally, by whoever feels strongly.
+
+   This was three rules acting in concert (`type.mismatch` + `int.absolute` +
+   `exp.obligation`), which could only work once an author had chosen a type for
+   the rules to disagree with. The case the guide actually warns about is an
+   **unlabelled** line sitting beside real ones, and no amount of disagreeing
+   with a label reaches it. It is one rule now: language that binds, nothing
+   checkable, and no non-binding marker.
+
+   Its remedy is three buttons — make it enforceable, label it non-binding,
+   delete it — offered together with none preferred. Binding a line, marking it
+   as a value and cutting it are three different governance acts, and only the
+   community can make one. `line.clutter` never fires on a line this rule has
+   already reported: that line's problem is that it *may* bind, and telling
+   somebody to delete a possible rule is the wrong advice entirely.
 
 ---
 

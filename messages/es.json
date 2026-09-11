@@ -197,5 +197,10 @@
 	"path_preset_risky": "Los huecos de más riesgo para nosotras",
 	"path_preset_going": "Lo que ya tenemos en marcha",
 	"path_preset_tune": "Ajustar las intensidades",
-	"path_preset_applied": "Orden actualizado. «Cómo se ordena el camino» muestra qué ha cambiado."
+	"path_preset_applied": "Orden actualizado. «Cómo se ordena el camino» muestra qué ha cambiado.",
+	"linter_not_run_title": "El linter no se ha ejecutado sobre este texto",
+	"linter_not_run_stale": "El texto cambió desde la última vez que se ejecutó el linter",
+	"linter_not_run_why": "Divide el texto en líneas y juzga cada una según su propia función. Hasta que se ejecute no hay nada por lo que dividir, así que la vista anotada sigue sin estar disponible.",
+	"linter_not_run_action": "Ejecutar el linter",
+	"linter_not_run_after": "Una vez ejecutado, el resultado queda unido a esta versión — volver a ejecutarlo es un acto explícito, nunca automático al leer."
 }
