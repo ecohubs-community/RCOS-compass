@@ -720,18 +720,40 @@ muted, which is the same thing. So the list is short and the defaults are quiet.
 | Event | In-app | Email |
 |---|---|---|
 | You were invited to a community | — | immediately |
-| A consent round you are eligible for opened, or closes in 48h | ✓ | immediately |
-| Someone replied in a thread you are in, or mentioned you | ✓ | in the weekly digest |
+| A consent round you are eligible for opened | ✓ | immediately |
+| A consent round you have not responded to closes within 48h | ✓ | immediately |
+| Someone replied in a thread you are in | ✓ (collapsed per thread) | in the weekly digest |
+| Someone mentioned you (`@M-0142`) | ✓ | in the weekly digest |
+| A proposal was posted in a thread you are in | ✓ | in the weekly digest |
 | A decision was frozen | ✓ | in the weekly digest |
 | A definition you authored is past its review date | ✓ | in the weekly digest |
 | A discussion you opened has been quiet for 14 days | ✓ | in the weekly digest |
-| Your role changed, or you were removed | ✓ | immediately |
+| Your role changed | ✓ | immediately |
+| You were removed | — (you can no longer open it) | immediately |
 | The community's compliance claim was withdrawn | ✓ (stewards) | immediately (stewards) |
 
 Rules: **email carries a link and a subject line, never content** (§1.6 —
 member-visible does not mean inbox-visible). Every member controls their own
-digest day and can turn email off entirely; in-app cannot be turned off, because
-it is just the app. No push, no SMS, no "someone viewed your definition".
+digest day and can turn email off entirely, per community; in-app cannot be
+turned off, because it is just the app. No push, no SMS, no "someone viewed your
+definition".
+
+**As built** (`openspec/changes/notifications-page`):
+
+- **The bell** in the top bar shows the unread count ("99+" above 99, nothing at
+  zero). Without JavaScript it is a link to the notifications page; with it, a
+  popover of the latest 8, *Mark all as read* and *See all*.
+- **The page** (`/c/[slug]/notifications`) lists the latest 200. Each item is a
+  one-button form: opening it marks it read and goes to what it is about, or says
+  it is no longer available. Loading or preloading the page marks nothing.
+- **Mentions** are membership numbers, `@M-0142`, shown as the member's name.
+  Typing `@` in the composer offers members by name and inserts the number.
+- **The claim check** runs within a minute of a freeze, and hourly for every
+  community otherwise; only a change from compliant to not is told.
+- **Digests** arrive after 07:00 on each member's chosen day **in their own time
+  zone**, with the community's counts and that member's unread notifications by
+  kind. A quiet week sends nothing.
+- **Email settings** live at `/c/[slug]/notifications/settings`.
 
 ---
 

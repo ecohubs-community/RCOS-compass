@@ -104,6 +104,8 @@ community          id | slug | name | locale | timezone | created_at | status ac
                    | ai_enabled | git_mirror_enabled | public_index_enabled   -- flags, all default off
                    | ai_provider_override? | publish_names_policy
                    | max_members? | storage_mb? | ai_monthly_tokens?   -- null = instance default
+                   | claim_compliant?   -- the outward claim at the last claim check; null until
+                   --                      the first, which records silently (notifications)
 community_slug_redirect
                    id | old_slug UNIQUE | community_id | created_at | expires_at
                    -- a retired address keeps resolving for 90 days: a decision
@@ -118,7 +120,10 @@ membership         id | community_id | user_id | role steward|member   -- observ
                    | is_owner bool          -- exactly one per community; transfer + delete only
                    | rcos_state applicant|trial|full|exited|suspended   -- CONTENT, not access
                    | display_name | joined_at | ended_at?
-user               better-auth table | email | email_verified | name | locale
+                   | email_enabled bool (default true) | digest_day 0–6 (default 1, Monday)
+                   | last_digest_at?   -- email preferences are per membership: a person in two
+                   --                     communities may want one weekly and the other never
+user               better-auth table | email | email_verified | name | locale | time_zone?
 invitation         id | community_id | email | role steward|member   -- never 'owner'
                    | token_hash | expires_at | accepted_at? | invited_by
 
@@ -190,10 +195,20 @@ transparency_exception id | community_id | subject_type | subject_id | audience 
                    -- spec §1.6: without it "restricted" has no defined reader and
                    -- "a member sees it only if they may" is undefined. P6 added it.
 notification       id | community_id | recipient_membership_id | kind | subject_type | subject_id
-                   | created_at | read_at?
+                   | summary | params(json)? | created_at | read_at?
                    -- one row per recipient, not an event joined to a read table:
                    -- a member's list is then one indexed read and "mark all read"
                    -- is one update. Never written for the actor's own action.
+                   -- `params` holds the values the sentence is built from when shown
+                   -- (a title, a filename, a count, a membership id for a person —
+                   -- never a name or address), so it reads in the community's
+                   -- current language; `summary` is the English fallback.
+                   -- Replies collapse: an unread `discussion.reply` for the same
+                   -- discussion is counted up (params.count + 1, created_at = now)
+                   -- instead of adding a row; a read one is never reopened.
+                   -- Written only for current members of the community, in the
+                   -- transaction of the act that caused it. No clean-up job: a
+                   -- list shows the latest 200, the count covers every row.
 change_log         id | community_id | at | actor_id | kind | subject_type | subject_id | summary | payload(json)  -- append-only
 learning_entry     id | community_id | … (Layer 6 log)
 audit_event        id | at | actor_id? | actor_email | community_id? | action | target | ip | user_agent | meta(json)  -- append-only, platform-wide

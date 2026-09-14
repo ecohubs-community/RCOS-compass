@@ -157,7 +157,30 @@ The single highest-severity risk. Defence in depth:
 - **Error responses** never carry stack traces, SQL, file paths, or ids from
   other tenants.
 - **Email** never contains definition or discussion bodies — only "there is
-  something to look at" plus a link.
+  something to look at" plus a link. A notification email is a subject line, one
+  sentence naming the kind of event and the community, a link to the subject and
+  a link to the member's email settings; not a title, not a name, not who acted.
+  The functions that compose them (`mail/messages.ts`, `jobs/digest.ts`) take no
+  parameter governance text could arrive through. Whether to send is decided
+  when the job runs, not when it was queued: an ended membership, email turned
+  off, an unverified or erased address, or a suspended community sends nothing,
+  and a subject the recipient can no longer see is not mailed.
+- **Removal is the one email to somebody who is no longer a member**, because
+  they can no longer open an in-app notification. It names the community and
+  nothing else — not who removed them, not why — and an erasure that ends
+  memberships sends none.
+- **Notifications are marked read only by a POST** (`/c/[slug]/notifications`,
+  `open` and `readAll`). A GET that marked and redirected would be triggered by
+  link preloading, browsers and mail scanners, reading a member's notifications
+  for them. Email links go straight to the subject and mark nothing.
+- **Who may receive a notification is decided in `notify`, once**: recipients are
+  filtered to current memberships of the acting community, whatever the caller
+  passed, so a membership of another community or one that has ended gets
+  nothing.
+- **A notification about something a member may no longer see carries nothing
+  of it.** Subjects are checked through `visibleTo` when the list is read (one
+  query per subject type); a restricted, removed or foreign subject is shown as
+  "No longer available" with no title, filename or actor.
 - **The public surface is the only anonymous read path**, and it has two gates:
   the community's `public_index_enabled` switch and the subject's visibility.
   With the switch off every public URL is 404 regardless of what is `world`. It

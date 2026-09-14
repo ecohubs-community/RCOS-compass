@@ -128,9 +128,9 @@
 
 ## 8. Documentation
 
-- [ ] 8.1 `docs/03-data-model.md`: notification params and collapsing, membership email preferences, `claim_compliant`
-- [ ] 8.2 `docs/04-security.md`: marking read only by POST, the recipient gate in `notify`, restricted subjects shown without titles, email content rules, the removal-email exception
-- [ ] 8.3 `UI Spec — v0.1 (draft).md` §4.11 as built:
+- [x] 8.1 `docs/03-data-model.md`: notification params and collapsing, membership email preferences, `claim_compliant`
+- [x] 8.2 `docs/04-security.md`: marking read only by POST, the recipient gate in `notify`, restricted subjects shown without titles, email content rules, the removal-email exception
+- [x] 8.3 `UI Spec — v0.1 (draft).md` §4.11 as built:
   - the bell and page;
   - which events email immediately;
   - the claim check within a minute after a freeze, and within the hour otherwise;
