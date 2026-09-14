@@ -14,6 +14,8 @@ import { removeDocumentFromIndex } from './search.js';
 import { enqueue } from '../jobs/queue.js';
 import { registerTenantService } from './registry.js';
 import { reached } from './funnel.js';
+import { documentCounts } from './mapping-counts.js';
+import { canMarkDone, scanIsStalled, type MappingInput } from './mapping-state.js';
 
 /**
  * The documents a community already had. docs/04-security.md §5.
@@ -242,6 +244,74 @@ export async function deleteDocument(
 	await removeFile(found.storageKey);
 }
 
+/**
+ * What `mapping-state.ts` needs about one document, for this reader.
+ *
+ * Shared by the library row, the workspace header and the two acts below, so
+ * the rule that offers "Mark mapping as done" is the rule that accepts it.
+ */
+export function mappingInputFor(
+	reader: Reader,
+	found: Document,
+	now: number,
+	options: { db?: Db } = {}
+): MappingInput {
+	const counts = documentCounts(reader, found.id, options);
+	return {
+		status: found.status,
+		scanStatus: found.scanStatus,
+		scanStalled: scanIsStalled(found, now),
+		identified: counts?.identified ?? 0,
+		open: counts?.open ?? 0,
+		doneAt: found.mappingDoneAt?.getTime() ?? null
+	};
+}
+
+/**
+ * "Mark mapping as done" — a member saying every passage that matters has been
+ * answered, for a document no scan has read to the end.
+ *
+ * Accepted only where it is offered: something identified, nothing open, no
+ * live scan. Refused with a sentence otherwise, because the state it would
+ * claim — *Mapped* — is exactly what the library shows everybody.
+ */
+export function markMappingDone(ctx: Ctx, documentId: string, options: { db?: Db } = {}): void {
+	requirePermission(ctx, 'mapping.confirm');
+	requireWritableCommunity(ctx);
+	const db = options.db ?? getDb();
+
+	const found = getDocument(ctx, documentId, { db });
+	const input = mappingInputFor(ctx, found, ctx.now(), { db });
+	if (!canMarkDone(input)) {
+		error(
+			409,
+			input.open > 0
+				? 'Some suggestions still need an answer before this document can be marked as done.'
+				: 'This document cannot be marked as done right now.'
+		);
+	}
+
+	db.update(document)
+		.set({ mappingDoneAt: new Date(ctx.now()), mappingDoneBy: ctx.user.id })
+		.where(and(eq(document.id, found.id), eq(document.communityId, ctx.community.id)))
+		.run();
+}
+
+/** Undo "Mark mapping as done". Harmless when it was not marked. */
+export function reopenMapping(ctx: Ctx, documentId: string, options: { db?: Db } = {}): void {
+	requirePermission(ctx, 'mapping.confirm');
+	requireWritableCommunity(ctx);
+	const db = options.db ?? getDb();
+
+	const found = getDocument(ctx, documentId, { db });
+	db.update(document)
+		.set({ mappingDoneAt: null, mappingDoneBy: null })
+		.where(and(eq(document.id, found.id), eq(document.communityId, ctx.community.id)))
+		.run();
+}
+
 registerTenantService({ name: 'documents.get', subject: 'document', call: getDocument });
+registerTenantService({ name: 'documents.markDone', subject: 'document', call: markMappingDone });
+registerTenantService({ name: 'documents.reopen', subject: 'document', call: reopenMapping });
 registerTenantService({ name: 'documents.delete', subject: 'document', call: deleteDocument });
 registerTenantService({ name: 'documents.passages', subject: 'document', call: listPassages });

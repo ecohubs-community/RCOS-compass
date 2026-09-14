@@ -17,10 +17,10 @@
 
 ## 3. The mapping state
 
-- [ ] 3.1 `services/mapping-state.ts`: pure `mappingStateOf({ status, scanStatus, scanStalled, identified, open, doneAt })` returning state and primary action, per the table in `design.md`
-- [ ] 3.2 `libraryCounts(ctx)` and `documentCounts(ctx, documentId)`: one grouped query each for identified, open, became-definitions and governance pages, counting paragraph passages and non-stale evidence only, with the `visibleTo` helper applied inside the query (a `restricted` document appears in no list or count for a member who may not see it)
-- [ ] 3.3 `markMappingDone` and `reopenMapping` in `services/documents.ts` (`mapping.confirm`), refusing while anything is open or a scan is live; register both in the tenant registry
-- [ ] 3.4 Tests: a unit table covering every row and the listed consequences (one hand mapping is in progress; stopped with nothing open is in progress; complete with nothing identified is not governance; done-mark makes a hand-mapped document mapped; stalled counts as stopped); integration tests that counts ignore stale evidence, headings and other communities; mark-done refused while open or live; cross-tenant mark-done answers not found
+- [x] 3.1 `services/mapping-state.ts`: pure `mappingStateOf({ status, scanStatus, scanStalled, identified, open, doneAt })` returning state and primary action, per the table in `design.md`
+- [x] 3.2 `libraryCounts(ctx)` and `documentCounts(ctx, documentId)`: one grouped query each for identified, open, became-definitions and governance pages, counting paragraph passages and non-stale evidence only, with the `visibleTo` helper applied inside the query (a `restricted` document appears in no list or count for a member who may not see it)
+- [x] 3.3 `markMappingDone` and `reopenMapping` in `services/documents.ts` (`mapping.confirm`), refusing while anything is open or a scan is live; register both in the tenant registry
+- [x] 3.4 Tests: a unit table covering every row and the listed consequences (one hand mapping is in progress; stopped with nothing open is in progress; complete with nothing identified is not governance; done-mark makes a hand-mapped document mapped; stalled counts as stopped); integration tests that counts ignore stale evidence, headings and other communities; mark-done refused while open or live; cross-tenant mark-done answers not found
 
 ## 4. The mapping task explains itself
 
