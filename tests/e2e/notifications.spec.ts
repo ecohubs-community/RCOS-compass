@@ -176,7 +176,8 @@ test.describe('mentions', () => {
 
 		const reply = page.getByRole('textbox', { name: 'Reply to the thread' });
 		await reply.fill('');
-		await reply.pressSequentially('Over to you @Len');
+		// A space inside the name keeps the list open: people are searched by name.
+		await reply.pressSequentially('Over to you @Lena V');
 		const option = page.getByRole('option', { name: /Lena Vogt/ });
 		await expect(option).toBeVisible();
 		await reply.press('Enter');

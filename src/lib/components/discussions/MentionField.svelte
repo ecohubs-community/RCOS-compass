@@ -46,7 +46,7 @@
 
 	const matches = $derived.by(() => {
 		if (query === null) return [];
-		const wanted = query.toLocaleLowerCase();
+		const wanted = query.toLocaleLowerCase().replace(/\s+/g, ' ');
 		return members
 			.filter(
 				(member) =>
@@ -61,7 +61,10 @@
 	function track() {
 		if (!field) return;
 		const before = field.value.slice(0, field.selectionStart);
-		const found = /(?:^|\s)@([\p{L}\p{N}-]{0,30})$/u.exec(before);
+		// Names have spaces in them, so the words after `@` may too — "@Lena V".
+		// The list stays open only while something still matches, which is what
+		// ends a mention once the sentence moves on.
+		const found = /(?:^|\s)@([^\s@][^\n@]{0,39}|)$/u.exec(before);
 		if (!found) {
 			query = null;
 			return;
