@@ -10,7 +10,7 @@ import {
 	turnIntoDefinition
 } from '$lib/server/services/evidence';
 import { aiAvailability } from '$lib/server/ai/run';
-import { runMapping } from '$lib/server/services/mapping';
+import { startScan } from '$lib/server/services/mapping';
 import { links } from '$lib/links';
 import { redirect } from '@sveltejs/kit';
 import type { Actions, PageServerLoad } from './$types';
@@ -93,13 +93,10 @@ export const actions: Actions = {
 		);
 	},
 
-	suggest: async (event) => {
-		const outcome = await run('suggest', async () =>
-			runMapping(event.locals.ctx!, event.params.id, { db: getDb() })
-		);
-		if ('status' in outcome) return outcome;
-		return { step: 'suggest', mapping: await outcome.result };
-	},
+	suggest: async (event) =>
+		// Interim until the workspace rewrite: the scan is a job now, so this
+		// queues it and the page reports progress from the document's own state.
+		run('suggest', () => startScan(event.locals.ctx!, event.params.id, { db: getDb() })),
 
 	confirm: async (event) => {
 		const form = await event.request.formData();

@@ -4,6 +4,8 @@ import { sweepErrors } from '../services/errors.js';
 import { pruneRateLimits } from '../rate-limit.js';
 import { runExtraction } from '../documents/extract-job.js';
 import { rereadBehindDocuments } from '../documents/reread.js';
+import { runScanJob } from './scan-job.js';
+import type { ScanPayload } from '../services/mapping.js';
 import { purgeDeletedCommunities } from './purge.js';
 import { sendWeeklyDigests } from './digest.js';
 import { expireExceptions } from '../services/visibility.js';
@@ -69,6 +71,18 @@ export const handlers: HandlerRegistry = {
 		run: async (payload, { db, clock }) => {
 			const { documentId } = payload as { documentId?: string };
 			if (typeof documentId === 'string') await runExtraction(db, clock, documentId);
+		}
+	},
+
+	/**
+	 * One batch of a member-started document scan. Chains itself: a long
+	 * document is many short jobs, never one that holds the queue. The step
+	 * records every ending on the document itself, so nothing here throws.
+	 */
+	'document.scan': {
+		timeoutMs: 180_000,
+		run: async (payload, { db, clock }) => {
+			await runScanJob(db, clock, payload as ScanPayload);
 		}
 	},
 

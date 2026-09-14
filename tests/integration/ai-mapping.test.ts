@@ -18,7 +18,8 @@ import { runExtraction } from '../../src/lib/server/documents/extract-job.js';
 import { receiveUpload } from '../../src/lib/server/documents/storage.js';
 import { createDocument, listPassages } from '../../src/lib/server/services/documents.js';
 import { confirmEvidence, languageCoverage } from '../../src/lib/server/services/evidence.js';
-import { runMapping } from '../../src/lib/server/services/mapping.js';
+import { startScan } from '../../src/lib/server/services/mapping.js';
+import { scanToEnd } from '../support/scan.js';
 import { compliance, readiness } from '../../src/lib/server/services/readiness.js';
 import { getStandard } from '../../src/lib/server/standard/index.js';
 import { createTestDb } from '../support/db.js';
@@ -134,7 +135,7 @@ describe('a document that tells the model what to do', () => {
 		setAiProviderForTests(obedient);
 
 		const documentId = await upload('injection.pdf');
-		const run = await runMapping(ctx, documentId, { db });
+		const run = await scanToEnd(ctx, documentId, { db });
 
 		// Suggestions exist — that is allowed, and is the whole feature.
 		expect(run.suggested).toBeGreaterThan(0);
@@ -163,7 +164,7 @@ describe('a document that tells the model what to do', () => {
 		setAiProviderForTests(model);
 
 		const documentId = await upload('injection.pdf');
-		await runMapping(ctx, documentId, { db });
+		await scanToEnd(ctx, documentId, { db });
 
 		const sent = model.asked[0]!;
 		expect(sent).toContain('<<<DOCUMENT_DATA');
@@ -198,7 +199,7 @@ describe('what comes back is not trusted', () => {
 		);
 
 		const documentId = await upload('valle-verde-bylaws.pdf');
-		const run = await runMapping(ctx, documentId, { db });
+		const run = await scanToEnd(ctx, documentId, { db });
 
 		expect(run.suggested).toBe(0);
 		expect(run.discarded).toBe(2);
@@ -222,7 +223,7 @@ describe('what comes back is not trusted', () => {
 		);
 
 		const documentId = await upload('valle-verde-bylaws.pdf');
-		const run = await runMapping(ctx, documentId, { db });
+		const run = await scanToEnd(ctx, documentId, { db });
 
 		expect(run.suggested).toBe(0);
 		expect(db.select().from(evidence).all()).toHaveLength(0);
@@ -232,7 +233,7 @@ describe('what comes back is not trusted', () => {
 		setAiProviderForTests(modelSaying('I think passage 1 is about membership, probably.'));
 
 		const documentId = await upload('valle-verde-bylaws.pdf');
-		const run = await runMapping(ctx, documentId, { db });
+		const run = await scanToEnd(ctx, documentId, { db });
 
 		expect(run.suggested).toBe(0);
 		// Discarded and logged, never retried into shape.
@@ -260,7 +261,7 @@ describe('what comes back is not trusted', () => {
 		);
 
 		const documentId = await upload('valle-verde-bylaws.pdf');
-		const run = await runMapping(ctx, documentId, { db });
+		const run = await scanToEnd(ctx, documentId, { db });
 		expect(run.suggested).toBe(1);
 	});
 });
@@ -284,7 +285,7 @@ describe('a run a person then reads', () => {
 		);
 
 		const documentId = await upload('valle-verde-bylaws.pdf');
-		await runMapping(ctx, documentId, { db });
+		await scanToEnd(ctx, documentId, { db });
 
 		const [suggestion] = db.select().from(evidence).all();
 		expect(suggestion!.state).toBe('suggested');
@@ -325,7 +326,7 @@ describe('a run a person then reads', () => {
 		);
 
 		const documentId = await upload('multi-paragraph-no-blank-lines.pdf');
-		const run = await runMapping(ctx, documentId, { db });
+		const run = await scanToEnd(ctx, documentId, { db });
 		expect(run.discarded).toBe(1);
 
 		const rows = db.select().from(evidence).all();
@@ -356,7 +357,7 @@ describe('a run a person then reads', () => {
 		);
 
 		const documentId = await upload('injection.pdf');
-		await runMapping(ctx, documentId, { db });
+		await scanToEnd(ctx, documentId, { db });
 
 		const [row] = db.select().from(evidence).all();
 		expect(row!.reason).toBe(hostile);
@@ -371,7 +372,7 @@ describe('a run a person then reads', () => {
 
 		const documentId = await upload('multi-paragraph-no-blank-lines.pdf');
 		expect(listPassages(ctx, documentId, { db }).some((row) => row.kind === 'heading')).toBe(true);
-		await runMapping(ctx, documentId, { db });
+		await scanToEnd(ctx, documentId, { db });
 
 		const sent = model.asked.join('\n');
 		expect(sent).toContain('Guests are welcome for a week');
@@ -396,7 +397,7 @@ describe('a run a person then reads', () => {
 		setAiProviderForTests(modelSaying(answer));
 
 		const documentId = await upload('valle-verde-bylaws.pdf');
-		await runMapping(ctx, documentId, { db });
+		await scanToEnd(ctx, documentId, { db });
 
 		const [suggestion] = db.select().from(evidence).all();
 		confirmEvidence(ctx, suggestion!.id, { db });
@@ -406,8 +407,8 @@ describe('a run a person then reads', () => {
 		// ask twice about something a person has answered. (The stub always names
 		// "passage 1" of whatever batch it is given, so it does produce a
 		// suggestion about a *different* passage — which is fine and expected.)
-		const again = await runMapping(ctx, documentId, { db });
-		expect(again.passagesConsidered).toBeLessThan(listPassages(ctx, documentId, { db }).length);
+		const again = await scanToEnd(ctx, documentId, { db });
+		expect(again.read).toBeLessThan(listPassages(ctx, documentId, { db }).length);
 
 		const about = db
 			.select()
@@ -441,12 +442,12 @@ describe('a run a person then reads', () => {
 
 		// Four hundred pages is many batches; one task is all this member has.
 		const documentId = await upload('four-hundred-pages.pdf');
-		const run = await runMapping(ctx, documentId, { db });
+		const run = await scanToEnd(ctx, documentId, { db });
 
 		// The first batch's work is kept, and the run says where it stopped.
 		expect(run.suggested).toBe(1);
 		expect(run.stoppedBecause).toMatch(/budget for today/);
-		expect(run.passagesRemaining).toBeGreaterThan(0);
+		expect(run.unread).toBeGreaterThan(0);
 		expect(db.select().from(evidence).all()).toHaveLength(1);
 	});
 
@@ -456,17 +457,17 @@ describe('a run a person then reads', () => {
 		setAiProviderForTests(modelSaying('{"pairs":[]}'));
 
 		const documentId = await upload('four-hundred-pages.pdf');
-		const first = await runMapping(ctx, documentId, { db });
+		const first = await scanToEnd(ctx, documentId, { db });
 		expect(first.stoppedBecause).not.toBeNull();
 
 		// Tomorrow. Nothing was confirmed, so nothing was skipped for that reason —
 		// the run simply continues from a fresh budget.
 		vi.stubEnv('AI_USER_DAILY_TASKS', '500');
 		resetConfigForTests();
-		const second = await runMapping(ctx, documentId, { db });
+		const second = await scanToEnd(ctx, documentId, { db });
 
 		expect(second.stoppedBecause).toBeNull();
-		expect(second.passagesConsidered).toBeGreaterThan(0);
+		expect(second.read).toBeGreaterThan(0);
 	});
 });
 
@@ -484,9 +485,9 @@ describe('who may run one', () => {
 			now: () => NOW
 		};
 
-		expect((await catchRefusalAsync(() => runMapping(theirs, documentId, { db })))?.status).toBe(
-			404
-		);
+		expect(
+			(await catchRefusalAsync(async () => startScan(theirs, documentId, { db })))?.status
+		).toBe(404);
 	});
 
 	it('refuses while the community is suspended', async () => {
@@ -497,8 +498,8 @@ describe('who may run one', () => {
 			community: { ...ctx.community, status: 'suspended', suspendedReason: 'Non-payment.' }
 		};
 
-		expect((await catchRefusalAsync(() => runMapping(suspended, documentId, { db })))?.status).toBe(
-			409
-		);
+		expect(
+			(await catchRefusalAsync(async () => startScan(suspended, documentId, { db })))?.status
+		).toBe(409);
 	});
 });

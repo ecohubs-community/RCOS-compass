@@ -59,18 +59,12 @@
 		<p class="text-fg-secondary mt-6">{data.ai.reason}</p>
 	{/if}
 
-	{#if form?.step === 'suggest' && form.mapping}
+	{#if form?.step === 'suggest' && !form.error}
 		<p
 			role="status"
 			class="border-border bg-raised text-fg mt-4 rounded-(--radius-card) border p-3"
 		>
-			{form.mapping.suggested}
-			{form.mapping.suggested === 1 ? 'suggestion' : 'suggestions'} from {form.mapping
-				.passagesConsidered} passages.
-			{#if form.mapping.stoppedBecause}
-				<br />It stopped there: {form.mapping.stoppedBecause} What it found is kept, and
-				{form.mapping.passagesRemaining} passages are still to look at.
-			{/if}
+			Compass is scanning this document. Suggestions appear here as it reads.
 		</p>
 	{/if}
 
