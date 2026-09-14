@@ -66,18 +66,18 @@
 
 ## 5. Role changes, removal and immediate email
 
-- [ ] 5.1 `notification-mail` job:
+- [x] 5.1 `notification-mail` job:
   - loads the row, or the removal payload;
   - skips an ended membership (except removal), email off, an erased or unverified user, and a suspended community (except removal);
   - renders in the community's locale with dates in the recipient's time zone;
   - links to the subject and to preferences;
   - sends with `kind` and `communityId`
-- [ ] 5.2 Messages per immediate kind in `mail/messages.ts`: a subject line and one sentence, no content
-- [ ] 5.3 Emitters:
+- [x] 5.2 Messages per immediate kind in `mail/messages.ts`: a subject line and one sentence, no content
+- [x] 5.3 Emitters:
   - `setMemberRole` writes `membership.role_changed` and enqueues its mail in one transaction;
   - `endMembership` enqueues the removal mail with no row;
   - consent opening enqueues its mail
-- [ ] 5.4 Tests (integration):
+- [x] 5.4 Tests (integration):
   - a role change writes the row and one job, and the acting steward gets nothing;
   - a removal writes no row and one job;
   - an email-off member gets the row and no send;

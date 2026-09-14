@@ -154,7 +154,8 @@ function createRound(
 					.where(eq(discussion.id, input.discussionId))
 					.get()?.title ?? ''
 		},
-		recipients: eligibleIds
+		recipients: eligibleIds,
+		mail: true
 	});
 
 	return roundId;

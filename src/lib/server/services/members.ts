@@ -2,7 +2,10 @@ import { and, eq, isNotNull, isNull, type SQL } from 'drizzle-orm';
 import { error } from '@sveltejs/kit';
 import { requirePermission, type Ctx } from '../auth/guard.js';
 import { ownerRoleIsValid } from '../auth/permissions.js';
-import { getDb } from '../db/index.js';
+import { getDb, type Db } from '../db/index.js';
+import { enqueue } from '../jobs/queue.js';
+import type { NotificationMailPayload } from '../jobs/notification-mail.js';
+import { notify } from './notifications.js';
 import { membershipLabel, personLabel } from './person.js';
 import { membership, type Membership } from '../db/schema/tenancy.js';
 import { user } from '../db/schema/auth.js';
@@ -142,7 +145,20 @@ export function setMemberRole(
 	// actually useful to them rather than this one.
 	refuseIfSelf(ctx, target, 'Ask another steward to change your role.');
 
-	getDb().update(membership).set({ role }).where(eq(membership.id, target.id)).run();
+	const db = getDb();
+	// The change and the member being told of it — by a row and an email — or neither.
+	db.transaction((tx) => {
+		tx.update(membership).set({ role }).where(eq(membership.id, target.id)).run();
+		notify(tx as unknown as Db, ctx, {
+			kind: 'membership.role_changed',
+			subjectType: 'community',
+			subjectId: ctx.community.id,
+			summary: `Your role is now ${role}`,
+			params: { role },
+			recipients: [target.id],
+			mail: true
+		});
+	});
 	return { ...target, role };
 }
 
@@ -154,12 +170,27 @@ export function endMembership(ctx: Ctx, membershipId: string): void {
 	if (target.isOwner) error(409, 'Transfer ownership before removing this member.');
 	refuseIfSelf(ctx, target, 'Ask another steward to end your membership.');
 
-	// The record stays — the register needs it — and the access ends.
-	getDb()
-		.update(membership)
-		.set({ endedAt: new Date(ctx.now()) })
-		.where(eq(membership.id, target.id))
-		.run();
+	const db = getDb();
+	db.transaction((tx) => {
+		// The record stays — the register needs it — and the access ends.
+		tx.update(membership)
+			.set({ endedAt: new Date(ctx.now()) })
+			.where(eq(membership.id, target.id))
+			.run();
+		// The one thing a member who has left is still told, and only by email: they
+		// can no longer open a notification here. Who removed them and why is not
+		// said. An erasure ends memberships elsewhere and sends nothing.
+		enqueue(
+			tx as unknown as Db,
+			{ now: ctx.now },
+			{
+				kind: 'notification-mail',
+				payload: {
+					removal: { membershipId: target.id, communityName: ctx.community.name }
+				} satisfies NotificationMailPayload
+			}
+		);
+	});
 }
 
 registerTenantService({ name: 'members.get', subject: 'membership', call: getMember });

@@ -1,3 +1,5 @@
+import * as m from '$lib/paraglide/messages';
+import type { Locale } from '$lib/paraglide/runtime';
 import type { Message } from './transport.js';
 
 /**
@@ -81,4 +83,86 @@ export function invitationUrl(appUrl: string, slug: string, token: string): stri
 	const url = new URL(`/invitations/${encodeURIComponent(token)}`, appUrl);
 	url.searchParams.set('c', slug);
 	return url.toString();
+}
+
+const ROLE_MAIL: Record<
+	'steward' | 'member',
+	(community: string, options: { locale: Locale }) => [string, string]
+> = {
+	steward: (community, options) => [
+		m.mail_role_steward_subject({ community }, options),
+		m.mail_role_steward_body({ community }, options)
+	],
+	member: (community, options) => [
+		m.mail_role_member_subject({ community }, options),
+		m.mail_role_member_body({ community }, options)
+	]
+};
+
+/** The notification kinds that are also sent as an email straight away, and removal. */
+export type ImmediateMail =
+	| { kind: 'consent.opened' }
+	| { kind: 'consent.closing'; when: string }
+	| { kind: 'membership.role_changed'; role: 'steward' | 'member' }
+	| { kind: 'claim.withdrawn' }
+	| { kind: 'removal' };
+
+/**
+ * A notification sent by email: a subject, one sentence, a link to what it is
+ * about and a link to change what arrives. `openspec/changes/notifications-page`.
+ *
+ * In the community's language, because that is the language of everything the
+ * link opens. The community's name is the only thing from inside it; `when` is
+ * a date already formatted for the recipient. There is no parameter a title, a
+ * post or a proposal could arrive through.
+ */
+export function notificationMessage(input: {
+	to: string;
+	mail: ImmediateMail;
+	communityName: string;
+	locale: Locale;
+	url: string;
+	/** Null for removal: a person who has left has no settings there to change. */
+	preferencesUrl: string | null;
+}): Message {
+	const community = input.communityName;
+	const options = { locale: input.locale };
+	const mail = input.mail;
+	const [subject, line] = (() => {
+		switch (mail.kind) {
+			case 'consent.opened':
+				return [
+					m.mail_consent_opened_subject({ community }, options),
+					m.mail_consent_opened_body({ community }, options)
+				];
+			case 'consent.closing':
+				return [
+					m.mail_consent_closing_subject({ community }, options),
+					m.mail_consent_closing_body({ community, when: mail.when }, options)
+				];
+			case 'membership.role_changed':
+				// Which sentence, not what anyone may do: a lookup, like the in-app text.
+				return ROLE_MAIL[mail.role](community, options);
+			case 'claim.withdrawn':
+				return [
+					m.mail_claim_withdrawn_subject({ community }, options),
+					m.mail_claim_withdrawn_body({ community }, options)
+				];
+			case 'removal':
+				return [
+					m.mail_removal_subject({ community }, options),
+					m.mail_removal_body({ community }, options)
+				];
+		}
+	})();
+
+	const footer = input.preferencesUrl
+		? ['', m.mail_preferences({ community }, options), input.preferencesUrl]
+		: [];
+	return {
+		to: input.to,
+		subject,
+		text: [line, '', input.url, ...footer, '', `— ${SIGNATURE}`].join('\n'),
+		url: input.url
+	};
 }

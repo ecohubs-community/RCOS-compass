@@ -26,8 +26,10 @@ export function setMailTransportForTests(transport: MailTransport | null): void 
  * unconfigured transport throws, and the caller says so.
  */
 export function getMailTransport(): MailTransport {
-	if (override) return override;
 	if (resolved) return resolved;
+	// A test's transport is wrapped like the real one, so a suite can see a
+	// failed send reach the record an operator reads.
+	if (override) return (resolved = recordingFailures(override));
 
 	const config = getConfig();
 	resolved = recordingFailures(

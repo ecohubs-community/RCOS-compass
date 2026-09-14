@@ -11,6 +11,7 @@ import { sendWeeklyDigests } from './digest.js';
 import { expireExceptions } from '../services/visibility.js';
 import { cleanUpExports, runExport, type ExportPayload } from './export-job.js';
 import { runMirror, type MirrorPayload } from './mirror-job.js';
+import { runNotificationMail, type NotificationMailPayload } from './notification-mail.js';
 import { enqueue } from './queue.js';
 import type { HandlerRegistry } from './worker.js';
 
@@ -144,6 +145,18 @@ export const handlers: HandlerRegistry = {
 	 * Building an export bundle. Enqueued by a steward asking for one, and not
 	 * re-armed: it is work somebody requested rather than housekeeping.
 	 */
+	'notification-mail': {
+		timeoutMs: 60_000,
+		run: async (payload, { db, clock }) => {
+			await runNotificationMail(
+				db,
+				clock,
+				payload as NotificationMailPayload,
+				getConfig().PUBLIC_APP_URL
+			);
+		}
+	},
+
 	'build-export': {
 		timeoutMs: 120_000,
 		run: async (payload, { db, clock }) => {

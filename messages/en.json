@@ -408,5 +408,18 @@
 	"nav_notifications": "Notifications",
 	"notifications_none": "Nothing yet.",
 	"mention_hint": "Mention a member with @ and their number, like @M-0142.",
-	"mention_list_label": "Members to mention"
+	"mention_list_label": "Members to mention",
+	"mail_consent_opened_subject": "A consent round is open in {community}",
+	"mail_consent_opened_body": "A proposal in {community} is waiting for your response.",
+	"mail_consent_closing_subject": "A consent round closes soon in {community}",
+	"mail_consent_closing_body": "A proposal in {community} you have not responded to closes {when}.",
+	"mail_role_steward_subject": "You are now a steward of {community}",
+	"mail_role_member_subject": "Your role in {community} changed",
+	"mail_role_steward_body": "Your role in {community} is now steward.",
+	"mail_role_member_body": "Your role in {community} is now member.",
+	"mail_claim_withdrawn_subject": "{community} can no longer claim RCOS compliance",
+	"mail_claim_withdrawn_body": "A change in {community} means its public claim of RCOS compliance was withdrawn. Compass shows what needs attention.",
+	"mail_removal_subject": "Your membership of {community} has ended",
+	"mail_removal_body": "Your membership of {community} on RCOS Compass has ended.",
+	"mail_preferences": "Choose which emails you get from {community}:"
 }

@@ -8,6 +8,7 @@ import { discussion, post } from '../db/schema/discussions.js';
 import { consentEligible } from '../db/schema/discussions.js';
 import { membership } from '../db/schema/tenancy.js';
 import { registerTenantService } from './registry.js';
+import { enqueue } from '../jobs/queue.js';
 import { user } from '../db/schema/auth.js';
 import { personLabel } from './person.js';
 import {
@@ -62,6 +63,12 @@ export type NotifyInput<K extends NotificationKind = NotificationKind> = {
 	 * and never written.
 	 */
 	includeActor?: boolean;
+	/**
+	 * Also email each recipient, straight away: enqueues `notification-mail` per
+	 * row in the caller's transaction, and the job decides whether to send
+	 * (UI spec §4.11's immediate kinds).
+	 */
+	mail?: boolean;
 };
 
 /**
@@ -86,9 +93,10 @@ export function notify<K extends NotificationKind>(
 	const recipients = currentMembers(db, ctx.community.id, named);
 
 	for (const recipientMembershipId of recipients) {
+		const id = newId();
 		db.insert(notification)
 			.values({
-				id: newId(),
+				id,
 				communityId: ctx.community.id,
 				recipientMembershipId,
 				kind: input.kind,
@@ -100,6 +108,9 @@ export function notify<K extends NotificationKind>(
 				readAt: null
 			})
 			.run();
+		if (input.mail) {
+			enqueue(db, { now: ctx.now }, { kind: 'notification-mail', payload: { notificationId: id } });
+		}
 	}
 
 	return recipients.length;
