@@ -1,4 +1,4 @@
-import { and, desc, eq } from 'drizzle-orm';
+import { and, asc, desc, eq, inArray, isNull } from 'drizzle-orm';
 import { error } from '@sveltejs/kit';
 import { requirePermission, requireWritableCommunity, type Ctx } from '../auth/guard.js';
 import { getDb, type Db } from '../db/index.js';
@@ -13,10 +13,11 @@ import {
 } from '../db/schema/discussions.js';
 import { user } from '../db/schema/auth.js';
 import { membership } from '../db/schema/tenancy.js';
-import { initialsOf, personLabel } from './person.js';
+import { initialsOf, membershipLabel, personLabel } from './person.js';
 import { lint } from '../linter/index.js';
 import { activeStandardView } from './completeness.js';
-import { discussionParticipants, notify } from './notifications.js';
+import { mentionedSeqs } from '../markdown.js';
+import { discussionParticipants, mentionedMembers, notify, notifyReply } from './notifications.js';
 import { indexDiscussion } from './search.js';
 import { registerTenantService } from './registry.js';
 
@@ -212,6 +213,60 @@ export function listPostsWithAuthors(
 	});
 }
 
+export type MentionDirectory = {
+	/** Who each number written in the thread names, by `personLabel`. */
+	labels: Record<number, string>;
+	/** Everyone who may be mentioned: current members, for the composer. */
+	members: { token: string; label: string }[];
+};
+
+/**
+ * Names for the mentions in a thread, and the members a composer may offer.
+ *
+ * A number is named whether its membership is current or ended, so a mention
+ * of somebody who has left or been erased reads as their label rather than
+ * reverting to digits; a number that was never anyone's here stays as written.
+ */
+export function mentionDirectory(
+	ctx: Ctx,
+	bodies: string[],
+	options: { db?: Db } = {}
+): MentionDirectory {
+	requirePermission(ctx, 'community.read');
+	const db = options.db ?? getDb();
+	const seqs = [...new Set(bodies.flatMap((body) => mentionedSeqs(body)))];
+	const person = {
+		seq: membership.seq,
+		endedAt: membership.endedAt,
+		displayName: membership.displayName,
+		name: user.name,
+		erasedAt: user.erasedAt
+	};
+
+	const labels: Record<number, string> = {};
+	if (seqs.length > 0) {
+		for (const row of db
+			.select(person)
+			.from(membership)
+			.innerJoin(user, eq(user.id, membership.userId))
+			.where(and(eq(membership.communityId, ctx.community.id), inArray(membership.seq, seqs)))
+			.all()) {
+			labels[row.seq] = personLabel(row);
+		}
+	}
+
+	const members = db
+		.select(person)
+		.from(membership)
+		.innerJoin(user, eq(user.id, membership.userId))
+		.where(and(eq(membership.communityId, ctx.community.id), isNull(membership.endedAt)))
+		.orderBy(asc(membership.seq))
+		.all()
+		.map((row) => ({ token: `@${membershipLabel(row.seq)}`, label: personLabel(row) }));
+
+	return { labels, members };
+}
+
 export function listPosts(ctx: Ctx, discussionId: string, options: { db?: Db } = {}): Post[] {
 	getDiscussion(ctx, discussionId, options);
 	const db = options.db ?? getDb();
@@ -252,12 +307,56 @@ export function addMessage(
 	const body = input.body.trim();
 	if (!body) error(400, 'Write something first.');
 
-	return writePost(ctx, options, {
-		discussionId: input.discussionId,
-		body,
-		kind: 'message',
-		proposalVersion: null
+	const db = options.db ?? getDb();
+	// The reply and who it tells, or neither.
+	return db.transaction((tx) => {
+		const written = writePost(
+			ctx,
+			{ db: tx as unknown as Db },
+			{ discussionId: input.discussionId, body, kind: 'message', proposalVersion: null }
+		);
+		tellThread(tx as unknown as Db, ctx, found, written);
+		return written;
 	});
+}
+
+/**
+ * Who a new post tells, written in the post's own transaction.
+ *
+ * Anyone it mentions hears that, and nothing else about this post. Everyone
+ * else who has written in the thread hears of a reply — collapsed — or of a
+ * proposal, which is its own kind, because a new text on the table is not one
+ * more message.
+ */
+function tellThread(db: Db, ctx: Ctx, found: Discussion, written: Post): void {
+	const mentioned = mentionedMembers(db, ctx, mentionedSeqs(written.body));
+	notify(db, ctx, {
+		kind: 'discussion.mention',
+		subjectType: 'discussion',
+		subjectId: found.id,
+		summary: `You were mentioned in ${found.title}`,
+		params: { title: found.title, actor: ctx.membership.id },
+		recipients: mentioned
+	});
+
+	const told = new Set(mentioned);
+	const participants = discussionParticipants(db, ctx.community.id, found.id).filter(
+		(id) => !told.has(id)
+	);
+	if (written.kind === 'proposal') {
+		// The people who have written in this thread, not everyone: a notification
+		// everybody gets is a notification nobody reads.
+		notify(db, ctx, {
+			kind: 'proposal.posted',
+			subjectType: 'discussion',
+			subjectId: found.id,
+			summary: found.title,
+			params: { title: found.title },
+			recipients: participants
+		});
+	} else {
+		notifyReply(db, ctx, { discussionId: found.id, title: found.title, recipients: participants });
+	}
 }
 
 /**
@@ -289,22 +388,15 @@ export function addProposal(
 	 * the table, and a response landing in it would be counted into a tally for a
 	 * version nobody is being asked about any more.
 	 */
-	const written = db.transaction((tx) =>
-		writeProposal(ctx, tx as unknown as Db, found, { body, revisionNote: input.revisionNote })
-	);
-
-	// The people who have written in this thread, not everyone: a notification
-	// everybody gets is a notification nobody reads.
-	notify(db, ctx, {
-		kind: 'proposal.posted',
-		subjectType: 'discussion',
-		subjectId: input.discussionId,
-		summary: found.title,
-		params: { title: found.title },
-		recipients: discussionParticipants(db, ctx.community.id, input.discussionId)
+	return db.transaction((tx) => {
+		const written = writeProposal(ctx, tx as unknown as Db, found, {
+			body,
+			revisionNote: input.revisionNote
+		});
+		// Inside, so a proposal that rolls back told nobody about itself.
+		tellThread(tx as unknown as Db, ctx, found, written);
+		return written;
 	});
-
-	return written;
 }
 
 /**

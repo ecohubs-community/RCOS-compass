@@ -406,5 +406,7 @@
 	"notifications_bell_label": "Notifications, {count} unread",
 	"notifications_bell_none": "Notifications, none unread",
 	"nav_notifications": "Notifications",
-	"notifications_none": "Nothing yet."
+	"notifications_none": "Nothing yet.",
+	"mention_hint": "Mention a member with @ and their number, like @M-0142.",
+	"mention_list_label": "Members to mention"
 }

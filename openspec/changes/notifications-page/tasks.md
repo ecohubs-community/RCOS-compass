@@ -44,15 +44,15 @@
 
 ## 4. Replies and mentions
 
-- [ ] 4.1 Markdown: a `mention` inline node for `@M-0142` in `$lib/shared/markdown`, the parser and `InlineText`, rendered from a `seq → label` map; unknown numbers render as written
-- [ ] 4.2 Discussion load supplies the label map for the thread's mentions through `personLabel`; listed as a person surface
-- [ ] 4.3 Composer: `@` opens a Bits UI combobox of current members by label and inserts the number; the textarea is unchanged without JavaScript
-- [ ] 4.4 Emitters:
+- [x] 4.1 Markdown: a `mention` inline node for `@M-0142` in `$lib/shared/markdown`, the parser and `InlineText`, rendered from a `seq → label` map; unknown numbers render as written
+- [x] 4.2 Discussion load supplies the label map for the thread's mentions through `personLabel`; listed as a person surface
+- [x] 4.3 Composer: `@` opens a listbox of current members by label and inserts the number; the textarea is unchanged without JavaScript (a listbox under the textarea with `aria-activedescendant`, not Bits UI's combobox, which owns its own single-line input)
+- [x] 4.4 Emitters:
   - `addMessage` writes `discussion.reply` to participants in its transaction, collapsing into an unread row for the same discussion (`params.count + 1`, `created_at = now`).
   - `addMessage` and `addProposal` extract mentions, resolve them within the community and write `discussion.mention` (actor as membership id), excluding the author.
   - A mentioned participant gets no reply update for that post.
   - A proposal writes `proposal.posted`, not a reply.
-- [ ] 4.5 Tests:
+- [x] 4.5 Tests:
   - unit: mention parsing; a mention next to HTML stays words; an unknown number renders as text
   - integration:
     - three replies collapse to one;
@@ -135,4 +135,4 @@
   - which events email immediately;
   - the claim check within a minute after a freeze, and within the hour otherwise;
   - digests in each member's time zone
-- [ ] 8.4 Move `proposal.posted` into the `addProposal` transaction, with a test that a rolled-back proposal leaves no notification
+- [x] 8.4 Move `proposal.posted` into the `addProposal` transaction, with a test that a rolled-back proposal leaves no notification

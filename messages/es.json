@@ -242,5 +242,7 @@
 	"notifications_bell_label": "Notificaciones, {count} sin leer",
 	"notifications_bell_none": "Notificaciones, ninguna sin leer",
 	"nav_notifications": "Notificaciones",
-	"notifications_none": "Nada todavía."
+	"notifications_none": "Nada todavía.",
+	"mention_hint": "Menciona a un miembro con @ y su número, como @M-0142.",
+	"mention_list_label": "Miembros para mencionar"
 }

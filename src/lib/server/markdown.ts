@@ -48,6 +48,26 @@ export function isSafeHref(href: string): boolean {
 	}
 }
 
+/**
+ * `@M-0142`, not preceded by a letter, digit or another `@` — so an address like
+ * `ana@M-0142.example` stays an address. The number is at least four digits,
+ * the way `membershipLabel` writes it.
+ */
+const MENTION = /(?<![\p{L}\p{N}_@.])@M-(\d{4,7})(?![\p{L}\p{N}_])/gu;
+
+/** Plain text with any mentions in it split out as their own nodes. */
+function textWithMentions(value: string): InlineNode[] {
+	const out: InlineNode[] = [];
+	let last = 0;
+	for (const match of value.matchAll(MENTION)) {
+		if (match.index > last) out.push({ type: 'text', value: value.slice(last, match.index) });
+		out.push({ type: 'mention', seq: Number(match[1]), raw: match[0] });
+		last = match.index + match[0].length;
+	}
+	if (last < value.length) out.push({ type: 'text', value: value.slice(last) });
+	return out;
+}
+
 function inline(tokens: Token[] | undefined): InlineNode[] {
 	const out: InlineNode[] = [];
 	for (const token of tokens ?? []) {
@@ -57,7 +77,7 @@ function inline(tokens: Token[] | undefined): InlineNode[] {
 				// `text` tokens can themselves carry children when they contain
 				// emphasis; marked gives both shapes.
 				if (t.tokens?.length) out.push(...inline(t.tokens));
-				else out.push({ type: 'text', value: t.text });
+				else out.push(...textWithMentions(t.text));
 				break;
 			}
 			case 'escape':
@@ -160,9 +180,34 @@ export function inlineText(nodes: InlineNode[]): string {
 		.map((node) => {
 			if (node.type === 'text' || node.type === 'code') return node.value;
 			if (node.type === 'break') return ' ';
+			if (node.type === 'mention') return node.raw;
 			return inlineText(node.children);
 		})
 		.join('');
+}
+
+/**
+ * The member numbers a text mentions, once each — what the notification is
+ * written from. Taken from the parsed tree rather than the source, so a number
+ * inside a code span or a code block mentions nobody.
+ */
+export function mentionedSeqs(source: string): number[] {
+	const seqs = new Set<number>();
+	const walkInline = (nodes: InlineNode[]) => {
+		for (const node of nodes) {
+			if (node.type === 'mention') seqs.add(node.seq);
+			else if ('children' in node) walkInline(node.children);
+		}
+	};
+	const walkBlocks = (nodes: BlockNode[]) => {
+		for (const node of nodes) {
+			if (node.type === 'paragraph' || node.type === 'heading') walkInline(node.children);
+			else if (node.type === 'list') node.items.forEach(walkBlocks);
+			else if (node.type === 'quote') walkBlocks(node.children);
+		}
+	};
+	walkBlocks(parseMarkdown(source));
+	return [...seqs];
 }
 
 /**

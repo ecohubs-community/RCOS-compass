@@ -5,6 +5,8 @@
 	import LinterPanel from '$lib/components/ui/LinterPanel.svelte';
 	import LinterNotRun from '$lib/components/ui/LinterNotRun.svelte';
 	import Markdown from '$lib/components/ui/Markdown.svelte';
+	import MentionField from '$lib/components/discussions/MentionField.svelte';
+	import { setMentionLabels } from '$lib/components/ui/mentions';
 	import TextField from '$lib/components/ui/TextField.svelte';
 	import { links } from '$lib/links';
 	import { diffWords } from '$lib/shared/diff';
@@ -15,6 +17,7 @@
 	import IconSnowflake from '~icons/tabler/snowflake';
 
 	let { data, form } = $props();
+	setMentionLabels(() => data.mentions.labels);
 	const slug = $derived(data.community.slug);
 	const errorFor = (step: string) => (form?.step === step ? form.error : undefined);
 
@@ -242,15 +245,16 @@
 					{#if mode === 'reply' && data.can.comment}
 						<form method="POST" action="?/comment" class="mt-3 flex flex-col gap-2" use:enhance>
 							<label for="body" class="sr-only">Reply to the thread</label>
-							<textarea
+							<MentionField
 								id="body"
 								name="body"
-								rows="3"
+								rows={3}
 								required
 								placeholder="Reply to the thread…"
 								value={form?.suggestionKind === 'summary' ? (form?.suggestion ?? '') : ''}
 								class="border-border bg-bg text-fg rounded-(--radius-control) border p-2"
-							></textarea>
+								members={data.mentions.members}
+							/>
 							{#if errorFor('suggest')}<p role="alert" class="text-danger">
 									{errorFor('suggest')}
 								</p>{/if}
@@ -293,16 +297,17 @@
 							<label for="proposal-body" class="text-fg font-medium">
 								The text a decision would adopt
 							</label>
-							<textarea
+							<MentionField
 								id="proposal-body"
 								name="body"
-								rows="6"
+								rows={6}
 								required
 								value={form?.suggestionKind === 'draft'
 									? (form?.suggestion ?? '')
 									: (data.proposal?.raw ?? '')}
 								class="border-border bg-bg text-fg rounded-(--radius-control) border p-2"
-							></textarea>
+								members={data.mentions.members}
+							/>
 							{#if errorFor('suggest')}<p role="alert" class="text-danger">
 									{errorFor('suggest')}
 								</p>{/if}

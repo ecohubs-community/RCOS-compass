@@ -17,6 +17,7 @@ import {
 	addMessage,
 	addProposal,
 	listPostsWithAuthors,
+	mentionDirectory,
 	openDiscussion
 } from '../../src/lib/server/services/discussions.js';
 import { listResponses } from '../../src/lib/server/voting/consent-round.js';
@@ -154,6 +155,27 @@ export const PERSON_SURFACES: PersonSurface[] = [
 		},
 		read: (ctx, db) =>
 			listPostsWithAuthors(ctx, threadForPersonSurface, { db }).map((row) => row.author.label)
+	},
+	{
+		name: 'discussions.mentionDirectory',
+		module: 'discussions.ts',
+		/**
+		 * `@M-0142` in a post, named when the thread is shown, and the members the
+		 * composer offers. The post keeps the number, so an erased member's
+		 * mentions read as their label without anything being rewritten.
+		 */
+		read: (ctx, db, subject) => {
+			const { seq } = db
+				.select({ seq: membership.seq })
+				.from(membership)
+				.where(eq(membership.id, subject.membershipId))
+				.get()!;
+			const directory = mentionDirectory(ctx, [`@M-${String(seq).padStart(4, '0')}`], { db });
+			return [
+				...Object.values(directory.labels),
+				...directory.members.map((member) => member.label)
+			];
+		}
 	},
 	{
 		name: 'notifications.listNotificationItems',

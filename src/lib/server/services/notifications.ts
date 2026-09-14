@@ -105,6 +105,88 @@ export function notify<K extends NotificationKind>(
 	return recipients.length;
 }
 
+/**
+ * A reply, told to the thread's participants — collapsed. A recipient who still
+ * has an unread reply notification for this discussion has it counted up and
+ * brought to the top instead of getting another row; one who has read theirs
+ * gets a new one. Ten replies in an afternoon are one line that says ten.
+ */
+export function notifyReply(
+	db: Db,
+	ctx: Ctx,
+	input: { discussionId: string; title: string; recipients: string[] }
+): number {
+	const now = new Date(ctx.now());
+	const recipients = currentMembers(
+		db,
+		ctx.community.id,
+		[...new Set(input.recipients)].filter((id) => id !== ctx.membership.id)
+	);
+	if (recipients.length === 0) return 0;
+
+	const unread = new Map(
+		db
+			.select()
+			.from(notification)
+			.where(
+				and(
+					eq(notification.communityId, ctx.community.id),
+					inArray(notification.recipientMembershipId, recipients),
+					eq(notification.kind, 'discussion.reply'),
+					eq(notification.subjectId, input.discussionId),
+					isNull(notification.readAt)
+				)
+			)
+			.all()
+			.map((row) => [row.recipientMembershipId, row])
+	);
+
+	for (const [, row] of unread) {
+		const count = Number((row.params as { count?: unknown } | null)?.count ?? 1) + 1;
+		db.update(notification)
+			.set({
+				params: { title: input.title, count },
+				summary: `${count} new replies in ${input.title}`,
+				createdAt: now
+			})
+			.where(eq(notification.id, row.id))
+			.run();
+	}
+
+	const fresh = recipients.filter((id) => !unread.has(id));
+	notify(db, ctx, {
+		kind: 'discussion.reply',
+		subjectType: 'discussion',
+		subjectId: input.discussionId,
+		summary: `A new reply in ${input.title}`,
+		params: { title: input.title, count: 1 },
+		recipients: fresh
+	});
+	return recipients.length;
+}
+
+/**
+ * The current memberships of this community a text mentions by number, without
+ * the author. A number that belongs to nobody here — another community's, a
+ * former member's, a typo — mentions nobody.
+ */
+export function mentionedMembers(db: Db, ctx: Ctx, seqs: number[]): string[] {
+	if (seqs.length === 0) return [];
+	return db
+		.select({ id: membership.id })
+		.from(membership)
+		.where(
+			and(
+				eq(membership.communityId, ctx.community.id),
+				inArray(membership.seq, seqs),
+				isNull(membership.endedAt)
+			)
+		)
+		.all()
+		.map((row) => row.id)
+		.filter((id) => id !== ctx.membership.id);
+}
+
 /** The ids, of those given, that are current memberships of this community. */
 export function currentMembers(db: Db, communityId: string, ids: string[]): string[] {
 	if (ids.length === 0) return [];

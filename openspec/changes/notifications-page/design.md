@@ -140,8 +140,10 @@ A post may contain `@M-0142`, the membership's number. The markdown parser gains
 discussion load supplies. A number that isn't a current member of this community
 renders as the text written and notifies no one.
 
-- **Composer.** With JavaScript, typing `@` opens a Bits UI combobox of current
-  members, by label; choosing one inserts the token.
+- **Composer.** With JavaScript, typing `@` opens a listbox of current members,
+  by label; choosing one inserts the token. The field keeps focus and points at
+  the highlighted option with `aria-activedescendant` (Bits UI's combobox owns a
+  single-line input of its own, and this completes a word inside a paragraph).
 - **Without JavaScript,** a member types the number, which the members page shows.
 - **Writing the notification.** On posting, the server extracts tokens, resolves
   them within the community, drops the author, and writes `discussion.mention`

@@ -12,6 +12,7 @@ import {
 	addProposal,
 	getDiscussion,
 	listPostsWithAuthors,
+	mentionDirectory,
 	takeOffline
 } from '$lib/server/services/discussions';
 import { listObjections, resolveObjection } from '$lib/server/services/objections';
@@ -122,6 +123,12 @@ export const load: PageServerLoad = ({ locals, params, url }) => {
 			decidedRef: inForce?.ref ?? null,
 			decidedTitle: inForce?.title ?? null
 		},
+		/** Names for `@M-0142` in the thread, and who the composer can offer. */
+		mentions: mentionDirectory(
+			ctx,
+			posts.map((entry) => entry.body),
+			{ db }
+		),
 		posts: posts.map((entry) => ({
 			id: entry.id,
 			kind: entry.kind,

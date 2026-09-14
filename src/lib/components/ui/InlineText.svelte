@@ -1,8 +1,10 @@
 <script lang="ts">
 	import type { InlineNode } from '$lib/shared/markdown';
 	import Self from './InlineText.svelte';
+	import { mentionLabels } from './mentions.js';
 
 	let { nodes }: { nodes: InlineNode[] } = $props();
+	const labelOf = mentionLabels();
 </script>
 
 <!--
@@ -19,5 +21,8 @@
 			href={node.href}
 			class="text-accent-fg underline underline-offset-2"
 			rel="noreferrer nofollow"><Self nodes={node.children} /></a
-		>{:else if node.type === 'break'}<br />{/if}
+		>{:else if node.type === 'break'}<br />{:else if node.type === 'mention'}{@const label =
+			labelOf(node.seq)}{#if label}<span class="text-accent-fg font-medium" data-mention={node.raw}
+				>@{label}</span
+			>{:else}{node.raw}{/if}{/if}
 {/each}

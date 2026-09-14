@@ -163,3 +163,39 @@ test.describe('the bell', () => {
 		await expect(page).toHaveURL(new RegExp(`/c/${slug}/notifications$`));
 	});
 });
+
+test.describe('mentions', () => {
+	test('@ offers members by name, inserts their number, and tells them', async ({
+		page,
+		browser
+	}) => {
+		test.slow();
+		const fixture = await seedWithProposal(page);
+		const thread = page.url().split('?')[0]!;
+		await visit(page, thread);
+
+		const reply = page.getByRole('textbox', { name: 'Reply to the thread' });
+		await reply.fill('');
+		await reply.pressSequentially('Over to you @Len');
+		const option = page.getByRole('option', { name: /Lena Vogt/ });
+		await expect(option).toBeVisible();
+		await reply.press('Enter');
+		await expect(reply).toHaveValue(/^Over to you @M-\d{4} $/);
+		await page.getByRole('button', { name: 'Send' }).click();
+
+		// The post keeps the number and shows the name.
+		await expect(page.locator('[data-mention]').filter({ hasText: '@Lena Vogt' })).toBeVisible();
+
+		const context = await browser.newContext();
+		const member = await context.newPage();
+		await signIn(member, fixture.member.email, fixture.member.password);
+		await visit(member, `/c/${fixture.slug}`);
+		await member.getByRole('button', { name: 'Notifications, 1 unread' }).click();
+		await expect(
+			member.getByRole('dialog', { name: 'Notifications' }).getByRole('button', {
+				name: /Ana Restrepo mentioned you in/
+			})
+		).toBeVisible();
+		await context.close();
+	});
+});

@@ -3,6 +3,7 @@ import { join, relative } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import {
 	isSafeHref,
+	mentionedSeqs,
 	parseMarkdown,
 	plainText,
 	type BlockNode,
@@ -46,6 +47,7 @@ function texts(source: string): string[] {
 	const walkInline = (nodes: InlineNode[]) => {
 		for (const node of nodes) {
 			if (node.type === 'text' || node.type === 'code') out.push(node.value);
+			else if (node.type === 'mention') out.push(node.raw);
 			else if (node.type !== 'break') walkInline(node.children);
 		}
 	};
@@ -89,6 +91,34 @@ function hrefs(source: string): string[] {
 	walk(parseMarkdown(source));
 	return out;
 }
+
+describe('mentions', () => {
+	const inlineOf = (source: string) => {
+		const [first] = parseMarkdown(source);
+		return first?.type === 'paragraph' ? first.children : [];
+	};
+
+	it('reads @M-0142 as a mention of number 142, with the words around it', () => {
+		expect(inlineOf('Thanks @M-0142, agreed.')).toEqual([
+			{ type: 'text', value: 'Thanks ' },
+			{ type: 'mention', seq: 142, raw: '@M-0142' },
+			{ type: 'text', value: ', agreed.' }
+		]);
+		expect(mentionedSeqs('@M-0001 and **@M-0002** and again @M-0001')).toEqual([1, 2]);
+	});
+
+	it('mentions nobody from inside code, an address, or a number too short', () => {
+		expect(mentionedSeqs('`@M-0142` and\n\n    @M-0143\n\nana@M-0144.example @M-12')).toEqual([]);
+	});
+
+	it('keeps HTML beside a mention as words, never as markup', () => {
+		const source = '<img src=x onerror=alert(1)> @M-0142';
+		const words = texts(source).join('');
+		expect(words).toContain('<img src=x onerror=alert(1)>');
+		expect(JSON.stringify(parseMarkdown(source))).not.toMatch(/"type":"(html|image)"/);
+		expect(plainText('Thanks @M-0142')).toBe('Thanks @M-0142');
+	});
+});
 
 describe('a payload never becomes a node', () => {
 	it.each(PAYLOADS)('%s', (payload) => {

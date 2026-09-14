@@ -1,9 +1,10 @@
-import { eq } from 'drizzle-orm';
+import { eq, sql } from 'drizzle-orm';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import type { Ctx } from '../../src/lib/server/auth/guard.js';
 import { fixedClock } from '../../src/lib/server/clock.js';
 import { newId } from '../../src/lib/server/db/id.js';
 import { setDbForTests, type Db } from '../../src/lib/server/db/index.js';
+import { post } from '../../src/lib/server/db/schema/discussions.js';
 import { notification } from '../../src/lib/server/db/schema/notifications.js';
 import { decision } from '../../src/lib/server/db/schema/decisions.js';
 import {
@@ -17,9 +18,11 @@ import {
 	sendWeeklyDigests
 } from '../../src/lib/server/jobs/digest.js';
 import { freeze } from '../../src/lib/server/services/decisions.js';
+import { erasePerson } from '../../src/lib/server/services/erasure.js';
 import {
 	addMessage,
 	addProposal,
+	mentionDirectory,
 	openDiscussion
 } from '../../src/lib/server/services/discussions.js';
 import {
@@ -125,8 +128,9 @@ describe('a member is told what happened where they can act on it', () => {
 		const thread = threadWith(ana, [marco]);
 		addProposal(ana, { discussionId: thread.id, body: 'Members may leave.' }, { db });
 
-		// A list full of your own doing is a list people stop opening.
-		expect(listNotifications(ana, { db })).toHaveLength(0);
+		// A list full of your own doing is a list people stop opening. (Marco's
+		// message is a reply Ana hears about; her own proposal is not.)
+		expect(listNotifications(ana, { db }).map((n) => n.kind)).toEqual(['discussion.reply']);
 	});
 
 	it('tells everyone eligible when a consent round opens', () => {
@@ -279,6 +283,113 @@ describe('reading and marking read', () => {
 		// Nor does marking everything read reach anyone else's.
 		markAllRead(lena, { db });
 		expect(unreadCount(marco, { db })).toBe(1);
+	});
+});
+
+describe('replies and mentions', () => {
+	const token = (who: Ctx) => `@M-${String(who.membership.seq).padStart(4, '0')}`;
+	const kinds = (who: Ctx) => listNotifications(who, { db }).map((n) => n.kind);
+
+	it('collapses three replies into one row that counts them', () => {
+		const thread = threadWith(ana, [marco]);
+		for (const body of ['One.', 'Two.', 'Three.']) {
+			addMessage(lena, { discussionId: thread.id, body }, { db });
+		}
+
+		const replies = listNotifications(marco, { db }).filter((n) => n.kind === 'discussion.reply');
+		expect(replies).toHaveLength(1);
+		expect(replies[0]!.params).toEqual({ title: 'Exit and separation', count: 3 });
+		// Ana opened the thread and hears of Marco's message and Lena's three, as one.
+		expect(listNotifications(ana, { db })[0]!.params).toMatchObject({ count: 4 });
+	});
+
+	it('starts a new row after the last one was read', () => {
+		const thread = threadWith(ana, [marco]);
+		addMessage(lena, { discussionId: thread.id, body: 'One.' }, { db });
+		markAllRead(marco, { db });
+		addMessage(lena, { discussionId: thread.id, body: 'Two.' }, { db });
+
+		const replies = listNotifications(marco, { db }).filter((n) => n.kind === 'discussion.reply');
+		expect(replies).toHaveLength(2);
+		expect(replies.filter((n) => n.readAt === null)[0]!.params).toMatchObject({ count: 1 });
+	});
+
+	it('tells nobody who has not written in the thread', () => {
+		const thread = threadWith(ana, [marco]);
+		addMessage(marco, { discussionId: thread.id, body: 'More.' }, { db });
+		expect(kinds(lena)).toEqual([]);
+	});
+
+	it('tells a mentioned member of the mention, and not also of the reply', () => {
+		const thread = threadWith(ana, [marco]);
+		addMessage(
+			lena,
+			{ discussionId: thread.id, body: `What do you think, ${token(marco)}?` },
+			{ db }
+		);
+
+		const theirs = listNotifications(marco, { db });
+		expect(theirs.map((n) => n.kind)).toEqual(['discussion.mention']);
+		expect(theirs[0]!.params).toEqual({
+			title: 'Exit and separation',
+			actor: lena.membership.id
+		});
+		expect(listNotificationItems(marco, { db })[0]!.actor).toBe(lena.user.name);
+	});
+
+	it('mentions nobody with a number that is not a member here, or with your own', () => {
+		const [outsider] = seedCommunity('other-place', ['bea@example.org']) as [Ctx];
+		const thread = threadWith(ana);
+		// Same number as somebody here would be a coincidence; a number nobody here
+		// holds is the case that matters.
+		addMessage(ana, { discussionId: thread.id, body: `Ask @M-0099 and ${token(ana)}.` }, { db });
+		expect(db.select().from(notification).all()).toHaveLength(0);
+		expect(kinds(outsider)).toEqual([]);
+	});
+
+	it('names a mentioner who has since been erased as a former member', () => {
+		const thread = threadWith(ana, [marco]);
+		addMessage(lena, { discussionId: thread.id, body: `${token(marco)}, see this.` }, { db });
+		erasePerson(db, { userId: lena.user.id, actorId: lena.user.id, now: NOW });
+
+		const [item] = listNotificationItems(marco, { db });
+		expect(item!.actor).toBe(`Former member (M-${String(lena.membership.seq).padStart(4, '0')})`);
+		expect(mentionDirectory(marco, [`${token(lena)}`], { db }).labels[lena.membership.seq]).toBe(
+			item!.actor
+		);
+	});
+
+	it('writes a proposal as a proposal, not as a reply, and a mention in it as a mention', () => {
+		const thread = threadWith(ana, [marco, lena]);
+		for (const who of [ana, marco, lena]) markAllRead(who, { db });
+		addProposal(
+			ana,
+			{ discussionId: thread.id, body: `Members may leave. ${token(lena)}` },
+			{ db }
+		);
+		const unread = (who: Ctx) =>
+			listNotifications(who, { db })
+				.filter((n) => n.readAt === null)
+				.map((n) => n.kind);
+		expect(unread(marco)).toEqual(['proposal.posted']);
+		expect(unread(lena)).toEqual(['discussion.mention']);
+	});
+
+	it('writes neither the proposal nor its notifications when telling fails', () => {
+		const thread = threadWith(ana, [marco]);
+		const posts = () => db.select().from(post).all().length;
+		const before = { posts: posts(), rows: db.select().from(notification).all().length };
+		// Any failure while telling the thread stands in for the rest.
+		db.run(
+			sql`CREATE TRIGGER refuse_notification BEFORE INSERT ON notification BEGIN SELECT RAISE(ABORT, 'refused'); END`
+		);
+		expect(() =>
+			addProposal(ana, { discussionId: thread.id, body: 'Members may leave.' }, { db })
+		).toThrow(/refused/);
+		db.run(sql`DROP TRIGGER refuse_notification`);
+
+		expect(posts()).toBe(before.posts);
+		expect(db.select().from(notification).all()).toHaveLength(before.rows);
 	});
 });
 

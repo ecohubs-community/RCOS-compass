@@ -17,7 +17,14 @@ export type InlineNode =
 	| { type: 'em'; children: InlineNode[] }
 	| { type: 'code'; value: string }
 	| { type: 'link'; href: string; children: InlineNode[] }
-	| { type: 'break' };
+	| { type: 'break' }
+	/**
+	 * `@M-0142`: a member, by their number in this community. Stored as the
+	 * number and named when rendered, so a changed or erased name is right
+	 * everywhere it was mentioned. `raw` is what was written, shown when the
+	 * number names nobody here.
+	 */
+	| { type: 'mention'; seq: number; raw: string };
 
 export type BlockNode =
 	| { type: 'paragraph'; children: InlineNode[] }
