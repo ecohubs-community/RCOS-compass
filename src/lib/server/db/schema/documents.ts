@@ -68,7 +68,37 @@ export const document = sqliteTable(
 
 		uploadedBy: text('uploaded_by').references(() => user.id, { onDelete: 'set null' }),
 		uploadedAt: integer('uploaded_at', { mode: 'timestamp_ms' }).notNull(),
-		extractedAt: integer('extracted_at', { mode: 'timestamp_ms' })
+		extractedAt: integer('extracted_at', { mode: 'timestamp_ms' }),
+
+		/**
+		 * The AI scan: the one mapping-related state that is *stored*, because a
+		 * running job is a fact rather than a derivation. Everything a member reads
+		 * as "Mapped" or "Mapping in progress" is derived (`mapping-state.ts`).
+		 *
+		 * Values enforced by trigger, not CHECK — adding a checked column rebuilds
+		 * `document`, and the rebuild's DROP cascades into every child table inside
+		 * the migrator's transaction (see 0010 and 0017).
+		 */
+		scanStatus: text('scan_status', {
+			enum: ['none', 'queued', 'running', 'stopped', 'complete']
+		})
+			.notNull()
+			.default('none'),
+		/** Why a scan stopped, in words a member can read. */
+		scanDetail: text('scan_detail'),
+		/** Who started or last continued the scan, and is charged for it. */
+		scanActor: text('scan_actor').references(() => user.id, { onDelete: 'set null' }),
+		/** Moved by every batch; a live scan older than the stall threshold is stopped. */
+		scanHeartbeatAt: integer('scan_heartbeat_at', { mode: 'timestamp_ms' }),
+		/**
+		 * Incremented by every act that replaces passages — extraction, replace,
+		 * restore. A scan carries the value it was claimed at and writes nothing
+		 * once it has moved.
+		 */
+		contentGeneration: integer('content_generation').notNull().default(0),
+		/** A member's "Mark mapping as done". Cleared by a new scan or a new file. */
+		mappingDoneAt: integer('mapping_done_at', { mode: 'timestamp_ms' }),
+		mappingDoneBy: text('mapping_done_by').references(() => user.id, { onDelete: 'set null' })
 	},
 	(table) => [
 		index('document_community_idx').on(table.communityId, table.uploadedAt),
@@ -112,7 +142,13 @@ export const passage = sqliteTable(
 		 * line carries. The viewer maps them through its own viewport, so zoom and
 		 * rotation never touch stored data. Null for formats without a page.
 		 */
-		bbox: text('bbox')
+		bbox: text('bbox'),
+		/**
+		 * When a scan sent this passage to the model. A continued scan never pays
+		 * twice for a paragraph — including the many the model had nothing to say
+		 * about, which "has evidence" could never tell apart from "never read".
+		 */
+		scannedAt: integer('scanned_at', { mode: 'timestamp_ms' })
 	},
 	(table) => [
 		index('passage_document_idx').on(table.documentId, table.page, table.ordinal),
@@ -143,6 +179,12 @@ export const evidence = sqliteTable(
 			.references(() => community.id, { onDelete: 'cascade' }),
 		/** Null once the passage is gone; the evidence is then `stale`. */
 		passageId: text('passage_id').references(() => passage.id, { onDelete: 'set null' }),
+		/**
+		 * The document the claim was made about — kept when the passage goes, so
+		 * stale evidence still knows where it came from: a replaced file can offer
+		 * it for re-confirmation, and a definition can still name its source.
+		 */
+		documentId: text('document_id').references(() => document.id, { onDelete: 'set null' }),
 		quote: text('quote').notNull(),
 		/** Which standard version this claim was made against. */
 		communityStandardId: text('community_standard_id')
@@ -152,8 +194,16 @@ export const evidence = sqliteTable(
 		state: text('state', {
 			enum: ['suggested', 'confirmed', 'dismissed', 'stale']
 		}).notNull(),
-		/** A model's own estimate, kept for calibration. Never a threshold. */
+		/** A model's own estimate, kept for calibration. Never a threshold, never shown. */
 		confidence: integer('confidence'),
+		/**
+		 * A model's one-sentence reason: what the passage covers of the clause and
+		 * what it leaves out. Shown in place of any strength, always as plain text.
+		 */
+		reason: text('reason'),
+		/** The part of the passage the claim rests on, as offsets into its text. */
+		excerptStart: integer('excerpt_start'),
+		excerptEnd: integer('excerpt_end'),
 		suggestedBy: text('suggested_by', { enum: ['ai', 'human'] }).notNull(),
 		confirmedBy: text('confirmed_by').references(() => user.id, { onDelete: 'set null' }),
 		confirmedAt: integer('confirmed_at', { mode: 'timestamp_ms' }),
@@ -205,6 +255,42 @@ export const definitionSource = sqliteTable(
 	(table) => [index('definition_source_evidence_idx').on(table.evidenceId)]
 );
 
+/**
+ * An earlier file of a document. The `document` row always describes the
+ * *current* file — every read path (extraction, search, the file route) keeps
+ * working unchanged — and these are the files it replaced, kept so a mistaken or
+ * harmful replacement is one "Restore" away. Deleted only by a steward, or with
+ * the document.
+ */
+export const documentFileVersion = sqliteTable(
+	'document_file_version',
+	{
+		id: text('id').primaryKey(),
+		documentId: text('document_id')
+			.notNull()
+			.references(() => document.id, { onDelete: 'cascade' }),
+		communityId: text('community_id')
+			.notNull()
+			.references(() => community.id, { onDelete: 'cascade' }),
+		filename: text('filename').notNull(),
+		mime: text('mime').notNull(),
+		bytes: integer('bytes').notNull(),
+		sha256: text('sha256').notNull(),
+		/** Relative to `UPLOAD_DIR`, like the document's own. */
+		storageKey: text('storage_key').notNull(),
+		uploadedBy: text('uploaded_by').references(() => user.id, { onDelete: 'set null' }),
+		uploadedAt: integer('uploaded_at', { mode: 'timestamp_ms' }).notNull(),
+		/** Who put a newer file in its place, and when. */
+		supersededBy: text('superseded_by').references(() => user.id, { onDelete: 'set null' }),
+		supersededAt: integer('superseded_at', { mode: 'timestamp_ms' }).notNull()
+	},
+	(table) => [
+		index('document_file_version_document_idx').on(table.documentId, table.supersededAt),
+		index('document_file_version_community_idx').on(table.communityId)
+	]
+);
+
 export type Document = typeof document.$inferSelect;
+export type DocumentFileVersion = typeof documentFileVersion.$inferSelect;
 export type Passage = typeof passage.$inferSelect;
 export type Evidence = typeof evidence.$inferSelect;

@@ -30,17 +30,35 @@ export default defineConfig({
 	projects: [
 		{
 			name: 'desktop',
+			grepInvert: /@no-js/,
 			use: { ...devices['Desktop Chrome'], viewport: { width: 1440, height: 900 } }
 		},
 		{
 			name: 'laptop',
+			grepInvert: /@no-js/,
 			use: { ...devices['Desktop Chrome'], viewport: { width: 1024, height: 768 } }
 		},
 		{
 			name: 'tablet',
+			grepInvert: /@no-js/,
 			use: { ...devices['Desktop Chrome'], viewport: { width: 768, height: 1024 } }
 		},
-		{ name: 'mobile', use: { ...devices['Pixel 7'] } },
+		{ name: 'mobile', grepInvert: /@no-js/, use: { ...devices['Pixel 7'] } },
+		/**
+		 * "Works without JavaScript" as a test rather than a claim. Runs only the
+		 * tests tagged `@no-js`, and only here — with scripts on, those tests would
+		 * pass for the wrong reason. They must not call `visit()`, which waits for
+		 * hydration that never comes; plain `page.goto` is the point.
+		 */
+		{
+			name: 'no-js',
+			grep: /@no-js/,
+			use: {
+				...devices['Desktop Chrome'],
+				viewport: { width: 1440, height: 900 },
+				javaScriptEnabled: false
+			}
+		},
 		/**
 		 * 375 pixels, which is the width the roadmap actually asked for and which
 		 * nothing has ever run at: `Pixel 7` is 412. It is the narrowest phone
@@ -53,6 +71,7 @@ export default defineConfig({
 		{
 			name: 'mobile-small',
 			testMatch: /(loop|a11y|path-order)\.spec\.ts/,
+			grepInvert: /@no-js/,
 			/**
 			 * The width written down, not a device preset that happens to be near
 			 * it: Playwright's `iPhone SE` is 320 *and* WebKit, which would test a

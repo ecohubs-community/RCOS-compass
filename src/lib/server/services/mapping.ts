@@ -134,7 +134,7 @@ export async function runMapping(
 		}
 
 		run.discarded += outcome.discarded;
-		run.suggested += write(db, ctx, outcome.suggestions, standard.row.id, batch);
+		run.suggested += write(db, ctx, outcome.suggestions, standard.row.id, batch, documentId);
 		run.passagesConsidered += batch.length;
 		run.passagesRemaining -= batch.length;
 	}
@@ -154,7 +154,8 @@ function write(
 	ctx: Ctx,
 	suggestions: { passageId: string; clauseKey: string; confidence: number }[],
 	communityStandardId: string,
-	batch: { id: string; text: string }[]
+	batch: { id: string; text: string }[],
+	documentId: string
 ): number {
 	if (suggestions.length === 0) return 0;
 	const quoteOf = new Map(batch.map((row) => [row.id, row.text]));
@@ -172,6 +173,7 @@ function write(
 					id: newId(),
 					communityId: ctx.community.id,
 					passageId: suggestion.passageId,
+					documentId,
 					quote,
 					communityStandardId,
 					clauseKey: suggestion.clauseKey,

@@ -8,6 +8,7 @@ import { newId } from '../../src/lib/server/db/id.js';
 import { setDbForTests, type Db } from '../../src/lib/server/db/index.js';
 import { definition, definitionVersion } from '../../src/lib/server/db/schema/definitions.js';
 import { communityStandard } from '../../src/lib/server/db/schema/tenancy.js';
+import { notification } from '../../src/lib/server/db/schema/notifications.js';
 import { runExport } from '../../src/lib/server/jobs/export-job.js';
 import { absolutePathOf } from '../../src/lib/server/documents/storage.js';
 import { listDecisions } from '../../src/lib/server/services/decisions.js';
@@ -298,5 +299,26 @@ describe('the printable copy is optional, and the bundle says which', () => {
 		expect(bundle.manifest.pdf).toBe('included');
 		expect(bundle.names).toContain('governance.pdf');
 		expect(bundle.manifest.files).toContain('manifest.json');
+	});
+});
+
+describe('the member who asked is told', () => {
+	it('writes export.ready for the requester and nobody else', async () => {
+		// `notify` skips "the person who caused" a notification, and the export job
+		// rebuilds its context for exactly the member who asked — so until
+		// `includeActor` existed, the only recipient was filtered out and the row
+		// was never written. Nothing tested it.
+		const other = makeUser(db, { email: 'lena@example.org' });
+		makeMembership(db, ana.community.id, other.id, { role: 'member' });
+
+		await runExport(db, { communityId: ana.community.id, actorId: ana.user.id }, NOW);
+
+		const rows = db.select().from(notification).all();
+		expect(rows).toHaveLength(1);
+		expect(rows[0]).toMatchObject({
+			kind: 'export.ready',
+			recipientMembershipId: ana.membership.id,
+			subjectType: 'export'
+		});
 	});
 });

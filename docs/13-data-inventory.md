@@ -46,6 +46,8 @@ which replaces the span in place and records that it did.
 | `post.body`, `objection.reason` | discussion | Where a name is most likely to be typed | Not automatic. Redactable on request |
 | `decision_attendee.external_name` | somebody present who was never a member | A facilitator or a neighbour was in the room | Not automatic — they have no account and no way to ask us. Redactable on a request that reaches a steward. **The most exposed personal data here** |
 | `document`, `passage` | uploaded bylaws, and their text | A community's existing rules, mapped to clauses | Not automatic. A filename can carry a name; deleting the document removes both |
+| `document_file_version.filename`, `uploaded_by`, `superseded_by` | earlier files of a document, who uploaded each and who replaced it | So a mistaken or harmful replacement can be restored | Not automatic. The file stays until a steward deletes that version or the document; erasure tombstones the user row, so the names render as a former member through `personLabel`. The same holds for `document.scan_actor` and `document.mapping_done_by` |
+| `evidence.reason` | a model's one-sentence reason for a suggestion | Shown instead of a strength, so a member can judge the suggestion | Not automatic. Written from the document's own text, so it can repeat a name the document contains; it goes with its evidence |
 
 ## 4. Operating the instance
 

@@ -1,5 +1,5 @@
 import { createHash } from 'node:crypto';
-import { eq } from 'drizzle-orm';
+import { eq, sql } from 'drizzle-orm';
 import type { Clock } from '../clock.js';
 import { getConfig } from '../config.js';
 import type { Db } from '../db/index.js';
@@ -172,7 +172,10 @@ function recordReading(
 				// re-read sweep would take the same file for an unread one at every
 				// boot, forever. A verdict under this reader is final for this reader.
 				extractorVersion: EXTRACTOR_VERSION,
-				extractedAt: verdict.status === 'failed' ? null : now
+				extractedAt: verdict.status === 'failed' ? null : now,
+				// The passages were replaced: any scan claimed against the old ones
+				// must write nothing more (see jobs/scan-job.ts).
+				contentGeneration: sql`${document.contentGeneration} + 1`
 			})
 			.where(eq(document.id, found.id))
 			.run();

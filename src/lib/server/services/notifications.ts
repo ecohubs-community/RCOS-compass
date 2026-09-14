@@ -31,26 +31,39 @@ export type NotificationKind =
 	| 'decision.frozen'
 	| 'definition.review_due'
 	/** The first notification about a *job* rather than about governance. */
-	| 'export.ready';
+	| 'export.ready'
+	/** A document scan the member started has completed or stopped. */
+	| 'document.scan_ended';
 
 export type NotifyInput = {
 	kind: NotificationKind;
-	subjectType: 'discussion' | 'decision' | 'definition' | 'export';
+	subjectType: 'discussion' | 'decision' | 'definition' | 'export' | 'document';
 	subjectId: string;
 	/** A short line. Never a definition body — that is what the link is for. */
 	summary: string;
 	recipients: string[];
+	/**
+	 * Tell the member the context belongs to as well. For the outcome of a *job*
+	 * they started — an export built, a scan finished — where `ctx` is rebuilt for
+	 * that member and "their own act" is exactly what they are waiting to hear
+	 * about. Without it, `export.ready` was filtered out for its only recipient
+	 * and never written.
+	 */
+	includeActor?: boolean;
 };
 
 /**
- * Write the rows, skipping the person who caused them.
+ * Write the rows, skipping the person who caused them unless asked not to.
  *
  * Nobody needs telling about their own act, and a list full of your own doing is
- * a list people stop opening.
+ * a list people stop opening — but the end of a job they started is not their
+ * act; see `includeActor`.
  */
 export function notify(db: Db, ctx: Ctx, input: NotifyInput): number {
 	const now = ctx.now();
-	const recipients = [...new Set(input.recipients)].filter((id) => id !== ctx.membership.id);
+	const recipients = [...new Set(input.recipients)].filter(
+		(id) => input.includeActor === true || id !== ctx.membership.id
+	);
 
 	for (const recipientMembershipId of recipients) {
 		db.insert(notification)

@@ -24,6 +24,7 @@ import { aiAvailability } from '$lib/server/ai/run';
 import { draftProposalFromThread, summariseThread } from '$lib/server/ai/tasks/summarise-thread';
 import { listResponses, roundFor } from '$lib/server/voting/consent-round';
 import type { Actions, PageServerLoad, RequestEvent } from './$types';
+import { run } from '$lib/server/http/form-action';
 
 /**
  * One thread, one version on the table, and the freeze. UI spec §5.1, §4.6.
@@ -200,31 +201,6 @@ export const load: PageServerLoad = ({ locals, params, url }) => {
 		freezeOpen: url.searchParams.get('freeze') === '1'
 	};
 };
-
-/**
- * Run one action, putting a *correctable* refusal in the form and letting every
- * other one be itself.
- *
- * The distinction matters. A 400 or a 409 — "a proposal needs some text", "there
- * is nothing to record yet" — is something the person can fix in front of them,
- * so it belongs beside the field. A 403 or a 404 is not: it means they may not
- * do this, or it is not there, and rendering that as a form hint would dress a
- * refusal up as a typo. Those stay thrown, so the response really carries the
- * status — which is what a test, a log line and a screen reader all read.
- */
-const CORRECTABLE = new Set([400, 409, 422]);
-
-async function run<T>(step: string, act: () => T) {
-	try {
-		return { step, result: act() };
-	} catch (problem) {
-		const http = problem as { status?: number; body?: { message?: string } };
-		if (typeof http.status === 'number' && CORRECTABLE.has(http.status)) {
-			return fail(http.status, { step, error: http.body?.message ?? 'That did not work.' });
-		}
-		throw problem;
-	}
-}
 
 export const actions: Actions = {
 	comment: async (event) => {

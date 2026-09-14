@@ -1,4 +1,3 @@
-import { fail } from '@sveltejs/kit';
 import { ctxCan } from '$lib/server/auth/guard';
 import { getDb } from '$lib/server/db';
 import { parseMarkdown } from '$lib/server/markdown';
@@ -15,6 +14,7 @@ import { runMapping } from '$lib/server/services/mapping';
 import { links } from '$lib/links';
 import { redirect } from '@sveltejs/kit';
 import type { Actions, PageServerLoad } from './$types';
+import { run } from '$lib/server/http/form-action';
 
 /**
  * One document: its passages, and what the community has said about them.
@@ -77,22 +77,6 @@ export const load: PageServerLoad = ({ locals, params }) => {
 				: { offer: false, reason: null }
 	};
 };
-
-const CORRECTABLE = new Set([400, 409, 422]);
-
-async function run<T>(step: string, act: () => T) {
-	try {
-		// Awaited inside the try: a mapping run is async, and a rejection that
-		// escapes this would be an error page instead of a sentence on the screen.
-		return { step, result: await act() };
-	} catch (problem) {
-		const http = problem as { status?: number; body?: { message?: string } };
-		if (typeof http.status === 'number' && CORRECTABLE.has(http.status)) {
-			return fail(http.status, { step, error: http.body?.message ?? 'That did not work.' });
-		}
-		throw problem;
-	}
-}
 
 export const actions: Actions = {
 	map: async (event) => {

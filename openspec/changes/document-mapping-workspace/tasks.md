@@ -1,19 +1,19 @@
 ## 1. Shared groundwork
 
-- [ ] 1.1 Move the `run(step, act)` form-action wrapper into `src/lib/server/http/form-action.ts`; switch the discussion and document routes to it
-- [ ] 1.2 Add `includeActor` to `notify`; pass it from `export-job.ts`; add `document.scan_ended` to the notification kinds and `document` to subject types with its link target; include the new kinds in the TopBar unread count (no notifications list screen exists — that stays with the notifications backlog, recorded in design.md)
-- [ ] 1.3 Add a `no-js` Playwright project (`javaScriptEnabled: false`) that runs only specs tagged `@no-js`, so "works without JavaScript" is tested rather than claimed
-- [ ] 1.4 Tests: unit test for the form-action wrapper (400/409/422 become `fail`, others rethrow, async rejections are caught); integration test that `export.ready` reaches the member who requested the export and nobody else
+- [x] 1.1 Move the `run(step, act)` form-action wrapper into `src/lib/server/http/form-action.ts`; switch the discussion and document routes to it
+- [x] 1.2 Add `includeActor` to `notify`; pass it from `export-job.ts`; add `document.scan_ended` to the notification kinds and `document` to subject types with its link target; include the new kinds in the TopBar unread count (no notifications list screen exists — that stays with the notifications backlog, recorded in design.md)
+- [x] 1.3 Add a `no-js` Playwright project (`javaScriptEnabled: false`) that runs only specs tagged `@no-js`, so "works without JavaScript" is tested rather than claimed
+- [x] 1.4 Tests: unit test for the form-action wrapper (400/409/422 become `fail`, others rethrow, async rejections are caught); integration test that `export.ready` reaches the member who requested the export and nobody else
 
 ## 2. Schema, migration and inventory
 
-- [ ] 2.1 `passage.scanned_at`; `document.scan_status` (default `none`), `scan_detail`, `scan_actor` (set null), `scan_heartbeat_at`, `content_generation` (default 0), `mapping_done_at`, `mapping_done_by` (set null)
-- [ ] 2.2 `evidence.reason`, `excerpt_start`, `excerpt_end`, `document_id` (backfilled from the passage, kept when the passage is gone)
-- [ ] 2.3 `document_file_version` table with user references set null
-- [ ] 2.4 Migration backfill: documents with non-stale AI evidence become `stopped` with the "scanned before progress was recorded" sentence, and passages with evidence get `scanned_at`
-- [ ] 2.5 Make `staleEvidenceForDocument` keep `document_id`; increment `content_generation` in the extraction job's passage replacement
-- [ ] 2.6 Update `docs/13-data-inventory.md` for `document_file_version` (filename, uploader, replacer) and the new user references — erasure tombstones the user row, so no per-column erasure code; every module that renders these names uses `personLabel` and is listed in `tests/support/person-surfaces.ts`
-- [ ] 2.7 Tests: migration on a fixture with an AI-mapped document asserts the backfill; `data-inventory.test.ts` passes; an erased uploader and replacer render per `personLabel` on the library and version list
+- [x] 2.1 `passage.scanned_at`; `document.scan_status` (default `none`), `scan_detail`, `scan_actor` (set null), `scan_heartbeat_at`, `content_generation` (default 0), `mapping_done_at`, `mapping_done_by` (set null)
+- [x] 2.2 `evidence.reason`, `excerpt_start`, `excerpt_end`, `document_id` (backfilled from the passage, kept when the passage is gone)
+- [x] 2.3 `document_file_version` table with user references set null
+- [x] 2.4 Migration backfill: documents with non-stale AI evidence become `stopped` with the "scanned before progress was recorded" sentence, and passages with evidence get `scanned_at`
+- [x] 2.5 Make `staleEvidenceForDocument` keep `document_id`; increment `content_generation` in the extraction job's passage replacement
+- [x] 2.6 Update `docs/13-data-inventory.md` for `document_file_version` (filename, uploader, replacer) and the new user references — erasure tombstones the user row, so no per-column erasure code; every module that renders these names uses `personLabel` and is listed in `tests/support/person-surfaces.ts`
+- [x] 2.7 Tests: migration on a fixture with an AI-mapped document asserts the backfill; `data-inventory.test.ts` passes; an erased uploader and replacer render per `personLabel` on the library and version list (the rendering half lands with 8.1, where the library view is built)
 
 ## 3. The mapping state
 

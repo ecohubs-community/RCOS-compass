@@ -371,6 +371,86 @@ describe('upgrading a database that already has rows in it', () => {
 		after.close();
 	});
 
+	it('backfills scan state and evidence documents, and a document delete still leaves claims readable', () => {
+		// Pinned to the migration before document-mapping-workspace. Two things
+		// this guards: the backfills, and the `ON DELETE SET NULL` drizzle-kit
+		// left off the added reference columns — without it, deleting a document
+		// any evidence pointed at failed instead of leaving the claim stale.
+		const { folder } = previousMigrations('0020_free_moira_mactaggert');
+		const file = join(dir, 'scan.db');
+
+		const before = new Database(file);
+		before.pragma('foreign_keys = ON');
+		migrate(drizzle(before), { migrationsFolder: folder });
+
+		before.exec(`
+			insert into community (id, slug, name, locale, timezone, status, publish_names_policy,
+				ai_enabled, git_mirror_enabled, public_index_enabled, created_at, updated_at)
+			values ('c1', 'vv', 'Valle Verde', 'en', 'UTC', 'active', 'roles_and_counts', 1, 0, 0, 1, 1);
+
+			insert into community_standard (id, community_id, standard_id, version, status, adopted_at)
+			values ('cs1', 'c1', 'rcos-core', '0.1', 'active', 1);
+
+			insert into document (id, community_id, filename, mime, bytes, sha256, storage_key,
+				status, uploaded_at)
+			values ('scanned', 'c1', 'bylaws.pdf', 'application/pdf', 10, 'x', 'k1', 'extracted', 1),
+				('unscanned', 'c1', 'minutes.pdf', 'application/pdf', 10, 'y', 'k2', 'extracted', 1);
+
+			insert into passage (id, document_id, page, ordinal, text, text_hash)
+			values ('p1', 'scanned', 1, 0, 'A member may leave at any time.', 'h1'),
+				('p2', 'scanned', 1, 1, 'Nothing here.', 'h2'),
+				('p3', 'unscanned', 1, 0, 'Quiet hours start at ten.', 'h3');
+
+			insert into evidence (id, community_id, passage_id, quote, community_standard_id,
+				clause_key, state, suggested_by, created_at)
+			values ('ev1', 'c1', 'p1', 'A member may leave at any time.', 'cs1', 'ck1', 'suggested', 'ai', 5);
+		`);
+		before.close();
+
+		const after = new Database(file);
+		after.pragma('foreign_keys = ON');
+		migrate(drizzle(after), { migrationsFolder: join(ROOT, 'drizzle') });
+
+		const docs = after
+			.prepare('select id, scan_status, scan_detail, content_generation from document order by id')
+			.all() as { id: string; scan_status: string; scan_detail: string | null }[];
+		expect(docs[0]).toMatchObject({ id: 'scanned', scan_status: 'stopped', content_generation: 0 });
+		expect(docs[0]!.scan_detail).toMatch(/before Compass recorded progress/);
+		expect(docs[1]).toMatchObject({ id: 'unscanned', scan_status: 'none', scan_detail: null });
+
+		// Only the passage a model actually suggested for counts as read.
+		const read = after.prepare('select id, scanned_at from passage order by id').all() as {
+			id: string;
+			scanned_at: number | null;
+		}[];
+		expect(read).toEqual([
+			{ id: 'p1', scanned_at: 5 },
+			{ id: 'p2', scanned_at: null },
+			{ id: 'p3', scanned_at: null }
+		]);
+
+		const claim = after.prepare('select document_id from evidence where id = ?').get('ev1') as {
+			document_id: string;
+		};
+		expect(claim.document_id).toBe('scanned');
+
+		// The trigger refuses a scan state no screen renders.
+		expect(() =>
+			after.exec(`update document set scan_status = 'paused' where id = 'unscanned'`)
+		).toThrow(/scan_status must be/);
+
+		// And the reference acts as set-null: the document can go, the claim stays.
+		after.exec(`delete from passage where document_id = 'scanned'`);
+		after.exec(`delete from document where id = 'scanned'`);
+		const kept = after
+			.prepare('select document_id, passage_id from evidence where id = ?')
+			.get('ev1');
+		expect(kept).toEqual({ document_id: null, passage_id: null });
+
+		expect(after.pragma('foreign_key_check')).toEqual([]);
+		after.close();
+	});
+
 	it('has a migration for every schema change', () => {
 		// A schema edited without generating a migration is a deploy that works on
 		// the developer's machine and nowhere else.

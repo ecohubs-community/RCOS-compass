@@ -108,6 +108,7 @@ export function mapPassage(
 			id,
 			communityId: ctx.community.id,
 			passageId: found.id,
+			documentId: found.documentId,
 			quote: found.text,
 			communityStandardId: standard.row.id,
 			clauseKey: clause.key,
