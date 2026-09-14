@@ -27,6 +27,13 @@ export const notification = sqliteTable(
 		subjectId: text('subject_id').notNull(),
 		/** A short line. Never a definition body — that is what the link is for. */
 		summary: text('summary').notNull(),
+		/**
+		 * What the text is built from when it is shown, in the community's language
+		 * at that moment: a title, a filename, a count, a membership id for a person
+		 * — never a name or an address. Null for rows written before
+		 * `notifications-page`, which show their `summary`.
+		 */
+		params: text('params', { mode: 'json' }).$type<Record<string, unknown>>(),
 		createdAt: integer('created_at', { mode: 'timestamp_ms' }).notNull(),
 		readAt: integer('read_at', { mode: 'timestamp_ms' })
 	},

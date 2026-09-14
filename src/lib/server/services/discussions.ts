@@ -300,6 +300,7 @@ export function addProposal(
 		subjectType: 'discussion',
 		subjectId: input.discussionId,
 		summary: found.title,
+		params: { title: found.title },
 		recipients: discussionParticipants(db, ctx.community.id, input.discussionId)
 	});
 

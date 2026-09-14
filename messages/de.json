@@ -211,5 +211,22 @@
 	"draft_section_next": "An der nächsten Fassung arbeiten",
 	"draft_section_first": "Schreib es",
 	"draft_section_why": "Für die Gemeinschaft sichtbar gespeichert und für niemanden bindend. Es wird zur Antwort, wenn ein Vorschlag damit eingefroren wird.",
-	"documents_upload_notice": "Jedes Mitglied von {community} kann diese Dateien lesen. Nichts wird außerhalb der Gemeinschaft veröffentlicht."
+	"documents_upload_notice": "Jedes Mitglied von {community} kann diese Dateien lesen. Nichts wird außerhalb der Gemeinschaft veröffentlicht.",
+	"notification_proposal_posted": "Ein neuer Vorschlag in „{title}“",
+	"notification_consent_opened": "Ein Vorschlag in „{title}“ wartet auf deine Antwort",
+	"notification_consent_closing": "Die Zustimmungsrunde in „{title}“ endet {when}",
+	"notification_decision_frozen": "{ref} festgehalten: {title}",
+	"notification_review_due": "„{title}“ hat sein Überprüfungsdatum überschritten",
+	"notification_export_ready": "Dein Export steht zum Herunterladen bereit",
+	"notification_scan_complete_one": "Durchsicht von {filename} fertig: 1 Abschnitt zu prüfen",
+	"notification_scan_complete_many": "Durchsicht von {filename} fertig: {count} Abschnitte zu prüfen",
+	"notification_scan_stopped": "Durchsicht von {filename} angehalten: {reason}",
+	"notification_reply_one": "Eine neue Antwort in „{title}“",
+	"notification_reply_many": "{count} neue Antworten in „{title}“",
+	"notification_mention": "{actor} hat dich in „{title}“ erwähnt",
+	"notification_quiet": "„{title}“, von dir eröffnet, ist seit zwei Wochen still",
+	"notification_role_steward": "Du bist jetzt Stewardin oder Steward dieser Gemeinschaft",
+	"notification_role_member": "Du bist jetzt Mitglied dieser Gemeinschaft, nicht mehr Steward",
+	"notification_claim_withdrawn": "Diese Gemeinschaft erfüllt nicht mehr alle Pflichtanforderungen, ihr Konformitätsanspruch entfällt",
+	"notification_gone": "Nicht mehr verfügbar"
 }

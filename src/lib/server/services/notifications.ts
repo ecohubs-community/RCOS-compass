@@ -8,6 +8,11 @@ import { discussion, post } from '../db/schema/discussions.js';
 import { consentEligible } from '../db/schema/discussions.js';
 import { membership } from '../db/schema/tenancy.js';
 import { registerTenantService } from './registry.js';
+import type {
+	NotificationKind,
+	NotificationParams,
+	SubjectType
+} from '../../notifications/kinds.js';
 
 /**
  * What a member is told. UI spec §4.11.
@@ -25,22 +30,20 @@ import { registerTenantService } from './registry.js';
  * out of reach with it.
  */
 
-export type NotificationKind =
-	| 'proposal.posted'
-	| 'consent.opened'
-	| 'decision.frozen'
-	| 'definition.review_due'
-	/** The first notification about a *job* rather than about governance. */
-	| 'export.ready'
-	/** A document scan the member started has completed or stopped. */
-	| 'document.scan_ended';
+export type { NotificationKind } from '../../notifications/kinds.js';
 
-export type NotifyInput = {
-	kind: NotificationKind;
-	subjectType: 'discussion' | 'decision' | 'definition' | 'export' | 'document';
+export type NotifyInput<K extends NotificationKind = NotificationKind> = {
+	kind: K;
+	subjectType: SubjectType;
 	subjectId: string;
-	/** A short line. Never a definition body — that is what the link is for. */
+	/**
+	 * An English line, kept for the rows' own sake — the digest's titles, and the
+	 * last resort if a kind ever loses its message. What a member reads is built
+	 * from `params` when it is shown.
+	 */
 	summary: string;
+	/** What the text is built from. Never a name or an address: people are membership ids. */
+	params: NotificationParams[K];
 	recipients: string[];
 	/**
 	 * Tell the member the context belongs to as well. For the outcome of a *job*
@@ -53,17 +56,25 @@ export type NotifyInput = {
 };
 
 /**
- * Write the rows, skipping the person who caused them unless asked not to.
+ * Write the rows, for current members of this community only, skipping the
+ * person who caused them unless asked not to.
  *
- * Nobody needs telling about their own act, and a list full of your own doing is
- * a list people stop opening — but the end of a job they started is not their
- * act; see `includeActor`.
+ * Who may receive is decided here, once, whatever the caller passed: a
+ * membership of another community or one that has ended gets nothing. It was
+ * each caller's job to remember that, and there are about to be twice as many
+ * callers. Nobody needs telling about their own act either — but the end of a
+ * job they started is not their act; see `includeActor`.
  */
-export function notify(db: Db, ctx: Ctx, input: NotifyInput): number {
+export function notify<K extends NotificationKind>(
+	db: Db,
+	ctx: Ctx,
+	input: NotifyInput<K>
+): number {
 	const now = ctx.now();
-	const recipients = [...new Set(input.recipients)].filter(
+	const named = [...new Set(input.recipients)].filter(
 		(id) => input.includeActor === true || id !== ctx.membership.id
 	);
+	const recipients = currentMembers(db, ctx.community.id, named);
 
 	for (const recipientMembershipId of recipients) {
 		db.insert(notification)
@@ -75,6 +86,7 @@ export function notify(db: Db, ctx: Ctx, input: NotifyInput): number {
 				subjectType: input.subjectType,
 				subjectId: input.subjectId,
 				summary: input.summary,
+				params: input.params as Record<string, unknown>,
 				createdAt: new Date(now),
 				readAt: null
 			})
@@ -82,6 +94,26 @@ export function notify(db: Db, ctx: Ctx, input: NotifyInput): number {
 	}
 
 	return recipients.length;
+}
+
+/** The ids, of those given, that are current memberships of this community. */
+export function currentMembers(db: Db, communityId: string, ids: string[]): string[] {
+	if (ids.length === 0) return [];
+	const found = new Set(
+		db
+			.select({ id: membership.id })
+			.from(membership)
+			.where(
+				and(
+					eq(membership.communityId, communityId),
+					isNull(membership.endedAt),
+					inArray(membership.id, ids)
+				)
+			)
+			.all()
+			.map((row) => row.id)
+	);
+	return ids.filter((id) => found.has(id));
 }
 
 /** Everyone still in the community. The audience for a decision. */

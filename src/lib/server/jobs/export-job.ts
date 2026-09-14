@@ -71,6 +71,7 @@ export async function runExport(db: Db, payload: ExportPayload, now: number): Pr
 		subjectType: 'export',
 		subjectId: record.id,
 		summary: `Your export of ${home.name} is ready`,
+		params: {},
 		recipients: [seat.id],
 		// The export is the job's outcome, not the member's act: without this
 		// the only recipient is filtered out as "the author" and nothing is written.

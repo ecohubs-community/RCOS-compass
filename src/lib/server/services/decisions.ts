@@ -450,6 +450,10 @@ export function freeze(ctx: Ctx, input: FreezeInput, options: { db?: Db } = {}):
 			subjectType: 'decision',
 			subjectId: decisionId,
 			summary: input.title.trim(),
+			params: {
+				title: input.title.trim(),
+				ref: formatRef(decisionYear(now, ctx.community.timezone), seq)
+			},
 			recipients: activeMemberships(tx as unknown as Db, ctx.community.id)
 		});
 

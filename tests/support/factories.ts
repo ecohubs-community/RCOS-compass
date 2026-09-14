@@ -54,6 +54,7 @@ export function makeCommunity(
 		aiEnabled: false,
 		gitMirrorEnabled: false,
 		publicIndexEnabled: false,
+		claimCompliant: null,
 		maxMembers: null,
 		storageMb: null,
 		aiMonthlyTokens: null,
@@ -82,7 +83,10 @@ export function makeMembership(
 		// membership shape the product could not.
 		seq: nextMembershipSeq(db, communityId),
 		joinedAt: NOW,
-		endedAt: overrides.ended ? NOW : null
+		endedAt: overrides.ended ? NOW : null,
+		emailEnabled: true,
+		digestDay: 1,
+		lastDigestAt: null
 	};
 	db.insert(membership).values(row).run();
 	return row;

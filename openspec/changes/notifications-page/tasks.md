@@ -1,15 +1,15 @@
 ## 0. Prerequisite
 
-- [ ] 0.1 `local-time` is applied: `user.time_zone`, the shared formatter and the account-page setting exist
+- [x] 0.1 `local-time` is applied: `user.time_zone`, the shared formatter and the account-page setting exist
 
 ## 1. The notification model
 
-- [ ] 1.1 Migration: `notification.params` (JSON, nullable); `membership.email_enabled` (default true), `digest_day` (default 1), `last_digest_at`; `community.claim_compliant` (nullable); delete any pending `weekly-digest` job. Hand-check the generated SQL for table rebuilds and restore ON DELETE clauses if drizzle-kit drops them
-- [ ] 1.2 `docs/13-data-inventory.md` rows for the new columns (params can carry titles and filenames; people only as membership ids)
-- [ ] 1.3 One kinds module: `NotificationKind` gains `discussion.reply`, `discussion.mention`, `consent.closing`, `discussion.quiet`, `membership.role_changed`, `claim.withdrawn`, each with a typed params shape; `notify` takes `params`, still writes an English `summary`, and filters recipients to current memberships of `ctx.community` before writing
-- [ ] 1.4 `notificationTarget(ctx, subjectType, subjectId)` → href or null, and a batched `visibleSubjects(ctx, items)` (one query per subject type, through `visibleTo`); `community` subject type for claim and role events
-- [ ] 1.5 `notificationText(kind, params)` through paraglide messages, the stored `summary` as fallback; messages for every kind in en, de and es
-- [ ] 1.6 Tests:
+- [x] 1.1 Migration: `notification.params` (JSON, nullable); `membership.email_enabled` (default true), `digest_day` (default 1), `last_digest_at`; `community.claim_compliant` (nullable); delete any pending `weekly-digest` job. Hand-check the generated SQL for table rebuilds and restore ON DELETE clauses if drizzle-kit drops them
+- [x] 1.2 `docs/13-data-inventory.md` rows for the new columns (params can carry titles and filenames; people only as membership ids)
+- [x] 1.3 One kinds module: `NotificationKind` gains `discussion.reply`, `discussion.mention`, `consent.closing`, `discussion.quiet`, `membership.role_changed`, `claim.withdrawn`, each with a typed params shape; `notify` takes `params`, still writes an English `summary`, and filters recipients to current memberships of `ctx.community` before writing
+- [x] 1.4 `notificationTarget(ctx, subjectType, subjectId)` → href or null, and a batched `visibleSubjects(ctx, items)` (one query per subject type, through `visibleTo`); `community` subject type for claim and role events
+- [x] 1.5 `notificationText(kind, params)` through paraglide messages, the stored `summary` as fallback; messages for every kind in en, de and es
+- [x] 1.6 Tests:
   - migration upgrade test;
   - unit: every kind has a message in every locale and a params shape;
   - integration: `notify` drops ended and foreign memberships; `notificationTarget` is null for a deleted document, a restricted decision and another community's subject; `visibleSubjects` issues one query per type for 200 items

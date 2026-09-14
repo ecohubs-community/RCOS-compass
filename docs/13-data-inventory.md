@@ -28,9 +28,9 @@ omitted — the tables erasure does *not* touch are the interesting ones.
 
 | Table | Holds | Why | On erasure |
 |---|---|---|---|
-| `membership` | `display_name` — the name they chose in this community; `seq`, their number | To name them to other members, and to keep naming them after they are gone | `display_name` is cleared. The row and its number stay: the number is what `Former member (M-0142)` is made of, and the row is what makes a tally true |
+| `membership` | `display_name` — the name they chose in this community; `seq`, their number; `email_enabled`, `digest_day`, `last_digest_at` — their email choices here | To name them to other members, and to keep naming them after they are gone | `display_name` is cleared. The row and its number stay: the number is what `Former member (M-0142)` is made of, and the row is what makes a tally true |
 | `invitation` | an email address, possibly of somebody with no account | To invite them | Any invitation still open to that address is revoked. Accepted and revoked ones keep the address, which is a known limit: they are the record of who was invited to a community and by whom |
-| `notification` | `recipient_membership_id` | To deliver a notification | Untouched: it names a membership, not a person |
+| `notification` | `recipient_membership_id`; `params` — a discussion or decision title, a filename, a count, and people only as membership ids | To deliver a notification and to show it in the community's current language | Untouched: it names memberships, never a name or an address. A title or filename that carries a name is the community's own record, as it is on the screen it came from; people in `params` render through `personLabel`, so an erased member reads as a former member |
 | `ai_call`, `ai_usage` | `actor_id` | To hold one member to their share of a budget | Untouched: an id, and the id survives as a tombstone |
 
 ## 3. What a community wrote

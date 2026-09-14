@@ -146,6 +146,14 @@ function createRound(
 		subjectType: 'discussion',
 		subjectId: input.discussionId,
 		summary: 'A proposal is open for your response',
+		params: {
+			title:
+				tx
+					.select({ title: discussion.title })
+					.from(discussion)
+					.where(eq(discussion.id, input.discussionId))
+					.get()?.title ?? ''
+		},
 		recipients: eligibleIds
 	});
 

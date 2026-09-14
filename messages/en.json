@@ -375,5 +375,22 @@
 	"time_zone_intro": "The community's calendar: review dates fall on its days, and members who have not set their own time zone see times in it. Nothing already recorded changes.",
 	"time_zone_label": "Community time zone",
 	"time_zone_submit": "Use this time zone",
-	"time_zone_saved": "Saved. Calendar dates now follow this time zone."
+	"time_zone_saved": "Saved. Calendar dates now follow this time zone.",
+	"notification_proposal_posted": "A new proposal in “{title}”",
+	"notification_consent_opened": "A proposal in “{title}” is waiting for your response",
+	"notification_consent_closing": "The consent round in “{title}” closes {when}",
+	"notification_decision_frozen": "{ref} recorded: {title}",
+	"notification_review_due": "“{title}” is past its review date",
+	"notification_export_ready": "Your export is ready to download",
+	"notification_scan_complete_one": "Scan of {filename} finished: 1 passage to review",
+	"notification_scan_complete_many": "Scan of {filename} finished: {count} passages to review",
+	"notification_scan_stopped": "Scan of {filename} stopped: {reason}",
+	"notification_reply_one": "A new reply in “{title}”",
+	"notification_reply_many": "{count} new replies in “{title}”",
+	"notification_mention": "{actor} mentioned you in “{title}”",
+	"notification_quiet": "“{title}”, which you opened, has been quiet for two weeks",
+	"notification_role_steward": "You are now a steward of this community",
+	"notification_role_member": "You are now a member of this community, no longer a steward",
+	"notification_claim_withdrawn": "This community no longer meets every mandatory requirement, so its compliance claim is withdrawn",
+	"notification_gone": "No longer available"
 }

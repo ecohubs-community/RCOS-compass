@@ -451,6 +451,55 @@ describe('upgrading a database that already has rows in it', () => {
 		after.close();
 	});
 
+	it('gives every membership email on and a Monday digest, and retires the weekly digest job', () => {
+		const { folder } = previousMigrations('0023_stormy_susan_delgado');
+		const file = join(dir, 'notifications.db');
+
+		const before = new Database(file);
+		before.pragma('foreign_keys = ON');
+		migrate(drizzle(before), { migrationsFolder: folder });
+		before.exec(`
+			insert into community (id, slug, name, locale, timezone, status, publish_names_policy,
+				ai_enabled, git_mirror_enabled, public_index_enabled, created_at, updated_at)
+			values ('c1', 'vv', 'Valle Verde', 'en', 'UTC', 'active', 'roles_and_counts', 0, 0, 0, 1, 1);
+
+			insert into user (id, name, email, email_verified, created_at, updated_at)
+			values ('u1', 'Ana', 'ana@example.org', 1, 1, 1);
+
+			insert into membership (id, community_id, user_id, role, is_owner, rcos_state, joined_at, seq)
+			values ('m1', 'c1', 'u1', 'member', 0, 'full', 1000, 1);
+
+			insert into notification (id, community_id, recipient_membership_id, kind, subject_type,
+				subject_id, summary, created_at)
+			values ('n1', 'c1', 'm1', 'decision.frozen', 'decision', 'd1', 'Spending authority', 1);
+
+			insert into job (id, kind, payload, status, run_after, created_at, updated_at)
+			values ('j1', 'weekly-digest', '{}', 'pending', 9, 1, 1),
+				('j2', 'prune-rate-limits', '{}', 'pending', 9, 1, 1);
+		`);
+		before.close();
+
+		const after = new Database(file);
+		after.pragma('foreign_keys = ON');
+		migrate(drizzle(after), { migrationsFolder: join(ROOT, 'drizzle') });
+
+		expect(
+			after.prepare('select email_enabled, digest_day, last_digest_at from membership').get()
+		).toEqual({ email_enabled: 1, digest_day: 1, last_digest_at: null });
+		expect(after.prepare('select params, summary from notification').get()).toEqual({
+			params: null,
+			summary: 'Spending authority'
+		});
+		expect(after.prepare('select claim_compliant from community').get()).toEqual({
+			claim_compliant: null
+		});
+		expect(after.prepare('select kind from job order by kind').all()).toEqual([
+			{ kind: 'prune-rate-limits' }
+		]);
+		expect(after.pragma('foreign_key_check')).toEqual([]);
+		after.close();
+	});
+
 	it('has a migration for every schema change', () => {
 		// A schema edited without generating a migration is a deploy that works on
 		// the developer's machine and nowhere else.

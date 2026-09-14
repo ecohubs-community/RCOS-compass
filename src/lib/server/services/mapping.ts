@@ -330,6 +330,10 @@ function finish(
 					ending.status === 'complete'
 						? `Scan of ${found.filename} finished: ${open} ${open === 1 ? 'passage' : 'passages'} to review`
 						: `Scan of ${found.filename} stopped: ${ending.reason}`,
+				params:
+					ending.status === 'complete'
+						? { filename: found.filename, outcome: 'complete', open }
+						: { filename: found.filename, outcome: 'stopped', reason: ending.reason },
 				recipients: [ctx.membership.id],
 				includeActor: true
 			});

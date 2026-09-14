@@ -49,6 +49,12 @@ export const community = sqliteTable(
 		publicIndexEnabled: integer('public_index_enabled', { mode: 'boolean' })
 			.notNull()
 			.default(false),
+		/**
+		 * The outward compliance claim as it was last checked, so a change from
+		 * compliant to not compliant can be told to stewards. Null until the first
+		 * check, which records without telling anyone. `notifications-page`.
+		 */
+		claimCompliant: integer('claim_compliant', { mode: 'boolean' }),
 		/** Null means "the instance default"; unlimited during the testing phase. */
 		maxMembers: integer('max_members'),
 		storageMb: integer('storage_mb'),
@@ -151,7 +157,16 @@ export const membership = sqliteTable(
 		seq: integer('seq').notNull().default(0),
 		joinedAt: integer('joined_at', { mode: 'timestamp_ms' }).notNull(),
 		/** Set when someone leaves; the record stays, the access does not. */
-		endedAt: integer('ended_at', { mode: 'timestamp_ms' })
+		endedAt: integer('ended_at', { mode: 'timestamp_ms' }),
+		/**
+		 * Email from this community: on unless the member turns it off. In-app
+		 * notifications cannot be turned off. `notifications-page`.
+		 */
+		emailEnabled: integer('email_enabled', { mode: 'boolean' }).notNull().default(true),
+		/** The weekday their digest arrives on, 0 = Sunday, in their own time zone. */
+		digestDay: integer('digest_day').notNull().default(1),
+		/** When their last digest was sent, so a rerun on the same day sends nothing. */
+		lastDigestAt: integer('last_digest_at', { mode: 'timestamp_ms' })
 	},
 	(table) => [
 		uniqueIndex('membership_community_user_idx').on(table.communityId, table.userId),
