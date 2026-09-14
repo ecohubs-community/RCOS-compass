@@ -48,6 +48,17 @@ export function contrast(a: string, b: string): number {
 	return (light! + 0.05) / (dark! + 0.05);
 }
 
+/** `top` at `alpha` over `under`, as a hex colour — a tinted fill as the eye sees it. */
+function blend(top: string, under: string, alpha: number): string {
+	const rgb = (hex: string) =>
+		[0, 2, 4].map((i) => parseInt(hex.replace('#', '').slice(i, i + 2), 16));
+	const [a, b] = [rgb(top), rgb(under)];
+	return `#${a
+		.map((channel, i) => Math.round(channel * alpha + b[i]! * (1 - alpha)))
+		.map((channel) => channel.toString(16).padStart(2, '0'))
+		.join('')}`;
+}
+
 /** Each pair, with the size it is actually used at. */
 const PAIRS: { fg: string; bg: string; needs: number; where: string }[] = [
 	{ fg: 'fg', bg: 'bg', needs: AA_TEXT, where: 'body text' },
@@ -88,6 +99,24 @@ describe('the design tokens clear AA where they are used', () => {
 			Number(ratio.toFixed(2)),
 			`--color-${fg} on --color-${bg} is ${ratio.toFixed(2)}:1, below ${needs}:1`
 		).toBeGreaterThanOrEqual(needs);
+	});
+
+	/**
+	 * A chip's text sits on its own colour at 12% over a card, not on the card.
+	 * The gallery's axe run found `info` on that tint at 4.3:1; the table above
+	 * could not, because it only compared solid tokens.
+	 */
+	it.each([
+		{ fg: 'info-fg', tint: 'info', over: 'surface' },
+		{ fg: 'info-fg', tint: 'info', over: 'bg' },
+		{ fg: 'accent-fg', tint: 'accent', over: 'surface' },
+		{ fg: 'attention', tint: 'attention', over: 'surface' }
+	])('$fg on a 12% $tint tint over $over — a status chip', ({ fg, tint, over }) => {
+		const ratio = contrast(token(fg), blend(token(tint), token(over), 0.12));
+		expect(
+			Number(ratio.toFixed(2)),
+			`${fg} on its chip is ${ratio.toFixed(2)}:1`
+		).toBeGreaterThanOrEqual(AA_TEXT);
 	});
 
 	it('computes a ratio somebody can check by hand', () => {

@@ -10,6 +10,9 @@ const PORT = 5199;
 export default defineConfig({
 	testDir: 'tests/gallery',
 	fullyParallel: true,
+	// A cold dev server compiles the gallery for four viewports at once; the first
+	// load alone can take most of the default 30 seconds.
+	timeout: 120_000,
 	reporter: 'list',
 	use: { baseURL: `http://localhost:${PORT}` },
 	projects: [

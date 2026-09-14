@@ -23,7 +23,7 @@
 		not_started: 'bg-fg-muted/12 text-fg-secondary border-transparent',
 		drafting: 'bg-fg-secondary/10 text-fg-secondary border-transparent',
 		in_discussion: 'bg-attention-subtle text-attention border-transparent',
-		in_vote: 'bg-info-subtle text-info border-transparent',
+		in_vote: 'bg-info-subtle text-info-fg border-transparent',
 		adopted: 'bg-accent-subtle text-accent-fg border-transparent',
 		// Outlined rather than filled: it is a call to act, not a state of rest.
 		needs_review: 'bg-transparent text-attention border-attention/50'
