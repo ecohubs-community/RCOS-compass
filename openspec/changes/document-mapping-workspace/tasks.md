@@ -39,14 +39,14 @@
 
 ## 6. Evidence acts
 
-- [ ] 6.1 `changeClause`: dismiss the suggestion and confirm the chosen clause for the passage in one transaction, reusing any existing pairing row
-- [ ] 6.2 `dismissPassage`: dismiss every `suggested` row on a passage, leaving `confirmed` rows
-- [ ] 6.3 `mapPassage` optional excerpt range, validated
-- [ ] 6.4 `reconfirmCandidates` (same document via `evidence.document_id`, `sha256(quote)` equals a current `text_hash`) and `reconfirm`, confirming an existing pairing instead of repointing when one exists, and repointing `definition_source.passage_id` where it pointed at the old passage
-- [ ] 6.5 Rewire `definitionOrigin` through `definition_source.evidence_id` → `evidence.document_id` so a definition's "from bylaws-2019.pdf, page 4" line survives replace, restore and re-read (today it inner-joins `passage` and silently vanishes); fall back to quote + document name when the passage is gone; link with `?passage=` when it exists
-- [ ] 6.6 Export `resolveClause` from `services/evidence.ts` (it is private today)
-- [ ] 6.7 Register every new act in the tenant registry
-- [ ] 6.8 Tests: change clause is atomic, reuses a dismissed pairing, refuses an unknown ref leaving the suggestion open, refuses without `mapping.confirm`, answers not found cross-tenant; not governance leaves confirmed rows; out-of-range excerpt refused; an unchanged paragraph after replacement is offered and stays stale until re-confirmed; re-confirming where a new scan suggested the same pairing confirms that row with no constraint error; a changed paragraph is not offered; cross-tenant re-confirm answers not found; no act moves readiness; a definition keeps its origin line after its document is replaced and after a re-read
+- [x] 6.1 `changeClause`: dismiss the suggestion and confirm the chosen clause for the passage in one transaction, reusing any existing pairing row
+- [x] 6.2 `dismissPassage`: dismiss every `suggested` row on a passage, leaving `confirmed` rows
+- [x] 6.3 `mapPassage` optional excerpt range, validated
+- [x] 6.4 `reconfirmCandidates` (same document via `evidence.document_id`, `sha256(quote)` equals a current `text_hash`) and `reconfirm`, confirming an existing pairing instead of repointing when one exists, and repointing `definition_source.passage_id` where it pointed at the old passage
+- [x] 6.5 Rewire `definitionOrigin` through `definition_source.evidence_id` → `evidence.document_id` so a definition's "from bylaws-2019.pdf, page 4" line survives replace, restore and re-read (today it inner-joins `passage` and silently vanishes); fall back to quote + document name when the passage is gone; link with `?passage=` when it exists
+- [x] 6.6 Export `resolveClause` from `services/evidence.ts` (it is private today)
+- [x] 6.7 Register every new act in the tenant registry
+- [x] 6.8 Tests: change clause is atomic, reuses a dismissed pairing, refuses an unknown ref leaving the suggestion open, refuses without `mapping.confirm`, answers not found cross-tenant; not governance leaves confirmed rows; out-of-range excerpt refused; an unchanged paragraph after replacement is offered and stays stale until re-confirmed; re-confirming where a new scan suggested the same pairing confirms that row with no constraint error; a changed paragraph is not offered; cross-tenant re-confirm answers not found; no act moves readiness; a definition keeps its origin line after its document is replaced and after a re-read
 
 ## 7. Versions, replace and restore
 

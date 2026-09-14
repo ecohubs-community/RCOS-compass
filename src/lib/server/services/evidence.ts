@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto';
 import { and, eq, inArray, ne } from 'drizzle-orm';
 import { error } from '@sveltejs/kit';
 import { requirePermission, requireWritableCommunity, type Ctx } from '../auth/guard.js';
@@ -66,7 +67,7 @@ export function getEvidence(ctx: Ctx, evidenceId: string, options: { db?: Db } =
  * The same rule discussions follow, for the same reason: members type what they
  * can see.
  */
-function resolveClause(db: Db, ctx: Ctx, typed: string) {
+export function resolveClause(db: Db, ctx: Ctx, typed: string) {
 	const standard = activeStandardView(db, ctx);
 	if (!standard) error(409, 'This community has not adopted a standard yet.');
 
@@ -86,7 +87,7 @@ function resolveClause(db: Db, ctx: Ctx, typed: string) {
  */
 export function mapPassage(
 	ctx: Ctx,
-	input: { passageId: string; clause: string },
+	input: { passageId: string; clause: string; excerpt?: { start: number; end: number } | null },
 	options: { db?: Db } = {}
 ): Evidence {
 	requirePermission(ctx, 'mapping.confirm');
@@ -101,6 +102,13 @@ export function mapPassage(
 		error(400, 'A heading is not mapped to a clause. Map the paragraph under it.');
 	}
 	const { standard, clause } = resolveClause(db, ctx, input.clause);
+	const excerpt = input.excerpt ?? null;
+	if (excerpt && !validExcerpt(excerpt, found.text)) {
+		error(
+			400,
+			'That selection is not part of this passage. Select words inside it, or map it whole.'
+		);
+	}
 
 	const id = newId();
 	db.insert(evidence)
@@ -110,6 +118,8 @@ export function mapPassage(
 			passageId: found.id,
 			documentId: found.documentId,
 			quote: found.text,
+			excerptStart: excerpt?.start ?? null,
+			excerptEnd: excerpt?.end ?? null,
 			communityStandardId: standard.row.id,
 			clauseKey: clause.key,
 			state: 'confirmed',
@@ -121,7 +131,12 @@ export function mapPassage(
 		})
 		.onConflictDoUpdate({
 			target: [evidence.communityId, evidence.passageId, evidence.clauseKey],
-			set: { state: 'confirmed', confirmedBy: ctx.user.id, confirmedAt: new Date(now) }
+			set: {
+				state: 'confirmed',
+				confirmedBy: ctx.user.id,
+				confirmedAt: new Date(now),
+				...(excerpt ? { excerptStart: excerpt.start, excerptEnd: excerpt.end } : {})
+			}
 		})
 		.run();
 
@@ -137,6 +152,254 @@ export function mapPassage(
 		)
 		.get()!;
 }
+
+/** An excerpt range lies inside the passage it claims to be part of. */
+function validExcerpt(range: { start: number; end: number }, text: string): boolean {
+	return (
+		Number.isInteger(range.start) &&
+		Number.isInteger(range.end) &&
+		range.start >= 0 &&
+		range.start < range.end &&
+		range.end <= text.length
+	);
+}
+
+/**
+ * A person answers a suggestion with a different clause — "not §3.3.2, §3.6.2".
+ *
+ * One transaction, two acts that belong together: the model's pairing is
+ * dismissed (and stays on record as the thing a person corrected), and the
+ * clause the person chose is confirmed for the same passage. An existing row for
+ * that pairing is reused whatever its state — the (passage, clause) pair is
+ * unique, and a second row beside a dismissed one would be a duplicate claim.
+ */
+export function changeClause(
+	ctx: Ctx,
+	evidenceId: string,
+	clauseTyped: string,
+	options: { db?: Db } = {}
+): Evidence {
+	requirePermission(ctx, 'mapping.confirm');
+	requireWritableCommunity(ctx);
+	const db = options.db ?? getDb();
+	const now = new Date(ctx.now());
+
+	const found = getEvidence(ctx, evidenceId, { db });
+	if (found.passageId === null) {
+		error(409, 'The passage behind this evidence is gone; there is nothing left to answer.');
+	}
+	const { standard, clause } = resolveClause(db, ctx, clauseTyped);
+	if (clause.key === found.clauseKey) return confirmEvidence(ctx, evidenceId, { db });
+
+	return db.transaction((tx) => {
+		tx.update(evidence)
+			.set({ state: 'dismissed', confirmedBy: ctx.user.id, confirmedAt: now })
+			.where(eq(evidence.id, found.id))
+			.run();
+
+		tx.insert(evidence)
+			.values({
+				id: newId(),
+				communityId: ctx.community.id,
+				passageId: found.passageId,
+				documentId: found.documentId,
+				quote: found.quote,
+				excerptStart: found.excerptStart,
+				excerptEnd: found.excerptEnd,
+				communityStandardId: standard.row.id,
+				clauseKey: clause.key,
+				state: 'confirmed',
+				confidence: null,
+				reason: null,
+				suggestedBy: 'human',
+				confirmedBy: ctx.user.id,
+				confirmedAt: now,
+				createdAt: now
+			})
+			.onConflictDoUpdate({
+				target: [evidence.communityId, evidence.passageId, evidence.clauseKey],
+				set: { state: 'confirmed', confirmedBy: ctx.user.id, confirmedAt: now }
+			})
+			.run();
+
+		reached(tx as unknown as Db, ctx.community.id, 'mapping.confirmed', ctx.now());
+		return tx
+			.select()
+			.from(evidence)
+			.where(
+				and(
+					eq(evidence.communityId, ctx.community.id),
+					eq(evidence.passageId, found.passageId!),
+					eq(evidence.clauseKey, clause.key)
+				)
+			)
+			.get()!;
+	});
+}
+
+/**
+ * "Not governance" — every open suggestion on a passage dismissed at once.
+ *
+ * Confirmed claims are left exactly as they are: a member who confirmed one
+ * pairing has said something, and a later "not governance" on the same passage
+ * is about the model's other guesses, not about that.
+ */
+export function dismissPassage(ctx: Ctx, passageId: string, options: { db?: Db } = {}): number {
+	requirePermission(ctx, 'mapping.confirm');
+	requireWritableCommunity(ctx);
+	const db = options.db ?? getDb();
+
+	const found = passageInCommunity(db, ctx, passageId);
+	return db
+		.update(evidence)
+		.set({ state: 'dismissed', confirmedBy: ctx.user.id, confirmedAt: new Date(ctx.now()) })
+		.where(
+			and(
+				eq(evidence.communityId, ctx.community.id),
+				eq(evidence.passageId, found.id),
+				eq(evidence.state, 'suggested')
+			)
+		)
+		.run().changes;
+}
+
+export type ReconfirmCandidate = {
+	evidenceId: string;
+	passageId: string;
+	clauseKey: string;
+	clauseRef: string;
+	quote: string;
+	confirmedBy: string | null;
+	confirmedAt: number | null;
+};
+
+/**
+ * Stale claims about this document whose words are still there, unchanged.
+ *
+ * After a replacement, restore or re-read, a claim about "A member may leave at
+ * any time…" points nowhere — but if the new file says exactly that, a member
+ * should be able to put the claim back with one click instead of mapping it
+ * again. Matched by the hash of the quote against the current passages' text
+ * hashes, within the same document only; never automatic, because a claim
+ * silently re-pointed is a claim nobody re-made.
+ */
+export function reconfirmCandidates(
+	ctx: Ctx,
+	documentId: string,
+	options: { db?: Db } = {}
+): ReconfirmCandidate[] {
+	const db = options.db ?? getDb();
+	getDocument(ctx, documentId, { db });
+
+	const stale = db
+		.select()
+		.from(evidence)
+		.where(
+			and(
+				eq(evidence.communityId, ctx.community.id),
+				eq(evidence.documentId, documentId),
+				eq(evidence.state, 'stale')
+			)
+		)
+		.all();
+	if (stale.length === 0) return [];
+
+	const byHash = new Map(
+		db
+			.select({ id: passage.id, textHash: passage.textHash })
+			.from(passage)
+			.where(and(eq(passage.documentId, documentId), eq(passage.kind, 'paragraph')))
+			.all()
+			.map((row) => [row.textHash, row.id])
+	);
+	const standard = activeStandardView(db, ctx);
+
+	return stale.flatMap((row) => {
+		const passageId = byHash.get(sha256(row.quote));
+		if (!passageId) return [];
+		return [
+			{
+				evidenceId: row.id,
+				passageId,
+				clauseKey: row.clauseKey,
+				clauseRef: standard?.view.clause(row.clauseKey)?.ref ?? row.clauseKey,
+				quote: row.quote,
+				confirmedBy: row.confirmedBy,
+				confirmedAt: row.confirmedAt?.getTime() ?? null
+			}
+		];
+	});
+}
+
+/**
+ * Put a stale claim back against the passage that still says the same thing.
+ *
+ * If that passage already has a row for the same clause — a scan after the
+ * replacement suggested it again — that row is confirmed instead, and the stale
+ * one stays stale: repointing it would collide with the unique pairing. Either
+ * way a definition drafted from the old claim is pointed at the passage again,
+ * so its provenance links to a page that exists.
+ */
+export function reconfirmStale(ctx: Ctx, evidenceId: string, options: { db?: Db } = {}): Evidence {
+	requirePermission(ctx, 'mapping.confirm');
+	requireWritableCommunity(ctx);
+	const db = options.db ?? getDb();
+	const now = new Date(ctx.now());
+
+	const found = getEvidence(ctx, evidenceId, { db });
+	if (found.state !== 'stale' || found.documentId === null) {
+		error(409, 'Only a claim whose passage is gone can be re-confirmed.');
+	}
+	const candidate = reconfirmCandidates(ctx, found.documentId, { db }).find(
+		(item) => item.evidenceId === found.id
+	);
+	if (!candidate) {
+		error(409, 'The new file does not say this any more, so it cannot be re-confirmed as it was.');
+	}
+
+	return db.transaction((tx) => {
+		const existing = tx
+			.select()
+			.from(evidence)
+			.where(
+				and(
+					eq(evidence.communityId, ctx.community.id),
+					eq(evidence.passageId, candidate.passageId),
+					eq(evidence.clauseKey, found.clauseKey)
+				)
+			)
+			.get();
+
+		let confirmedId: string;
+		if (existing) {
+			tx.update(evidence)
+				.set({ state: 'confirmed', confirmedBy: ctx.user.id, confirmedAt: now })
+				.where(eq(evidence.id, existing.id))
+				.run();
+			confirmedId = existing.id;
+		} else {
+			tx.update(evidence)
+				.set({
+					state: 'confirmed',
+					passageId: candidate.passageId,
+					confirmedBy: ctx.user.id,
+					confirmedAt: now
+				})
+				.where(eq(evidence.id, found.id))
+				.run();
+			confirmedId = found.id;
+		}
+
+		tx.update(definitionSource)
+			.set({ passageId: candidate.passageId, evidenceId: confirmedId })
+			.where(eq(definitionSource.evidenceId, found.id))
+			.run();
+
+		return tx.select().from(evidence).where(eq(evidence.id, confirmedId)).get()!;
+	});
+}
+
+const sha256 = (text: string) => createHash('sha256').update(text).digest('hex');
 
 /** A person agrees with a suggestion. The only road from `suggested` up. */
 export function confirmEvidence(ctx: Ctx, evidenceId: string, options: { db?: Db } = {}): Evidence {
@@ -430,20 +693,47 @@ registerTenantService({
 	call: (ctx, subjectId) => mapPassage(ctx, { passageId: subjectId, clause: '2.1.1' })
 });
 registerTenantService({
+	name: 'evidence.changeClause',
+	subject: 'evidence',
+	call: (ctx, subjectId) => changeClause(ctx, subjectId, '2.1.1')
+});
+registerTenantService({
+	name: 'evidence.dismissPassage',
+	subject: 'passage',
+	call: dismissPassage
+});
+registerTenantService({
+	name: 'evidence.reconfirmCandidates',
+	subject: 'document',
+	call: reconfirmCandidates
+});
+registerTenantService({ name: 'evidence.reconfirm', subject: 'evidence', call: reconfirmStale });
+registerTenantService({
 	name: 'evidence.forDocument',
 	subject: 'document',
 	call: evidenceForDocument
 });
 
-export type DefinitionOrigin = { documentId: string; filename: string; page: number };
+export type DefinitionOrigin = {
+	documentId: string;
+	filename: string;
+	/** Where the words still are, when they still are. */
+	passageId: string | null;
+	page: number | null;
+	/** What the community's document said, kept on the claim whatever became of the passage. */
+	quote: string;
+};
 
 /**
- * The passage a definition's text began as, if it began as one.
+ * The document a definition's text began as, if it began as one.
  *
  * Shown on the definition screen so a reader can get from the wording back to
  * the community's own 2019 bylaws — the provenance the `definitions` spec asks
- * a version to record. Null once the document is gone, which is honest: the
- * evidence keeps its quote, but there is no longer a page to point at.
+ * a version to record. Found through the claim's own `document_id`, not the
+ * passage: a replaced file or a re-read removes passages, and a provenance line
+ * that vanished with them would be exactly the history this is for. When the
+ * passage is gone the quote stands in for the page; only when the document
+ * itself is destroyed is there nothing left to name.
  */
 export function definitionOrigin(
 	ctx: Ctx,
@@ -457,10 +747,10 @@ export function definitionOrigin(
 	getDefinition(ctx, definitionId, { db });
 
 	const found = db
-		.select({ passage, document })
+		.select({ source: definitionSource, claim: evidence, document })
 		.from(definitionSource)
-		.innerJoin(passage, eq(passage.id, definitionSource.passageId))
-		.innerJoin(document, eq(document.id, passage.documentId))
+		.innerJoin(evidence, eq(evidence.id, definitionSource.evidenceId))
+		.innerJoin(document, eq(document.id, evidence.documentId))
 		.where(
 			and(
 				eq(definitionSource.definitionId, definitionId),
@@ -468,11 +758,17 @@ export function definitionOrigin(
 			)
 		)
 		.get();
-
 	if (!found) return null;
+
+	const at = found.source.passageId
+		? db.select().from(passage).where(eq(passage.id, found.source.passageId)).get()
+		: undefined;
+
 	return {
 		documentId: found.document.id,
 		filename: found.document.filename,
-		page: found.passage.page
+		passageId: at?.id ?? null,
+		page: at?.page ?? null,
+		quote: found.claim.quote
 	};
 }

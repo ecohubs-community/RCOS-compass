@@ -200,10 +200,18 @@
 				<h3 class="text-fg-muted text-meta mt-1">Draft — not adopted</h3>
 				{#if data.origin}
 					<p class="text-fg-secondary text-meta mt-1">
-						From your own <a
-							href={links.document(slug, data.origin.documentId)}
-							class="underline underline-offset-2">{data.origin.filename}</a
-						>, page {data.origin.page}.
+						{#if data.origin.passageId}
+							From your own <a
+								href="{links.document(slug, data.origin.documentId)}?passage={data.origin
+									.passageId}"
+								class="underline underline-offset-2">{data.origin.filename}</a
+							>, page {data.origin.page}.
+						{:else}
+							From your own <a
+								href={links.document(slug, data.origin.documentId)}
+								class="underline underline-offset-2">{data.origin.filename}</a
+							>, which said: “{data.origin.quote}”
+						{/if}
 					</p>
 				{/if}
 				{#if data.draft.written}
