@@ -82,4 +82,13 @@
 	<title>RCOS Compass</title>
 </svelte:head>
 
-{@render children()}
+<!--
+	Rendered again when the language changes. Messages are plain function calls,
+	so a label computed once stays in the old language until something it reads
+	changes: the community nav kept English after a steward chose German, for as
+	long as nothing else on it happened to move. A language change is rare and
+	deliberate, and the whole interface answering it is the point.
+-->
+{#key data.locale}
+	{@render children()}
+{/key}
