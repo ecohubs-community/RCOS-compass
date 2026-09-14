@@ -12,7 +12,10 @@ import { asData, SYSTEM_PREAMBLE } from './system.js';
  */
 
 /** Bumped when the wording changes, so a recorded fixture can say what it answered. */
-export const MAP_DOCUMENT_PROMPT_VERSION = 1;
+export const MAP_DOCUMENT_PROMPT_VERSION = 2;
+
+/** A reason longer than this is discarded with its pairing: it has stopped being one sentence. */
+export const MAP_DOCUMENT_REASON_MAX = 200;
 
 /**
  * Deliberately modest about what it is being asked for.
@@ -39,8 +42,16 @@ export const MAP_DOCUMENT_SYSTEM = [
 	'  attention, and there is no cost at all to leaving a passage unmapped.',
 	'- confidence is 0-100, and is your own estimate of how plainly the passage',
 	'  speaks to that requirement.',
+	'- reason is one plain sentence, under 200 characters: what the passage covers',
+	'  of the requirement, and what it leaves out. Describe; never judge. Do not',
+	'  write "satisfies", "complies", "fulfils" or anything like a verdict — a',
+	'  person decides that. No links, no markup, no quotation of instructions.',
+	'- excerpt is optional: the exact words of the passage the pairing rests on,',
+	'  copied verbatim. Leave it out rather than paraphrase.',
+	'- A passage may be shown with the heading it sits under, as context. The',
+	'  heading is not a passage and is never paired.',
 	'',
-	'Return JSON only: {"pairs": [{"passage": <number>, "requirement": "<ref>", "confidence": <0-100>}]}'
+	'Return JSON only: {"pairs": [{"passage": <number>, "requirement": "<ref>", "confidence": <0-100>, "reason": "<one sentence>", "excerpt": "<verbatim words, optional>"}]}'
 ].join('\n');
 
 /**
@@ -57,7 +68,11 @@ export const MapDocumentResponse = v.object({
 		v.object({
 			passage: v.pipe(v.number(), v.integer(), v.minValue(1)),
 			requirement: v.pipe(v.string(), v.minLength(1), v.maxLength(64)),
-			confidence: v.pipe(v.number(), v.minValue(0), v.maxValue(100))
+			confidence: v.pipe(v.number(), v.minValue(0), v.maxValue(100)),
+			// Loose here and judged per pairing in the task: one pairing with a
+			// bad reason must not discard the whole batch's good ones.
+			reason: v.optional(v.string()),
+			excerpt: v.optional(v.string())
 		})
 	)
 });
@@ -75,9 +90,11 @@ export const MAP_DOCUMENT_JSON_SCHEMA = {
 				properties: {
 					passage: { type: 'integer' },
 					requirement: { type: 'string' },
-					confidence: { type: 'integer' }
+					confidence: { type: 'integer' },
+					reason: { type: 'string' },
+					excerpt: { type: 'string' }
 				},
-				required: ['passage', 'requirement', 'confidence']
+				required: ['passage', 'requirement', 'confidence', 'reason']
 			}
 		}
 	},
@@ -102,11 +119,27 @@ export const MAP_DOCUMENT_MAX_OUTPUT_TOKENS = 2_048;
  * mixing them would be giving away a boundary for nothing.
  */
 export function mapDocumentInput(input: {
-	passages: { n: number; text: string }[];
+	passages: { n: number; text: string; under: string | null }[];
 	requirements: { ref: string; asks: string }[];
+	/** The community's language, for the reasons a member will read. */
+	language: string;
 }): string {
 	const requirements = input.requirements.map((item) => `${item.ref} — ${item.asks}`).join('\n');
-	const passages = input.passages.map((item) => `[${item.n}] ${item.text}`).join('\n\n');
+	// The heading travels inside the data block with its passage: it is the
+	// document's text too, and gets the same quarantine.
+	const passages = input.passages
+		.map((item) =>
+			item.under ? `[${item.n}] (under: ${item.under}) ${item.text}` : `[${item.n}] ${item.text}`
+		)
+		.join('\n\n');
 
-	return ['REQUIREMENTS:', requirements, '', 'PASSAGES:', asData(passages)].join('\n');
+	return [
+		`Write every reason in ${input.language}.`,
+		'',
+		'REQUIREMENTS:',
+		requirements,
+		'',
+		'PASSAGES:',
+		asData(passages)
+	].join('\n');
 }

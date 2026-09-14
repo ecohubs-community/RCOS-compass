@@ -5,6 +5,7 @@ import { getLogger } from '../../logger.js';
 import {
 	MAP_DOCUMENT_JSON_SCHEMA,
 	MAP_DOCUMENT_MAX_OUTPUT_TOKENS,
+	MAP_DOCUMENT_REASON_MAX,
 	MAP_DOCUMENT_SYSTEM,
 	MapDocumentResponse,
 	mapDocumentInput
@@ -29,7 +30,77 @@ import { runAiTask } from '../run.js';
  * far as a suggestion nobody made and then stops.
  */
 
-export type Suggestion = { passageId: string; clauseKey: string; confidence: number };
+export type Suggestion = {
+	passageId: string;
+	clauseKey: string;
+	confidence: number;
+	/** One plain sentence, normalised. Always present: a pairing without one is discarded. */
+	reason: string;
+	/** Offsets into the passage text, when the model quoted words that are really there. */
+	excerpt: { start: number; end: number } | null;
+};
+
+/** The languages a community can choose, as a model is told them. */
+const LANGUAGE: Record<string, string> = { en: 'English', de: 'German', es: 'Spanish' };
+
+/**
+ * A reason as it will be stored and shown: control characters and newlines
+ * collapsed, trimmed. Null when nothing usable is left or it runs long — the
+ * pairing is then discarded, because a suggestion that cannot explain itself is
+ * not one a member can judge.
+ */
+export function cleanReason(raw: string | undefined): string | null {
+	if (typeof raw !== 'string') return null;
+	// Control characters by code point rather than in a regex class, which the
+	// linter rightly distrusts: they become spaces, then whitespace collapses.
+	const spaced = [...raw]
+		.map((ch) => {
+			const code = ch.codePointAt(0)!;
+			return code < 0x20 || code === 0x7f ? ' ' : ch;
+		})
+		.join('');
+	const clean = spaced.replace(/\s+/g, ' ').trim();
+	if (clean.length === 0 || clean.length > MAP_DOCUMENT_REASON_MAX) return null;
+	return clean;
+}
+
+/**
+ * Where the model's excerpt really sits in the passage, ignoring differences of
+ * whitespace — or null when those words are not there. A model paraphrasing
+ * into the "excerpt" field would otherwise highlight words the community never
+ * wrote. The offsets are into the original text, so the highlight is exact.
+ */
+export function locateExcerpt(
+	passage: string,
+	excerpt: string | undefined
+): { start: number; end: number } | null {
+	if (typeof excerpt !== 'string') return null;
+	const needle = excerpt.replace(/\s+/g, ' ').trim();
+	if (needle.length === 0) return null;
+
+	// Collapse the passage the same way, remembering each kept character's origin.
+	let collapsed = '';
+	const origin: number[] = [];
+	let inSpace = false;
+	for (let i = 0; i < passage.length; i++) {
+		const ch = passage[i]!;
+		if (/\s/.test(ch)) {
+			if (!inSpace && collapsed.length > 0) {
+				collapsed += ' ';
+				origin.push(i);
+			}
+			inSpace = true;
+		} else {
+			collapsed += ch;
+			origin.push(i);
+			inSpace = false;
+		}
+	}
+
+	const at = collapsed.indexOf(needle);
+	if (at < 0) return null;
+	return { start: origin[at]!, end: origin[at + needle.length - 1]! + 1 };
+}
 
 export type MappingBatch = {
 	/** Whatever survived validation. Empty is a perfectly good answer. */
@@ -51,14 +122,19 @@ export type MappingBatch = {
 export async function suggestMappings(
 	ctx: Ctx,
 	input: {
-		passages: { id: string; text: string }[];
+		/** Only paragraphs are numbered; a heading arrives as another passage's `under`. */
+		passages: { id: string; text: string; kind: 'heading' | 'paragraph'; under: string | null }[];
 		requirements: { key: string; ref: string; asks: string }[];
 	},
 	options: { db?: Db } = {}
 ): Promise<MappingBatch> {
 	const none = (result: AiResult): MappingBatch => ({ suggestions: [], result, discarded: 0 });
 
-	if (input.passages.length === 0 || input.requirements.length === 0) {
+	// Defended here as well as by the caller: a heading is never a candidate,
+	// whoever hands one over.
+	const candidates = input.passages.filter((passage) => passage.kind === 'paragraph');
+
+	if (candidates.length === 0 || input.requirements.length === 0) {
 		return none({
 			ok: false,
 			reason: 'There is nothing here to map.',
@@ -71,8 +147,8 @@ export async function suggestMappings(
 	// Numbered for the model, resolved back to ids here. The model never sees an
 	// identifier from our database, which keeps its output from being able to
 	// name a row it was not shown.
-	const numbered = input.passages.map((passage, index) => ({ n: index + 1, ...passage }));
-	const byNumber = new Map(numbered.map((passage) => [passage.n, passage.id]));
+	const numbered = candidates.map((passage, index) => ({ n: index + 1, ...passage }));
+	const byNumber = new Map(numbered.map((passage) => [passage.n, passage]));
 	const byRef = new Map(input.requirements.map((item) => [item.ref, item.key]));
 
 	const result = await runAiTask(
@@ -81,8 +157,9 @@ export async function suggestMappings(
 			task: 'map-document',
 			system: MAP_DOCUMENT_SYSTEM,
 			input: mapDocumentInput({
-				passages: numbered.map(({ n, text }) => ({ n, text })),
-				requirements: input.requirements.map(({ ref, asks }) => ({ ref, asks }))
+				passages: numbered.map(({ n, text, under }) => ({ n, text, under })),
+				requirements: input.requirements.map(({ ref, asks }) => ({ ref, asks })),
+				language: LANGUAGE[ctx.community.locale] ?? 'English'
 			}),
 			json: MAP_DOCUMENT_JSON_SCHEMA,
 			maxOutputTokens: MAP_DOCUMENT_MAX_OUTPUT_TOKENS
@@ -103,22 +180,30 @@ export async function suggestMappings(
 	let discarded = 0;
 
 	for (const pair of parsed.pairs) {
-		const passageId = byNumber.get(pair.passage);
+		const passage = byNumber.get(pair.passage);
 		const clauseKey = byRef.get(pair.requirement.trim());
+		const reason = cleanReason(pair.reason);
 
 		// Anything naming something we did not send is dropped. This is where a
 		// document's instructions to the model die: it can ask for whatever it
-		// likes, and only pairs drawn from what we supplied survive.
-		if (!passageId || !clauseKey) {
+		// likes, and only pairs drawn from what we supplied survive. A pairing
+		// that cannot say why is dropped the same way.
+		if (!passage || !clauseKey || reason === null) {
 			discarded += 1;
 			continue;
 		}
 
-		const key = `${passageId}:${clauseKey}`;
+		const key = `${passage.id}:${clauseKey}`;
 		if (seen.has(key)) continue;
 		seen.add(key);
 
-		suggestions.push({ passageId, clauseKey, confidence: Math.round(pair.confidence) });
+		suggestions.push({
+			passageId: passage.id,
+			clauseKey,
+			confidence: Math.round(pair.confidence),
+			reason,
+			excerpt: locateExcerpt(passage.text, pair.excerpt)
+		});
 	}
 
 	if (discarded > 0) {

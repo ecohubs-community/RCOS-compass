@@ -275,7 +275,9 @@ describe('the answers stay inside the community', () => {
 			await suggestMappings(
 				on,
 				{
-					passages: [{ id: 'p1', text: 'We hold the land in common.' }],
+					passages: [
+						{ id: 'p1', text: 'We hold the land in common.', kind: 'paragraph', under: null }
+					],
 					requirements: [{ key: COUNTABLE.key, ref: COUNTABLE.ref, asks: 'Who may leave?' }]
 				},
 				{ db }

@@ -24,10 +24,10 @@
 
 ## 4. The mapping task explains itself
 
-- [ ] 4.1 Prompt v2 in `ai/prompts/map-document.ts`: one-sentence reason in the community locale with no verdict words, optional verbatim excerpt, `under` heading per passage; Valibot and JSON schemas updated
-- [ ] 4.2 `ai/tasks/map-document.ts`: discard pairings with no or over-long reason after normalising; resolve the excerpt with whitespace-normalised matching, dropping it when absent; never number `heading` passages
-- [ ] 4.3 Update the fixture provider and recorded fixtures to prompt v2
-- [ ] 4.4 Tests: reason and excerpt stored; invented excerpt dropped, suggestion kept; missing or long reason discarded and logged; the injection fixture demanding a link or HTML in the reason yields literal text; headings never numbered; no load returns `confidence`
+- [x] 4.1 Prompt v2 in `ai/prompts/map-document.ts`: one-sentence reason in the community locale with no verdict words, optional verbatim excerpt, `under` heading per passage; Valibot and JSON schemas updated
+- [x] 4.2 `ai/tasks/map-document.ts`: discard pairings with no or over-long reason after normalising; resolve the excerpt with whitespace-normalised matching, dropping it when absent; never number `heading` passages
+- [x] 4.3 Update the fixture provider and recorded fixtures to prompt v2
+- [x] 4.4 Tests: reason and excerpt stored; invented excerpt dropped, suggestion kept; missing or long reason discarded and logged; the injection fixture demanding a link or HTML in the reason yields literal text; headings never numbered; no load returns `confidence` (asserted with the workspace load in 10.9)
 
 ## 5. The scan job
 

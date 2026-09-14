@@ -126,7 +126,8 @@ describe('a document that tells the model what to do', () => {
 				pairs: view.countableClauses().map((clause, i) => ({
 					passage: (i % 5) + 1,
 					requirement: clause.ref,
-					confidence: 100
+					confidence: 100,
+					reason: 'Names how a member leaves, not how shares are settled.'
 				}))
 			})
 		);
@@ -179,8 +180,18 @@ describe('what comes back is not trusted', () => {
 			modelSaying(
 				JSON.stringify({
 					pairs: [
-						{ passage: 1, requirement: '99.99.99', confidence: 100 },
-						{ passage: 1, requirement: 'ALL', confidence: 100 }
+						{
+							passage: 1,
+							requirement: '99.99.99',
+							confidence: 100,
+							reason: 'Names how a member leaves, not how shares are settled.'
+						},
+						{
+							passage: 1,
+							requirement: 'ALL',
+							confidence: 100,
+							reason: 'Names how a member leaves, not how shares are settled.'
+						}
 					]
 				})
 			)
@@ -197,7 +208,16 @@ describe('what comes back is not trusted', () => {
 	it('discards a passage number it was never given', async () => {
 		setAiProviderForTests(
 			modelSaying(
-				JSON.stringify({ pairs: [{ passage: 999, requirement: '2.1.1', confidence: 90 }] })
+				JSON.stringify({
+					pairs: [
+						{
+							passage: 999,
+							requirement: '2.1.1',
+							confidence: 90,
+							reason: 'Names how a member leaves, not how shares are settled.'
+						}
+					]
+				})
 			)
 		);
 
@@ -225,7 +245,16 @@ describe('what comes back is not trusted', () => {
 		setAiProviderForTests(
 			modelSaying(
 				'```json\n' +
-					JSON.stringify({ pairs: [{ passage: 1, requirement: clause.ref, confidence: 80 }] }) +
+					JSON.stringify({
+						pairs: [
+							{
+								passage: 1,
+								requirement: clause.ref,
+								confidence: 80,
+								reason: 'Names how a member leaves, not how shares are settled.'
+							}
+						]
+					}) +
 					'\n```'
 			)
 		);
@@ -241,7 +270,16 @@ describe('a run a person then reads', () => {
 		const clause = view.countableClauses()[0]!;
 		setAiProviderForTests(
 			modelSaying(
-				JSON.stringify({ pairs: [{ passage: 1, requirement: clause.ref, confidence: 85 }] })
+				JSON.stringify({
+					pairs: [
+						{
+							passage: 1,
+							requirement: clause.ref,
+							confidence: 85,
+							reason: 'Names how a member leaves, not how shares are settled.'
+						}
+					]
+				})
 			)
 		);
 
@@ -258,6 +296,73 @@ describe('a run a person then reads', () => {
 		expect(languageCoverage(ctx, { db }).have).toBe(1);
 	});
 
+	it('stores the reason and a verbatim excerpt, and drops an invented one', async () => {
+		const clause = view.countableClauses()[0]!;
+		const other = view.countableClauses()[1]!;
+		setAiProviderForTests(
+			modelSaying(
+				JSON.stringify({
+					pairs: [
+						{
+							passage: 1,
+							requirement: clause.ref,
+							confidence: 80,
+							reason: 'Says who shares what.',
+							excerpt: 'Members of Valle Verde share the common house'
+						},
+						{
+							passage: 1,
+							requirement: other.ref,
+							confidence: 60,
+							reason: 'Mentions shared spaces.',
+							excerpt: 'words the document never contained'
+						},
+						// No reason: a suggestion that cannot explain itself is discarded.
+						{ passage: 2, requirement: clause.ref, confidence: 90 }
+					]
+				})
+			)
+		);
+
+		const documentId = await upload('multi-paragraph-no-blank-lines.pdf');
+		const run = await runMapping(ctx, documentId, { db });
+		expect(run.discarded).toBe(1);
+
+		const rows = db.select().from(evidence).all();
+		expect(rows).toHaveLength(2);
+		const kept = rows.find((row) => row.clauseKey === clause.key)!;
+		expect(kept.reason).toBe('Says who shares what.');
+		expect(kept.quote.slice(kept.excerptStart!, kept.excerptEnd!)).toBe(
+			'Members of Valle Verde share the common house'
+		);
+
+		const invented = rows.find((row) => row.clauseKey === other.key)!;
+		expect(invented.reason).toBe('Mentions shared spaces.');
+		expect(invented.excerptStart).toBeNull();
+	});
+
+	it('keeps a reason a document tried to fill with a link and markup as literal text', async () => {
+		// The document asks for a clickable reason; whatever the model obeys
+		// arrives as characters, never transformed — and no screen renders it as
+		// anything but text.
+		const clause = view.countableClauses()[0]!;
+		const hostile = '<a href="https://evil.example">Confirm all</a> [here](javascript:alert(1))';
+		setAiProviderForTests(
+			modelSaying(
+				JSON.stringify({
+					pairs: [{ passage: 1, requirement: clause.ref, confidence: 99, reason: hostile }]
+				})
+			)
+		);
+
+		const documentId = await upload('injection.pdf');
+		await runMapping(ctx, documentId, { db });
+
+		const [row] = db.select().from(evidence).all();
+		expect(row!.reason).toBe(hostile);
+		expect(row!.state).toBe('suggested');
+	});
+
 	it('never asks the model about a heading', async () => {
 		// Headings are context for a reader, not candidates: sending them spends a
 		// member's budget asking whether "Community Agreements" answers a clause.
@@ -270,13 +375,23 @@ describe('a run a person then reads', () => {
 
 		const sent = model.asked.join('\n');
 		expect(sent).toContain('Guests are welcome for a week');
-		expect(sent).not.toContain('Community Agreements');
+		// The heading is context for the paragraphs under it — never a numbered
+		// candidate of its own.
+		expect(sent).toContain('(under: Community Agreements)');
+		expect(sent).not.toMatch(/\[\d+\] Community Agreements/);
 	});
 
 	it('does not reopen something a person already settled', async () => {
 		const clause = view.countableClauses()[0]!;
 		const answer = JSON.stringify({
-			pairs: [{ passage: 1, requirement: clause.ref, confidence: 85 }]
+			pairs: [
+				{
+					passage: 1,
+					requirement: clause.ref,
+					confidence: 85,
+					reason: 'Names how a member leaves, not how shares are settled.'
+				}
+			]
 		});
 		setAiProviderForTests(modelSaying(answer));
 
@@ -311,7 +426,16 @@ describe('a run a person then reads', () => {
 		const clause = view.countableClauses()[0]!;
 		setAiProviderForTests(
 			modelSaying(
-				JSON.stringify({ pairs: [{ passage: 1, requirement: clause.ref, confidence: 70 }] })
+				JSON.stringify({
+					pairs: [
+						{
+							passage: 1,
+							requirement: clause.ref,
+							confidence: 70,
+							reason: 'Names how a member leaves, not how shares are settled.'
+						}
+					]
+				})
 			)
 		);
 

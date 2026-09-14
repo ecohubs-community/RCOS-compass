@@ -5,7 +5,7 @@ import { getConfig } from '../config.js';
 import { getDb, type Db } from '../db/index.js';
 import { newId } from '../db/id.js';
 import { evidence } from '../db/schema/documents.js';
-import { suggestMappings } from '../ai/tasks/map-document.js';
+import { suggestMappings, type Suggestion } from '../ai/tasks/map-document.js';
 import { activeStandardView } from './completeness.js';
 import { getDocument, listPassages } from './documents.js';
 import { registerTenantService } from './registry.js';
@@ -57,6 +57,22 @@ function requirementsFor(standard: NonNullable<ReturnType<typeof activeStandardV
 		}));
 }
 
+/**
+ * Each paragraph's nearest preceding heading, in document order — the context a
+ * model is given with the paragraph, never a candidate of its own.
+ */
+export function nearestHeadings(
+	rows: { id: string; kind: 'heading' | 'paragraph'; text: string }[]
+): Map<string, string> {
+	const under = new Map<string, string>();
+	let heading: string | null = null;
+	for (const row of rows) {
+		if (row.kind === 'heading') heading = row.text;
+		else if (heading !== null) under.set(row.id, heading);
+	}
+	return under;
+}
+
 export async function runMapping(
 	ctx: Ctx,
 	documentId: string,
@@ -77,7 +93,9 @@ export async function runMapping(
 	const requirements = requirementsFor(standard);
 	// Headings are context, never candidates: sending them costs budget to ask
 	// the model whether "Article IV — Membership" answers a clause.
-	const all = listPassages(ctx, documentId, { db }).filter((row) => row.kind === 'paragraph');
+	const rows = listPassages(ctx, documentId, { db });
+	const underOf = nearestHeadings(rows);
+	const all = rows.filter((row) => row.kind === 'paragraph');
 
 	// Resumable: a passage anybody has already said something about is skipped,
 	// so re-running after a budget ran out picks up where it stopped rather than
@@ -120,7 +138,12 @@ export async function runMapping(
 		const outcome = await suggestMappings(
 			ctx,
 			{
-				passages: batch.map((row) => ({ id: row.id, text: row.text })),
+				passages: batch.map((row) => ({
+					id: row.id,
+					text: row.text,
+					kind: row.kind,
+					under: underOf.get(row.id) ?? null
+				})),
 				requirements
 			},
 			{ db }
@@ -152,7 +175,7 @@ export async function runMapping(
 function write(
 	db: Db,
 	ctx: Ctx,
-	suggestions: { passageId: string; clauseKey: string; confidence: number }[],
+	suggestions: Suggestion[],
 	communityStandardId: string,
 	batch: { id: string; text: string }[],
 	documentId: string
@@ -180,6 +203,9 @@ function write(
 					// The only state a model's output may ever have.
 					state: 'suggested',
 					confidence: suggestion.confidence,
+					reason: suggestion.reason,
+					excerptStart: suggestion.excerpt?.start ?? null,
+					excerptEnd: suggestion.excerpt?.end ?? null,
 					suggestedBy: 'ai',
 					confirmedBy: null,
 					confirmedAt: null,

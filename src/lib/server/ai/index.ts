@@ -2,6 +2,7 @@ import { getConfig } from '../config.js';
 import { fixtureProvider } from './fixture-provider.js';
 import { googleProvider } from './google-provider.js';
 import { nullProvider } from './null-provider.js';
+import { RECORDED_FIXTURES } from './recorded-fixtures.js';
 import type { AiProvider } from './provider.js';
 
 export * from './provider.js';
@@ -30,7 +31,7 @@ export function getAiProvider(): AiProvider {
 	const config = getConfig();
 	switch (config.AI_PROVIDER) {
 		case 'fixture':
-			return fixtureProvider({});
+			return fixtureProvider(RECORDED_FIXTURES);
 		case 'google':
 			// The config layer already refused to boot without these.
 			return googleProvider({ apiKey: config.AI_API_KEY, model: config.AI_MODEL });
