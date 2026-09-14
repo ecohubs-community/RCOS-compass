@@ -46,6 +46,7 @@ export const load: PageServerLoad = ({ locals, params }) => {
 		passages: listPassages(ctx, params.id, { db }).map((row) => ({
 			id: row.id,
 			page: row.page,
+			kind: row.kind,
 			blocks: parseMarkdown(row.text),
 			evidence: evidence
 				.filter((item) => item.passageId === row.id)

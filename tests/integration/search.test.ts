@@ -1,4 +1,4 @@
-import { eq } from 'drizzle-orm';
+import { eq, sql } from 'drizzle-orm';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import type { Ctx } from '../../src/lib/server/auth/guard.js';
 import { newId } from '../../src/lib/server/db/id.js';
@@ -16,7 +16,11 @@ import { visibleLevels } from '../../src/lib/server/auth/visible-to.js';
 import { makeMembership as makeSeat, makeUser as makePerson } from '../support/factories.js';
 import { deleteDocument } from '../../src/lib/server/services/documents.js';
 import { addProposal, openDiscussion } from '../../src/lib/server/services/discussions.js';
-import { indexDocument, rebuildSearchIndex } from '../../src/lib/server/services/search.js';
+import {
+	indexDocument,
+	rebuildSearchIndex,
+	removeDocumentFromIndex
+} from '../../src/lib/server/services/search.js';
 import { getStandard } from '../../src/lib/server/standard/index.js';
 import { createTestDb } from '../support/db.js';
 import { makeCommunity, makeMembership, makeUser } from '../support/factories.js';
@@ -225,6 +229,55 @@ describe('what a community stopped saying', () => {
 		await deleteDocument(ana, id, { db });
 
 		expect(find(ana, 'water pump')).toEqual([]);
+	});
+
+	it('indexes a paragraph-sized document in batches, replacing rather than duplicating', () => {
+		// A PDF read into paragraphs is thousands of passages; the batched calls
+		// must keep the replace-never-duplicate contract across chunk boundaries.
+		const id = newId();
+		db.insert(document)
+			.values({
+				id,
+				communityId: ana.community.id,
+				filename: 'minutes.pdf',
+				mime: 'application/pdf',
+				bytes: 100,
+				sha256: 'z'.repeat(64),
+				storageKey: `${ana.community.id}/minutes.pdf`,
+				status: 'extracted',
+				uploadedAt: new Date(NOW)
+			})
+			.run();
+		db.insert(passage)
+			.values(
+				Array.from({ length: 1_203 }, (_, i) => ({
+					id: newId(),
+					documentId: id,
+					page: 1 + Math.floor(i / 40),
+					ordinal: i % 40,
+					text:
+						i === 1_202
+							? 'The orchard ladder lives in the barn.'
+							: `Paragraph ${i} of the minutes.`,
+					textHash: String(i).padStart(64, '0')
+				}))
+			)
+			.run();
+
+		const rows = () =>
+			(
+				db.all(
+					sql`select count(*) as n from search_document where community_id = ${ana.community.id} and kind = 'passage'`
+				) as { n: number }[]
+			)[0]!.n;
+
+		indexDocument(db, ana.community.id, id);
+		indexDocument(db, ana.community.id, id);
+		expect(rows()).toBe(1_203);
+		expect(find(ana, 'orchard ladder')).toHaveLength(1);
+
+		removeDocumentFromIndex(db, ana.community.id, id);
+		expect(rows()).toBe(0);
 	});
 });
 

@@ -258,6 +258,21 @@ describe('a run a person then reads', () => {
 		expect(languageCoverage(ctx, { db }).have).toBe(1);
 	});
 
+	it('never asks the model about a heading', async () => {
+		// Headings are context for a reader, not candidates: sending them spends a
+		// member's budget asking whether "Community Agreements" answers a clause.
+		const model = modelSaying(JSON.stringify({ pairs: [] }));
+		setAiProviderForTests(model);
+
+		const documentId = await upload('multi-paragraph-no-blank-lines.pdf');
+		expect(listPassages(ctx, documentId, { db }).some((row) => row.kind === 'heading')).toBe(true);
+		await runMapping(ctx, documentId, { db });
+
+		const sent = model.asked.join('\n');
+		expect(sent).toContain('Guests are welcome for a week');
+		expect(sent).not.toContain('Community Agreements');
+	});
+
 	it('does not reopen something a person already settled', async () => {
 		const clause = view.countableClauses()[0]!;
 		const answer = JSON.stringify({

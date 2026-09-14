@@ -210,5 +210,6 @@
 	"draft_saved": "Gespeichert.",
 	"draft_section_next": "An der nächsten Fassung arbeiten",
 	"draft_section_first": "Schreib es",
-	"draft_section_why": "Für die Gemeinschaft sichtbar gespeichert und für niemanden bindend. Es wird zur Antwort, wenn ein Vorschlag damit eingefroren wird."
+	"draft_section_why": "Für die Gemeinschaft sichtbar gespeichert und für niemanden bindend. Es wird zur Antwort, wenn ein Vorschlag damit eingefroren wird.",
+	"documents_upload_notice": "Jedes Mitglied von {community} kann diese Dateien lesen. Nichts wird außerhalb der Gemeinschaft veröffentlicht."
 }

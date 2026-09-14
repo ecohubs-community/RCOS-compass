@@ -1,5 +1,10 @@
 import { describe, expect, it } from 'vitest';
-import { ConfigError, isPlatformAdmin, parseConfig } from '../../src/lib/server/config.js';
+import {
+	ConfigError,
+	isPlatformAdmin,
+	parseBodySizeLimit,
+	parseConfig
+} from '../../src/lib/server/config.js';
 
 /** A minimal valid environment; individual tests break one thing at a time. */
 const validEnv = () => ({
@@ -175,7 +180,8 @@ describe('the origin the server checks submissions against', () => {
 	const production = {
 		NODE_ENV: 'production',
 		BETTER_AUTH_SECRET: 'a-secret-long-enough-to-be-accepted-here',
-		PUBLIC_APP_URL: 'https://compass.example.org'
+		PUBLIC_APP_URL: 'https://compass.example.org',
+		BODY_SIZE_LIMIT: '26M'
 	};
 
 	it('refuses to start in production without one', () => {
@@ -196,5 +202,67 @@ describe('the origin the server checks submissions against', () => {
 
 	it('asks nothing of development, where the dev server knows its own address', () => {
 		expect(() => parseConfig({ ...production, NODE_ENV: 'development' })).not.toThrow();
+	});
+});
+
+describe('the body limit a member actually meets', () => {
+	/**
+	 * adapter-node refuses request bodies over BODY_SIZE_LIMIT — default 512 KB —
+	 * before the application runs. Unset, every upload near MAX_UPLOAD_MB died
+	 * with a bare 413 while the screen promised 25 MB; the e2e fixtures were all
+	 * under that default, so nothing noticed. The check turns it into a boot
+	 * failure that names both values.
+	 */
+	const production = {
+		NODE_ENV: 'production',
+		BETTER_AUTH_SECRET: 'a-secret-long-enough-to-be-accepted-here',
+		PUBLIC_APP_URL: 'https://compass.example.org',
+		ORIGIN: 'https://compass.example.org'
+	};
+
+	it('refuses production without BODY_SIZE_LIMIT, naming the fix', () => {
+		expect(() => parseConfig(production)).toThrow(/BODY_SIZE_LIMIT is required in production/);
+		expect(() => parseConfig(production)).toThrow(/26M/);
+	});
+
+	it('refuses a limit below the upload ceiling plus headroom', () => {
+		expect(() => parseConfig({ ...production, BODY_SIZE_LIMIT: '512K' })).toThrow(
+			/below MAX_UPLOAD_MB/
+		);
+		expect(() => parseConfig({ ...production, BODY_SIZE_LIMIT: '25M' })).toThrow(
+			/below MAX_UPLOAD_MB/
+		);
+	});
+
+	it('accepts a sufficient limit, in any of the syntaxes the adapter reads', () => {
+		expect(() => parseConfig({ ...production, BODY_SIZE_LIMIT: '26M' })).not.toThrow();
+		expect(() =>
+			parseConfig({ ...production, BODY_SIZE_LIMIT: String(26 * 1024 * 1024) })
+		).not.toThrow();
+		expect(() => parseConfig({ ...production, BODY_SIZE_LIMIT: 'Infinity' })).not.toThrow();
+	});
+
+	it('follows a raised MAX_UPLOAD_MB rather than a hard-coded number', () => {
+		expect(() =>
+			parseConfig({ ...production, MAX_UPLOAD_MB: '100', BODY_SIZE_LIMIT: '26M' })
+		).toThrow(/below MAX_UPLOAD_MB/);
+		expect(() =>
+			parseConfig({ ...production, MAX_UPLOAD_MB: '100', BODY_SIZE_LIMIT: '101M' })
+		).not.toThrow();
+	});
+
+	it('asks nothing of development, where Vite serves without the adapter', () => {
+		expect(() => parseConfig({ ...production, NODE_ENV: 'development' })).not.toThrow();
+	});
+
+	it('reads bytes and K/M/G suffixes the way the adapter does', () => {
+		expect(parseBodySizeLimit('26M')).toBe(26 * 1024 * 1024);
+		expect(parseBodySizeLimit('512K')).toBe(512 * 1024);
+		expect(parseBodySizeLimit('1G')).toBe(1024 ** 3);
+		expect(parseBodySizeLimit('1.5G')).toBe(1.5 * 1024 ** 3);
+		expect(parseBodySizeLimit('1048576')).toBe(1024 * 1024);
+		expect(parseBodySizeLimit('Infinity')).toBe(Infinity);
+		expect(parseBodySizeLimit('')).toBeNull();
+		expect(parseBodySizeLimit('twelve')).toBeNull();
 	});
 });

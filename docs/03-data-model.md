@@ -170,7 +170,10 @@ consent_response   round_id | membership_id | value consent|objection|abstain
                    | objection_id? | responded_at | UNIQUE(round_id, membership_id)
 document           id | community_id | filename | mime | bytes | sha256 | storage_key
                    | uploaded_by | status uploaded|extracting|extracted|reference_only|failed
-passage            id | document_id | page | ordinal | text | text_hash | bbox?
+                   | extractor_version?  — reader version; below current re-reads at boot
+passage            id | document_id | page | ordinal | kind heading|paragraph | text | text_hash | bbox?
+                   — bbox: JSON [{x,y,w,h,start,end}] line boxes in unrotated PDF
+                     user space, start/end offsets into text; null for pageless formats
 evidence           id | community_id | passage_id | clause_key | state suggested|confirmed|dismissed|stale
                    | confidence | suggested_by ai|human | confirmed_by? | confirmed_at?
 transparency_exception id | community_id | subject_type | subject_id | audience | justification
@@ -512,7 +515,10 @@ compliant, and by keeping readiness out of the public loaders' return shape.
 ## 9. Visibility enforcement (UI spec §1.6)
 
 `visibility ∈ member | world | restricted` on definitions, decisions, documents,
-and artifacts. Enforcement, not just display:
+and artifacts — except that an uploaded **document is never `world`**
+(`document-paragraphs`): the publishing service takes only the `Publishable`
+kinds (definition, decision, artifact), with a runtime guard for callers the
+compiler never saw. Documents stay restrictable. Enforcement, not just display:
 
 - **Every read path takes visibility as a query filter**, including search
   indexing, AI context assembly, exports, and the git mirror. There is one

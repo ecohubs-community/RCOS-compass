@@ -6,6 +6,7 @@ import { newId } from '../../src/lib/server/db/id.js';
 import { setDbForTests, type Db } from '../../src/lib/server/db/index.js';
 import { changeLog, decision, decisionAttendee } from '../../src/lib/server/db/schema/decisions.js';
 import { definition, definitionVersion } from '../../src/lib/server/db/schema/definitions.js';
+import { document as documentTable } from '../../src/lib/server/db/schema/documents.js';
 import { community, communityStandard } from '../../src/lib/server/db/schema/tenancy.js';
 import { outwardAttribution } from '../../src/lib/server/services/attribution.js';
 import { outwardClaim } from '../../src/lib/server/services/claim.js';
@@ -15,7 +16,8 @@ import {
 	publishAll,
 	publishedSubjects,
 	setPublicIndex,
-	withdraw
+	withdraw,
+	type PublishableSubject
 } from '../../src/lib/server/services/publishing.js';
 import { restrict } from '../../src/lib/server/services/visibility.js';
 import { getStandard } from '../../src/lib/server/standard/index.js';
@@ -191,6 +193,52 @@ describe('publishing is a recorded act, and so is withdrawing', () => {
 		// Two governance acts contradicting each other, silently, is worse than
 		// a refusal that says which one to undo first.
 		expect(catchRefusal(() => publish(ana, { type: 'definition', id }, { db }))?.status).toBe(409);
+	});
+
+	it('never publishes an uploaded document, by any path', () => {
+		// document-paragraphs: the upload notice promises "nothing is published
+		// outside the community", and the service is what keeps it. No screen
+		// offers this; a crafted request is the whole threat model.
+		db.insert(documentTable)
+			.values({
+				id: 'doc1',
+				communityId: ana.community.id,
+				filename: 'bylaws.pdf',
+				mime: 'application/pdf',
+				bytes: 10,
+				sha256: 'x',
+				storageKey: 'k',
+				status: 'extracted',
+				uploadedAt: new Date(NOW)
+			})
+			.run();
+
+		// Cast: the type already rejects documents; this proves the runtime guard
+		// for a caller the compiler never saw.
+		const refusal = catchRefusal(() =>
+			publish(ana, { type: 'document', id: 'doc1' } as unknown as PublishableSubject, { db })
+		);
+		expect(refusal?.status).toBe(409);
+		expect(refusal?.message).toMatch(/stay inside the community/);
+
+		// A batch holding one document publishes nothing at all.
+		const definitionId = adopt();
+		const batch = catchRefusal(() =>
+			publishAll(
+				ana,
+				[
+					{ type: 'definition', id: definitionId },
+					{ type: 'document', id: 'doc1' } as unknown as PublishableSubject
+				],
+				{ db }
+			)
+		);
+		expect(batch?.status).toBe(409);
+
+		const doc = db.select().from(documentTable).where(eq(documentTable.id, 'doc1')).get()!;
+		expect(doc.visibility).toBe('member');
+		expect(getDefinition(ana, definitionId, { db }).visibility).toBe('member');
+		expect(publishedSubjects(ana, { db })).toEqual([]);
 	});
 
 	it('publishes every definition of an artifact or none of them', () => {

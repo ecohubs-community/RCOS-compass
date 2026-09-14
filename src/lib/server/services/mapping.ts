@@ -75,7 +75,9 @@ export async function runMapping(
 	if (!standard) error(409, 'This community has not adopted a standard yet.');
 
 	const requirements = requirementsFor(standard);
-	const all = listPassages(ctx, documentId, { db });
+	// Headings are context, never candidates: sending them costs budget to ask
+	// the model whether "Article IV — Membership" answers a clause.
+	const all = listPassages(ctx, documentId, { db }).filter((row) => row.kind === 'paragraph');
 
 	// Resumable: a passage anybody has already said something about is skipped,
 	// so re-running after a budget ran out picks up where it stopped rather than

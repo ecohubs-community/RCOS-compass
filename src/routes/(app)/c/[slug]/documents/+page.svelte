@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
+	import * as m from '$lib/paraglide/messages';
 	import Button from '$lib/components/ui/Button.svelte';
 	import { links } from '$lib/links';
 	import IconUpload from '~icons/tabler/upload';
@@ -41,13 +42,13 @@
 			<label for="file" class="text-fg font-medium">Upload a document</label>
 			<!--
 				Said before a file is chosen, not after it is stored. Uploaded bylaws
-				can carry names and addresses, every member can read them, and the
-				machinery for restricting that is P6 — so the honest thing for now is
-				a stated default rather than a quiet one.
+				can carry names and addresses, every member can read them, and
+				`document-paragraphs` closed the publishing path — so the second
+				sentence is a promise the publishing service enforces, not a wish.
 			-->
 			<p class="text-fg-muted text-meta">
-				Every member of your community will be able to read this. PDF, Word, OpenDocument, Markdown
-				or plain text, up to {data.maxMb} MB.
+				{m.documents_upload_notice({ community: data.community.name })}
+				PDF, Word, OpenDocument, Markdown or plain text, up to {data.maxMb} MB.
 			</p>
 			<input
 				id="file"

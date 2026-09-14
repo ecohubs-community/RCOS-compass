@@ -212,5 +212,6 @@
 	"draft_saved": "Saved.",
 	"draft_section_next": "Working on the next version",
 	"draft_section_first": "Write it",
-	"draft_section_why": "Saved for the community to see, and binding on nobody. It becomes an answer when a proposal carrying it is frozen."
+	"draft_section_why": "Saved for the community to see, and binding on nobody. It becomes an answer when a proposal carrying it is frozen.",
+	"documents_upload_notice": "Every member of {community} will be able to read these files. Nothing is published outside the community."
 }

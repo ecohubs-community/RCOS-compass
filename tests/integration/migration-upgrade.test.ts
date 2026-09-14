@@ -288,6 +288,89 @@ describe('upgrading a database that already has rows in it', () => {
 		after.close();
 	});
 
+	it('keeps every claim pointed at its passage through the passage rebuild, and unworlds documents', () => {
+		// Pinned to the migration before document-paragraphs: adding
+		// `passage.kind` rebuilds `passage`, and the DROP inside the migrator's
+		// transaction fires ON DELETE SET NULL into `evidence.passage_id` and
+		// `definition_source.passage_id` — quietly turning every claim
+		// stale-shaped. The carry tables in 0019 are what this asserts.
+		const { folder } = previousMigrations('0018_sturdy_harry_osborn');
+		const file = join(dir, 'passages.db');
+
+		const before = new Database(file);
+		before.pragma('foreign_keys = ON');
+		migrate(drizzle(before), { migrationsFolder: folder });
+
+		before.exec(`
+			insert into community (id, slug, name, locale, timezone, status, publish_names_policy,
+				ai_enabled, git_mirror_enabled, public_index_enabled, created_at, updated_at)
+			values ('c1', 'vv', 'Valle Verde', 'en', 'UTC', 'active', 'roles_and_counts', 0, 0, 0, 1, 1);
+
+			insert into user (id, name, email, email_verified, two_factor_enabled, locale, created_at, updated_at)
+			values ('u1', 'Ana', 'ana@example.org', 1, 0, 'en', 1, 1);
+
+			insert into community_standard (id, community_id, standard_id, version, status, adopted_at)
+			values ('cs1', 'c1', 'rcos-core', '0.1', 'active', 1);
+
+			-- One document a crafted request once made world-visible: the data fix
+			-- must walk it back to member.
+			insert into document (id, community_id, filename, mime, bytes, sha256, storage_key,
+				status, visibility, uploaded_at)
+			values ('doc1', 'c1', 'bylaws.pdf', 'application/pdf', 10, 'x', 'k', 'extracted', 'world', 1);
+
+			insert into passage (id, document_id, page, ordinal, text, text_hash)
+			values ('p1', 'doc1', 1, 0, 'A member may leave at any time.', 'h1');
+
+			insert into evidence (id, community_id, passage_id, quote, community_standard_id,
+				clause_key, state, suggested_by, confirmed_by, confirmed_at, created_at)
+			values ('ev1', 'c1', 'p1', 'A member may leave at any time.', 'cs1', 'ck1', 'confirmed', 'human', 'u1', 1, 1);
+
+			insert into definition (id, community_id, scope, community_standard_id,
+				section_key, provisional, created_at, updated_at)
+			values ('d1', 'c1', 'standard', 'cs1', 's1', 0, 1, 1);
+
+			insert into definition_source (definition_id, evidence_id, passage_id, created_at)
+			values ('d1', 'ev1', 'p1', 1);
+		`);
+		before.close();
+
+		const after = new Database(file);
+		after.pragma('foreign_keys = ON');
+		migrate(drizzle(after), { migrationsFolder: join(ROOT, 'drizzle') });
+
+		const claim = after
+			.prepare('select passage_id, state from evidence where id = ?')
+			.get('ev1') as { passage_id: string | null; state: string };
+		expect(claim, 'the rebuild cascaded and unpointed the claim').toEqual({
+			passage_id: 'p1',
+			state: 'confirmed'
+		});
+
+		const source = after
+			.prepare('select passage_id from definition_source where definition_id = ?')
+			.get('d1') as { passage_id: string | null };
+		expect(source.passage_id).toBe('p1');
+
+		const row = after.prepare('select kind from passage where id = ?').get('p1') as {
+			kind: string;
+		};
+		expect(row.kind).toBe('paragraph');
+
+		const doc = after.prepare('select visibility from document where id = ?').get('doc1') as {
+			visibility: string;
+		};
+		expect(doc.visibility).toBe('member');
+
+		// The carry tables were scaffolding, not schema.
+		const leftovers = after
+			.prepare("select name from sqlite_master where name like '__carry%'")
+			.all();
+		expect(leftovers).toEqual([]);
+
+		expect(after.pragma('foreign_key_check')).toEqual([]);
+		after.close();
+	});
+
 	it('has a migration for every schema change', () => {
 		// A schema edited without generating a migration is a deploy that works on
 		// the developer's machine and nowhere else.

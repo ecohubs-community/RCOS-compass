@@ -106,6 +106,26 @@ test.describe('a community that wants to be seen', () => {
 		await anonymous.close();
 	});
 
+	test('a crafted publish of a document is refused at the door', async ({ page }) => {
+		// No screen offers publishing a document; a hand-built POST is the whole
+		// threat. The action validates the type (400) and the publishing service
+		// refuses the subject besides — two locks, and this tests the outer one.
+		const { slug, email, password } = await seed(page);
+		await signIn(page, email, password);
+
+		await visit(page, `/c/${slug}/settings/publishing`);
+		const response = await page.request.post(`/c/${slug}/settings/publishing?/publish`, {
+			form: { type: 'document', id: 'any-id-at-all' },
+			headers: { origin: new URL(page.url()).origin }
+		});
+		// A non-browser POST gets the ActionResult envelope: HTTP 200 carrying
+		// the failure and its status inside, which is what a script would see.
+		const result = (await response.json()) as { type: string; status: number; data: string };
+		expect(result.type).toBe('failure');
+		expect(result.status).toBe(400);
+		expect(result.data).toContain('not something a community publishes');
+	});
+
 	test('withdrawing says so, rather than pretending the page never existed', async ({
 		page,
 		browser

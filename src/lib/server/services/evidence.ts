@@ -95,6 +95,11 @@ export function mapPassage(
 	const now = ctx.now();
 
 	const found = passageInCommunity(db, ctx, input.passageId);
+	// A heading names what the paragraphs under it are about; it answers no
+	// clause itself. Refused rather than hidden, so a crafted form cannot do it.
+	if (found.kind === 'heading') {
+		error(400, 'A heading is not mapped to a clause. Map the paragraph under it.');
+	}
 	const { standard, clause } = resolveClause(db, ctx, input.clause);
 
 	const id = newId();

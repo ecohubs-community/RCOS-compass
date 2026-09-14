@@ -8,6 +8,7 @@ import { answeredSections, standardViewFor } from '$lib/server/services/complete
 import { definitionsBySection } from '$lib/server/services/definitions';
 import {
 	publishAll,
+	PUBLISHABLE,
 	publishedSubjects,
 	setPublicIndex,
 	withdrawAll
@@ -117,7 +118,10 @@ export const actions: Actions = {
 		// transaction. A loop of single publishes left the first two definitions
 		// world-visible when the third was refused, so the screen said "that did not
 		// happen" over a public page where half of it had.
-		const type = String(form.get('type')) as 'definition' | 'decision' | 'document' | 'artifact';
+		// Validated against the service's own list, not cast: a document can
+		// never be published, and anything else here is a crafted request.
+		const type = PUBLISHABLE.find((kind) => kind === form.get('type'));
+		if (!type) return fail(400, { error: 'That is not something a community publishes.' });
 		const subjects = form.getAll('id').map((id) => ({ type, id: String(id) }));
 
 		try {

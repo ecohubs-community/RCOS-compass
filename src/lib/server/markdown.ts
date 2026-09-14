@@ -151,18 +151,26 @@ export function parseMarkdown(source: string): BlockNode[] {
 }
 
 /**
+ * The words of an inline run, with the formatting dropped. Shared by
+ * `plainText` and the document reader, so search text and a stored passage
+ * cannot disagree about what a node's words are.
+ */
+export function inlineText(nodes: InlineNode[]): string {
+	return nodes
+		.map((node) => {
+			if (node.type === 'text' || node.type === 'code') return node.value;
+			if (node.type === 'break') return ' ';
+			return inlineText(node.children);
+		})
+		.join('');
+}
+
+/**
  * The words, with no structure at all — for search, for a digest subject line,
  * and for the places that must not carry formatting.
  */
 export function plainText(source: string): string {
-	const walk = (nodes: InlineNode[]): string =>
-		nodes
-			.map((node) => {
-				if (node.type === 'text' || node.type === 'code') return node.value;
-				if (node.type === 'break') return ' ';
-				return walk(node.children);
-			})
-			.join('');
+	const walk = inlineText;
 
 	const blocks = (nodes: BlockNode[]): string =>
 		nodes

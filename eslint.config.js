@@ -215,6 +215,19 @@ export default ts.config(
 	},
 
 	{
+		// The extraction worker is loaded as a *string* (`?raw`) and executed
+		// with `new Worker(code, { eval: true })`, which Node runs as CommonJS —
+		// so `require` is its import statement, and the file opts out of the
+		// TS-side checks it cannot satisfy. The typed contract lives in
+		// extract.ts; the behaviour in tests/integration/extraction.test.ts.
+		files: ['src/lib/server/documents/extract-worker.js'],
+		rules: {
+			'@typescript-eslint/no-require-imports': 'off',
+			'@typescript-eslint/ban-ts-comment': 'off'
+		}
+	},
+
+	{
 		ignores: [
 			// Generated from project.inlang + messages/ by `pnpm i18n:compile`.
 			'src/lib/paraglide/',

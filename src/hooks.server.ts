@@ -12,6 +12,7 @@ import { requirePlatformAdmin } from '$lib/server/auth/admin';
 import { invitationLocale, publicLocale, resolveTenant } from '$lib/server/http/resolve-tenant';
 import { DIGEST_INTERVAL_MS, handlers } from '$lib/server/jobs/handlers';
 import { enqueueOnce, startWorker } from '$lib/server/jobs';
+import { enqueueRereadIfNeeded } from '$lib/server/documents/reread';
 import { systemClock } from '$lib/server/clock';
 
 /**
@@ -54,6 +55,9 @@ if (!config.isTest) {
 	enqueueOnce(db, systemClock, { kind: 'expire-exceptions' });
 	enqueueOnce(db, systemClock, { kind: 'clean-exports' });
 	enqueueOnce(db, systemClock, { kind: 'sweep-errors' });
+	// One-off, and only when a document was read by an older reader than this
+	// build carries — see documents/reread.ts.
+	enqueueRereadIfNeeded(db, systemClock);
 }
 
 /**

@@ -3,6 +3,7 @@ import { getLogger } from '../logger.js';
 import { sweepErrors } from '../services/errors.js';
 import { pruneRateLimits } from '../rate-limit.js';
 import { runExtraction } from '../documents/extract-job.js';
+import { rereadBehindDocuments } from '../documents/reread.js';
 import { purgeDeletedCommunities } from './purge.js';
 import { sendWeeklyDigests } from './digest.js';
 import { expireExceptions } from '../services/visibility.js';
@@ -68,6 +69,20 @@ export const handlers: HandlerRegistry = {
 		run: async (payload, { db, clock }) => {
 			const { documentId } = payload as { documentId?: string };
 			if (typeof documentId === 'string') await runExtraction(db, clock, documentId);
+		}
+	},
+
+	/**
+	 * The one-off sweep behind `document-paragraphs`: documents read by an
+	 * older reader are handed back to extraction. Enqueued at boot only when
+	 * something is actually behind (`enqueueRereadIfNeeded`), and not re-armed.
+	 */
+	'reread-documents': {
+		timeoutMs: 60_000,
+		run: (_payload, { db, clock }) => {
+			const result = rereadBehindDocuments(db, clock);
+			if (result.rereading > 0)
+				getLogger().info(result, 're-reading documents with the current reader');
 		}
 	},
 

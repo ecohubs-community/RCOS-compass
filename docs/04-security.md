@@ -211,7 +211,9 @@ language model — which is the whole prompt-injection surface.
 | Max file size | 25 MB | `MAX_UPLOAD_MB` |
 | Max decompressed size (docx/odt are zips) | 200 MB, else rejected as a zip bomb | `MAX_UNZIP_MB` |
 | Max pages extracted per document | 300, with the rest reported as "not extracted" rather than silently dropped | `MAX_EXTRACT_PAGES` |
-| Extraction wall-clock | 120 s in a worker, then failed with a message | `EXTRACT_TIMEOUT_S` |
+| Extraction wall-clock | 120 s in a worker thread that is **terminated** at the deadline, then failed with a message — a `Promise.race` cannot stop a parser that never yields | `EXTRACT_TIMEOUT_S` |
+| Extraction heap | 512 MB for the worker thread; exhaustion fails the document, not the job runner | `EXTRACT_MAX_HEAP_MB` |
+| Request body | Must be at least `MAX_UPLOAD_MB` + 1 MB; adapter-node's default (512 KB) refused every real upload before the application saw it, so boot fails in production when they disagree | `BODY_SIZE_LIMIT` |
 | **Per user** | 10 uploads/hour, 40/day | `UPLOAD_PER_USER_HOUR`, `_DAY` |
 | **Per community** | 60 uploads/day, 2 GB stored | `UPLOAD_PER_COMMUNITY_DAY`, `STORAGE_MB` |
 

@@ -41,6 +41,11 @@ COPY --from=build --chown=node:node /app/package.json ./package.json
 ENV DATABASE_URL=file:/data/compass.db
 ENV UPLOAD_DIR=/data/uploads
 ENV PORT=3000
+# adapter-node's request-body ceiling. Its default is 512 KB, which refuses
+# every upload near MAX_UPLOAD_MB (25 MB) before the application runs; one
+# extra megabyte covers the multipart form around the file. Raise both
+# together — boot checks they agree (src/lib/server/config.ts).
+ENV BODY_SIZE_LIMIT=26M
 # ORIGIN and PUBLIC_APP_URL are deliberately not defaulted: they are the
 # deployment's public address, the boot check refuses to start without ORIGIN in
 # production, and a wrong guess here would be a silent 403 on every form.

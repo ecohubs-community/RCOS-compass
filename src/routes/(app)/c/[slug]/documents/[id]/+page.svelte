@@ -143,7 +143,7 @@
 							</ul>
 						{/if}
 
-						{#if data.can.map}
+						{#if data.can.map && entry.kind === 'paragraph'}
 							{#if mapping === entry.id}
 								<section
 									class="border-border bg-raised mt-3 rounded-(--radius-control) border p-3"

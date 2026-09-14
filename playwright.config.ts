@@ -77,6 +77,9 @@ export default defineConfig({
 			DATABASE_URL: 'file:./data/e2e.db',
 			AI_PROVIDER: 'null',
 			ALLOW_TEST_ROUTES: '1',
+			// The production default, so the suite runs against the body ceiling a
+			// deployment actually has — the 5 MB upload spec exists to meet it.
+			BODY_SIZE_LIMIT: '26M',
 			/**
 			 * Four browser projects share one loopback address, so the real
 			 * credential ceiling (10 per 15 minutes) would be spent by the sign-in

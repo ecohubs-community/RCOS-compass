@@ -6,8 +6,15 @@ import type { Db } from '../db/index.js';
 import { newId } from '../db/id.js';
 import { document, passage } from '../db/schema/documents.js';
 import { getLogger } from '../logger.js';
+import { staleEvidenceForDocument } from '../services/evidence.js';
 import { indexDocument, removeDocumentFromIndex } from '../services/search.js';
-import { extract, ExtractionFailed } from './extract.js';
+import {
+	extract,
+	ExtractionFailed,
+	ExtractionUnavailable,
+	EXTRACTOR_VERSION,
+	type ExtractedPassage
+} from './extract.js';
 import { MIME, type AcceptedType } from './sniff.js';
 import { absolutePathOf } from './storage.js';
 
@@ -26,6 +33,13 @@ import { absolutePathOf } from './storage.js';
  * document already terminal and does nothing, and the passages of an interrupted
  * run are replaced wholesale inside one transaction — so a document either has
  * its full set of passages or none, never a prefix.
+ *
+ * Since documents can be read more than once (`reread.ts`), **every** verdict
+ * replaces the previous reading, not only success: a document that is now
+ * `failed` or `reference_only` must not keep last reading's passages, search
+ * rows and live evidence under a status that says there is no text. The one
+ * outcome that replaces nothing is `ExtractionUnavailable` — the reading was
+ * never attempted, so there is no new verdict to record.
  */
 
 const TYPE_BY_MIME = Object.fromEntries(
@@ -41,7 +55,10 @@ export async function runExtraction(db: Db, clock: Clock, documentId: string): P
 
 	const type = TYPE_BY_MIME[found.mime];
 	if (!type) {
-		markFailed(db, documentId, 'Compass no longer recognises this file type.');
+		recordReading(db, clock, found, {
+			status: 'failed',
+			detail: 'Compass no longer recognises this file type.'
+		});
 		return;
 	}
 
@@ -59,6 +76,11 @@ export async function runExtraction(db: Db, clock: Clock, documentId: string): P
 			config.EXTRACT_TIMEOUT_S * 1000
 		);
 	} catch (problem) {
+		if (problem instanceof ExtractionUnavailable) {
+			getLogger().error({ documentId, err: problem }, 'extraction could not be attempted');
+			keepEarlierReading(db, found);
+			return;
+		}
 		const reason =
 			problem instanceof ExtractionFailed
 				? problem.reason
@@ -66,68 +88,124 @@ export async function runExtraction(db: Db, clock: Clock, documentId: string): P
 		if (!(problem instanceof ExtractionFailed)) {
 			getLogger().error({ documentId, err: problem }, 'extraction failed unexpectedly');
 		}
-		markFailed(db, documentId, reason);
+		recordReading(db, clock, found, { status: 'failed', detail: reason });
 		return;
 	}
 
-	const now = new Date(clock.now());
-
 	if (outcome.kind === 'reference_only') {
-		db.update(document)
-			.set({
-				status: 'reference_only',
-				statusDetail: outcome.reason,
-				pagesExtracted: 0,
-				pagesTotal: null,
-				extractedAt: now
-			})
-			.where(eq(document.id, documentId))
-			.run();
+		recordReading(db, clock, found, { status: 'reference_only', detail: outcome.reason });
 		return;
 	}
 
 	const partial = outcome.pagesExtracted < outcome.pagesTotal;
+	recordReading(db, clock, found, {
+		status: 'extracted',
+		// Reported, never silently dropped: a community must not believe Compass
+		// read all of a document it read three-quarters of.
+		detail: partial
+			? `Read ${outcome.pagesExtracted} of ${outcome.pagesTotal} pages — the rest are past the ${config.MAX_EXTRACT_PAGES}-page limit and were not extracted.`
+			: null,
+		passages: outcome.passages,
+		pagesExtracted: outcome.pagesExtracted,
+		pagesTotal: outcome.pagesTotal
+	});
+}
+
+/** Rows per multi-row passage insert, well inside SQLite's variable limit. */
+const INSERT_CHUNK = 200;
+
+/**
+ * Replace whatever reading the document had with this verdict, in one
+ * transaction.
+ *
+ * Evidence pointing at the passages about to go is staled *first* — deleting
+ * them would otherwise leave claims neither stale nor pointing anywhere, the
+ * state the evidence spec forbids. The index rows go next, while the passage
+ * ids they are addressed by still exist to look up.
+ */
+function recordReading(
+	db: Db,
+	clock: Clock,
+	found: { id: string; communityId: string },
+	verdict: {
+		status: 'extracted' | 'reference_only' | 'failed';
+		detail: string | null;
+		passages?: ExtractedPassage[];
+		pagesExtracted?: number;
+		pagesTotal?: number;
+	}
+): void {
+	const now = new Date(clock.now());
+	const passages = verdict.passages ?? [];
 
 	db.transaction((tx) => {
-		// Wholesale replacement, so an interrupted earlier run leaves no prefix
-		// mixed into this one. The index rows go first, while the passage ids they
-		// are addressed by still exist to look up.
-		removeDocumentFromIndex(tx as unknown as Db, found.communityId, documentId);
-		tx.delete(passage).where(eq(passage.documentId, documentId)).run();
-		for (const item of outcome.passages) {
+		const t = tx as unknown as Db;
+		staleEvidenceForDocument(t, found.id);
+		removeDocumentFromIndex(t, found.communityId, found.id);
+		tx.delete(passage).where(eq(passage.documentId, found.id)).run();
+
+		for (let at = 0; at < passages.length; at += INSERT_CHUNK) {
 			tx.insert(passage)
-				.values({
-					id: newId(),
-					documentId,
-					page: item.page,
-					ordinal: item.ordinal,
-					text: item.text,
-					textHash: createHash('sha256').update(item.text).digest('hex'),
-					bbox: null
-				})
+				.values(
+					passages.slice(at, at + INSERT_CHUNK).map((item) => ({
+						id: newId(),
+						documentId: found.id,
+						page: item.page,
+						ordinal: item.ordinal,
+						kind: item.kind,
+						text: item.text,
+						textHash: createHash('sha256').update(item.text).digest('hex'),
+						bbox: item.bbox === null ? null : JSON.stringify(item.bbox)
+					}))
+				)
 				.run();
 		}
-		indexDocument(tx as unknown as Db, found.communityId, documentId);
+		if (passages.length > 0) indexDocument(t, found.communityId, found.id);
+
 		tx.update(document)
 			.set({
-				status: 'extracted',
-				// Reported, never silently dropped: a community must not believe
-				// Compass read all of a document it read three-quarters of.
-				statusDetail: partial
-					? `Read ${outcome.pagesExtracted} of ${outcome.pagesTotal} pages — the rest are past the ${config.MAX_EXTRACT_PAGES}-page limit and were not extracted.`
-					: null,
-				pagesExtracted: outcome.pagesExtracted,
-				pagesTotal: outcome.pagesTotal,
-				extractedAt: now
+				status: verdict.status,
+				statusDetail: verdict.detail,
+				pagesExtracted: verdict.pagesExtracted ?? (verdict.status === 'failed' ? null : 0),
+				pagesTotal: verdict.pagesTotal ?? null,
+				// Recorded on every verdict — including failure and a scan — or the
+				// re-read sweep would take the same file for an unread one at every
+				// boot, forever. A verdict under this reader is final for this reader.
+				extractorVersion: EXTRACTOR_VERSION,
+				extractedAt: verdict.status === 'failed' ? null : now
 			})
-			.where(eq(document.id, documentId))
+			.where(eq(document.id, found.id))
 			.run();
 	});
 }
 
-function markFailed(db: Db, documentId: string, reason: string): void {
+/**
+ * The reading could not be attempted — the file is missing from the volume, a
+ * parser would not load. That is a fact about the machine, not the document, so
+ * nothing about the document changes: an earlier reading, if there is one, stays
+ * exactly as it was (status back to `extracted`, reader version untouched, so
+ * the next boot's sweep tries again), and a first upload is marked failed
+ * *without* a reader version, so it is retried too rather than called damaged
+ * forever.
+ */
+function keepEarlierReading(db: Db, found: { id: string }): void {
+	const earlier = db
+		.select({ id: passage.id })
+		.from(passage)
+		.where(eq(passage.documentId, found.id))
+		.limit(1)
+		.get();
+
 	db.update(document)
-		.set({ status: 'failed', statusDetail: reason })
-		.where(eq(document.id, documentId))
+		.set(
+			earlier
+				? { status: 'extracted', statusDetail: null }
+				: {
+						status: 'failed',
+						statusDetail:
+							'Compass could not read this document just now. The file is kept, and Compass will try again.'
+					}
+		)
+		.where(eq(document.id, found.id))
 		.run();
 }

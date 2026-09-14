@@ -161,19 +161,23 @@ export function indexDocument(db: Db, communityId: string, documentId: string): 
 		.get();
 	if (!file) return;
 
-	removeDocumentFromIndex(db, communityId, documentId);
-
-	for (const item of db.select().from(passage).where(eq(passage.documentId, documentId)).all()) {
-		index.index(communityId, {
-			kind: 'passage',
-			subjectId: item.id,
-			ref: `${file.filename} p.${item.page}`,
-			title: file.filename,
-			body: item.text,
-			// A passage is as visible as the document it came out of, and no more.
-			visibility: file.visibility
-		});
-	}
+	index.indexMany(
+		communityId,
+		db
+			.select()
+			.from(passage)
+			.where(eq(passage.documentId, documentId))
+			.all()
+			.map((item) => ({
+				kind: 'passage' as const,
+				subjectId: item.id,
+				ref: `${file.filename} p.${item.page}`,
+				title: file.filename,
+				body: item.text,
+				// A passage is as visible as the document it came out of, and no more.
+				visibility: file.visibility
+			}))
+	);
 }
 
 /**
@@ -185,14 +189,15 @@ export function indexDocument(db: Db, communityId: string, documentId: string): 
  * community made, but the document's own text is gone and search must agree.
  */
 export function removeDocumentFromIndex(db: Db, communityId: string, documentId: string): void {
-	const index = getSearchIndex(db);
-	for (const item of db
-		.select({ id: passage.id })
-		.from(passage)
-		.where(eq(passage.documentId, documentId))
-		.all()) {
-		index.remove(communityId, item.id);
-	}
+	getSearchIndex(db).removeMany(
+		communityId,
+		db
+			.select({ id: passage.id })
+			.from(passage)
+			.where(eq(passage.documentId, documentId))
+			.all()
+			.map((item) => item.id)
+	);
 }
 
 /**

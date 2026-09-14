@@ -9,7 +9,7 @@ import { resetConfigForTests } from '../../src/lib/server/config.js';
 import { setDbForTests, type Db } from '../../src/lib/server/db/index.js';
 import { newId } from '../../src/lib/server/db/id.js';
 import { definition, definitionDraft } from '../../src/lib/server/db/schema/definitions.js';
-import { definitionSource, evidence } from '../../src/lib/server/db/schema/documents.js';
+import { definitionSource, evidence, passage } from '../../src/lib/server/db/schema/documents.js';
 import { communityStandard } from '../../src/lib/server/db/schema/tenancy.js';
 import { post } from '../../src/lib/server/db/schema/discussions.js';
 import { runExtraction } from '../../src/lib/server/documents/extract-job.js';
@@ -132,6 +132,19 @@ describe('a member maps a passage by hand', () => {
 		const passage = exitPassage();
 		const claim = mapPassage(ctx, { passageId: passage.id, clause: COUNTABLE.ref }, { db });
 		expect(claim.clauseKey).toBe(COUNTABLE.key);
+	});
+
+	it('refuses to map a heading, which names a topic rather than answering a clause', () => {
+		// Headings are stored so the document can be typeset, never as mapping
+		// candidates. Refused in the service, so a crafted form cannot do it.
+		const exit = exitPassage();
+		db.update(passage).set({ kind: 'heading' }).where(eq(passage.id, exit.id)).run();
+
+		const refusal = catchRefusal(() =>
+			mapPassage(ctx, { passageId: exit.id, clause: COUNTABLE.key }, { db })
+		);
+		expect(refusal?.status).toBe(400);
+		expect(db.select().from(evidence).all()).toHaveLength(0);
 	});
 
 	it('refuses a clause the standard does not have', () => {

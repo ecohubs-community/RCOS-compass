@@ -56,6 +56,9 @@ const DEFAULT_LIMIT = 25;
  */
 const asLiteral = (term: string) => `"${term.replace(/"/g, '""')}"`;
 
+/** Subject ids per delete: one index scan each, well inside SQLite's variable limit. */
+const REMOVE_CHUNK = 500;
+
 export function fts5SearchIndex(db: Db): SearchIndex {
 	const run = (statement: ReturnType<typeof sql>) => db.run(statement);
 
@@ -75,6 +78,36 @@ export function fts5SearchIndex(db: Db): SearchIndex {
 				delete from search_document
 				where community_id = ${communityId} and subject_id = ${subjectId}
 			`);
+		},
+
+		indexMany(communityId: string, docs: readonly SearchDoc[]): void {
+			// `community_id` and `subject_id` are UNINDEXED in the FTS5 table, so
+			// every delete is a scan of the whole index. One scan per chunk, then
+			// plain inserts — not the scan-per-row that `index` in a loop would be.
+			this.removeMany(
+				communityId,
+				docs.map((doc) => doc.subjectId)
+			);
+			for (const doc of docs) {
+				run(sql`
+					insert into search_document (community_id, visibility, kind, subject_id, ref, title, body)
+					values (${communityId}, ${doc.visibility}, ${doc.kind}, ${doc.subjectId}, ${doc.ref ?? ''}, ${doc.title}, ${doc.body})
+				`);
+			}
+		},
+
+		removeMany(communityId: string, subjectIds: readonly string[]): void {
+			for (let at = 0; at < subjectIds.length; at += REMOVE_CHUNK) {
+				const ids = subjectIds.slice(at, at + REMOVE_CHUNK);
+				run(sql`
+					delete from search_document
+					where community_id = ${communityId}
+						and subject_id in (${sql.join(
+							ids.map((id) => sql`${id}`),
+							sql`, `
+						)})
+				`);
+			}
 		},
 
 		clear(communityId: string): void {

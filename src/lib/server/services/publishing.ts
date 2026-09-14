@@ -6,10 +6,8 @@ import { newId } from '../db/id.js';
 import { changeLog } from '../db/schema/decisions.js';
 import { decision } from '../db/schema/decisions.js';
 import { communityArtifact, definition } from '../db/schema/definitions.js';
-import { document } from '../db/schema/documents.js';
 import { community } from '../db/schema/tenancy.js';
-import type { Restrictable } from '../db/schema/visibility.js';
-import { reindex, type Subject } from './visibility.js';
+import { reindex } from './visibility.js';
 
 /**
  * Making something readable by the world, and taking it back.
@@ -32,13 +30,28 @@ import { reindex, type Subject } from './visibility.js';
  * URL as a side effect.
  */
 
-const TABLES = { definition, decision, document, artifact: communityArtifact } as const;
+/**
+ * What a community may publish — deliberately narrower than what it may
+ * restrict. Uploaded documents are restrictable (a transparency exception can
+ * hide one) but never publishable: the upload control promises "nothing is
+ * published outside the community", and uploaded bylaws carry names and
+ * histories. One list, used by this service and by the settings route, so the
+ * two cannot drift and the compiler rejects `{ type: 'document' }` at the call.
+ */
+export const PUBLISHABLE = ['definition', 'decision', 'artifact'] as const;
+export type Publishable = (typeof PUBLISHABLE)[number];
+export type PublishableSubject = { type: Publishable; id: string };
 
-export function publish(ctx: Ctx, subject: Subject, options: { db?: Db } = {}): void {
+const TABLES = { definition, decision, artifact: communityArtifact } as const satisfies Record<
+	Publishable,
+	unknown
+>;
+
+export function publish(ctx: Ctx, subject: PublishableSubject, options: { db?: Db } = {}): void {
 	setPublished(ctx, [subject], true, options);
 }
 
-export function withdraw(ctx: Ctx, subject: Subject, options: { db?: Db } = {}): void {
+export function withdraw(ctx: Ctx, subject: PublishableSubject, options: { db?: Db } = {}): void {
 	setPublished(ctx, [subject], false, options);
 }
 
@@ -51,17 +64,25 @@ export function withdraw(ctx: Ctx, subject: Subject, options: { db?: Db } = {}):
  * first two public while the screen reported failure, which is a community's
  * public page saying something nobody agreed to.
  */
-export function publishAll(ctx: Ctx, subjects: Subject[], options: { db?: Db } = {}): void {
+export function publishAll(
+	ctx: Ctx,
+	subjects: PublishableSubject[],
+	options: { db?: Db } = {}
+): void {
 	setPublished(ctx, subjects, true, options);
 }
 
-export function withdrawAll(ctx: Ctx, subjects: Subject[], options: { db?: Db } = {}): void {
+export function withdrawAll(
+	ctx: Ctx,
+	subjects: PublishableSubject[],
+	options: { db?: Db } = {}
+): void {
 	setPublished(ctx, subjects, false, options);
 }
 
 function setPublished(
 	ctx: Ctx,
-	subjects: Subject[],
+	subjects: PublishableSubject[],
 	toWorld: boolean,
 	options: { db?: Db } = {}
 ): void {
@@ -83,7 +104,19 @@ function setPublished(
  * which is the point: a 409 on the third definition must leave the first two
  * exactly as they were.
  */
-function applyOne(tx: Db, ctx: Ctx, subject: Subject, toWorld: boolean, now: Date): void {
+function applyOne(
+	tx: Db,
+	ctx: Ctx,
+	subject: PublishableSubject,
+	toWorld: boolean,
+	now: Date
+): void {
+	// The type already excludes documents; this is for a caller the compiler
+	// never saw — a form value cast, a script. Thrown before anything is
+	// written, so a batch holding one document publishes nothing.
+	if (!(PUBLISHABLE as readonly string[]).includes(subject.type)) {
+		error(409, 'Uploaded documents stay inside the community.');
+	}
 	const table = TABLES[subject.type];
 	const current = tx
 		.select({ visibility: table.visibility, firstPublishedAt: table.firstPublishedAt })
@@ -182,11 +215,11 @@ export function setPublicIndex(ctx: Ctx, enabled: boolean, options: { db?: Db } 
 export function publishedSubjects(
 	ctx: Ctx,
 	options: { db?: Db } = {}
-): { type: Restrictable; id: string; firstPublishedAt: number | null }[] {
+): { type: Publishable; id: string; firstPublishedAt: number | null }[] {
 	requirePermission(ctx, 'community.read');
 	const db = options.db ?? getDb();
 
-	return (Object.keys(TABLES) as Restrictable[]).flatMap((type) =>
+	return PUBLISHABLE.flatMap((type) =>
 		db
 			.select({ id: TABLES[type].id, firstPublishedAt: TABLES[type].firstPublishedAt })
 			.from(TABLES[type])

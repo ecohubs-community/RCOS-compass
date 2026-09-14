@@ -234,8 +234,17 @@ move to a release step.
 
 Named here so the choice is deliberate and CSP-compatible:
 
-- **PDF text extraction:** `unpdf` / `pdfjs-dist` in a worker.
-- **DOCX:** `mammoth` to HTML, then sanitised to text + structure.
+- **PDF text extraction:** `unpdf` / `pdfjs-dist`, in a genuine
+  `worker_threads` worker since `document-paragraphs`: the parsing half is a
+  plain-JS file loaded as a string (`?raw`) and run with
+  `new Worker(code, { eval: true })` — the one shape that works identically
+  under vitest, the dev server and the adapter-node build without asking the
+  bundler to emit a worker chunk. The worker is terminated at the extraction
+  deadline and capped by `EXTRACT_MAX_HEAP_MB`; every heuristic that turns
+  parser output into passages (paragraphs from line geometry, headings from
+  font size, columns from the gutter) stays typed in `extract.ts`.
+- **DOCX:** `mammoth` to HTML in the same worker, then walked to text +
+  structure — the HTML is never stored or rendered.
 - **Viewer:** self-hosted `pdfjs-dist` — no CDN, per the CSP in `04-security.md` §7.
 - **PDF generation** (export bundle, printable register): render a self-contained
   print stylesheet to PDF with headless Chromium via Playwright.
@@ -319,6 +328,9 @@ AI_USER_DAILY_TASKS=25
 MAX_UNZIP_MB=200
 MAX_EXTRACT_PAGES=300
 EXTRACT_TIMEOUT_S=120
+EXTRACT_MAX_HEAP_MB=512        # heap ceiling for the extraction worker thread
+BODY_SIZE_LIMIT=26M            # adapter-node's body ceiling; must clear MAX_UPLOAD_MB + 1 MB,
+                               # or boot refuses — its 512 KB default rejects every real upload
 UPLOAD_PER_USER_HOUR=10
 UPLOAD_PER_USER_DAY=40
 UPLOAD_PER_COMMUNITY_DAY=60

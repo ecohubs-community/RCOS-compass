@@ -210,5 +210,6 @@
 	"draft_saved": "Guardado.",
 	"draft_section_next": "Trabajando en la siguiente versión",
 	"draft_section_first": "Escríbelo",
-	"draft_section_why": "Guardado para que la comunidad lo vea, y no obliga a nadie. Se convierte en una respuesta cuando se congela una propuesta que lo lleva."
+	"draft_section_why": "Guardado para que la comunidad lo vea, y no obliga a nadie. Se convierte en una respuesta cuando se congela una propuesta que lo lleva.",
+	"documents_upload_notice": "Cada miembro de {community} podrá leer estos archivos. Nada se publica fuera de la comunidad."
 }

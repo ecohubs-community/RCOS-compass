@@ -48,6 +48,15 @@ export interface SearchIndex {
 	index(communityId: string, doc: SearchDoc): void;
 	/** Forget one subject. Deleting a document has to make it unfindable. */
 	remove(communityId: string, subjectId: string): void;
+	/**
+	 * Add or replace many documents at once — a document's passages. Same
+	 * contract as `index`, one call: an engine whose delete cannot use an index
+	 * would otherwise pay a full scan per passage, and a paragraph-sized reading
+	 * of one PDF is thousands of passages.
+	 */
+	indexMany(communityId: string, docs: readonly SearchDoc[]): void;
+	/** Forget many subjects at once. Same reasoning as `indexMany`. */
+	removeMany(communityId: string, subjectIds: readonly string[]): void;
 	/** Forget everything a community has. For the rebuild, and for deletion. */
 	clear(communityId: string): void;
 	/**

@@ -57,6 +57,12 @@ export const document = sqliteTable(
 		/** Extracted, and the count the ceiling stopped at — reported, never dropped. */
 		pagesExtracted: integer('pages_extracted'),
 		pagesTotal: integer('pages_total'),
+		/**
+		 * Which reader produced the passages. Null means the first reader, the one
+		 * that could not find a paragraph inside a PDF page. Anything below the
+		 * current version is re-read once at startup — see jobs/reread.ts.
+		 */
+		extractorVersion: integer('extractor_version'),
 		visibility: visibility(),
 		firstPublishedAt: firstPublishedAt(),
 
@@ -79,8 +85,9 @@ export const document = sqliteTable(
 /**
  * A piece of a document, as the community wrote it.
  *
- * `bbox` stays null in P4 — highlighting is by passage, not by pixel — and the
- * column exists so adding it later is not a migration of live evidence.
+ * `kind` separates the headings a reader navigates by from the paragraphs a
+ * member maps: headings are typeset and given to the model as context, but they
+ * are never mapping candidates and never counted.
  */
 export const passage = sqliteTable(
 	'passage',
@@ -92,14 +99,25 @@ export const passage = sqliteTable(
 		page: integer('page').notNull(),
 		/** Order within the page. Together with `page`, the passage's address. */
 		ordinal: integer('ordinal').notNull(),
+		kind: text('kind', { enum: ['heading', 'paragraph'] })
+			.notNull()
+			.default('paragraph'),
 		text: text('text').notNull(),
 		/** So the same paragraph in a re-uploaded document is recognisable. */
 		textHash: text('text_hash').notNull(),
+		/**
+		 * For a PDF passage: a JSON array of line boxes, one per source line —
+		 * `{ x, y, w, h, start, end }` in the page's unrotated user space (points,
+		 * origin bottom-left), with `start`/`end` the offsets into `text` that
+		 * line carries. The viewer maps them through its own viewport, so zoom and
+		 * rotation never touch stored data. Null for formats without a page.
+		 */
 		bbox: text('bbox')
 	},
 	(table) => [
 		index('passage_document_idx').on(table.documentId, table.page, table.ordinal),
-		uniqueIndex('passage_position_idx').on(table.documentId, table.page, table.ordinal)
+		uniqueIndex('passage_position_idx').on(table.documentId, table.page, table.ordinal),
+		check('passage_kind_ck', sql`${table.kind} in ('heading', 'paragraph')`)
 	]
 );
 

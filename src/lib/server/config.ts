@@ -76,6 +76,15 @@ const ConfigSchema = v.object({
 	MAX_UNZIP_MB: intFromEnv(200, 1),
 	MAX_EXTRACT_PAGES: intFromEnv(300, 1),
 	EXTRACT_TIMEOUT_S: intFromEnv(120, 1),
+	/** Heap ceiling for the extraction worker thread. docs/04-security.md §5.2. */
+	EXTRACT_MAX_HEAP_MB: intFromEnv(512, 64),
+	/**
+	 * adapter-node's own request-body ceiling, read here only to check it
+	 * against MAX_UPLOAD_MB: the adapter defaults to 512 KB, which silently
+	 * refuses every real upload before the application sees it. Validated below;
+	 * the adapter itself is what enforces it.
+	 */
+	BODY_SIZE_LIMIT: optionalString,
 	UPLOAD_PER_USER_HOUR: intFromEnv(10, 0),
 	UPLOAD_PER_USER_DAY: intFromEnv(40, 0),
 	UPLOAD_PER_COMMUNITY_DAY: intFromEnv(60, 0),
@@ -154,6 +163,23 @@ export class ConfigError extends Error {
 }
 
 /**
+ * adapter-node's BODY_SIZE_LIMIT syntax: bytes, or a number (decimals allowed)
+ * with a K/M/G suffix, or `Infinity` to disable the check. Returns bytes, `Infinity`, or
+ * null for unset/unreadable. Exported for the config tests.
+ */
+export function parseBodySizeLimit(value: string): number | null {
+	const trimmed = value.trim();
+	if (trimmed.length === 0) return null;
+	if (trimmed === 'Infinity') return Infinity;
+	// Decimals too: the adapter reads the number with `Number()`, so `1.5G` is a
+	// limit it enforces, and a boot check that refused it would be wrong.
+	const match = /^(\d+(?:\.\d+)?)([KMG]?)$/i.exec(trimmed);
+	if (!match) return null;
+	const scale = { '': 1, K: 1024, M: 1024 ** 2, G: 1024 ** 3 }[match[2]!.toUpperCase()]!;
+	return Number(match[1]) * scale;
+}
+
+/**
  * Parse an environment object. Exported for tests; the application uses the
  * `config` singleton below.
  *
@@ -224,6 +250,32 @@ export function parseConfig(env: Record<string, string | undefined>): Config {
 			'AI_BASE_URL is required when AI_PROVIDER is "openai-compatible" — ' +
 				'that is the whole point of the setting: it names the endpoint to talk to.'
 		);
+	}
+
+	/**
+	 * The size ceiling a member is told about must be the one they actually
+	 * meet. adapter-node refuses request bodies over BODY_SIZE_LIMIT (default
+	 * 512 KB) before the application runs, so a production instance without it
+	 * fails every real upload with a bare 413 while MAX_UPLOAD_MB promises 25 MB.
+	 * One megabyte of headroom covers the multipart form around the file.
+	 */
+	if (parsed.NODE_ENV === 'production') {
+		const floor = (parsed.MAX_UPLOAD_MB + 1) * bytesInMb;
+		const limit = parseBodySizeLimit(parsed.BODY_SIZE_LIMIT);
+		if (limit === null) {
+			problems.push(
+				'BODY_SIZE_LIMIT is required in production — adapter-node refuses request ' +
+					'bodies over 512 KB without it, so no upload near MAX_UPLOAD_MB ' +
+					`(${parsed.MAX_UPLOAD_MB} MB) would ever reach the application. ` +
+					`Set it to at least ${parsed.MAX_UPLOAD_MB + 1}M.`
+			);
+		} else if (limit < floor) {
+			problems.push(
+				`BODY_SIZE_LIMIT is below MAX_UPLOAD_MB plus form headroom — uploads the ` +
+					`application promises to accept would be refused by the server first. ` +
+					`Set it to at least ${parsed.MAX_UPLOAD_MB + 1}M, or lower MAX_UPLOAD_MB.`
+			);
+		}
 	}
 
 	if (problems.length > 0) throw new ConfigError(problems);

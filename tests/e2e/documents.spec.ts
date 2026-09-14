@@ -1,3 +1,4 @@
+import { writeFileSync } from 'node:fs';
 import { expect, test } from '@playwright/test';
 import { seed, signIn, visit } from './support.js';
 import { fixturePath } from './fixtures.js';
@@ -27,6 +28,13 @@ test.describe('a community that already wrote it down', () => {
 
 		// --- upload -------------------------------------------------------------
 		await visit(page, `/c/${slug}/documents`);
+		// Said before a file is chosen, naming the community — the documents spec's
+		// exact sentence, with the promise the publishing service enforces.
+		await expect(
+			page.getByText(
+				/Every member of .+ will be able to read these files\. Nothing is published outside the community\./
+			)
+		).toBeVisible();
 		await page.getByLabel('Upload a document').setInputFiles(fixturePath('valle-verde-bylaws.pdf'));
 		await page.getByRole('button', { name: 'Upload', exact: true }).click();
 
@@ -109,5 +117,36 @@ test.describe('a community that already wrote it down', () => {
 		await expect(
 			page.getByText(/no (AI )?provider|AI is (not|un)available|not configured/i)
 		).toHaveCount(0);
+	});
+
+	test('a real-sized upload reaches the application', async ({ page }) => {
+		test.slow();
+		/**
+		 * The server in front of the application has its own body ceiling
+		 * (BODY_SIZE_LIMIT), defaulting to 512 KB — small enough that every
+		 * committed fixture sailed under it while real bylaws bounced off it
+		 * with a bare 413. This suite runs the adapter-node build with the
+		 * production default, and this file exists to actually meet it: built at
+		 * test time from the fixture script, never committed as a blob.
+		 */
+		const { pdf } = await import('../../scripts/make-document-fixtures.mjs');
+		const filler = 'Water rights and easements on the north field are held in common. ';
+		const big = pdf(Array.from({ length: 25 }, (_, i) => `Page ${i + 1}. ${filler.repeat(3500)}`));
+		expect(big.length).toBeGreaterThan(5 * 1024 * 1024);
+		const path = test.info().outputPath('five-megabytes.pdf');
+		writeFileSync(path, big);
+
+		const { slug, email, password } = await seed(page);
+		await signIn(page, email, password);
+
+		await visit(page, `/c/${slug}/documents`);
+		await page.getByLabel('Upload a document').setInputFiles(path);
+		await page.getByRole('button', { name: 'Upload', exact: true }).click();
+
+		// Through the adapter, through validation, into the list — not a 413.
+		await expect(
+			page.getByRole('listitem').filter({ hasText: 'five-megabytes.pdf' })
+		).toBeVisible();
+		await expect(page.getByRole('alert')).toHaveCount(0);
 	});
 });
