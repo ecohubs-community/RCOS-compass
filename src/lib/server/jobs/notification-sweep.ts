@@ -33,9 +33,14 @@ export const QUIET_AFTER_MS = 14 * 24 * 60 * 60_000;
 
 export type SweepResult = { closing: number; quiet: number; reviews: number; claims: number };
 
-export function runNotificationSweep(db: Db, clock: Clock): SweepResult {
+export async function runNotificationSweep(db: Db, clock: Clock): Promise<SweepResult> {
 	const result: SweepResult = { closing: 0, quiet: 0, reviews: 0, claims: 0 };
 	for (const home of db.select().from(community).where(eq(community.status, 'active')).all()) {
+		// The database calls are synchronous, and this job runs in the web server's
+		// process: a thousand communities in one unbroken loop answered no request
+		// until the last claim was checked. One community, then a turn for everyone
+		// else.
+		await new Promise((resolve) => setImmediate(resolve));
 		// Nobody's act, so nobody is left out as its actor.
 		const scope: NotifyScope = { community: home, membership: null, now: clock.now };
 		result.closing += remindClosingRounds(db, scope, clock.now());

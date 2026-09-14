@@ -159,9 +159,11 @@ export const handlers: HandlerRegistry = {
 
 	/** Consent rounds closing, quiet threads, reviews due, and a claim check per community. */
 	'notification-sweep': {
-		timeoutMs: 120_000,
-		run: (_payload, { db, clock }) => {
-			const result = runNotificationSweep(db, clock);
+		// Every active community, one at a time with a turn for requests between;
+		// rerunning after a timeout repeats nothing already written.
+		timeoutMs: 600_000,
+		run: async (_payload, { db, clock }) => {
+			const result = await runNotificationSweep(db, clock);
 			if (result.closing + result.quiet + result.reviews > 0) {
 				getLogger().info(result, 'notification sweep');
 			}
@@ -169,7 +171,6 @@ export const handlers: HandlerRegistry = {
 				kind: 'notification-sweep',
 				runAfter: clock.now() + SWEEP_INTERVAL_MS
 			});
-			return Promise.resolve();
 		}
 	},
 
