@@ -24,9 +24,11 @@
 		slug: string;
 		/** Where the reader is, in the nav's own words. */
 		crumb: string;
+		/** A step below it — the document open in the workspace, "Documents / bylaws-2019.pdf". */
+		sub?: string | null;
 	};
 
-	let { community, slug, crumb }: Props = $props();
+	let { community, slug, crumb, sub = null }: Props = $props();
 
 	let field = $state<HTMLInputElement | null>(null);
 	/**
@@ -49,7 +51,13 @@
 	<nav class="flex items-center gap-1.5 whitespace-nowrap" aria-label={m.topbar_breadcrumb()}>
 		<span class="text-fg-muted">{community}</span>
 		<span class="text-border-strong" aria-hidden="true">/</span>
-		<span class="text-fg" aria-current="page">{crumb}</span>
+		{#if sub}
+			<span class="text-fg-secondary">{crumb}</span>
+			<span class="text-border-strong" aria-hidden="true">/</span>
+			<span class="text-fg max-w-60 truncate" aria-current="page">{sub}</span>
+		{:else}
+			<span class="text-fg" aria-current="page">{crumb}</span>
+		{/if}
 	</nav>
 
 	<form method="GET" action={links.search(slug)} class="min-w-44 flex-1 sm:max-w-85">

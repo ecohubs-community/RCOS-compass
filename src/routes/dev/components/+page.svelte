@@ -19,6 +19,14 @@
 		type MappingState
 	} from '$lib/components/documents/MappingStateChip.svelte';
 	import UploadDropZone from '$lib/components/documents/UploadDropZone.svelte';
+	import ClausePicker from '$lib/components/documents/ClausePicker.svelte';
+	import HandMapCard from '$lib/components/documents/HandMapCard.svelte';
+	import MappingQueue from '$lib/components/documents/MappingQueue.svelte';
+	import PaperView from '$lib/components/documents/PaperView.svelte';
+	import ReconfirmBlock from '$lib/components/documents/ReconfirmBlock.svelte';
+	import ScanBlock from '$lib/components/documents/ScanBlock.svelte';
+	import SuggestionCard, { type Card } from '$lib/components/documents/SuggestionCard.svelte';
+	import VersionList from '$lib/components/documents/VersionList.svelte';
 
 	let { data } = $props();
 
@@ -102,6 +110,79 @@
 			}
 		),
 		sampleRow('gallery-6', 'Recipes.txt', 'not_governance', 'open')
+	];
+
+	const clauseOptions = [
+		{
+			key: 'c-3.6.1',
+			ref: '3.6.1',
+			title: 'Voluntary Exit',
+			question: 'How does a member leave?',
+			layer: 1
+		},
+		{
+			key: 'c-3.6.2',
+			ref: '3.6.2',
+			title: 'Voluntary Exit',
+			question: 'What notice is required?',
+			layer: 1
+		},
+		{ key: 'c-3.6.3', ref: '3.6.3', title: 'Forced Exit', question: null, layer: 1 }
+	];
+	const requirement = {
+		key: 'c-3.6.2',
+		ref: '3.6.2',
+		title: 'Voluntary Exit',
+		text: 'A community MUST define how a member ends their membership, the notice required, and how obligations and property are settled.',
+		normativity: 'MUST' as const,
+		layer: 1,
+		layerName: 'Membership',
+		artifact: 'Exit & Separation Protocol',
+		standard: 'RCOS-Core v0.1'
+	};
+	const card = (id: string, state: Card['state'], extra: Partial<Card> = {}): Card => ({
+		evidenceId: id,
+		passageId: `passage-${id}`,
+		page: 4,
+		number: 2,
+		quote: 'Any member wishing to depart shall give sixty days written notice.',
+		state,
+		clauseKey: 'c-3.6.2',
+		clauseRef: '3.6.2',
+		clauseTitle: 'Voluntary Exit',
+		reason: 'Says how much notice a leaving member gives, but not how their share is settled.',
+		suggestedBy: 'ai',
+		excerpt: null,
+		confirmer: null,
+		confirmedAt: null,
+		definable: true,
+		...extra
+	});
+	const cards: Card[] = [
+		card('gallery-open', 'suggested'),
+		card('gallery-confirmed', 'confirmed', {
+			confirmer: 'Ana Ruiz',
+			confirmedAt: Date.UTC(2026, 7, 29),
+			suggestedBy: 'human',
+			reason: null
+		}),
+		card('gallery-no-reason', 'suggested', {
+			reason: null,
+			clauseRef: '3.6.3',
+			clauseTitle: 'Forced Exit'
+		}),
+		card('gallery-dismissed', 'dismissed', { definable: false })
+	];
+	const versions = [
+		{
+			id: 'gallery-v1',
+			filename: 'Bylaws 2018.pdf',
+			bytes: 120_000,
+			uploadedAt: Date.UTC(2025, 2, 1),
+			uploader: 'Lena Berg',
+			supersededAt: Date.UTC(2026, 7, 20),
+			supersededBy: 'Ana Ruiz'
+		}
 	];
 </script>
 
@@ -295,6 +376,128 @@
 				scanning={{ offer: false, reason: 'AI assistance is switched off for this community.' }}
 			/>
 		</ul>
+	</section>
+
+	<section class="mt-10" aria-labelledby="workspace">
+		<h2 id="workspace" class="text-section font-medium">Mapping workspace</h2>
+		<p class="text-fg-muted text-meta mt-1">
+			Design 05. A page of text with a confirmed passage, an open suggestion highlighted at its
+			excerpt, the selected passage, and a paragraph whose words are a script tag.
+		</p>
+		<div class="border-border mt-4 flex h-[28rem] flex-col rounded-(--radius-card) border">
+			<PaperView
+				paper={data.paper}
+				selected="gallery-p2"
+				filename="bylaws-2019.pdf"
+				passageHref={(id) => `?passage=${id}`}
+				pageHref={(page) => `?page=${page}`}
+			/>
+		</div>
+
+		<div class="mt-4 flex flex-col gap-3">
+			{#each cards as sample (sample.evidenceId)}
+				<SuggestionCard
+					card={sample}
+					filename="bylaws-2019.pdf"
+					paged={true}
+					selected={sample.state === 'suggested' && sample.reason !== null}
+					requirement={sample.clauseKey === 'c-3.6.2' ? requirement : null}
+					requirementHref="#workspace"
+					clauses={clauseOptions}
+					can={{ map: true, draft: true }}
+					passageHref="#workspace"
+					returnTo=""
+				/>
+			{/each}
+			<SuggestionCard
+				card={card('gallery-read-only', 'suggested')}
+				filename="bylaws-2019.pdf"
+				paged={true}
+				selected={false}
+				{requirement}
+				requirementHref="#workspace"
+				clauses={clauseOptions}
+				can={{ map: false, draft: false }}
+				passageHref="#workspace"
+				returnTo=""
+			/>
+			<HandMapCard
+				passageId="gallery-hand"
+				number={3}
+				excerpt={{ start: 0, end: 36, text: 'Any member wishing to depart shall give' }}
+				clauses={clauseOptions}
+				returnTo=""
+			/>
+			<ClausePicker id="gallery-clause" options={clauseOptions} />
+			<ReconfirmBlock
+				candidates={[
+					{
+						evidenceId: 'gallery-stale',
+						passageId: 'gallery-p1',
+						clauseRef: '3.6.1',
+						quote: 'A member may leave at any time by telling a steward in writing.',
+						confirmer: 'Ana Ruiz',
+						confirmedAt: Date.UTC(2026, 7, 29)
+					}
+				]}
+				canMap={true}
+				returnTo=""
+			/>
+			<ScanBlock
+				live={false}
+				availability={{ ok: true, paragraphs: 42, alreadyRead: 0 }}
+				progress={{ read: 0, total: 42 }}
+				detail={null}
+				returnTo=""
+				canMapByHand={true}
+			/>
+			<ScanBlock
+				live={true}
+				availability={{ ok: true, paragraphs: 42, alreadyRead: 18 }}
+				progress={{ read: 18, total: 42 }}
+				detail={null}
+				returnTo=""
+				canMapByHand={false}
+			/>
+			<ScanBlock
+				live={false}
+				availability={{ ok: false, reason: 'AI assistance is switched off for this community.' }}
+				progress={{ read: 0, total: 42 }}
+				detail={null}
+				returnTo=""
+				canMapByHand={true}
+			/>
+			<VersionList
+				slug="gallery"
+				documentId="gallery"
+				{versions}
+				can={{ upload: true, destroy: true }}
+			/>
+		</div>
+
+		<h3 class="text-title mt-6 font-medium">The queue below 1024px</h3>
+		<div class="border-border mt-2 max-w-[375px] rounded-(--radius-card) border">
+			<MappingQueue
+				filename="bylaws-2019.pdf"
+				paged={true}
+				{cards}
+				counts={{ identified: 23, open: 9 }}
+				requirements={{ 'c-3.6.2': requirement }}
+				requirementHref={() => '#workspace'}
+				clauses={clauseOptions}
+				can={{ map: true, draft: true }}
+				passage="passage-gallery-open"
+				step="confirm"
+				seePage={false}
+				paper={data.paper}
+				reconfirm={[]}
+				canMarkDone={false}
+				excerpt={null}
+				onexcerpt={() => {}}
+			>
+				{#snippet scan()}{/snippet}
+			</MappingQueue>
+		</div>
 	</section>
 
 	<section class="mt-10" aria-labelledby="tokens">

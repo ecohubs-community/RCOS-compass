@@ -1,123 +1,143 @@
+import { redirect } from '@sveltejs/kit';
 import { ctxCan } from '$lib/server/auth/guard';
 import { getDb } from '$lib/server/db';
-import { parseMarkdown } from '$lib/server/markdown';
-import { getDocument, listPassages } from '$lib/server/services/documents';
 import {
+	deleteVersionAction,
+	replaceAction,
+	restoreAction
+} from '$lib/server/documents/version-actions';
+import { ACCEPTED } from '$lib/server/documents/sniff';
+import { run } from '$lib/server/http/form-action';
+import { markMappingDone, reopenMapping } from '$lib/server/services/documents';
+import {
+	changeClause,
 	confirmEvidence,
 	dismissEvidence,
-	evidenceForDocument,
+	dismissPassage,
 	mapPassage,
+	reconfirmStale,
 	turnIntoDefinition
 } from '$lib/server/services/evidence';
-import { aiAvailability } from '$lib/server/ai/run';
+import { versionsWithPeople } from '$lib/server/services/library';
 import { startScan } from '$lib/server/services/mapping';
+import { workspaceView } from '$lib/server/services/workspace';
 import { links } from '$lib/links';
-import { redirect } from '@sveltejs/kit';
 import type { Actions, PageServerLoad } from './$types';
-import { run } from '$lib/server/http/form-action';
 
 /**
- * One document: its passages, and what the community has said about them.
- * UI spec §4.5 — "you're further along than you think".
+ * One document: the text beside what the community has said about it. Designs 05
+ * (two panes, 1024px and wider) and 16b (the queue below); the change's
+ * `mapping-workspace` and `document-viewer` specs.
  *
- * The passages are the community's own text, so they go through the same
- * markdown pipeline as everything a member writes: parsed to a node tree,
- * rendered by templating, no HTML sink anywhere. Document text is the most
- * hostile text in the product — it did not even come from a member typing into
- * a form — and it gets the same treatment, not a stricter copy of it.
+ * Everything the screen shows comes from `workspaceView`, which both layouts
+ * read. Every act is a form action through the shared `run` wrapper, and every
+ * form posts back to the query it came from — `?passage=`, `?page=`, `?step=` —
+ * so answering a card never loses the member's place, with or without
+ * JavaScript.
  */
-export const load: PageServerLoad = ({ locals, params }) => {
+export const load: PageServerLoad = ({ locals, params, url }) => {
 	const ctx = locals.ctx!;
 	const db = getDb();
 
-	const found = getDocument(ctx, params.id, { db });
-	const evidence = evidenceForDocument(ctx, params.id, { db });
+	const pageParam = Number.parseInt(url.searchParams.get('page') ?? '', 10);
+	const view = workspaceView(
+		ctx,
+		params.id,
+		{
+			page: Number.isFinite(pageParam) ? pageParam : null,
+			passage: url.searchParams.get('passage')
+		},
+		{ db }
+	);
 
 	return {
-		document: {
-			id: found.id,
-			filename: found.filename,
-			status: found.status,
-			statusDetail: found.statusDetail,
-			pagesExtracted: found.pagesExtracted,
-			pagesTotal: found.pagesTotal,
-			uploadedAt: found.uploadedAt.getTime()
+		...view,
+		step: url.searchParams.get('step') === 'confirm' ? ('confirm' as const) : ('read' as const),
+		seePage: url.searchParams.get('view') === 'page',
+		versions: view.counts.versions > 0 ? versionsWithPeople(ctx, params.id, { db }) : [],
+		can: {
+			map: ctxCan(ctx, 'mapping.confirm'),
+			draft: ctxCan(ctx, 'definition.draft'),
+			upload: ctxCan(ctx, 'document.upload'),
+			destroy: ctxCan(ctx, 'document.destroy')
 		},
-		passages: listPassages(ctx, params.id, { db }).map((row) => ({
-			id: row.id,
-			page: row.page,
-			kind: row.kind,
-			blocks: parseMarkdown(row.text),
-			evidence: evidence
-				.filter((item) => item.passageId === row.id)
-				.map((item) => ({
-					id: item.id,
-					clauseRef: item.clauseRef,
-					state: item.state,
-					suggestedBy: item.suggestedBy
-				}))
-		})),
-		can: { map: ctxCan(ctx, 'mapping.confirm'), draft: ctxCan(ctx, 'definition.draft') },
-		/**
-		 * Whether to offer the AI run, and — when not — why in a sentence.
-		 *
-		 * Unavailable is a state the screen is designed for rather than an error it
-		 * reports: no provider, a community that has not switched it on, and a
-		 * member who has spent today's budget all read the same way, and all of
-		 * them leave the manual path exactly where it was.
-		 */
-		ai:
-			found.status === 'extracted' && ctxCan(ctx, 'ai.run')
-				? (() => {
-						const refusal = aiAvailability(ctx, { db });
-						return refusal?.ok === false
-							? { offer: false, reason: refusal.reason }
-							: { offer: true, reason: null };
-					})()
-				: { offer: false, reason: null }
+		accepts: ACCEPTED.map((type) => `.${type}`).join(','),
+		subCrumb: view.document.filename,
+		fullHeight: true
 	};
 };
 
+const field = async (event: { request: Request }) => {
+	const form = await event.request.formData();
+	return (name: string) => String(form.get(name) ?? '');
+};
+
 export const actions: Actions = {
+	startScan: async (event) =>
+		run('startScan', () => startScan(event.locals.ctx!, event.params.id, { db: getDb() })),
+
+	confirm: async (event) => {
+		const get = await field(event);
+		return run('confirm', () =>
+			confirmEvidence(event.locals.ctx!, get('evidenceId'), { db: getDb() })
+		);
+	},
+
+	dismiss: async (event) => {
+		const get = await field(event);
+		return run('dismiss', () =>
+			dismissEvidence(event.locals.ctx!, get('evidenceId'), { db: getDb() })
+		);
+	},
+
+	changeClause: async (event) => {
+		const get = await field(event);
+		return run('changeClause', () =>
+			changeClause(event.locals.ctx!, get('evidenceId'), get('clause'), { db: getDb() })
+		);
+	},
+
+	dismissPassage: async (event) => {
+		const get = await field(event);
+		return run('dismissPassage', () =>
+			dismissPassage(event.locals.ctx!, get('passageId'), { db: getDb() })
+		);
+	},
+
 	map: async (event) => {
-		const form = await event.request.formData();
+		const get = await field(event);
+		const start = Number.parseInt(get('excerptStart'), 10);
+		const end = Number.parseInt(get('excerptEnd'), 10);
 		return run('map', () =>
 			mapPassage(
 				event.locals.ctx!,
 				{
-					passageId: String(form.get('passageId') ?? ''),
-					clause: String(form.get('clause') ?? '')
+					passageId: get('passageId'),
+					clause: get('clause'),
+					excerpt: Number.isFinite(start) && Number.isFinite(end) ? { start, end } : null
 				},
 				{ db: getDb() }
 			)
 		);
 	},
 
-	suggest: async (event) =>
-		// Interim until the workspace rewrite: the scan is a job now, so this
-		// queues it and the page reports progress from the document's own state.
-		run('suggest', () => startScan(event.locals.ctx!, event.params.id, { db: getDb() })),
-
-	confirm: async (event) => {
-		const form = await event.request.formData();
-		return run('confirm', () =>
-			confirmEvidence(event.locals.ctx!, String(form.get('evidenceId') ?? ''), { db: getDb() })
+	reconfirm: async (event) => {
+		const get = await field(event);
+		return run('reconfirm', () =>
+			reconfirmStale(event.locals.ctx!, get('evidenceId'), { db: getDb() })
 		);
 	},
 
-	dismiss: async (event) => {
-		const form = await event.request.formData();
-		return run('dismiss', () =>
-			dismissEvidence(event.locals.ctx!, String(form.get('evidenceId') ?? ''), { db: getDb() })
-		);
-	},
+	markDone: async (event) =>
+		run('markDone', () => markMappingDone(event.locals.ctx!, event.params.id, { db: getDb() })),
+
+	reopen: async (event) =>
+		run('reopen', () => reopenMapping(event.locals.ctx!, event.params.id, { db: getDb() })),
 
 	draft: async (event) => {
-		const form = await event.request.formData();
+		const get = await field(event);
 		const outcome = await run('draft', () =>
-			turnIntoDefinition(event.locals.ctx!, String(form.get('evidenceId') ?? ''), {
-				db: getDb()
-			})
+			turnIntoDefinition(event.locals.ctx!, get('evidenceId'), { db: getDb() })
 		);
 		if ('status' in outcome) return outcome;
 
@@ -128,5 +148,9 @@ export const actions: Actions = {
 				? links.definition(event.params.slug, made.definitionId)
 				: links.discussion(event.params.slug, made.discussionId)
 		);
-	}
+	},
+
+	replace: replaceAction,
+	restore: restoreAction,
+	deleteVersion: deleteVersionAction
 };

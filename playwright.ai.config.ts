@@ -24,9 +24,11 @@ export default defineConfig({
 	projects: [
 		{
 			name: 'desktop',
+			// The no-JS project lives in playwright.config.ts; here those tests would pass with scripts on.
+			grepInvert: /@no-js/,
 			use: { ...devices['Desktop Chrome'], viewport: { width: 1440, height: 900 } }
 		},
-		{ name: 'mobile', use: { ...devices['Pixel 7'] } }
+		{ name: 'mobile', grepInvert: /@no-js/, use: { ...devices['Pixel 7'] } }
 	],
 	webServer: {
 		command: 'node build/index.js',
@@ -42,6 +44,8 @@ export default defineConfig({
 			// The one line this whole configuration exists for.
 			AI_PROVIDER: 'fixture',
 			ALLOW_TEST_ROUTES: '1',
+			// The production ceiling, as in playwright.config.ts: the config refuses to start without it.
+			BODY_SIZE_LIMIT: '26M',
 			AUTH_ATTEMPTS_PER_15MIN: '500',
 			REQUESTS_PER_MINUTE: '20000',
 			LOG_LEVEL: 'silent',

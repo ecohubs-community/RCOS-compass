@@ -1,7 +1,7 @@
 <script lang="ts">
-	import { invalidateAll } from '$app/navigation';
 	import DocumentRow from '$lib/components/documents/DocumentRow.svelte';
 	import UploadDropZone from '$lib/components/documents/UploadDropZone.svelte';
+	import { pollWhileScanning } from '$lib/components/documents/poll';
 	import * as m from '$lib/paraglide/messages';
 	import { links } from '$lib/links';
 
@@ -14,22 +14,9 @@
 		{ key: 'mapped', label: m.library_filter_mapped }
 	] as const;
 
-	/**
-	 * While a scan runs, the page re-reads its data every few seconds — a load,
-	 * not a new endpoint (docs/01). It stops when nothing is scanning, and after
-	 * fifteen minutes regardless: a member who left the tab open should not keep
-	 * a server busy all afternoon.
-	 */
+	/** While a scan runs the list re-reads itself; `pollWhileScanning` holds the rule. */
 	const anyScanning = $derived(data.rows.some((row) => row.state === 'scanning'));
-	$effect(() => {
-		if (!anyScanning) return;
-		const started = Date.now();
-		const timer = setInterval(() => {
-			if (Date.now() - started > 15 * 60_000) return clearInterval(timer);
-			void invalidateAll();
-		}, 3_000);
-		return () => clearInterval(timer);
-	});
+	$effect(() => (anyScanning ? pollWhileScanning() : undefined));
 
 	const uploadResults = $derived(form && 'results' in form ? form.results : null);
 	const uploadError = $derived(

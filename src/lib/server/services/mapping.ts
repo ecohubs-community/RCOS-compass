@@ -374,9 +374,10 @@ export async function runScanStep(db: Db, clock: Clock, payload: ScanPayload): P
 			.orderBy(asc(passage.page), asc(passage.ordinal))
 			.all();
 		const underOf = nearestHeadings(rows);
-		const batch = rows
-			.filter((row) => row.kind === 'paragraph' && row.scannedAt === null && row.page <= ceiling)
-			.slice(0, SCAN_BATCH);
+		const unread = rows.filter(
+			(row) => row.kind === 'paragraph' && row.scannedAt === null && row.page <= ceiling
+		);
+		const batch = unread.slice(0, SCAN_BATCH);
 
 		if (batch.length === 0) {
 			finish(db, payload, clock, ctx, { status: 'complete' });
@@ -437,8 +438,14 @@ export async function runScanStep(db: Db, clock: Clock, payload: ScanPayload): P
 		});
 		if (written === null) return { ...step, outcome: 'superseded' };
 
+		// The last batch ends the scan here, rather than in a job queued only to
+		// find nothing left: a member watching "18 of 18 read · Scanning" for a
+		// queue poll is a member who thinks it hung.
+		const done = unread.length <= SCAN_BATCH;
+		if (done) finish(db, payload, clock, ctx, { status: 'complete' });
+
 		return {
-			outcome: 'continued',
+			outcome: done ? 'complete' : 'continued',
 			suggested: written,
 			discarded: answer.discarded,
 			read: batch.length

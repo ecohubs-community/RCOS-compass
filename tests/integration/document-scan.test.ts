@@ -246,11 +246,12 @@ describe('a scan reads each paragraph once', () => {
 		const doc = documentOf(ana, 5);
 
 		startScan(ana, doc.id, { db });
-		await runScanStep(db, clock, payloadFor(ana, doc.id));
+		// Five paragraphs are one batch, and the batch that reads the last of them
+		// ends the scan — no second job just to find nothing left.
+		expect((await runScanStep(db, clock, payloadFor(ana, doc.id))).outcome).toBe('complete');
 		expect(model.calls()).toBe(1);
 
-		// Complete it, then start again: nothing is left to read.
-		await runScanStep(db, clock, payloadFor(ana, doc.id));
+		// Start again: nothing is left to read.
 		startScan(ana, doc.id, { db });
 		expect((await runScanStep(db, clock, payloadFor(ana, doc.id))).outcome).toBe('complete');
 		expect(model.calls()).toBe(1);

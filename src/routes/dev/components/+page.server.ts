@@ -2,6 +2,7 @@ import { error } from '@sveltejs/kit';
 import { getConfig } from '$lib/server/config';
 import { lint } from '$lib/server/linter';
 import { parseMarkdown } from '$lib/server/markdown';
+import { buildPaper } from '$lib/server/documents/paper';
 
 /**
  * The gallery is a development and review surface; it never ships.
@@ -31,6 +32,45 @@ export function load() {
 		inline: parseMarkdown(
 			'Exit and separation — **notice**, *settlement*, and the `DEC-2026-004` that agreed it.'
 		)[0],
+		/**
+		 * A page of a document: a heading, an open suggestion highlighted at its
+		 * excerpt only, a confirmed claim, and a paragraph whose text is a payload —
+		 * which must render as words.
+		 */
+		paper: buildPaper({
+			paged: true,
+			pagesTotal: 11,
+			page: 4,
+			selected: 'gallery-p2',
+			passages: [
+				{ id: 'gallery-h', page: 4, ordinal: 0, kind: 'heading', text: 'Article IV — Membership' },
+				{
+					id: 'gallery-p1',
+					page: 4,
+					ordinal: 1,
+					kind: 'paragraph',
+					text: 'New residents are admitted by vote of the council, after fourteen days of notice.'
+				},
+				{
+					id: 'gallery-p2',
+					page: 4,
+					ordinal: 2,
+					kind: 'paragraph',
+					text: 'Any member wishing to depart shall give sixty days written notice. The council may shorten this period.'
+				},
+				{
+					id: 'gallery-p3',
+					page: 4,
+					ordinal: 3,
+					kind: 'paragraph',
+					text: 'Members agree <script>alert(1)</script> and <img src=x onerror="alert(1)"> in writing.'
+				}
+			],
+			claims: [
+				{ passageId: 'gallery-p1', state: 'confirmed', excerptStart: null, excerptEnd: null },
+				{ passageId: 'gallery-p2', state: 'suggested', excerptStart: 0, excerptEnd: 67 }
+			]
+		}),
 		markdown: parseMarkdown(
 			[
 				'A member **may** leave at any time, with *notice* where practical.',

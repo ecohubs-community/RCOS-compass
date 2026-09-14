@@ -24,6 +24,9 @@ import { getVotingProvider } from '../../src/lib/server/voting/index.js';
 import { listPlatformAudit } from '../../src/lib/server/services/admin/audit.js';
 import { document, documentFileVersion } from '../../src/lib/server/db/schema/documents.js';
 import { libraryView, versionsWithPeople } from '../../src/lib/server/services/library.js';
+import { workspaceView } from '../../src/lib/server/services/workspace.js';
+import { activeStandardView } from '../../src/lib/server/services/completeness.js';
+import { makeDocument, makeEvidence, makePassage } from './documents.js';
 import { getTenant } from '../../src/lib/server/services/admin/communities.js';
 
 /**
@@ -92,6 +95,7 @@ export type Subject = {
 const DECISION_ID = '01a00000-0000-7000-8000-000000000001';
 const LIBRARY_DOCUMENT_ID = '01a00000-0000-7000-8000-000000000002';
 const VERSIONED_DOCUMENT_ID = '01a00000-0000-7000-8000-000000000003';
+const WORKSPACE_DOCUMENT_ID = '01a00000-0000-7000-8000-000000000004';
 
 /** Set by the thread surface's seed, read by its `read`. */
 let threadForPersonSurface = '';
@@ -419,6 +423,30 @@ export const PERSON_SURFACES: PersonSurface[] = [
 				row.uploader ?? '',
 				row.supersededBy ?? ''
 			])
+	},
+	{
+		name: 'workspace.workspaceView',
+		module: 'workspace.ts',
+		/**
+		 * "Mapped · confirmed by Ana, 29 Aug" on a card, and the same line on a
+		 * claim waiting to be re-confirmed. The claim stays; the name beside it
+		 * becomes a former member's.
+		 */
+		seed: (db, ctx, subject) => {
+			makeDocument(db, ctx.community.id, { id: WORKSPACE_DOCUMENT_ID });
+			makeEvidence(db, {
+				communityId: ctx.community.id,
+				communityStandardId: activeStandardView(db, ctx)!.row.id,
+				passage: makePassage(db, WORKSPACE_DOCUMENT_ID),
+				state: 'confirmed',
+				suggestedBy: 'human',
+				confirmedBy: subject.userId
+			});
+		},
+		read: (ctx, db) =>
+			workspaceView(ctx, WORKSPACE_DOCUMENT_ID, { page: null, passage: null }, { db })
+				.cards.map((card) => card.confirmer ?? '')
+				.filter(Boolean)
 	},
 	{
 		name: 'admin/communities.getTenant',

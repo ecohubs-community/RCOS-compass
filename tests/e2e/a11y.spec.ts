@@ -204,6 +204,30 @@ test.describe('accessibility', () => {
 		await page.getByLabel(`Actions for ${DOCUMENTS.bylawsPdf}`).click();
 		await expect(page.locator('summary', { hasText: 'Replace with a newer file' })).toBeVisible();
 		expect((await scan(page).analyze()).violations, 'the library, menu open').toEqual([]);
+
+		// The workspace — two panes or the queue, whichever this width gets — with a
+		// paragraph selected for mapping by hand, and again with a mapped card.
+		await page.keyboard.press('Escape');
+		const link = page.getByRole('link', { name: DOCUMENTS.bylawsPdf, exact: true });
+		await expect(async () => {
+			await page.reload();
+			await expect(page.getByRole('listitem').filter({ has: link })).toContainText('Not scanned', {
+				timeout: 2_000
+			});
+		}).toPass({ timeout: 60_000 });
+		const href = (await link.getAttribute('href'))!;
+		await visit(page, `${href}?view=page&page=2`);
+		await page.getByRole('link', { name: 'Select ¶1' }).click();
+		const hand = page.getByRole('region', { name: 'Map ¶1 to a clause' }).filter({ visible: true });
+		await expect(hand).toBeVisible();
+		expect((await scan(page).analyze()).violations, 'the workspace, mapping by hand').toEqual([]);
+
+		await hand.getByLabel('Clause').fill('3.6.2');
+		await page.keyboard.press('Escape');
+		await hand.getByRole('button', { name: 'Map to this clause' }).click();
+		await expect(hand).toBeHidden();
+		await visit(page, href);
+		expect((await scan(page).analyze()).violations, 'the workspace, one claim mapped').toEqual([]);
 	});
 
 	test('the freeze form has no violations, open', async ({ page }) => {

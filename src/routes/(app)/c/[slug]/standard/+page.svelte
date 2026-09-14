@@ -80,8 +80,14 @@
 							>
 							<!-- eslint-enable svelte/no-navigation-without-resolve -->
 						{/if}
+						<!-- One anchor per clause, so a card's "Open in Standard →" lands on its row. -->
 						<span class="text-fg-muted text-meta" data-tabular>
-							{section.refs.length > 0 ? section.refs.join(' · ') : 'no clause'}
+							{#each section.refs as ref, index (ref)}{#if index > 0}
+									·
+								{/if}<span
+									id="clause-{ref}"
+									class="scroll-mt-20">{ref}</span
+								>{:else}no clause{/each}
 						</span>
 						<StatusChip
 							status={section.status === 'adopted'

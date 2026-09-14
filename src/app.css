@@ -102,6 +102,18 @@
 	--color-danger: #dc5b4a;
 	--color-danger-subtle: rgb(220 91 74 / 0.12);
 
+	/*
+	 * The paper a document is read on (design 05): light, the way the file itself
+	 * is, so a member recognises their bylaws rather than a dark re-typesetting.
+	 * Only the text view uses these. Ink 12.2:1 and margin notes 5.5:1 on paper;
+	 * the selected outline is accent-deep, because the accent the dark screens
+	 * use for focus is 2.3:1 on a light sheet.
+	 */
+	--color-paper: #edeae4;
+	--color-paper-ink: #2b2f2e;
+	--color-paper-muted: #5f5a51;
+	--font-serif: Georgia, 'Times New Roman', serif;
+
 	--radius-control: 6px;
 	--radius-card: 8px;
 

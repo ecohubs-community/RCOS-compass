@@ -71,34 +71,34 @@
 
 ## 9. The text view
 
-- [ ] 9.1 `PaperView`: page sheets with `?page=` navigation for PDFs, one sheet with heading outline otherwise; passages through the markdown node pipeline with `id="passage-<id>"`; highlight states (open, confirmed, selected) differing by more than colour; excerpt highlighting; ¶ numbering over paragraphs only
-- [ ] 9.2 Selection in `?passage=`: links without JavaScript, `replaceState` and scroll with it; text selection inside a paragraph sets the hand-mapping excerpt
-- [ ] 9.3 Gallery entry with a hostile-text passage and an excerpt
-- [ ] 9.4 Tests: `.docx` shows headings, paragraphs and outline; page link opens the page; an XSS passage renders as words; an excerpt highlights only its sentence; "¶2" after a heading; the no-JS project reads text and pages and downloads the file
+- [x] 9.1 `PaperView`: page sheets with `?page=` navigation for PDFs, one sheet with heading outline otherwise; passages through the markdown node pipeline with `id="passage-<id>"`; highlight states (open, confirmed, selected) differing by more than colour; excerpt highlighting; ¶ numbering over paragraphs only
+- [x] 9.2 Selection in `?passage=`: links without JavaScript, `replaceState` and scroll with it; text selection inside a paragraph sets the hand-mapping excerpt
+- [x] 9.3 Gallery entry with a hostile-text passage and an excerpt
+- [x] 9.4 Tests: `.docx` shows headings, paragraphs and outline; page link opens the page; an XSS passage renders as words; an excerpt highlights only its sentence; "¶2" after a heading; the no-JS project reads text and pages and downloads the file
 
 ## 10. The workspace (design 05)
 
-- [ ] 10.1 Rewrite `documents/[id]/+page.server.ts`: document, passages, evidence (reason, excerpt, confirmer, date — never confidence), counts and state, coverage, scan availability or progress, answerable clause list, details for clauses on cards, re-confirm candidates, versions, permissions; `fullHeight`
-- [ ] 10.2 Actions through the shared wrapper: `startScan`, `confirm`, `dismiss`, `changeClause`, `dismissPassage`, `map`, `reconfirm`, `markDone`, `reopen`, `draft`, `replace`, `restore` — each returning to the same `?passage=`
-- [ ] 10.3 Two panes at ≥1024px; rail header "{filename} — N passages found, M mapped to clauses." with the coverage bar; the "Suggested mappings" label and AI-drafted note; scan block with estimate / progress / reason; re-confirm block; TopBar gains an optional sub-crumb showing the filename
-- [ ] 10.4 `SuggestionCard`: quote, "{filename} · p. 4, ¶2", `§ref`, clause name, reason, open-suggestion actions, confirmed state with the design's tinted treatment, confirmer line and *Turn into definition →* (only when the clause has an owner section — `turnIntoDefinition` answers 409 otherwise); hand-mapping card for a selected unidentified paragraph
-- [ ] 10.4b `RequirementTip` (new component — `HelpTip` is registry-only): inline expansion with *Hide*, "RCOS-Core v0.1 · §ref" header, normativity badge, localised clause text, "Layer N · Artifact" footer, "Open in Standard →"; give the standard page per-clause anchors for that link
-- [ ] 10.5 `ClausePicker`: Bits UI combobox over ref, name and question with a `datalist` fallback
-- [ ] 10.6 Pane footer: page nav, passages-on-page and governance-pages sentence, next open passage link (wrapping) or the all-answered sentence with *Mark mapping as done*
-- [ ] 10.7 Polling while the scan is live, with the same stop rules as the library
-- [ ] 10.8 Gallery entries for `SuggestionCard` (open, confirmed, no reason, hand mapping) and `ClausePicker`
-- [ ] 10.9 Tests: e2e with the fixture provider — library → *Start RCOS mapping* (estimate shown) → scanning → cards with reasons and no strength → confirm, change clause by typing, dismiss, not governance → document *Mapped* → *Turn into definition* lands on a pre-filled draft; the same by hand with `AI_PROVIDER=null` ending in *Mark mapping as done*; a member without `mapping.confirm` sees no actions; next open passage wraps and gives way to *Mark mapping as done*; change clause without JavaScript; keyboard-only run of every action; rewrite `tests/e2e/documents.spec.ts` for the new screens
+- [x] 10.1 Rewrite `documents/[id]/+page.server.ts`: document, passages, evidence (reason, excerpt, confirmer, date — never confidence), counts and state, coverage, scan availability or progress, answerable clause list, details for clauses on cards, re-confirm candidates, versions, permissions; `fullHeight`
+- [x] 10.2 Actions through the shared wrapper: `startScan`, `confirm`, `dismiss`, `changeClause`, `dismissPassage`, `map`, `reconfirm`, `markDone`, `reopen`, `draft`, `replace`, `restore` — each returning to the same `?passage=`
+- [x] 10.3 Two panes at ≥1024px; rail header "{filename} — N passages found, M mapped to clauses." with the coverage bar; the "Suggested mappings" label and AI-drafted note; scan block with estimate / progress / reason; re-confirm block; TopBar gains an optional sub-crumb showing the filename
+- [x] 10.4 `SuggestionCard`: quote, "{filename} · p. 4, ¶2", `§ref`, clause name, reason, open-suggestion actions, confirmed state with the design's tinted treatment, confirmer line and *Turn into definition →* (only when the clause has an owner section — `turnIntoDefinition` answers 409 otherwise); hand-mapping card for a selected unidentified paragraph
+- [x] 10.4b `RequirementTip` (new component — `HelpTip` is registry-only): inline expansion with *Hide*, "RCOS-Core v0.1 · §ref" header, normativity badge, localised clause text, "Layer N · Artifact" footer, "Open in Standard →"; give the standard page per-clause anchors for that link
+- [x] 10.5 `ClausePicker`: Bits UI combobox over ref, name and question with a `datalist` fallback
+- [x] 10.6 Pane footer: page nav, passages-on-page and governance-pages sentence, next open passage link (wrapping) or the all-answered sentence with *Mark mapping as done*
+- [x] 10.7 Polling while the scan is live, with the same stop rules as the library
+- [x] 10.8 Gallery entries for `SuggestionCard` (open, confirmed, no reason, hand mapping) and `ClausePicker`
+- [x] 10.9 Tests: e2e with the fixture provider — library → *Start RCOS mapping* (estimate shown) → scanning → cards with reasons and no strength → confirm, change clause by typing, dismiss, not governance → document *Mapped* → *Turn into definition* lands on a pre-filled draft; the same by hand with `AI_PROVIDER=null` ending in *Mark mapping as done*; a member without `mapping.confirm` sees no actions; next open passage wraps and gives way to *Mark mapping as done*; change clause without JavaScript; keyboard-only run of every action; rewrite `tests/e2e/documents.spec.ts` for the new screens
 
 ## 11. The queue below 1024px (design 16b)
 
-- [ ] 11.1 `MappingQueue`: document name, done count and bar, the "1 · Read it / 2 · Confirm the ref" stepper, "Passage N of M", `?step=read|confirm` with `?passage=`, paper card with "page 4, ¶2 · see it in the page", the "Suggested ref" block with `RequirementTip` behind the `?`, reason, the non-adoption sentence ("…your documents already speak to this ref."), *Confirm §ref* / *Change ref* / *Not governance* at ≥44px; a passage with two open suggestions is presented once per suggestion
-- [ ] 11.2 The scan block above the queue; the finished state with *Mark mapping as done*, the re-confirm block and confirmed claims with *Turn into definition →* — nothing the workspace offers is desktop-only
-- [ ] 11.3 "See it in the page" shows the text view at the passage with a way back; selecting an unmapped paragraph there offers hand mapping
-- [ ] 11.4 Gallery entry at 375 and 768
-- [ ] 11.5 Tests: at 375 confirming advances and increments the count; a two-suggestion passage is asked twice; at 768 the queue is shown, not two panes; "see it in the page" highlights the passage and returns; a phone member can start a scan, map by hand and mark mapping done; touch targets measure ≥44px; a11y scan of the queue at 375 and 768
+- [x] 11.1 `MappingQueue`: document name, done count and bar, the "1 · Read it / 2 · Confirm the ref" stepper, "Passage N of M", `?step=read|confirm` with `?passage=`, paper card with "page 4, ¶2 · see it in the page", the "Suggested ref" block with `RequirementTip` behind the `?`, reason, the non-adoption sentence ("…your documents already speak to this ref."), *Confirm §ref* / *Change ref* / *Not governance* at ≥44px; a passage with two open suggestions is presented once per suggestion
+- [x] 11.2 The scan block above the queue; the finished state with *Mark mapping as done*, the re-confirm block and confirmed claims with *Turn into definition →* — nothing the workspace offers is desktop-only
+- [x] 11.3 "See it in the page" shows the text view at the passage with a way back; selecting an unmapped paragraph there offers hand mapping
+- [x] 11.4 Gallery entry at 375 and 768
+- [x] 11.5 Tests: at 375 confirming advances and increments the count; a two-suggestion passage is asked twice; at 768 the queue is shown, not two panes; "see it in the page" highlights the passage and returns; a phone member can start a scan, map by hand and mark mapping done; touch targets measure ≥44px; a11y scan of the queue at 375 and 768
 
 ## 12. Documentation
 
-- [ ] 12.1 `docs/03-data-model.md`: scan columns and state machine, `content_generation`, done mark, evidence reason / excerpt / document, `document_file_version`, the derived mapping states
-- [ ] 12.2 `docs/04-security.md` §1: who may replace, restore and delete versions; §5.3: scans charged to whoever starts or continues
-- [ ] 12.3 `UI Spec — v0.1 (draft).md` §4.5: member-started scans, reasons instead of strength, versions; record the dropped design items ("Mark as reference only" / "Include in mapping", the strength badges, the per-clause "Satisfied when…" line, Word page counts)
+- [x] 12.1 `docs/03-data-model.md`: scan columns and state machine, `content_generation`, done mark, evidence reason / excerpt / document, `document_file_version`, the derived mapping states
+- [x] 12.2 `docs/04-security.md` §1: who may replace, restore and delete versions; §5.3: scans charged to whoever starts or continues
+- [x] 12.3 `UI Spec — v0.1 (draft).md` §4.5: member-started scans, reasons instead of strength, versions; record the dropped design items ("Mark as reference only" / "Include in mapping", the strength badges, the per-clause "Satisfied when…" line, Word page counts)

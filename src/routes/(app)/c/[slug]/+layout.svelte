@@ -324,7 +324,12 @@
 	<div
 		class="flex min-w-0 flex-1 flex-col {fullHeight ? 'lg:overflow-hidden' : 'lg:overflow-y-auto'}"
 	>
-		<TopBar community={data.community.name} {slug} {crumb} />
+		<TopBar
+			community={data.community.name}
+			{slug}
+			{crumb}
+			sub={typeof page.data.subCrumb === 'string' ? page.data.subCrumb : null}
+		/>
 		{#if data.readOnly}
 			<p
 				role="status"

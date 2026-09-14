@@ -8,10 +8,10 @@ import { ACCEPTED } from '$lib/server/documents/sniff';
 import { aiAvailability } from '$lib/server/ai/run';
 import { activeStandardView } from '$lib/server/services/completeness';
 import {
-	deleteVersion,
-	replaceDocument,
-	restoreVersion
-} from '$lib/server/services/document-versions';
+	deleteVersionAction,
+	replaceAction,
+	restoreAction
+} from '$lib/server/documents/version-actions';
 import { createDocument, deleteDocument } from '$lib/server/services/documents';
 import {
 	LIBRARY_FILTERS,
@@ -142,56 +142,9 @@ export const actions: Actions = {
 		return 'result' in outcome ? { ...outcome, documentId } : outcome;
 	},
 
-	replace: async (event) => {
-		const form = await event.request.formData();
-		const documentId = String(form.get('documentId') ?? '');
-		const file = form.get('file');
-		if (!(file instanceof File) || file.size === 0) {
-			return fail(400, { step: 'replace', error: 'Choose the newer file first.' });
-		}
-		return run('replace', async () => {
-			let stored;
-			try {
-				stored = await receiveUpload(file, event.locals.ctx!.community.id);
-			} catch (problem) {
-				if (problem instanceof UploadRefused) {
-					return { refused: problem.reason };
-				}
-				throw problem;
-			}
-			await replaceDocument(
-				event.locals.ctx!,
-				documentId,
-				{ filename: file.name, file: stored },
-				{ db: getDb() }
-			);
-			return { refused: null };
-		});
-	},
-
-	restore: async (event) => {
-		const form = await event.request.formData();
-		return run('restore', () =>
-			restoreVersion(
-				event.locals.ctx!,
-				String(form.get('documentId') ?? ''),
-				String(form.get('versionId') ?? ''),
-				{ db: getDb() }
-			)
-		);
-	},
-
-	deleteVersion: async (event) => {
-		const form = await event.request.formData();
-		return run('deleteVersion', () =>
-			deleteVersion(
-				event.locals.ctx!,
-				String(form.get('documentId') ?? ''),
-				String(form.get('versionId') ?? ''),
-				{ db: getDb() }
-			)
-		);
-	},
+	replace: replaceAction,
+	restore: restoreAction,
+	deleteVersion: deleteVersionAction,
 
 	remove: async (event) => {
 		const form = await event.request.formData();

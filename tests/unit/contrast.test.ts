@@ -74,7 +74,11 @@ const PAIRS: { fg: string; bg: string; needs: number; where: string }[] = [
 	 * the state. Holding it to 3:1 would darken the interface to satisfy a rule it
 	 * is not the subject of; what must clear the line is the ring, and it does.
 	 */
-	{ fg: 'accent-fg', bg: 'raised', needs: AA_LARGE, where: 'the focus ring on a control' }
+	{ fg: 'accent-fg', bg: 'raised', needs: AA_LARGE, where: 'the focus ring on a control' },
+	// The text view's sheet, which is light.
+	{ fg: 'paper-ink', bg: 'paper', needs: AA_TEXT, where: 'document text' },
+	{ fg: 'paper-muted', bg: 'paper', needs: AA_TEXT, where: 'page and paragraph numbers' },
+	{ fg: 'accent-deep', bg: 'paper', needs: AA_LARGE, where: 'the selected passage outline' }
 ];
 
 describe('the design tokens clear AA where they are used', () => {
