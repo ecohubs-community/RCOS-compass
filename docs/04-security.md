@@ -58,8 +58,10 @@ So:
 | Resolve or overrule someone else's objection | ✓ | — | |
 | Ratify provisional definitions | ✓ | — | |
 | Upload a document | ✓ | ✓ | |
-| Confirm / dismiss a mapping suggestion | ✓ | ✓ | |
-| Replace, mark reference-only, or remove a document | ✓ | — | |
+| Confirm / dismiss a mapping suggestion, map by hand, mark mapping as done | ✓ | ✓ | |
+| Start or continue a document scan (charged to whoever starts it) | ✓ | ✓ | |
+| Replace a document's file, restore an earlier version | ✓ | ✓ | |
+| Remove a document, delete an earlier version for good | ✓ | — | |
 | Run AI tasks | ✓ | ✓ | |
 | **Re-order the Path privately** | ✓ | ✓ | |
 | **Publish the Path order / edit the weights** | ✓ | — | |
@@ -82,9 +84,12 @@ So:
 - **Documents.** Any member may upload and may confirm mapping suggestions —
   confirming a mapping creates *Evidence* ("we have language about this"), not an
   adopted definition, so the blast radius is small and gatekeeping it would
-  strangle the one onboarding flow that actually works. Only a steward
-  **destroys** — replace, remove, mark reference-only — because those actions
-  invalidate other people's confirmed evidence.
+  strangle the one onboarding flow that actually works. Any member may also
+  **replace** a file, because the earlier file is kept as a version anyone can
+  restore — a mistaken or harmful replacement is one click from undone, and
+  claims it made stale can be re-confirmed. Only a steward **destroys** —
+  removes a document or deletes a version for good — because nothing brings
+  those back.
 
 `member` can do everything that produces *proposals* and nothing that produces
 *authority*. Freeze is deliberately not a member right even though the
@@ -298,7 +303,7 @@ community budget is a backstop, not the other way round.
 | Per user, per calendar month | 300 000 tokens (in + out) | `AI_USER_MONTHLY_TOKENS` |
 | Per community, per month | 2 000 000 tokens — the backstop | `AI_MONTHLY_TOKEN_BUDGET` |
 | Per request | task-specific output ceiling, provider timeout 60 s | in the task definition |
-| Document mapping | the expensive one: capped per run by `MAX_EXTRACT_PAGES`, resumable, and charged to the member who started it | — |
+| Document mapping | the expensive one: started by a member with the paragraph estimate shown first, twelve paragraphs a batch, capped by `MAX_EXTRACT_PAGES`, resumable, never paying for a paragraph twice, and each batch charged to the member who started or continued the scan | — |
 
 Counted in **tokens, not just calls**, because tasks differ by two orders of
 magnitude — linting a paragraph against mapping a 34-page PDF. The task counter

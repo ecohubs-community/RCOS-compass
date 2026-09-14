@@ -563,6 +563,33 @@ This is the single biggest adoption unlock in the product. A forming community
 starting at zero will bounce. An existing community that uploads its bylaws and
 sees *"you already have language for 38 of 187 requirements"* stays.
 
+**As built (`document-mapping-workspace`).**
+
+- **Scans are started by a member**, never on upload: *Start RCOS mapping*
+  shows how many paragraphs it will read, progress is shown while it runs, and a
+  stopped scan is continued rather than restarted. A file with no readable text
+  shows the control disabled, with the reason.
+- **Library** (design 09): several files per upload, each with its own outcome;
+  the notice that every member can read them and nothing leaves the community;
+  a row per document with its mapping state, progress and one next action.
+- **Workspace** (design 05, 1024px and wider): the document as text beside the
+  cards. Each suggestion shows **a reason, not a strength** — the model's one
+  sentence on what the passage covers and leaves out; confidence is stored and
+  never shown. Confirm, change clause (search by reference, name or question),
+  dismiss, not governance; any paragraph can be mapped by hand, down to a
+  selected sentence. Below 1024px the same acts are a one-passage queue
+  (design 16b).
+- **Versions.** Any member may replace a file; the earlier file is kept and can
+  be restored, and claims whose words survive can be re-confirmed in one click.
+  Only a steward removes a document or deletes a version.
+
+Dropped from the mock, deliberately: *Mark as reference only* / *Include in
+mapping* (reference-only keeps its one meaning — the reader could not read it);
+the strength badges ("Strong match", "Partial — no end act"); the per-clause
+"Satisfied when…" line (no standard content backs it); page counts for Word and
+ODT files (they have no pages to count honestly); and the PDF thumbnail strip,
+which belongs to the original view (`document-original-view`).
+
 ### 4.6 Decision register
 
 Filterable table: ID, title, type, layer, date, review date, decided-by,

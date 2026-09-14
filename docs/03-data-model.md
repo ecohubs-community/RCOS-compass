@@ -171,11 +171,19 @@ consent_response   round_id | membership_id | value consent|objection|abstain
 document           id | community_id | filename | mime | bytes | sha256 | storage_key
                    | uploaded_by | status uploaded|extracting|extracted|reference_only|failed
                    | extractor_version?  — reader version; below current re-reads at boot
+                   | scan_status none|queued|running|stopped|complete | scan_detail? | scan_actor?
+                   | scan_heartbeat_at? | content_generation | mapping_done_at? | mapping_done_by?
+                   — always the *current* file; earlier files are document_file_version rows
+document_file_version id | document_id | community_id | filename | mime | bytes | sha256
+                   | storage_key | uploaded_by? | uploaded_at | superseded_by? | superseded_at
 passage            id | document_id | page | ordinal | kind heading|paragraph | text | text_hash | bbox?
+                   | scanned_at?  — when a scan sent it to a model; never sent twice
                    — bbox: JSON [{x,y,w,h,start,end}] line boxes in unrotated PDF
                      user space, start/end offsets into text; null for pageless formats
-evidence           id | community_id | passage_id | clause_key | state suggested|confirmed|dismissed|stale
-                   | confidence | suggested_by ai|human | confirmed_by? | confirmed_at?
+evidence           id | community_id | passage_id? | document_id? | clause_key
+                   | state suggested|confirmed|dismissed|stale | confidence | reason?
+                   | excerpt_start? | excerpt_end? | suggested_by ai|human | confirmed_by? | confirmed_at?
+                   — document_id outlives the passage, so stale evidence knows which file it was about
 transparency_exception id | community_id | subject_type | subject_id | audience | justification
                    | expires_at | expired_at? | renews_id? | decision_id | created_by
                    -- `audience` was missing from this sketch and is named in UI
@@ -400,6 +408,44 @@ and that lives in *their* Membership Charter, not in ours. So:
 document is replaced or re-extracted and the passage's `text_hash` no longer
 matches — it is not silently re-pointed. Stale evidence surfaces in *Needs
 attention* and does not count toward "you already have language for N of 187".
+After a replacement, restore or re-read, stale evidence whose quote still hashes
+to a current passage of the same document is offered for **re-confirmation** —
+one click, never automatic. `reason` is the model's one-sentence account of what
+the passage covers (rendered as text, never markdown); `confidence` is stored
+and no screen shows it. `excerpt_start`/`excerpt_end` are offsets into the
+passage text, validated `0 ≤ start < end ≤ length`.
+
+### Scans and the mapping state
+
+A scan is started by a member (`startScan`, charged to them) and runs as a chain
+of `document.scan` jobs, twelve paragraphs a batch:
+
+`none → queued → running → complete | stopped`. The claim is one conditional
+update: it succeeds only when no scan is live or the live one has **stalled**
+(no heartbeat for 10 minutes — a killed worker). Every batch writes inside a
+transaction that re-checks `content_generation` and `scan_status = running`, so a
+replace, restore, delete or re-read that bumped the generation makes the old scan
+write nothing. A refused budget, unavailable AI or unexpected error records
+`stopped` with a sentence; a stopped scan is continued, and only unread
+paragraphs are sent.
+
+The **mapping state** a document shows is derived, never stored
+(`services/mapping-state.ts`, first match wins): *Reading* (uploaded/extracting),
+*Couldn't be read* (failed), *Can't be scanned* (reference_only), *Scanning*
+(queued/running, not stalled), *Not scanned* (nothing identified, no scan),
+*Not governance* (nothing identified, scan complete), *Mapped* (something
+identified, nothing open, and the scan complete or `mapping_done_at` set),
+otherwise *Mapping in progress*. *Identified* counts paragraphs with non-stale
+evidence; *open* counts those with a suggestion. **Mark mapping as done** sets
+`mapping_done_at`; a new scan, a replace and a restore clear it.
+
+### Versions
+
+Replacing a file keeps the earlier one as a `document_file_version` row and its
+file on disk; the document row takes the new file, its passages are re-read,
+its evidence goes stale and its scan resets. Restoring swaps a version back with
+no bytes copied. Versions count against the storage ceiling; only a steward
+deletes one. The purge job sweeps files no document or version references.
 
 ---
 
