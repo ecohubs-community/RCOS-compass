@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { useTime } from '$lib/time/use-time';
 	import { enhance } from '$app/forms';
 	import { invalidateAll } from '$app/navigation';
 	import { resolve } from '$app/paths';
@@ -28,13 +29,8 @@
 		waiting = false;
 	}
 
-	const when = (ms: number) =>
-		new Date(ms).toLocaleString('en-GB', {
-			day: 'numeric',
-			month: 'short',
-			hour: '2-digit',
-			minute: '2-digit'
-		});
+	const time = useTime();
+	const when = (ms: number) => time.moment(ms, 'dateTimeShort');
 	const size = (bytes: number) =>
 		bytes < 1024 * 1024 ? `${Math.round(bytes / 1024)} KB` : `${(bytes / 1048576).toFixed(1)} MB`;
 </script>

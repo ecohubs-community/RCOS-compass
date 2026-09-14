@@ -1,4 +1,5 @@
 import { getLocale } from '$lib/paraglide/runtime';
+import { timeZoneFor } from '$lib/time/zone';
 import type { LayoutServerLoad } from './$types';
 
 /**
@@ -14,4 +15,15 @@ import type { LayoutServerLoad } from './$types';
  * the locale is a property of the community whose page this is, not a
  * preference of the browser looking at it.
  */
-export const load: LayoutServerLoad = () => ({ locale: getLocale() });
+export const load: LayoutServerLoad = ({ locals }) => ({
+	locale: getLocale(),
+	/**
+	 * The zone times are shown in, for the same reason as the locale: the server
+	 * and the browser must format with the same one. A community's layout narrows
+	 * it (the member's zone, else the community's); here it is the person's, else
+	 * UTC. `openspec/changes/local-time`.
+	 */
+	timeZone: timeZoneFor(locals.user),
+	/** Whether the browser should report its zone once: signed in, none stored. */
+	detectTimeZone: locals.user !== null && !locals.user.timeZone
+});

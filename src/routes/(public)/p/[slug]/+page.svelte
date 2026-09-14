@@ -1,17 +1,12 @@
 <script lang="ts">
+	import { useTime } from '$lib/time/use-time';
 	import { resolve } from '$app/paths';
 	import * as m from '$lib/paraglide/messages';
 
 	let { data } = $props();
 
-	const day = (ms: number | null) =>
-		ms === null
-			? '—'
-			: new Date(ms).toLocaleDateString('en-GB', {
-					day: 'numeric',
-					month: 'short',
-					year: 'numeric'
-				});
+	const time = useTime();
+	const day = (ms: number | null) => (ms === null ? '—' : time.date(ms));
 </script>
 
 <svelte:head>

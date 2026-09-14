@@ -41,7 +41,7 @@ Reasoning:
   - changeable on the account page, including "use this device's time zone".
 - **Which zone a page uses:** the person's → the community's → UTC. Anonymous
   public pages use the community's.
-- **One formatter.** `$lib/format/time.ts` formats a moment for a zone and the
+- **One formatter.** `$lib/time/format.ts` formats a moment for a zone and the
   page's locale: date, date and time, time, and relative ("2 hours ago"). It always
   passes an explicit `timeZone`, so server rendering and hydration agree. Every
   screen uses it; the ad-hoc `toLocaleDateString('en-GB')` calls go.
@@ -80,7 +80,7 @@ Reasoning:
   - the freeze action converts the review date using the community's zone;
   - exports and printable pages format in the community's zone.
 - **Client:**
-  - `$lib/format/time.ts`;
+  - `$lib/time/format.ts`;
   - a one-time detection in the root layout (a form post, only when unset);
   - the account page's time zone field;
   - about twenty call sites moved to the formatter.

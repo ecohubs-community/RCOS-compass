@@ -37,7 +37,7 @@ test.describe('the language a community works in', () => {
 		await signIn(page, fixture.member.email, fixture.member.password);
 
 		await visit(page, `/c/${fixture.slug}/settings/language`);
-		await expect(page.getByText(/Only a steward/i)).toBeVisible();
+		await expect(page.getByText(/Only a steward/i).first()).toBeVisible();
 		await expect(page.getByRole('button', { name: 'Save' })).toHaveCount(0);
 	});
 });

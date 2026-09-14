@@ -20,6 +20,7 @@ export function makeUser(
 		image: null,
 		twoFactorEnabled: false,
 		locale: 'en',
+		timeZone: null,
 		erasedAt: null,
 		erasedBy: null,
 		createdAt: NOW,

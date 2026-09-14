@@ -7,6 +7,7 @@ import { changeLog } from '../db/schema/decisions.js';
 import { community } from '../db/schema/tenancy.js';
 import { getStandard } from '../standard/index.js';
 import type { Locale } from '../standard/types.js';
+import { isTimeZone } from '../../time/zone.js';
 
 /**
  * The language a community works in, for the standard's content.
@@ -82,6 +83,48 @@ export function setCommunityLocale(ctx: Ctx, locale: string, options: { db?: Db 
 				subjectType: 'community',
 				subjectId: ctx.community.id,
 				summary: `Changed this community’s language to ${locale}`,
+				payload: null
+			})
+			.run();
+	});
+}
+
+/**
+ * Change the time zone the community's calendar is kept in.
+ * `openspec/changes/local-time`, the `localisation` spec.
+ *
+ * It moves calendar dates (a review date is a day on this calendar) and the
+ * times shown to members who have not set their own zone. It rewrites nothing:
+ * every stored moment is an instant, and a decision reference's year was fixed
+ * the moment it was frozen. Recorded, like the language, because every member
+ * without a zone of their own sees their clocks move at once.
+ */
+export function setCommunityTimeZone(ctx: Ctx, zone: string, options: { db?: Db } = {}): void {
+	requirePermission(ctx, 'settings.manage');
+	requireWritableCommunity(ctx);
+	if (!isTimeZone(zone)) error(400, 'Choose a time zone from the list.');
+
+	const db = options.db ?? getDb();
+	const now = new Date(ctx.now());
+
+	db.transaction((tx) => {
+		const changed = tx
+			.update(community)
+			.set({ timezone: zone, updatedAt: now })
+			.where(and(eq(community.id, ctx.community.id), ne(community.timezone, zone)))
+			.run();
+		if (changed.changes === 0) return;
+
+		tx.insert(changeLog)
+			.values({
+				id: newId(),
+				communityId: ctx.community.id,
+				at: now,
+				actorId: ctx.user.id,
+				kind: 'community.time_zone_changed',
+				subjectType: 'community',
+				subjectId: ctx.community.id,
+				summary: `Changed this community’s time zone to ${zone}`,
 				payload: null
 			})
 			.run();

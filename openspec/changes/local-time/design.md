@@ -84,7 +84,7 @@ Jobs and emails call the same resolver for the recipient.
 
 ### One formatter
 
-`$lib/format/time.ts`, pure and importable on both sides:
+`$lib/time/format.ts`, pure and importable on both sides:
 
 ```
 formatMoment(ms, { timeZone, locale, style })

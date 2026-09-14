@@ -1,7 +1,12 @@
 import { fail } from '@sveltejs/kit';
 import { ctxCan } from '$lib/server/auth/guard';
 import { getDb } from '$lib/server/db';
-import { availableLocales, setCommunityLocale } from '$lib/server/services/community-locale';
+import {
+	availableLocales,
+	setCommunityLocale,
+	setCommunityTimeZone
+} from '$lib/server/services/community-locale';
+import { timeZoneChoices } from '$lib/server/services/time-zone';
 import type { Actions, PageServerLoad } from './$types';
 
 /**
@@ -16,21 +21,41 @@ export const load: PageServerLoad = ({ locals }) => {
 	const ctx = locals.ctx!;
 	return {
 		current: ctx.community.locale,
+		currentTimeZone: ctx.community.timezone,
+		timeZones: timeZoneChoices(),
 		locales: availableLocales(),
 		can: { manage: ctxCan(ctx, 'settings.manage') }
 	};
 };
 
 export const actions: Actions = {
-	default: async (event) => {
+	locale: async (event) => {
 		const form = await event.request.formData();
 		try {
 			setCommunityLocale(event.locals.ctx!, String(form.get('locale') ?? ''), { db: getDb() });
 		} catch (problem) {
 			const http = problem as { status?: number; body?: { message?: string } };
-			if (http.status === 400) return fail(400, { error: http.body?.message ?? '' });
+			if (http.status === 400)
+				return fail(400, { step: 'locale', error: http.body?.message ?? '' });
 			throw problem;
 		}
-		return { saved: true };
+		return { step: 'locale', saved: true };
+	},
+
+	/** The zone the community's calendar is kept in. `openspec/changes/local-time`. */
+	timeZone: async (event) => {
+		const form = await event.request.formData();
+		try {
+			setCommunityTimeZone(event.locals.ctx!, String(form.get('timeZone') ?? ''), {
+				db: getDb()
+			});
+		} catch (problem) {
+			const http = problem as { status?: number; body?: { message?: string } };
+			if (http.status === 400) {
+				return fail(400, { step: 'timeZone', error: http.body?.message ?? '' });
+			}
+			throw problem;
+		}
+		return { step: 'timeZone', saved: true };
 	}
 };

@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { useTime } from '$lib/time/use-time';
 	import { enhance } from '$app/forms';
 	import Button from '$lib/components/ui/Button.svelte';
 	import * as m from '$lib/paraglide/messages';
@@ -26,12 +27,8 @@
 	// In the community's own language, like every other date on a member's
 	// screen: the sentence around it is translated, and a date in another
 	// convention inside a translated sentence reads as a bug.
-	const day = (ms: number) =>
-		new Date(ms).toLocaleDateString(data.community.locale, {
-			day: 'numeric',
-			month: 'short',
-			year: 'numeric'
-		});
+	const time = useTime();
+	const day = (ms: number) => time.date(ms);
 </script>
 
 <svelte:head><title>{m.members_title()} · {data.community.name}</title></svelte:head>

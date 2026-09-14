@@ -1,17 +1,14 @@
 <script lang="ts">
+	import { useTime } from '$lib/time/use-time';
 	import StatusChip from '$lib/components/ui/StatusChip.svelte';
 	import { links } from '$lib/links';
 
 	let { data } = $props();
 	const slug = $derived(data.community.slug);
-	const day = (ms: number | null) =>
-		ms === null
-			? '—'
-			: new Date(ms).toLocaleDateString('en-GB', {
-					day: 'numeric',
-					month: 'short',
-					year: 'numeric'
-				});
+	const time = useTime();
+	const day = (ms: number | null) => (ms === null ? '—' : time.date(ms));
+	/** A review date is the community's calendar date: the same day for everyone. */
+	const calendarDay = (ms: number | null) => (ms === null ? '—' : time.calendarDate(ms));
 </script>
 
 <svelte:head><title>Decisions · {data.community.name}</title></svelte:head>
@@ -90,7 +87,7 @@
 							<td class="text-fg-secondary py-2" data-tabular>{decision.layer ?? '—'}</td>
 							<td class="py-2 whitespace-nowrap" data-tabular>{day(decision.decidedAt)}</td>
 							<td class="text-fg-secondary py-2 whitespace-nowrap" data-tabular
-								>{day(decision.reviewDueAt)}</td
+								>{calendarDay(decision.reviewDueAt)}</td
 							>
 							<td class="text-fg-secondary py-2 whitespace-nowrap">
 								{decision.mechanism}{#if decision.tallyFor !== null && decision.tallyPresent !== null},

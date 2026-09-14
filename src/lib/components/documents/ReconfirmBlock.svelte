@@ -2,7 +2,7 @@
 	import { enhance } from '$app/forms';
 	import Button from '$lib/components/ui/Button.svelte';
 	import * as m from '$lib/paraglide/messages';
-	import { shortDate } from './format.js';
+	import { useTime } from '$lib/time/use-time';
 
 	/**
 	 * Claims the earlier file carried, whose words the current file still says.
@@ -21,6 +21,7 @@
 	type Props = { candidates: readonly Candidate[]; canMap: boolean; returnTo: string };
 
 	let { candidates, canMap, returnTo }: Props = $props();
+	const time = useTime();
 	const action = $derived(`?${returnTo ? `${returnTo}&` : ''}/reconfirm`);
 </script>
 
@@ -42,7 +43,7 @@
 							<span class="text-fg-secondary text-meta">
 								{m.workspace_reconfirm_by({
 									person: candidate.confirmer,
-									date: shortDate(candidate.confirmedAt)
+									date: time.dateShort(candidate.confirmedAt)
 								})}
 							</span>
 						{/if}

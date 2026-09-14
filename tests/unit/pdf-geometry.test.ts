@@ -30,7 +30,8 @@ async function viewportsOf(name: string, rotation: number, scale = 1.5) {
 
 const box = { x: 150, y: 600, w: 200, h: 11, start: 0, end: 40 };
 
-describe('a line box on the rendered page', () => {
+// The first test loads pdf.js itself, which takes a few seconds on a busy machine.
+describe('a line box on the rendered page', { timeout: 30_000 }, () => {
 	it.each([0, 90, 180, 270])(
 		'lands where pdf.js puts its corners, rotated by %i degrees',
 		async (rotation) => {
@@ -68,7 +69,7 @@ describe('a line box on the rendered page', () => {
 	});
 });
 
-describe('a transform at another zoom', () => {
+describe('a transform at another zoom', { timeout: 30_000 }, () => {
 	it.each([0, 90, 180, 270])(
 		'matches pdf.js at scale 2.3 from the scale-1 transform, rotated %i degrees',
 		async (rotation) => {

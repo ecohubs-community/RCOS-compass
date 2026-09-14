@@ -1,10 +1,12 @@
 <script lang="ts">
+	import { useTime } from '$lib/time/use-time';
 	import { enhance } from '$app/forms';
 	import * as m from '$lib/paraglide/messages';
 	import IconDeviceFloppy from '~icons/tabler/device-floppy';
 	import IconWorld from '~icons/tabler/world';
 	import IconWorldOff from '~icons/tabler/world-off';
 
+	const time = useTime();
 	let { data, form } = $props();
 </script>
 
@@ -135,13 +137,7 @@
 			<ul class="mt-3 flex flex-col gap-1">
 				{#each data.activity as event (event.id)}
 					<li class="border-border/60 flex flex-wrap gap-x-3 border-b pb-1">
-						<span class="text-fg-muted text-meta" data-tabular
-							>{new Date(event.at).toLocaleDateString('en-GB', {
-								day: 'numeric',
-								month: 'short',
-								year: 'numeric'
-							})}</span
-						>
+						<span class="text-fg-muted text-meta" data-tabular>{time.date(event.at)}</span>
 						<span class="text-fg-secondary min-w-0 flex-1">{event.summary}</span>
 					</li>
 				{/each}

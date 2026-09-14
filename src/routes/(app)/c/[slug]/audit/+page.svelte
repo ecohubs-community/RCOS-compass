@@ -1,11 +1,12 @@
 <script lang="ts">
+	import { useTime } from '$lib/time/use-time';
 	import { enhance } from '$app/forms';
 
 	let { data } = $props();
 	const latest = $derived(data.audits[0]);
 
-	const day = (ms: number) =>
-		new Date(ms).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+	const time = useTime();
+	const day = (ms: number) => time.date(ms);
 </script>
 
 <svelte:head><title>Self-audit · {data.community.name}</title></svelte:head>

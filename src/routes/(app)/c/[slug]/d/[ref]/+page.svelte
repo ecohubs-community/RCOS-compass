@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { useTime } from '$lib/time/use-time';
 	import Markdown from '$lib/components/ui/Markdown.svelte';
 	import StatusChip from '$lib/components/ui/StatusChip.svelte';
 	import { links } from '$lib/links';
@@ -6,14 +7,10 @@
 	let { data } = $props();
 	const slug = $derived(data.community.slug);
 	const d = $derived(data.decision);
-	const day = (ms: number | null) =>
-		ms === null
-			? '—'
-			: new Date(ms).toLocaleDateString('en-GB', {
-					day: 'numeric',
-					month: 'short',
-					year: 'numeric'
-				});
+	const time = useTime();
+	const day = (ms: number | null) => (ms === null ? '—' : time.date(ms));
+	/** A review date is the community's calendar date: the same day for everyone. */
+	const calendarDay = (ms: number | null) => (ms === null ? '—' : time.calendarDate(ms));
 </script>
 
 <svelte:head><title>{d.ref} · {data.community.name}</title></svelte:head>
@@ -94,7 +91,7 @@
 		</div>
 		<div>
 			<dt class="text-fg-muted text-meta">Review due</dt>
-			<dd data-tabular>{day(d.reviewDueAt)}</dd>
+			<dd data-tabular>{calendarDay(d.reviewDueAt)}</dd>
 		</div>
 		<div>
 			<dt class="text-fg-muted text-meta">Reached</dt>

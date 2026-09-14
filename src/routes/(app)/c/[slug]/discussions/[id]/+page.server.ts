@@ -25,6 +25,7 @@ import { draftProposalFromThread, summariseThread } from '$lib/server/ai/tasks/s
 import { listResponses, roundFor } from '$lib/server/voting/consent-round';
 import type { Actions, PageServerLoad, RequestEvent } from './$types';
 import { run } from '$lib/server/http/form-action';
+import { localMidnight } from '$lib/time/format';
 
 /**
  * One thread, one version on the table, and the freeze. UI spec §5.1, §4.6.
@@ -371,9 +372,14 @@ export const actions: Actions = {
 			return fail(400, { step: 'freeze', error: 'A tally is a whole number of people.' });
 		}
 
+		// A review date is a day on the community's calendar, so it starts at that
+		// day's midnight in the community's zone — not UTC's, which put it on the
+		// day before for everybody west of Greenwich. `openspec/changes/local-time`.
 		const reviewRaw = String(form.get('reviewDueAt') ?? '').trim();
-		const reviewDueAt = reviewRaw ? Date.parse(reviewRaw) : null;
-		if (reviewRaw && Number.isNaN(reviewDueAt)) {
+		const reviewDueAt = reviewRaw
+			? localMidnight(reviewRaw, event.locals.ctx!.community.timezone)
+			: null;
+		if (reviewRaw && reviewDueAt === null) {
 			return fail(400, { step: 'freeze', error: 'A review date has to be a date.' });
 		}
 

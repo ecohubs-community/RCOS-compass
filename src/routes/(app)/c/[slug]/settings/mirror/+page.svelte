@@ -1,17 +1,13 @@
 <script lang="ts">
+	import { useTime } from '$lib/time/use-time';
 	import { enhance } from '$app/forms';
 	import IconGitBranch from '~icons/tabler/git-branch';
 	import IconUnlink from '~icons/tabler/unlink';
 
 	let { data, form } = $props();
 
-	const when = (ms: number) =>
-		new Date(ms).toLocaleString('en-GB', {
-			day: 'numeric',
-			month: 'short',
-			hour: '2-digit',
-			minute: '2-digit'
-		});
+	const time = useTime();
+	const when = (ms: number) => time.moment(ms, 'dateTimeShort');
 </script>
 
 <svelte:head><title>Git mirror · {data.community.name}</title></svelte:head>

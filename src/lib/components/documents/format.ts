@@ -1,14 +1,8 @@
-import { getLocale } from '$lib/paraglide/runtime';
-
 /**
  * Small, shared formatting for the document screens — kept in one place so a
- * row, a version list and the workspace header say "21 Aug" and "1.4 MB" the
+ * row, a version list and the workspace header say "1.4 MB" the
  * same way.
  */
-
-export function shortDate(ms: number): string {
-	return new Date(ms).toLocaleDateString(getLocale(), { day: 'numeric', month: 'short' });
-}
 
 export function fileSize(bytes: number): string {
 	if (bytes < 1024) return `${bytes} B`;

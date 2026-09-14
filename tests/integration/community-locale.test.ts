@@ -9,7 +9,8 @@ import { community, communityStandard } from '../../src/lib/server/db/schema/ten
 import {
 	availableLocales,
 	communityLocale,
-	setCommunityLocale
+	setCommunityLocale,
+	setCommunityTimeZone
 } from '../../src/lib/server/services/community-locale.js';
 import { readiness } from '../../src/lib/server/services/readiness.js';
 import { getStandard } from '../../src/lib/server/standard/index.js';
@@ -161,5 +162,37 @@ describe('a community chooses the language it works in', () => {
 
 	it('is a steward’s decision, not a member’s', () => {
 		expect(catchRefusal(() => setCommunityLocale(lena, 'de', { db }))?.status).toBe(403);
+	});
+});
+
+describe('a community chooses the time zone its calendar is kept in', () => {
+	const zoneOf = () =>
+		db.select().from(community).where(eq(community.id, ana.community.id)).get()!.timezone;
+
+	it('changes it, and records that somebody did', () => {
+		setCommunityTimeZone(ana, 'Europe/Berlin', { db });
+
+		expect(zoneOf()).toBe('Europe/Berlin');
+		const logged = db.select().from(changeLog).all().at(-1)!;
+		expect(logged.kind).toBe('community.time_zone_changed');
+		expect(logged.actorId).toBe(ana.user.id);
+	});
+
+	it('refuses a member who is not a steward, and a zone that does not exist', () => {
+		expect(catchRefusal(() => setCommunityTimeZone(lena, 'Europe/Berlin', { db }))?.status).toBe(
+			403
+		);
+		expect(catchRefusal(() => setCommunityTimeZone(ana, 'Mars/Olympus', { db }))?.status).toBe(400);
+		expect(zoneOf()).not.toBe('Europe/Berlin');
+	});
+
+	it('rewrites nothing already recorded', () => {
+		const id = adopt();
+		const before = db.select().from(definitionVersion).all();
+
+		setCommunityTimeZone(ana, 'Pacific/Kiritimati', { db });
+
+		expect(db.select().from(definitionVersion).all()).toEqual(before);
+		expect(db.select().from(definition).where(eq(definition.id, id)).get()).toBeTruthy();
 	});
 });

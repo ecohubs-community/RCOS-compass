@@ -452,6 +452,26 @@ deletes one. The purge job sweeps files no document or version references.
 
 ---
 
+### Time: three rules (`local-time`)
+
+1. **A moment** — something happened, or will happen, at an instant — is stored as
+   UTC epoch milliseconds (`integer … mode: 'timestamp_ms'`, every `*_at` column;
+   `tests/unit/time-zone.test.ts` refuses a text date) and **shown in the viewer's
+   zone**: `user.time_zone`, else `community.timezone`, else UTC
+   (`$lib/time/zone.ts#timeZoneFor`).
+2. **A calendar date a community sets** (a review date) is stored as the start of
+   that day in the **community's** zone, and shown in the community's zone, so it
+   is the same date to every member wherever they are.
+3. **A community's own periods** — a decision reference's year, an AI budget day —
+   are computed in the community's zone, as they always were.
+
+`user.time_zone` (IANA, nullable) is reported by the browser the first time a
+signed-in person loads a page without one, is never overwritten by that report
+again, and is changed on the account page. It is erased with the account.
+Archival exports write `YYYY-MM-DD` on the community's calendar
+(`$lib/time/format.ts#isoDateIn`); machine-read dates (sitemaps, JSON, filenames)
+stay ISO UTC.
+
 ## 6. Decision references (`DEC-2026-014`)
 
 - `seq` is a **per-community gapless counter** allocated inside the freeze

@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { useTime } from '$lib/time/use-time';
 	import { enhance } from '$app/forms';
 	import Button from '$lib/components/ui/Button.svelte';
 	import * as m from '$lib/paraglide/messages';
@@ -41,14 +42,10 @@
 	 * a slow connection the requirement is still readable.
 	 */
 	let tab = $state<'requirement' | 'ours' | 'history'>('ours');
-	const day = (ms: number | null) =>
-		ms === null
-			? '—'
-			: new Date(ms).toLocaleDateString('en-GB', {
-					day: 'numeric',
-					month: 'short',
-					year: 'numeric'
-				});
+	const time = useTime();
+	const day = (ms: number | null) => (ms === null ? '—' : time.date(ms));
+	/** A review date is the community's calendar date: the same day for everyone. */
+	const calendarDay = (ms: number | null) => (ms === null ? '—' : time.calendarDate(ms));
 </script>
 
 <svelte:head><title>{data.definition.title} · {data.community.name}</title></svelte:head>
@@ -316,7 +313,7 @@
 			<dl class="mt-3 flex flex-col gap-2">
 				<div>
 					<dt class="text-fg-muted text-meta">Review due</dt>
-					<dd data-tabular>{day(data.definition.reviewDueAt)}</dd>
+					<dd data-tabular>{calendarDay(data.definition.reviewDueAt)}</dd>
 				</div>
 				{#if data.definition.attachedTo}
 					<div>

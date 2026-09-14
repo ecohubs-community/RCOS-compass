@@ -13,6 +13,8 @@ import { community } from '../db/schema/tenancy.js';
 import { standardViewFor } from './completeness.js';
 import { listDecisions } from './decisions.js';
 import { artifactToMarkdown, renderArtifact } from './render-artifact.js';
+import { isoDateIn } from '../../time/format.js';
+import { timeZoneFor } from '../../time/zone.js';
 
 /**
  * A community taking everything it has and leaving.
@@ -89,7 +91,7 @@ export function buildBundle(
 	}
 
 	const decisions = listDecisions(audience, { db });
-	add('decisions.md', decisionRegister(decisions, home.name));
+	add('decisions.md', decisionRegister(decisions, home.name, timeZoneFor(null, home)));
 	add(
 		'decisions.json',
 		JSON.stringify(
@@ -153,14 +155,19 @@ export function buildBundle(
  * a community reading its repository and a community reading its export must
  * not be given two different accounts of the same decisions.
  */
-export function decisionRegister(rows: (typeof decision.$inferSelect)[], name: string): string {
+export function decisionRegister(
+	rows: (typeof decision.$inferSelect)[],
+	name: string,
+	/** The community's zone: a decision is filed under the day it was made there. */
+	timeZone: string
+): string {
 	const lines = [`# ${name} — decision register`, ''];
 	if (rows.length === 0) lines.push('*No decisions have been recorded.*', '');
 	for (const row of rows) {
 		lines.push(
 			`## ${row.ref} — ${row.title}`,
 			'',
-			`Decided ${row.decidedAt.toISOString().slice(0, 10)} · ${row.mechanism}${
+			`Decided ${isoDateIn(row.decidedAt.getTime(), timeZone)} · ${row.mechanism}${
 				row.tallyFor !== null && row.tallyPresent !== null
 					? ` · ${row.tallyFor} of ${row.tallyPresent} present`
 					: ''

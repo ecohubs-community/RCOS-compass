@@ -99,6 +99,12 @@ what makes the post-MVP transports free.
 - Users may belong to many communities with a different role in each.
 - The community switcher changes the URL. There is no "active tenant" in the
   session — session-held tenancy is how cross-tenant leaks happen.
+- **Two per-request values come from the tenant, one from the person.** The
+  interface language is the community's (`locale.ts`); the time zone moments are
+  shown in is the person's, falling back to the community's
+  (`$lib/time/zone.ts#timeZoneFor`). Layouts hand both to the client so the
+  server and the browser render the same text, and jobs and emails call the same
+  resolver for their recipient.
 
 ---
 

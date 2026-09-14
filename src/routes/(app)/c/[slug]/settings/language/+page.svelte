@@ -33,15 +33,15 @@
 	<p class="text-fg-secondary mt-2">{m.language_intro()}</p>
 	<p class="text-fg-muted text-meta mt-2">{m.language_unchanged()}</p>
 
-	{#if form?.error}
+	{#if form?.step === 'locale' && form.error}
 		<p role="alert" class="text-attention mt-4">{form.error}</p>
 	{/if}
-	{#if form?.saved}
+	{#if form?.step === 'locale' && form.saved}
 		<p role="status" class="text-fg-secondary mt-4">{m.language_saved()}</p>
 	{/if}
 
 	{#if data.can.manage}
-		<form method="POST" use:enhance class="mt-6 flex flex-col gap-4">
+		<form method="POST" action="?/locale" use:enhance class="mt-6 flex flex-col gap-4">
 			<div class="flex flex-col gap-1">
 				<label for="locale" class="text-fg font-medium">{m.language_label()}</label>
 				<select
@@ -73,4 +73,47 @@
 			{NAMES[data.current] ?? data.current} · {m.language_steward_only()}
 		</p>
 	{/if}
+
+	<section class="mt-10" aria-labelledby="time-zone-heading">
+		<h2 id="time-zone-heading" class="text-section font-medium">{m.time_zone_heading()}</h2>
+		<p class="text-fg-secondary mt-2">{m.time_zone_intro()}</p>
+		{#if form?.step === 'timeZone' && form.error}
+			<p role="alert" class="text-attention mt-4">{form.error}</p>
+		{/if}
+		{#if form?.step === 'timeZone' && form.saved}
+			<p role="status" class="text-fg-secondary mt-4">{m.time_zone_saved()}</p>
+		{/if}
+		{#if data.can.manage}
+			<form
+				method="POST"
+				action="?/timeZone"
+				use:enhance
+				class="mt-4 flex flex-wrap items-end gap-3"
+			>
+				<div class="flex flex-col gap-1">
+					<label for="community-time-zone" class="text-fg font-medium">{m.time_zone_label()}</label>
+					<select
+						id="community-time-zone"
+						name="timeZone"
+						class="border-border bg-raised text-fg h-9 w-fit rounded-(--radius-control) border px-3"
+					>
+						{#each data.timeZones as group (group.region)}
+							<optgroup label={group.region}>
+								{#each group.zones as zone (zone)}
+									<option value={zone} selected={zone === data.currentTimeZone}>{zone}</option>
+								{/each}
+							</optgroup>
+						{/each}
+					</select>
+				</div>
+				<button
+					type="submit"
+					class="border-border text-fg h-9 cursor-pointer rounded-(--radius-control) border px-3 font-medium"
+					>{m.time_zone_submit()}</button
+				>
+			</form>
+		{:else}
+			<p class="text-fg-secondary mt-4">{data.currentTimeZone} · {m.language_steward_only()}</p>
+		{/if}
+	</section>
 </main>

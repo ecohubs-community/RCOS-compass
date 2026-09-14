@@ -26,7 +26,7 @@
 	import IconCircleCheck from '~icons/tabler/circle-check';
 	import ClausePicker, { type ClauseOption } from './ClausePicker.svelte';
 	import RequirementTip, { type Requirement } from './RequirementTip.svelte';
-	import { shortDate } from './format.js';
+	import { useTime } from '$lib/time/use-time';
 
 	/**
 	 * One claim about one passage. Design 05's card; the change's
@@ -66,6 +66,7 @@
 		returnTo,
 		onselect
 	}: Props = $props();
+	const time = useTime();
 
 	let tipOpen = $state(false);
 	const action = (name: string) => `?${returnTo ? `${returnTo}&` : ''}/${name}`;
@@ -188,10 +189,10 @@
 				{card.confirmer && card.confirmedAt
 					? m.workspace_card_mapped_by({
 							person: card.confirmer,
-							date: shortDate(card.confirmedAt)
+							date: time.dateShort(card.confirmedAt)
 						})
 					: m.workspace_card_mapped_on({
-							date: card.confirmedAt ? shortDate(card.confirmedAt) : ''
+							date: card.confirmedAt ? time.dateShort(card.confirmedAt) : ''
 						})}
 			</span>
 			{#if card.definable && can.draft}

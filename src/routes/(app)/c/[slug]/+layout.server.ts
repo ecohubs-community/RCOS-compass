@@ -6,6 +6,7 @@ import {
 import { unreadCount } from '$lib/server/services/notifications';
 import { READINESS_DEPENDS, readiness } from '$lib/server/services/readiness';
 import { requirePermission } from '$lib/server/auth/guard';
+import { timeZoneFor } from '$lib/time/zone';
 import type { LayoutServerLoad } from './$types';
 
 /**
@@ -53,6 +54,9 @@ export const load: LayoutServerLoad = ({ locals, depends }) => {
 			total: mandatory
 		},
 		unread: unreadCount(ctx),
+		/** The member's own zone, else the community's; calendar dates use the community's. */
+		timeZone: timeZoneFor(ctx.user, ctx.community),
+		communityTimeZone: timeZoneFor(null, ctx.community),
 		community: {
 			id: ctx.community.id,
 			slug: ctx.community.slug,

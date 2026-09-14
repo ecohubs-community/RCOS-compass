@@ -18,7 +18,7 @@ omitted — the tables erasure does *not* touch are the interesting ones.
 
 | Table | Holds | Why | On erasure |
 |---|---|---|---|
-| `user` | name, email address, avatar, locale | To sign in and to be named to other members | Name, address and avatar are cleared; the address becomes a non-routable placeholder derived from the id. `erased_at` is set. **The row stays**, because the memberships that prove who attended a decision point at it. Nothing about the released address is kept — not the address, not a hash of it |
+| `user` | name, email address, avatar, locale, time zone | To sign in, to be named to other members, and to show them times in their own zone | Name, address, avatar and time zone are cleared; the address becomes a non-routable placeholder derived from the id. `erased_at` is set. **The row stays**, because the memberships that prove who attended a decision point at it. Nothing about the released address is kept — not the address, not a hash of it |
 | `session` | IP address, user agent | To end a session that is no longer the person's, and to show them where they are signed in | Deleted outright |
 | `account` | credential hash, provider link | To authenticate | Deleted outright |
 | `two_factor` | TOTP secret, backup codes | Second factor for platform admins | Deleted outright |

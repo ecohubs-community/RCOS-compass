@@ -6,7 +6,8 @@
 	import Button from '$lib/components/ui/Button.svelte';
 	import MappingStateChip, { type MappingState } from './MappingStateChip.svelte';
 	import VersionList from './VersionList.svelte';
-	import { fileSize, shortDate } from './format.js';
+	import { fileSize } from './format.js';
+	import { useTime } from '$lib/time/use-time';
 
 	/**
 	 * One document in the library. Design 09's row: what it is, where it stands,
@@ -62,6 +63,7 @@
 	};
 
 	let { row, slug, accepts, can, scanning }: Props = $props();
+	const time = useTime();
 
 	const href = $derived(links.document(slug, row.id));
 
@@ -158,8 +160,8 @@
 			</span>
 			<span class="text-border-strong" aria-hidden="true">·</span>
 			{row.uploader
-				? m.library_added_by({ date: shortDate(row.uploadedAt), person: row.uploader })
-				: m.library_added({ date: shortDate(row.uploadedAt) })}
+				? m.library_added_by({ date: time.dateShort(row.uploadedAt), person: row.uploader })
+				: m.library_added({ date: time.dateShort(row.uploadedAt) })}
 		</p>
 	</div>
 

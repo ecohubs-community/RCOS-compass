@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { useTime } from '$lib/time/use-time';
 	import { links } from '$lib/links';
 	import StatusChip from '$lib/components/ui/StatusChip.svelte';
 	import HelpTip from '$lib/components/ui/HelpTip.svelte';
@@ -7,8 +8,8 @@
 	let { data } = $props();
 
 	const slug = $derived(data.community.slug);
-	const day = (ms: number) =>
-		new Date(ms).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+	const time = useTime();
+	const day = (ms: number) => time.date(ms);
 
 	const EFFORT: Record<string, string> = {
 		one_conversation: 'one conversation',

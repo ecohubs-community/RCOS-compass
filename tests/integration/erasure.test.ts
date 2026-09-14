@@ -161,6 +161,14 @@ describe('nothing is left that could sign in, or be reached', () => {
 		expect(db.select().from(account).where(eq(account.userId, person.id)).all()).toEqual([]);
 	});
 
+	it('forgets where they read times from', () => {
+		db.update(user).set({ timeZone: 'Europe/Lisbon' }).where(eq(user.id, person.id)).run();
+
+		erase();
+
+		expect(db.select().from(user).where(eq(user.id, person.id)).get()!.timeZone).toBeNull();
+	});
+
 	it('frees the address, and the new account is unrelated', () => {
 		erase();
 

@@ -1,8 +1,9 @@
 <script lang="ts">
+	import { useTime } from '$lib/time/use-time';
 	let { data } = $props();
 
-	const day = (ms: number) =>
-		new Date(ms).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+	const time = useTime();
+	const day = (ms: number) => time.date(ms);
 
 	const SUBJECT: Record<string, string> = {
 		definition: 'Definition',

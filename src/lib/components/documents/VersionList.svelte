@@ -2,7 +2,8 @@
 	import { enhance } from '$app/forms';
 	import * as m from '$lib/paraglide/messages';
 	import { links } from '$lib/links';
-	import { fileSize, shortDate } from './format.js';
+	import { fileSize } from './format.js';
+	import { useTime } from '$lib/time/use-time';
 
 	/**
 	 * A document's earlier files: what each was, who put it up, who replaced it.
@@ -30,6 +31,7 @@
 	};
 
 	let { slug, documentId, versions, can, action = '' }: Props = $props();
+	const time = useTime();
 </script>
 
 {#if versions.length === 0}
@@ -43,9 +45,9 @@
 				<span class="text-fg-secondary text-meta min-w-0 flex-1 break-words">
 					{m.library_version_line({
 						filename: version.filename,
-						added: shortDate(version.uploadedAt),
+						added: time.dateShort(version.uploadedAt),
 						by: version.uploader ? m.library_version_by({ person: version.uploader }) : '',
-						replaced: shortDate(version.supersededAt),
+						replaced: time.dateShort(version.supersededAt),
 						replacer: version.supersededBy
 							? m.library_version_by({ person: version.supersededBy })
 							: ''

@@ -1,5 +1,6 @@
 import { getLogger } from '../logger.js';
 import type { RenderedArtifact } from './render-artifact.js';
+import { isoDateIn } from '../../time/format.js';
 
 /**
  * The printable copy, when the instance can make one.
@@ -102,7 +103,7 @@ function printableHtml(artifacts: RenderedArtifact[], communityName: string): st
 						section.adopted
 							? `<p class="meta">Adopted ${
 									section.adopted.decisionRef ? `by ${escape(section.adopted.decisionRef)} ` : ''
-								}on ${new Date(section.adopted.adoptedAt).toISOString().slice(0, 10)}</p>`
+								}on ${isoDateIn(section.adopted.adoptedAt, artifact.timeZone)}</p>`
 							: ''
 					].join('')
 				)

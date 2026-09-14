@@ -10,6 +10,7 @@ import { standardViewFor } from './completeness.js';
 import { listDecisions } from './decisions.js';
 import { decisionRegister } from './export.js';
 import { artifactToMarkdown, renderArtifact } from './render-artifact.js';
+import { timeZoneFor } from '../../time/zone.js';
 
 /**
  * What goes into a community's repository, and where else it goes.
@@ -39,7 +40,12 @@ export function mirrorFiles(
 	 * function as the export's, so the two cannot disagree.
 	 */
 	const home = db.select().from(community).where(eq(community.id, communityId)).get();
-	if (home) files['decisions.md'] = decisionRegister(listDecisions(audience, { db }), home.name);
+	if (home)
+		files['decisions.md'] = decisionRegister(
+			listDecisions(audience, { db }),
+			home.name,
+			timeZoneFor(null, home)
+		);
 
 	const standard = standardViewFor(db, communityId);
 	if (!standard) return files;

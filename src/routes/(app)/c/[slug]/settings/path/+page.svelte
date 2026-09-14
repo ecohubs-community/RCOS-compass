@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { useTime } from '$lib/time/use-time';
 	import { enhance } from '$app/forms';
 	import { links } from '$lib/links';
 	import IconDeviceFloppy from '~icons/tabler/device-floppy';
@@ -43,8 +44,8 @@
 		}
 	] as const;
 
-	const day = (ms: number) =>
-		new Date(ms).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+	const time = useTime();
+	const day = (ms: number) => time.date(ms);
 </script>
 
 <svelte:head><title>How the path is ordered · {data.community.name}</title></svelte:head>

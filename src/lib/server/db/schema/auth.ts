@@ -29,6 +29,13 @@ export const user = sqliteTable(
 		/** Interface language. Community content follows the community's locale. */
 		locale: text('locale').notNull().default('en'),
 		/**
+		 * Where this person reads times from — an IANA zone such as `Europe/Lisbon`.
+		 * `openspec/changes/local-time`: set from their browser the first time they
+		 * load a page without one, never overwritten by that detection again, and
+		 * changeable on the account page. Null shows them the community's zone.
+		 */
+		timeZone: text('time_zone'),
+		/**
 		 * When this person asked to be forgotten. `docs/03-data-model.md` §10.
 		 *
 		 * The row stays and the person goes: name, address and avatar are cleared,

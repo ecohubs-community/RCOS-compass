@@ -3,6 +3,7 @@ import { and, eq } from 'drizzle-orm';
 import { getDb } from '$lib/server/db';
 import { community } from '$lib/server/db/schema/tenancy';
 import { standardViewFor } from '$lib/server/services/completeness';
+import { timeZoneFor } from '$lib/time/zone';
 import type { LayoutServerLoad } from './$types';
 
 /**
@@ -30,6 +31,7 @@ export const load: LayoutServerLoad = ({ params }) => {
 			slug: community.slug,
 			name: community.name,
 			locale: community.locale,
+			timezone: community.timezone,
 			namesPolicy: community.publishNamesPolicy,
 			publicIndexEnabled: community.publicIndexEnabled
 		})
@@ -52,7 +54,12 @@ export const load: LayoutServerLoad = ({ params }) => {
 	// audience through `data`, which would serialise it to the browser for no
 	// reason and invite somebody to pass it back.
 	const standard = standardViewFor(db, found.id);
+	// An anonymous visitor has no zone of their own: the community's calendar is
+	// the one its public record is read in.
+	const zone = timeZoneFor(null, { timezone: found.timezone });
 	return {
+		timeZone: zone,
+		communityTimeZone: zone,
 		community: visible,
 		standardLicence: standard && {
 			id: standard.row.standardId,

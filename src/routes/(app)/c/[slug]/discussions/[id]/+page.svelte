@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { useTime } from '$lib/time/use-time';
 	import { enhance } from '$app/forms';
 	import Button from '$lib/components/ui/Button.svelte';
 	import LinterPanel from '$lib/components/ui/LinterPanel.svelte';
@@ -52,15 +53,9 @@
 		abstain: 'Abstain',
 		objection: 'Object'
 	};
-	const time = (ms: number) =>
-		new Date(ms).toLocaleString('en-GB', {
-			day: 'numeric',
-			month: 'short',
-			hour: '2-digit',
-			minute: '2-digit'
-		});
-	const day = (ms: number) =>
-		new Date(ms).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+	const clock = useTime();
+	const time = (ms: number) => clock.moment(ms, 'dateTimeShort');
+	const day = (ms: number) => clock.dateShort(ms);
 
 	/**
 	 * Up to three avatars and then a count.
@@ -805,7 +800,7 @@
 					name="reviewDueAt"
 					label="Review date"
 					type="date"
-					hint="Optional — when this should be looked at again."
+					hint={`Optional — when this should be looked at again. A day in ${data.communityTimeZone} time.`}
 				/>
 			</div>
 

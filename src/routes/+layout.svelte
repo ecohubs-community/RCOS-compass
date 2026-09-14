@@ -1,8 +1,40 @@
 <script lang="ts">
-	import { afterNavigate } from '$app/navigation';
+	import { deserialize } from '$app/forms';
+	import { afterNavigate, invalidateAll } from '$app/navigation';
+	import { resolve } from '$app/paths';
 	import '../app.css';
 
-	let { children } = $props();
+	let { children, data } = $props();
+
+	/**
+	 * Report this browser's time zone, once, for a signed-in person who has none.
+	 * `openspec/changes/local-time`.
+	 *
+	 * Once: the server sets it only while unset and the root load stops asking.
+	 * Pages re-read their data afterwards, so the very first visit's times move
+	 * into the person's zone — the one time they ever will.
+	 */
+	let reported = false;
+	$effect(() => {
+		if (!data.detectTimeZone || reported) return;
+		reported = true;
+		const zone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+		if (!zone) return;
+		const body = new FormData();
+		body.set('timeZone', zone);
+		void fetch(`${resolve('/(account)/account')}?/detectTimeZone`, {
+			method: 'POST',
+			body,
+			headers: { 'x-sveltekit-action': 'true' }
+		})
+			.then(async (response) => deserialize(await response.text()))
+			.then((result) => {
+				if (result.type === 'success' && result.data?.changed) void invalidateAll();
+			})
+			.catch(() => {
+				// Nothing to tell anybody: times stay in the community's zone.
+			});
+	});
 
 	/**
 	 * Focus moves to the new page's heading. `docs/02-component-guidelines.md` §6.

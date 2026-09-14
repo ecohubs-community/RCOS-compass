@@ -260,5 +260,11 @@ Rules that follow:
   `$lib/components/ui/icons`. Never paste an inline SVG into a screen.
 - **A gallery route `/dev/components`** (dev-only) renders every primitive and
   domain component in all states. It is the review surface and the a11y test target.
+- **Dates and times only through `$lib/time`.** `useTime()` in a component
+  (`time.date(ms)`, `time.dateTime(ms)`, `time.deadline(ms)`,
+  `time.calendarDate(ms)` for a date the community set). Never
+  `toLocaleDateString` or `toLocaleTimeString` directly: without an explicit zone
+  they format in the server's zone during rendering and the browser's after
+  hydration. `tests/unit/time-format.test.ts` fails on them.
 - **Empty states are designed, not defaulted.** Every list component takes an
   `empty` snippet; the copy says what to do next, in the product's voice.

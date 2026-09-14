@@ -71,6 +71,8 @@ export function erasePerson(db: Db = getDb(), input: EraseInput): void {
 				emailVerified: false,
 				image: null,
 				twoFactorEnabled: false,
+				// Where somebody lives is a fact about them, not about the record.
+				timeZone: null,
 				erasedAt: at,
 				erasedBy: input.actorId,
 				updatedAt: at

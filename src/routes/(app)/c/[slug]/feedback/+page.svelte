@@ -1,11 +1,12 @@
 <script lang="ts">
+	import { useTime } from '$lib/time/use-time';
 	import { enhance } from '$app/forms';
 	import * as m from '$lib/paraglide/messages';
 
 	let { data, form } = $props();
 
-	const day = (ms: number) =>
-		new Date(ms).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+	const time = useTime();
+	const day = (ms: number) => time.dateShort(ms);
 </script>
 
 <svelte:head><title>{m.nav_feedback()}</title></svelte:head>

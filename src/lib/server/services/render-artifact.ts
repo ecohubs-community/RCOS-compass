@@ -3,6 +3,9 @@ import { communityOf, type Audience } from '../auth/audience.js';
 import { visibleTo } from '../auth/visible-to.js';
 import type { Db } from '../db/index.js';
 import { decision } from '../db/schema/decisions.js';
+import { community } from '../db/schema/tenancy.js';
+import { isoDateIn } from '../../time/format.js';
+import { timeZoneFor } from '../../time/zone.js';
 import { definition, definitionVersion } from '../db/schema/definitions.js';
 import type { Locale } from '../standard/types.js';
 import { standardViewFor } from './completeness.js';
@@ -56,6 +59,8 @@ export type RenderedArtifact = {
 	layer: number | null;
 	mandatory: boolean;
 	standard: { id: string; version: string };
+	/** The community's zone, which its record's dates are written in. */
+	timeZone: string;
 	sections: RenderedSection[];
 	localAdditions: RenderedAddition[];
 };
@@ -124,6 +129,14 @@ export function renderArtifact(
 		layer: artifact.layer,
 		mandatory: artifact.mandatory,
 		standard: { id: standard.row.standardId, version: standard.row.version },
+		timeZone: timeZoneFor(
+			null,
+			db
+				.select({ timezone: community.timezone })
+				.from(community)
+				.where(eq(community.id, communityId))
+				.get()
+		),
 		sections,
 		localAdditions: localAdditions(db, audience, artifactKey, standard.row)
 	};
@@ -209,7 +222,7 @@ export function artifactToMarkdown(rendered: RenderedArtifact): string {
 			lines.push(section.body, '');
 			const provenance = [
 				section.adopted?.decisionRef ? `Adopted by ${section.adopted.decisionRef}` : 'Adopted',
-				section.adopted ? new Date(section.adopted.adoptedAt).toISOString().slice(0, 10) : null,
+				section.adopted ? isoDateIn(section.adopted.adoptedAt, rendered.timeZone) : null,
 				section.provisional ? 'provisional' : null
 			]
 				.filter(Boolean)

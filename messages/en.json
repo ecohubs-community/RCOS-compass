@@ -363,5 +363,17 @@
 	"original_failed": "This PDF couldn’t be shown as it was uploaded. Here is its text; you can download the original.",
 	"original_phone_link": "View original page",
 	"original_back_to_queue": "← Back to the queue",
-	"original_truncated": "This PDF is longer than the viewer lays out, so only its first {count} pages are shown here. The text view and the download have all of it."
+	"original_truncated": "This PDF is longer than the viewer lays out, so only its first {count} pages are shown here. The text view and the download have all of it.",
+	"account_time_zone_heading": "Time zone",
+	"account_time_zone_intro": "Times are shown to you in this zone, and notification digests arrive on its mornings.",
+	"account_time_zone_label": "Your time zone",
+	"account_time_zone_none": "Not set — times follow each community's own zone",
+	"account_time_zone_save": "Save time zone",
+	"account_time_zone_saved": "Saved.",
+	"account_time_zone_device": "Use this device's time zone ({zone})",
+	"time_zone_heading": "Time zone",
+	"time_zone_intro": "The community's calendar: review dates fall on its days, and members who have not set their own time zone see times in it. Nothing already recorded changes.",
+	"time_zone_label": "Community time zone",
+	"time_zone_submit": "Use this time zone",
+	"time_zone_saved": "Saved. Calendar dates now follow this time zone."
 }
