@@ -331,7 +331,7 @@ EXTRACT_TIMEOUT_S=120
 EXTRACT_MAX_HEAP_MB=512        # heap ceiling for the extraction worker thread
 BODY_SIZE_LIMIT=26M            # adapter-node's body ceiling; must clear MAX_UPLOAD_MB + 1 MB,
                                # or boot refuses — its 512 KB default rejects every real upload
-UPLOAD_PER_USER_HOUR=10
+UPLOAD_PER_USER_HOUR=20
 UPLOAD_PER_USER_DAY=40
 UPLOAD_PER_COMMUNITY_DAY=60
 STORAGE_MB=2048

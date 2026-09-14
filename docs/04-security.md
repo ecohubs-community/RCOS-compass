@@ -214,7 +214,7 @@ language model — which is the whole prompt-injection surface.
 | Extraction wall-clock | 120 s in a worker thread that is **terminated** at the deadline, then failed with a message — a `Promise.race` cannot stop a parser that never yields | `EXTRACT_TIMEOUT_S` |
 | Extraction heap | 512 MB for the worker thread; exhaustion fails the document, not the job runner | `EXTRACT_MAX_HEAP_MB` |
 | Request body | Must be at least `MAX_UPLOAD_MB` + 1 MB; adapter-node's default (512 KB) refused every real upload before the application saw it, so boot fails in production when they disagree | `BODY_SIZE_LIMIT` |
-| **Per user** | 10 uploads/hour, 40/day | `UPLOAD_PER_USER_HOUR`, `_DAY` |
+| **Per user** | 20 uploads/hour (a replacement counts as one), 40/day | `UPLOAD_PER_USER_HOUR`, `_DAY` |
 | **Per community** | 60 uploads/day, 2 GB stored | `UPLOAD_PER_COMMUNITY_DAY`, `STORAGE_MB` |
 
 **A zip bomb is not caught by sniffing, and cannot be.** A bomb built inside a

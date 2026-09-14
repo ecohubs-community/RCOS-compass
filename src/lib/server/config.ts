@@ -85,7 +85,8 @@ const ConfigSchema = v.object({
 	 * the adapter itself is what enforces it.
 	 */
 	BODY_SIZE_LIMIT: optionalString,
-	UPLOAD_PER_USER_HOUR: intFromEnv(10, 0),
+	/** 20, so one full ten-file drop does not spend a member's whole hour. */
+	UPLOAD_PER_USER_HOUR: intFromEnv(20, 0),
 	UPLOAD_PER_USER_DAY: intFromEnv(40, 0),
 	UPLOAD_PER_COMMUNITY_DAY: intFromEnv(60, 0),
 	STORAGE_MB: intFromEnv(2048, 1),

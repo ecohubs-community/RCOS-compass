@@ -50,13 +50,13 @@
 
 ## 7. Versions, replace and restore
 
-- [ ] 7.1 `uploadRefusal` counts current files plus versions against the storage ceiling, and the re-check moves inside the writing transaction for upload, replace and restore — today `createDocument` checks limits outside any transaction, so two concurrent uploads can pass the ceiling together; raise the `UPLOAD_PER_USER_HOUR` default to 20 so one 10-file drop doesn't spend the whole hour
-- [ ] 7.2 `replaceDocument`: `document.upload`; full envelope and rate limits; same-hash refusal; one transaction creating the version row, staling evidence, clearing passages and search index, updating the file fields, resetting status, reader version, scan and done state, incrementing the generation, enqueueing extraction
-- [ ] 7.3 `restoreVersion` (swap without copying bytes) and `deleteVersion` (steward; row then file after commit)
-- [ ] 7.4 `deleteDocument` removes version rows and files; add a per-file orphan sweep to `jobs/purge.ts` for files under a live community referenced by neither a document nor a version (the existing sweep is per community directory — this is new code)
-- [ ] 7.5 Route `…/documents/[id]/versions/[versionId]/file` sharing one guarded streaming helper with the current file route
-- [ ] 7.6 Register replace, restore and delete-version in the tenant registry; add `documentVersion` to the registry's subject union and seed it in the cross-tenant suite's `subjectInA` (a declared but unseeded subject fails the suite)
-- [ ] 7.7 Tests: replacement keeps the id, creates a version with uploader and replacer, stales claims, re-extracts; validation refusal changes nothing; same hash refused; versions push the ceiling and the refusal names it; member without `document.upload` refused; restore swaps and re-extracts with unchanged storage total; a member cannot delete a version, a steward can; removing a document removes all version files; a crash after commit leaves an orphan the sweep removes; version file route answers not found anonymously and cross-tenant, and serves as attachment with `nosniff`
+- [x] 7.1 `uploadRefusal` counts current files plus versions against the storage ceiling, and the re-check moves inside the writing transaction for upload, replace and restore — today `createDocument` checks limits outside any transaction, so two concurrent uploads can pass the ceiling together; raise the `UPLOAD_PER_USER_HOUR` default to 20 so one 10-file drop doesn't spend the whole hour
+- [x] 7.2 `replaceDocument`: `document.upload`; full envelope and rate limits; same-hash refusal; one transaction creating the version row, staling evidence, clearing passages and search index, updating the file fields, resetting status, reader version, scan and done state, incrementing the generation, enqueueing extraction
+- [x] 7.3 `restoreVersion` (swap without copying bytes) and `deleteVersion` (steward; row then file after commit)
+- [x] 7.4 `deleteDocument` removes version rows and files; add a per-file orphan sweep to `jobs/purge.ts` for files under a live community referenced by neither a document nor a version (the existing sweep is per community directory — this is new code)
+- [x] 7.5 Route `…/documents/[id]/versions/[versionId]/file` sharing one guarded streaming helper with the current file route
+- [x] 7.6 Register replace, restore and delete-version in the tenant registry; add `documentVersion` to the registry's subject union and seed it in the cross-tenant suite's `subjectInA` (a declared but unseeded subject fails the suite)
+- [x] 7.7 Tests: replacement keeps the id, creates a version with uploader and replacer, stales claims, re-extracts; validation refusal changes nothing; same hash refused; versions push the ceiling and the refusal names it; member without `document.upload` refused; restore swaps and re-extracts with unchanged storage total; a member cannot delete a version, a steward can; removing a document removes all version files; a crash after commit leaves an orphan the sweep removes; version file route answers not found anonymously and cross-tenant, and serves as attachment with `nosniff`
 
 ## 8. The library screen (design 09)
 

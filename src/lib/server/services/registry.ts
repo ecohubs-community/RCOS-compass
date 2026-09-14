@@ -35,6 +35,11 @@ export type TenantService = {
 		| 'document'
 		| 'passage'
 		| 'evidence'
+		/**
+		 * An earlier file of a document, addressed as `documentId:versionId` — the
+		 * pair its routes carry, so the boundary is tested on the same shape.
+		 */
+		| 'documentVersion'
 		| 'decision'
 		/**
 		 * A decision's human reference rather than its id. Refs are per-community

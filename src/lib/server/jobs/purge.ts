@@ -1,10 +1,13 @@
-import { readdirSync } from 'node:fs';
+import { readdirSync, statSync } from 'node:fs';
+import { join } from 'node:path';
 import { and, eq, lt } from 'drizzle-orm';
 import type { Clock } from '../clock.js';
 import { getConfig } from '../config.js';
 import type { Db } from '../db/index.js';
+import { document, documentFileVersion } from '../db/schema/documents.js';
+import { producedFile } from '../db/schema/self-audit.js';
 import { community } from '../db/schema/tenancy.js';
-import { removeCommunityFiles } from '../documents/storage.js';
+import { removeCommunityFiles, removeFile } from '../documents/storage.js';
 import { DELETE_GRACE_MS } from '../services/admin/communities.js';
 import { getLogger } from '../logger.js';
 
@@ -41,7 +44,60 @@ export async function purgeDeletedCommunities(
 		db.delete(community).where(eq(community.id, row.id)).run();
 	}
 
-	return { purged: due.length, orphansRemoved: await sweepOrphanDirectories(db) };
+	const orphansRemoved = (await sweepOrphanDirectories(db)) + (await sweepOrphanFiles(db, now));
+	return { purged: due.length, orphansRemoved };
+}
+
+/**
+ * How old an unreferenced file must be before it counts as an orphan. A
+ * replacement moves its file into place a moment *before* the rows that point at
+ * it are written; the grace keeps a sweep from racing that window.
+ */
+export const ORPHAN_FILE_GRACE_MS = 60 * 60_000;
+
+/**
+ * Files inside a live community's directory that nothing references.
+ *
+ * The per-file half of the self-healing: removing a document, deleting a
+ * version, or a replacement whose rows could not be written each remove a file
+ * *after* the rows change, and a process that dies in between leaves the file.
+ * Only plain files directly in the community directory are candidates — exports
+ * and the git mirror live in subdirectories with their own lifecycles.
+ */
+async function sweepOrphanFiles(db: Db, now: number): Promise<number> {
+	const root = getConfig().UPLOAD_DIR;
+	const referenced = new Set(
+		[
+			...db.select({ key: document.storageKey }).from(document).all(),
+			...db.select({ key: documentFileVersion.storageKey }).from(documentFileVersion).all(),
+			...db.select({ key: producedFile.storageKey }).from(producedFile).all()
+		].map((row) => row.key)
+	);
+
+	let removed = 0;
+	for (const live of db.select({ id: community.id }).from(community).all()) {
+		let names: string[];
+		try {
+			names = readdirSync(join(root, live.id), { withFileTypes: true })
+				.filter((entry) => entry.isFile())
+				.map((entry) => entry.name);
+		} catch {
+			continue;
+		}
+
+		for (const name of names) {
+			const key = `${live.id}/${name}`;
+			if (referenced.has(key)) continue;
+			try {
+				if (now - statSync(join(root, key)).mtimeMs < ORPHAN_FILE_GRACE_MS) continue;
+				await removeFile(key);
+				removed += 1;
+			} catch (problem) {
+				getLogger().error({ key, err: problem }, 'could not remove orphaned upload');
+			}
+		}
+	}
+	return removed;
 }
 
 /**

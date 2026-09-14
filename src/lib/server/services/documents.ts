@@ -6,7 +6,7 @@ import { requireRead, visibleTo } from '../auth/visible-to.js';
 import { getDb, type Db } from '../db/index.js';
 import { newId } from '../db/id.js';
 import { getConfig } from '../config.js';
-import { document, passage, type Document } from '../db/schema/documents.js';
+import { document, documentFileVersion, passage, type Document } from '../db/schema/documents.js';
 import { MIME } from '../documents/sniff.js';
 import { removeFile, type StoredFile } from '../documents/storage.js';
 import { staleEvidenceForDocument } from './evidence.js';
@@ -111,30 +111,63 @@ export function uploadRefusal(
 			.all();
 		return row?.n ?? 0;
 	};
+	/**
+	 * Files this member uploaded that have since been replaced. A replacement is
+	 * an upload, and the document row only carries the latest file — so every
+	 * file a member put up is counted once: current files from `document`, and
+	 * earlier ones from the versions they became, by who uploaded them and when.
+	 */
+	const earlierMine = (ms: number) => {
+		const [row] = db
+			.select({ n: sql<number>`count(*)` })
+			.from(documentFileVersion)
+			.where(
+				and(
+					eq(documentFileVersion.communityId, ctx.community.id),
+					eq(documentFileVersion.uploadedBy, ctx.user.id),
+					gte(documentFileVersion.uploadedAt, new Date(now - ms))
+				)
+			)
+			.all();
+		return row?.n ?? 0;
+	};
 
 	const mine = (ms: number) => and(since(ms), eq(document.uploadedBy, ctx.user.id));
 
 	const HOUR = 60 * 60_000;
 	const DAY = 24 * HOUR;
 
-	if (config.UPLOAD_PER_USER_HOUR > 0 && count(mine(HOUR)) >= config.UPLOAD_PER_USER_HOUR) {
+	if (
+		config.UPLOAD_PER_USER_HOUR > 0 &&
+		count(mine(HOUR)) + earlierMine(HOUR) >= config.UPLOAD_PER_USER_HOUR
+	) {
 		return `You have uploaded ${config.UPLOAD_PER_USER_HOUR} documents in the last hour, which is the limit. Try again shortly.`;
 	}
-	if (config.UPLOAD_PER_USER_DAY > 0 && count(mine(DAY)) >= config.UPLOAD_PER_USER_DAY) {
+	if (
+		config.UPLOAD_PER_USER_DAY > 0 &&
+		count(mine(DAY)) + earlierMine(DAY) >= config.UPLOAD_PER_USER_DAY
+	) {
 		return `You have uploaded ${config.UPLOAD_PER_USER_DAY} documents today, which is the limit.`;
 	}
 	if (config.UPLOAD_PER_COMMUNITY_DAY > 0 && count(since(DAY)) >= config.UPLOAD_PER_COMMUNITY_DAY) {
 		return `This community has uploaded ${config.UPLOAD_PER_COMMUNITY_DAY} documents today, which is the limit.`;
 	}
 
+	// Earlier files are kept, so they take up room: current files and versions
+	// both count toward the ceiling.
 	const [stored] = db
 		.select({ total: sql<number>`coalesce(sum(${document.bytes}), 0)` })
 		.from(document)
 		.where(eq(document.communityId, ctx.community.id))
 		.all();
+	const [kept] = db
+		.select({ total: sql<number>`coalesce(sum(${documentFileVersion.bytes}), 0)` })
+		.from(documentFileVersion)
+		.where(eq(documentFileVersion.communityId, ctx.community.id))
+		.all();
 	const ceiling = config.STORAGE_MB * 1024 * 1024;
-	if ((stored?.total ?? 0) + incomingBytes > ceiling) {
-		return `This community is storing ${config.STORAGE_MB} MB of documents, which is the limit. Remove one you no longer need.`;
+	if ((stored?.total ?? 0) + (kept?.total ?? 0) + incomingBytes > ceiling) {
+		return `This community is storing ${config.STORAGE_MB} MB of documents and earlier versions, which is the limit. Remove a document, or ask a steward to delete old versions.`;
 	}
 
 	return null;
@@ -159,39 +192,50 @@ export async function createDocument(
 	const now = ctx.now();
 	const { file } = input;
 
-	const refusal = uploadRefusal(ctx, file.bytes, { db });
-	if (refusal) {
-		await file.discard();
-		error(409, refusal);
-	}
-
 	const id = newId();
 	try {
-		db.insert(document)
-			.values({
-				id,
-				communityId: ctx.community.id,
-				filename: input.filename,
-				mime: MIME[file.type],
-				bytes: file.bytes,
-				sha256: file.sha256,
-				storageKey: file.storageKey,
-				status: 'uploaded',
-				statusDetail: null,
-				pagesExtracted: null,
-				pagesTotal: null,
-				uploadedBy: ctx.user.id,
-				uploadedAt: new Date(now),
-				extractedAt: null
-			})
-			.run();
+		// The limits are checked in the same synchronous transaction as the insert:
+		// checked beforehand, two uploads arriving together could each see room for
+		// themselves and pass the storage ceiling between them.
+		db.transaction((tx) => {
+			const refusal = uploadRefusal(ctx, file.bytes, { db: tx as unknown as Db });
+			if (refusal) error(409, refusal);
 
-		// Enqueued before the move: if the move then fails, the row is deleted
-		// below and the handler finds nothing to do, which it treats as a no-op.
-		// The other order can lose the job entirely, leaving a document that says
-		// "waiting to be read" forever.
-		enqueue(db, { now: ctx.now }, { kind: 'extract-document', payload: { documentId: id } });
+			tx.insert(document)
+				.values({
+					id,
+					communityId: ctx.community.id,
+					filename: input.filename,
+					mime: MIME[file.type],
+					bytes: file.bytes,
+					sha256: file.sha256,
+					storageKey: file.storageKey,
+					status: 'uploaded',
+					statusDetail: null,
+					pagesExtracted: null,
+					pagesTotal: null,
+					uploadedBy: ctx.user.id,
+					uploadedAt: new Date(now),
+					extractedAt: null
+				})
+				.run();
 
+			// Enqueued before the move: if the move then fails, the row is deleted
+			// below and the handler finds nothing to do, which it treats as a no-op.
+			// The other order can lose the job entirely, leaving a document that
+			// says "waiting to be read" forever.
+			enqueue(
+				tx as unknown as Db,
+				{ now: ctx.now },
+				{ kind: 'extract-document', payload: { documentId: id } }
+			);
+		});
+	} catch (problem) {
+		await file.discard();
+		throw problem;
+	}
+
+	try {
 		// Last. A row without its file is recoverable; a file nothing references is
 		// a document nobody can delete.
 		await file.commit();
@@ -228,6 +272,14 @@ export async function deleteDocument(
 
 	const db = options.db ?? getDb();
 	const found = getDocument(ctx, documentId, { db });
+	// Read before the rows go: the version rows cascade with the document, and
+	// their files are the part no cascade can reach.
+	const versionKeys = db
+		.select({ storageKey: documentFileVersion.storageKey })
+		.from(documentFileVersion)
+		.where(eq(documentFileVersion.documentId, documentId))
+		.all()
+		.map((row) => row.storageKey);
 
 	db.transaction((tx) => {
 		const scoped = tx as unknown as Db;
@@ -242,6 +294,7 @@ export async function deleteDocument(
 	});
 
 	await removeFile(found.storageKey);
+	for (const key of versionKeys) await removeFile(key);
 }
 
 /**

@@ -14,6 +14,7 @@ import '../../src/lib/server/voting/consent-round.js';
 import '../../src/lib/server/services/documents.js';
 import '../../src/lib/server/services/evidence.js';
 import '../../src/lib/server/services/mapping.js';
+import '../../src/lib/server/services/document-versions.js';
 import { inviteMember } from '../../src/lib/server/services/invitations.js';
 import { createDefinition } from '../../src/lib/server/services/definitions.js';
 import { addProposal, openDiscussion } from '../../src/lib/server/services/discussions.js';
@@ -27,6 +28,7 @@ import { communityStandard } from '../../src/lib/server/db/schema/tenancy.js';
 import { notification } from '../../src/lib/server/db/schema/notifications.js';
 import {
 	document as documentTable,
+	documentFileVersion,
 	evidence as evidenceTable,
 	passage as passageTable
 } from '../../src/lib/server/db/schema/documents.js';
@@ -205,6 +207,25 @@ beforeEach(() => {
 		})
 		.run();
 
+	// An earlier file of A's document, for the version services.
+	const versionInA = newId();
+	db.insert(documentFileVersion)
+		.values({
+			id: versionInA,
+			documentId: documentInA,
+			communityId: communityA.id,
+			filename: 'bylaws-2018.pdf',
+			mime: 'application/pdf',
+			bytes: 10,
+			sha256: 'c'.repeat(64),
+			storageKey: `${communityA.id}/${newId()}`,
+			uploadedBy: alice.id,
+			uploadedAt: new Date(Date.UTC(2026, 8, 1, 12, 0, 0)),
+			supersededBy: alice.id,
+			supersededAt: new Date(Date.UTC(2026, 8, 2, 12, 0, 0))
+		})
+		.run();
+
 	// A consent round in A, so the voting services have a round to be refused.
 	// It goes through the provider rather than an insert: a round B can reach by
 	// id is the thing under test, and a hand-built row could be the wrong shape.
@@ -243,6 +264,7 @@ beforeEach(() => {
 			document: documentInA,
 			passage: passageInA,
 			evidence: evidenceInA,
+			documentVersion: `${documentInA}:${versionInA}`,
 			notification: notificationInA?.id ?? ''
 		}
 	};

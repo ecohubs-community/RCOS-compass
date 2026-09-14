@@ -34,6 +34,8 @@ export const links = {
 	document: (slug: string, id: string) => resolve('/(app)/c/[slug]/documents/[id]', { slug, id }),
 	documentFile: (slug: string, id: string) =>
 		resolve('/(app)/c/[slug]/documents/[id]/file', { slug, id }),
+	documentVersionFile: (slug: string, id: string, versionId: string) =>
+		resolve('/(app)/c/[slug]/documents/[id]/versions/[versionId]/file', { slug, id, versionId }),
 	/** Who is here, who holds which role, and who has left. */
 	members: (slug: string) => resolve('/(app)/c/[slug]/members', { slug }),
 	/** The settings section itself; its layout carries the list of panels. */
