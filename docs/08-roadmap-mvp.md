@@ -285,6 +285,20 @@ halves.
 
 ---
 
+## Future ideas
+
+Not scheduled and not promised — ideas worth keeping, with why they are not in
+yet. An idea moves out of this list by becoming an OpenSpec change.
+
+- **Reading scanned PDFs (OCR).** A PDF that is only photographs of pages is
+  detected today and marked *Can't be scanned*, with the member told plainly
+  (`00-architecture.md` §8, review-log row 56). OCR would let Compass read those
+  too — many older bylaws exist only as scans. Not in yet because it means a
+  heavy native dependency or an external service, and recognition errors in a
+  governance text need their own review step before any passage is mapped.
+
+---
+
 ## Totals and shape
 
 ~15 focused weeks to a pilot-ready MVP; call it **4–5 months** at a realistic
