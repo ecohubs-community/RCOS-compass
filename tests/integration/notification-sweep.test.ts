@@ -109,11 +109,11 @@ function roundClosing(closesAt: number | null) {
 }
 
 describe('a consent round closing', () => {
-	it('reminds, once, the eligible who have not responded', () => {
+	it('reminds, once, the eligible who have not responded', async () => {
 		const { proposal } = roundClosing(NOW + 24 * HOUR);
 		getVotingProvider().respond(marco, { proposalPostId: proposal.id, value: 'consent' }, { db });
 
-		expect(sweep().closing).toBeGreaterThan(0);
+		expect((await sweep()).closing).toBeGreaterThan(0);
 		expect(kindsFor(lena, 'consent.closing')).toHaveLength(1);
 		expect(kindsFor(marco, 'consent.closing')).toHaveLength(0);
 		expect(kindsFor(lena, 'consent.closing')[0]!.params).toMatchObject({
@@ -122,7 +122,7 @@ describe('a consent round closing', () => {
 		const mailed = jobs('notification-mail').length;
 		expect(mailed).toBeGreaterThan(0);
 
-		expect(sweep(NOW + HOUR).closing).toBe(0);
+		expect((await sweep(NOW + HOUR)).closing).toBe(0);
 		expect(kindsFor(lena, 'consent.closing')).toHaveLength(1);
 		expect(jobs('notification-mail')).toHaveLength(mailed);
 	});
@@ -130,7 +130,7 @@ describe('a consent round closing', () => {
 	it('emails the closing time in the recipient’s own time zone', async () => {
 		roundClosing(NOW + 24 * HOUR);
 		db.update(user).set({ timeZone: 'Asia/Tokyo' }).where(eq(user.id, lena.user.id)).run();
-		sweep();
+		await sweep();
 
 		const mail = memoryTransport();
 		setMailTransportForTests(mail);
@@ -144,16 +144,16 @@ describe('a consent round closing', () => {
 		expect(mail.sent[0]!.text).not.toContain('Exit and separation');
 	});
 
-	it('says nothing of a round with no closing time, or one closing later', () => {
+	it('says nothing of a round with no closing time, or one closing later', async () => {
 		roundClosing(null);
 		roundClosing(NOW + 72 * HOUR);
-		expect(sweep().closing).toBe(0);
+		expect((await sweep()).closing).toBe(0);
 	});
 
-	it('says nothing of a round already closed', () => {
+	it('says nothing of a round already closed', async () => {
 		roundClosing(NOW + HOUR);
 		db.update(consentRound).set({ status: 'closed' }).run();
-		expect(sweep().closing).toBe(0);
+		expect((await sweep()).closing).toBe(0);
 	});
 });
 
@@ -165,13 +165,13 @@ describe('a quiet thread', () => {
 			.where(eq(discussion.id, id))
 			.run();
 
-	it('tells its opener once for each quiet spell', () => {
+	it('tells its opener once for each quiet spell', async () => {
 		const opened = thread();
 		quietSince(opened.id, NOW - 15 * DAY);
 
-		expect(sweep().quiet).toBe(1);
+		expect((await sweep()).quiet).toBe(1);
 		expect(kindsFor(ana, 'discussion.quiet')).toHaveLength(1);
-		expect(sweep(NOW + HOUR).quiet).toBe(0);
+		expect((await sweep(NOW + HOUR)).quiet).toBe(0);
 
 		// Somebody wrote, and then it went quiet again.
 		addMessage(
@@ -179,11 +179,11 @@ describe('a quiet thread', () => {
 			{ discussionId: opened.id, body: 'Still here.' },
 			{ db }
 		);
-		expect(sweep(NOW + 15 * DAY).quiet).toBe(1);
+		expect((await sweep(NOW + 15 * DAY)).quiet).toBe(1);
 		expect(kindsFor(ana, 'discussion.quiet')).toHaveLength(2);
 	});
 
-	it('does not tell about a thread quiet for less, abandoned, or opened by someone who left', () => {
+	it('does not tell about a thread quiet for less, abandoned, or opened by someone who left', async () => {
 		quietSince(thread().id, NOW - 13 * DAY);
 		const abandoned = thread();
 		quietSince(abandoned.id, NOW - 20 * DAY);
@@ -195,7 +195,7 @@ describe('a quiet thread', () => {
 			.where(eq(membership.id, lena.membership.id))
 			.run();
 
-		expect(sweep().quiet).toBe(0);
+		expect((await sweep()).quiet).toBe(0);
 	});
 });
 
@@ -222,30 +222,30 @@ describe('a definition due for review', () => {
 		return row;
 	}
 
-	it('tells the adopted version’s author, once per date', () => {
+	it('tells the adopted version’s author, once per date', async () => {
 		adopted(marco);
-		expect(sweep().reviews).toBe(1);
+		expect((await sweep()).reviews).toBe(1);
 		expect(kindsFor(marco, 'definition.review_due')).toHaveLength(1);
-		expect(sweep(NOW + HOUR).reviews).toBe(0);
+		expect((await sweep(NOW + HOUR)).reviews).toBe(0);
 	});
 
-	it('tells whoever created the definition when the author has left', () => {
+	it('tells whoever created the definition when the author has left', async () => {
 		adopted(marco);
 		db.update(membership)
 			.set({ endedAt: new Date(NOW - DAY) })
 			.where(eq(membership.id, marco.membership.id))
 			.run();
-		expect(sweep().reviews).toBe(1);
+		expect((await sweep()).reviews).toBe(1);
 		expect(kindsFor(ana, 'definition.review_due')).toHaveLength(1);
 	});
 
-	it('says nothing before the date', () => {
+	it('says nothing before the date', async () => {
 		const row = adopted(marco);
 		db.update(definition)
 			.set({ reviewDueAt: new Date(NOW + DAY) })
 			.where(eq(definition.id, row.id))
 			.run();
-		expect(sweep().reviews).toBe(0);
+		expect((await sweep()).reviews).toBe(0);
 	});
 });
 
@@ -258,20 +258,20 @@ describe('the claim check', () => {
 			.where(eq(community.id, ana.community.id))
 			.run();
 
-	it('records its first answer silently', () => {
+	it('records its first answer silently', async () => {
 		expect(check()).toBe('recorded');
 		const stored = db.select().from(community).where(eq(community.id, ana.community.id)).get();
 		expect(stored!.claimCompliant).toBe(false);
 		expect(db.select().from(notification).all()).toHaveLength(0);
 	});
 
-	it('says nothing to a community that never complied', () => {
+	it('says nothing to a community that never complied', async () => {
 		compliantBefore(false);
 		expect(check()).toBe('recorded');
 		expect(db.select().from(notification).all()).toHaveLength(0);
 	});
 
-	it('tells the stewards, and only them, when a claim is withdrawn', () => {
+	it('tells the stewards, and only them, when a claim is withdrawn', async () => {
 		compliantBefore(true);
 		expect(check()).toBe('withdrawn');
 		expect(kindsFor(ana, 'claim.withdrawn')).toHaveLength(1);
@@ -281,7 +281,7 @@ describe('the claim check', () => {
 		expect(check()).toBe('recorded');
 	});
 
-	it('is enqueued by a freeze', () => {
+	it('is enqueued by a freeze', async () => {
 		compliantBefore(true);
 		const opened = thread();
 		addProposal(ana, { discussionId: opened.id, body: 'Members may leave.' }, { db });
@@ -302,23 +302,23 @@ describe('the claim check', () => {
 		expect(check()).toBe('withdrawn');
 	});
 
-	it('is run by the sweep for every active community, without queueing one per community', () => {
+	it('is run by the sweep for every active community, without queueing one per community', async () => {
 		compliantBefore(true);
-		expect(sweep().claims).toBe(1);
+		expect((await sweep()).claims).toBe(1);
 		expect(kindsFor(ana, 'claim.withdrawn')).toHaveLength(1);
 		expect(jobs('claim-check')).toHaveLength(0);
 	});
 });
 
 describe('a suspended community', () => {
-	it('gets no sweep work at all', () => {
+	it('gets no sweep work at all', async () => {
 		roundClosing(NOW + HOUR);
 		db.update(community)
 			.set({ status: 'suspended' })
 			.where(eq(community.id, ana.community.id))
 			.run();
 
-		expect(sweep()).toEqual({ closing: 0, quiet: 0, reviews: 0, claims: 0 });
+		expect(await sweep()).toEqual({ closing: 0, quiet: 0, reviews: 0, claims: 0 });
 		expect(jobs('claim-check')).toHaveLength(0);
 		expect(runClaimCheck(db, fixedClock(NOW), { communityId: ana.community.id })).toBe('skipped');
 	});
