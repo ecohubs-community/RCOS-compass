@@ -14,12 +14,95 @@
 	import LinterPanel from '$lib/components/ui/LinterPanel.svelte';
 	import LinterNotRun from '$lib/components/ui/LinterNotRun.svelte';
 	import { HELP, type HelpId } from '$lib/help/registry';
+	import DocumentRow from '$lib/components/documents/DocumentRow.svelte';
+	import MappingStateChip, {
+		type MappingState
+	} from '$lib/components/documents/MappingStateChip.svelte';
+	import UploadDropZone from '$lib/components/documents/UploadDropZone.svelte';
 
 	let { data } = $props();
 
 	const statuses = Object.keys(STATUS_LABELS) as Status[];
 	const modifiers = Object.keys(MODIFIER_LABELS) as Modifier[];
 	const helpIds = Object.keys(HELP) as HelpId[];
+
+	const mappingStates: MappingState[] = [
+		'reading',
+		'could_not_read',
+		'cannot_scan',
+		'not_scanned',
+		'scanning',
+		'in_progress',
+		'mapped',
+		'not_governance'
+	];
+
+	/** One library row per state that looks different: counts, actions, the disabled start. */
+	const DAY = 86_400_000;
+	const sampleRow = (
+		id: string,
+		filename: string,
+		state: MappingState,
+		primaryAction: 'start' | 'continue' | 'review' | 'open',
+		counts: Partial<{
+			paragraphs: number;
+			paragraphsRead: number;
+			identified: number;
+			open: number;
+			becameDefinitions: number;
+			versions: number;
+		}> = {},
+		extra: { statusDetail?: string; byHandOnly?: boolean } = {}
+	) => ({
+		id,
+		filename,
+		kind: filename.split('.').pop()!.toUpperCase(),
+		bytes: 184_000,
+		pages: filename.endsWith('.pdf') ? 14 : null,
+		uploadedAt: Date.UTC(2026, 8, 1) - DAY,
+		uploader: 'Ana Ruiz',
+		state,
+		primaryAction,
+		statusDetail: extra.statusDetail ?? null,
+		scanDetail: null,
+		byHandOnly: extra.byHandOnly ?? false,
+		counts: {
+			paragraphs: 42,
+			paragraphsRead: 0,
+			identified: 0,
+			open: 0,
+			becameDefinitions: 0,
+			versions: 0,
+			confirmedClaims: 0,
+			...counts
+		},
+		versions: []
+	});
+	const sampleRows = [
+		sampleRow('gallery-1', 'Bylaws 2019.pdf', 'in_progress', 'continue', {
+			identified: 12,
+			open: 5,
+			becameDefinitions: 2,
+			versions: 1
+		}),
+		sampleRow('gallery-2', 'Membership agreement.docx', 'mapped', 'review', {
+			identified: 7,
+			becameDefinitions: 4
+		}),
+		sampleRow('gallery-3', 'Meeting notes March.md', 'not_scanned', 'start'),
+		sampleRow('gallery-4', 'Land survey.pdf', 'scanning', 'open', { paragraphsRead: 24 }),
+		sampleRow(
+			'gallery-5',
+			'Site plan.png',
+			'cannot_scan',
+			'open',
+			{},
+			{
+				statusDetail: 'Compass keeps images for reference; there are no words in it to map.'
+			}
+		),
+		sampleRow('gallery-6', 'Recipes.txt', 'not_governance', 'open')
+	];
 </script>
 
 <!--
@@ -165,6 +248,53 @@
 		<div class="border-border mt-2 rounded-(--radius-card) border p-4">
 			<LinterNotRun canRun={false} />
 		</div>
+	</section>
+
+	<section class="mt-10" aria-labelledby="library">
+		<h2 id="library" class="text-section font-medium">Document library</h2>
+		<p class="text-fg-muted text-meta mt-1">
+			Design 09. The chip in every mapping state, the drop zone, and a row per state that looks
+			different — including the start control disabled with its reason.
+		</p>
+		<div class="mt-4 flex flex-wrap items-center gap-2">
+			{#each mappingStates as state (state)}
+				<MappingStateChip {state} />
+			{/each}
+		</div>
+		<div class="mt-4">
+			<UploadDropZone
+				community="Valle Verde"
+				accepts=".pdf,.docx,.odt,.md,.txt"
+				maxMb={25}
+				maxFiles={10}
+				serverResults={[
+					{ filename: 'Bylaws 2019.pdf', ok: true },
+					{
+						filename: 'Holiday.zip',
+						ok: false,
+						error: 'Compass does not accept this kind of file.'
+					}
+				]}
+			/>
+		</div>
+		<ul class="border-border bg-surface mt-4 rounded-(--radius-card) border">
+			{#each sampleRows as row (row.id)}
+				<DocumentRow
+					{row}
+					slug="gallery"
+					accepts=".pdf,.docx,.odt,.md,.txt"
+					can={{ upload: true, destroy: true, scan: true }}
+					scanning={{ offer: true, reason: null }}
+				/>
+			{/each}
+			<DocumentRow
+				row={sampleRow('gallery-7', 'Care rota.odt', 'not_scanned', 'start')}
+				slug="gallery"
+				accepts=".pdf,.docx,.odt,.md,.txt"
+				can={{ upload: true, destroy: false, scan: true }}
+				scanning={{ offer: false, reason: 'AI assistance is switched off for this community.' }}
+			/>
+		</ul>
 	</section>
 
 	<section class="mt-10" aria-labelledby="tokens">

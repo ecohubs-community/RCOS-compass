@@ -35,21 +35,25 @@ test.describe('a community that already wrote it down', () => {
 				/Every member of .+ will be able to read these files\. Nothing is published outside the community\./
 			)
 		).toBeVisible();
-		await page.getByLabel('Upload a document').setInputFiles(fixturePath('valle-verde-bylaws.pdf'));
-		await page.getByRole('button', { name: 'Upload', exact: true }).click();
+		await page
+			.getByLabel('Drop PDFs, Word files or plain text here')
+			.setInputFiles(fixturePath('valle-verde-bylaws.pdf'));
+		await page.getByRole('button', { name: 'Upload documents' }).click();
 
 		// The list says what it is doing rather than going quiet: extraction is a
 		// job, and a member watching a spinner with no words is a member who
 		// assumes it broke.
-		const document = page.getByRole('listitem').filter({ hasText: 'valle-verde-bylaws.pdf' });
+		const document = page
+			.getByRole('listitem')
+			.filter({ has: page.getByRole('link', { name: 'valle-verde-bylaws.pdf', exact: true }) });
 		await expect(document).toBeVisible();
-		await expect(document).toContainText(/waiting to be read|reading it|extracted/i);
+		await expect(document).toContainText(/Reading|Not scanned/);
 
 		// --- extraction ---------------------------------------------------------
 		// The worker polls; the page is reloaded until the status it wrote appears.
 		await expect(async () => {
 			await page.reload();
-			await expect(document).toContainText('Extracted', { timeout: 2_000 });
+			await expect(document).toContainText('Not scanned', { timeout: 2_000 });
 		}).toPass({ timeout: 30_000 });
 		await document.getByRole('link', { name: /valle-verde-bylaws/ }).click();
 
@@ -107,8 +111,10 @@ test.describe('a community that already wrote it down', () => {
 		await signIn(page, email, password);
 
 		await visit(page, `/c/${slug}/documents`);
-		await page.getByLabel('Upload a document').setInputFiles(fixturePath('valle-verde-bylaws.pdf'));
-		await page.getByRole('button', { name: 'Upload', exact: true }).click();
+		await page
+			.getByLabel('Drop PDFs, Word files or plain text here')
+			.setInputFiles(fixturePath('valle-verde-bylaws.pdf'));
+		await page.getByRole('button', { name: 'Upload documents' }).click();
 
 		await expect(page.getByRole('alert')).toHaveCount(0);
 		// Nothing complains about the absence. Deliberately a phrase match rather
@@ -140,13 +146,11 @@ test.describe('a community that already wrote it down', () => {
 		await signIn(page, email, password);
 
 		await visit(page, `/c/${slug}/documents`);
-		await page.getByLabel('Upload a document').setInputFiles(path);
-		await page.getByRole('button', { name: 'Upload', exact: true }).click();
+		await page.getByLabel('Drop PDFs, Word files or plain text here').setInputFiles(path);
+		await page.getByRole('button', { name: 'Upload documents' }).click();
 
 		// Through the adapter, through validation, into the list — not a 413.
-		await expect(
-			page.getByRole('listitem').filter({ hasText: 'five-megabytes.pdf' })
-		).toBeVisible();
+		await expect(page.getByRole('link', { name: 'five-megabytes.pdf', exact: true })).toBeVisible();
 		await expect(page.getByRole('alert')).toHaveCount(0);
 	});
 });

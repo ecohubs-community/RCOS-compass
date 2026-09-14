@@ -1,4 +1,5 @@
 import AxeBuilder from '@axe-core/playwright';
+import { DOCUMENTS, fixturePath } from './fixtures.js';
 import { expect, test, type Page } from '@playwright/test';
 import { walkable } from '../support/routes.js';
 import { seed, seedWithProposal, signIn, visit } from './support.js';
@@ -191,7 +192,18 @@ test.describe('accessibility', () => {
 		const fixture = await seedWithProposal(page);
 
 		await visit(page, `/c/${fixture.slug}/documents`);
-		expect((await scan(page).analyze()).violations).toEqual([]);
+		expect((await scan(page).analyze()).violations, 'the empty library').toEqual([]);
+
+		// With rows, and with a row's menu open: the menu is a disclosure full of
+		// small forms, which is where a missing label hides.
+		await page
+			.getByLabel('Drop PDFs, Word files or plain text here')
+			.setInputFiles([fixturePath(DOCUMENTS.bylawsPdf), fixturePath(DOCUMENTS.wrongType)]);
+		await page.getByRole('button', { name: 'Upload documents' }).click();
+		await expect(page.getByText(/not-really\.pdf was not uploaded/)).toBeVisible();
+		await page.getByLabel(`Actions for ${DOCUMENTS.bylawsPdf}`).click();
+		await expect(page.locator('summary', { hasText: 'Replace with a newer file' })).toBeVisible();
+		expect((await scan(page).analyze()).violations, 'the library, menu open').toEqual([]);
 	});
 
 	test('the freeze form has no violations, open', async ({ page }) => {

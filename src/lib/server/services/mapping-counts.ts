@@ -33,6 +33,8 @@ export type DocumentCounts = {
 	becameDefinitions: number;
 	governancePages: number;
 	versions: number;
+	/** Confirmed claims on current passages — what removing the document would make stale. */
+	confirmedClaims: number;
 };
 
 /**
@@ -71,6 +73,11 @@ function countsQuery(db: Db, where: ReturnType<typeof and>) {
 				select count(distinct p.page) from passage p
 				join evidence e on e.passage_id = p.id and e.state <> 'stale'
 				where p.document_id = "document"."id" and p.kind = 'paragraph'
+			)`,
+			confirmedClaims: sql<number>`(
+				select count(*) from evidence e
+				join passage p on p.id = e.passage_id
+				where p.document_id = "document"."id" and e.state = 'confirmed'
 			)`,
 			versions: sql<number>`(
 				select count(*) from document_file_version v where v.document_id = "document"."id"

@@ -1,105 +1,149 @@
 <script lang="ts">
-	import { enhance } from '$app/forms';
+	import { invalidateAll } from '$app/navigation';
+	import DocumentRow from '$lib/components/documents/DocumentRow.svelte';
+	import UploadDropZone from '$lib/components/documents/UploadDropZone.svelte';
 	import * as m from '$lib/paraglide/messages';
-	import Button from '$lib/components/ui/Button.svelte';
 	import { links } from '$lib/links';
-	import IconUpload from '~icons/tabler/upload';
 
 	let { data, form } = $props();
 	const slug = $derived(data.community.slug);
 
-	const STATUS: Record<string, string> = {
-		uploaded: 'Waiting to be read',
-		extracting: 'Reading it',
-		extracted: 'Extracted',
-		reference_only: 'Kept, but not readable',
-		failed: 'Could not be read'
-	};
+	const FILTERS = [
+		{ key: 'all', label: m.library_filter_all },
+		{ key: 'not_mapped', label: m.library_filter_not_mapped },
+		{ key: 'mapped', label: m.library_filter_mapped }
+	] as const;
 
-	const size = (bytes: number) =>
-		bytes < 1024 * 1024
-			? `${Math.round(bytes / 1024)} KB`
-			: `${(bytes / 1024 / 1024).toFixed(1)} MB`;
+	/**
+	 * While a scan runs, the page re-reads its data every few seconds — a load,
+	 * not a new endpoint (docs/01). It stops when nothing is scanning, and after
+	 * fifteen minutes regardless: a member who left the tab open should not keep
+	 * a server busy all afternoon.
+	 */
+	const anyScanning = $derived(data.rows.some((row) => row.state === 'scanning'));
+	$effect(() => {
+		if (!anyScanning) return;
+		const started = Date.now();
+		const timer = setInterval(() => {
+			if (Date.now() - started > 15 * 60_000) return clearInterval(timer);
+			void invalidateAll();
+		}, 3_000);
+		return () => clearInterval(timer);
+	});
+
+	const uploadResults = $derived(form && 'results' in form ? form.results : null);
+	const uploadError = $derived(
+		form?.step === 'upload' &&
+			'error' in form &&
+			(form.error === 'none' || form.error === 'too_many')
+			? form.error
+			: null
+	);
+	/** "Scan started" names the file; the row itself turns to "Scanning" on the same answer. */
+	const scanStarted = $derived.by(() => {
+		if (
+			form?.step !== 'scan' ||
+			!('result' in form) ||
+			!form.result ||
+			!('queued' in form.result)
+		) {
+			return null;
+		}
+		const row = data.rows.find((candidate) => candidate.id === form.documentId);
+		const filename = row?.filename ?? '';
+		return form.result.queued
+			? m.library_scan_queued({ filename })
+			: m.library_scan_already({ filename });
+	});
+	const replaceRefused = $derived(
+		form?.step === 'replace' && 'result' in form && form.result && 'refused' in form.result
+			? form.result.refused
+			: null
+	);
 </script>
 
-<svelte:head><title>Documents · {data.community.name}</title></svelte:head>
+<svelte:head><title>{m.library_title()} · {data.community.name}</title></svelte:head>
 
-<main class="mx-auto w-full max-w-6xl px-6 py-8">
-	<h1 class="text-page font-medium">Documents</h1>
-	<p class="text-fg-secondary mt-2">
-		Governance you have already written. Compass reads it, you map the parts that answer a clause,
-		and those become definitions in your own words.
-	</p>
+<main class="mx-auto flex w-full max-w-6xl flex-col gap-4 px-4 py-6 sm:px-6">
+	<header>
+		<h1 class="text-page font-medium tracking-tight">{m.library_title()}</h1>
+		<p class="text-fg-muted mt-1 max-w-3xl">
+			{m.library_description({ community: data.community.name })}
+		</p>
+	</header>
 
 	{#if data.can.upload}
-		<form
-			method="POST"
-			action="?/upload"
-			enctype="multipart/form-data"
-			class="border-border mt-6 flex flex-col gap-3 rounded-(--radius-card) border p-4"
-			use:enhance
-		>
-			<label for="file" class="text-fg font-medium">Upload a document</label>
-			<!--
-				Said before a file is chosen, not after it is stored. Uploaded bylaws
-				can carry names and addresses, every member can read them, and
-				`document-paragraphs` closed the publishing path — so the second
-				sentence is a promise the publishing service enforces, not a wish.
-			-->
-			<p class="text-fg-muted text-meta">
-				{m.documents_upload_notice({ community: data.community.name })}
-				PDF, Word, OpenDocument, Markdown or plain text, up to {data.maxMb} MB.
-			</p>
-			<input
-				id="file"
-				name="file"
-				type="file"
-				accept={data.accepts}
-				required
-				class="border-border bg-raised text-fg rounded-(--radius-control) border p-2"
-			/>
-			<Button type="submit" variant="primary" icon={IconUpload} class="self-start">Upload</Button>
-			{#if form?.error}<p role="alert" class="text-danger">{form.error}</p>{/if}
-		</form>
+		<UploadDropZone
+			community={data.community.name}
+			accepts={data.accepts}
+			maxMb={data.maxMb}
+			maxFiles={data.maxFiles}
+			serverResults={uploadResults}
+			serverError={uploadError}
+		/>
 	{/if}
 
-	{#if data.documents.length === 0}
-		<p class="text-fg-secondary mt-8">
-			Nothing yet. If your community has written agreements, bylaws or minutes, this is the shortest
-			way in — you are probably further along than the dashboard says.
+	<div class="flex flex-wrap items-center gap-x-2.5 gap-y-2">
+		<p class="text-fg-secondary text-meta" data-tabular>
+			{data.counts.all === 1
+				? m.library_count_one()
+				: m.library_count_many({ count: data.counts.all })}
+			{#if data.coverage.of > 0}
+				<span class="text-border-strong" aria-hidden="true">·</span>
+				<span class="text-fg-muted">
+					{m.library_coverage({ have: data.coverage.have, of: data.coverage.of })}
+				</span>
+			{/if}
 		</p>
-	{:else}
-		<ul class="mt-8 flex flex-col gap-3">
-			{#each data.documents as entry (entry.id)}
-				<li
-					class="border-border flex flex-wrap items-baseline gap-x-3 gap-y-1 rounded-(--radius-card) border p-3"
+		<nav
+			class="border-border ml-auto inline-flex overflow-hidden rounded-(--radius-control) border"
+			aria-label={m.library_filters_label()}
+		>
+			{#each FILTERS as filter (filter.key)}
+				<a
+					href="{links.documents(slug)}?filter={filter.key}"
+					aria-current={data.filter === filter.key ? 'page' : undefined}
+					class="text-meta border-border border-r px-3 py-1.5 last:border-r-0 {data.filter ===
+					filter.key
+						? 'bg-raised text-fg'
+						: 'text-fg-secondary hover:text-fg'}"
 				>
-					<a
-						href={links.document(slug, entry.id)}
-						class="text-fg font-medium underline underline-offset-2">{entry.filename}</a
-					>
-					<span class="text-fg-muted text-meta" data-tabular>{size(entry.bytes)}</span>
-					<span class="text-fg-secondary text-meta">{STATUS[entry.status] ?? entry.status}</span>
-					{#if entry.pagesTotal && entry.pagesExtracted && entry.pagesExtracted < entry.pagesTotal}
-						<span class="text-attention text-meta">
-							{entry.pagesExtracted} of {entry.pagesTotal} pages read
-						</span>
-					{/if}
-					{#if entry.statusDetail}
-						<p class="text-fg-secondary w-full">{entry.statusDetail}</p>
-					{/if}
-					{#if data.can.destroy}
-						<form method="POST" action="?/remove" class="ml-auto" use:enhance>
-							<input type="hidden" name="documentId" value={entry.id} />
-							<button
-								type="submit"
-								class="text-fg-muted hover:text-danger text-meta cursor-pointer underline underline-offset-2"
-								>Delete</button
-							>
-						</form>
-					{/if}
-				</li>
+					{filter.label()}{filter.key === 'all' ? '' : ` · ${data.counts[filter.key]}`}
+				</a>
 			{/each}
-		</ul>
+		</nav>
+	</div>
+
+	{#if form && form.step !== 'upload' && 'error' in form}
+		<p role="alert" class="text-danger">{form.error}</p>
+	{/if}
+	{#if scanStarted}
+		<p role="status" class="text-fg-secondary">{scanStarted}</p>
+	{/if}
+	{#if replaceRefused}
+		<p role="alert" class="text-danger">{replaceRefused}</p>
+	{/if}
+
+	{#if data.counts.all === 0}
+		<p class="text-fg-secondary">{m.library_empty()}</p>
+	{:else}
+		<section class="border-border bg-surface overflow-visible rounded-(--radius-card) border">
+			{#if data.rows.length === 0}
+				<p class="text-fg-muted px-4 py-3.5">{m.library_empty_filter()}</p>
+			{:else}
+				<ul>
+					{#each data.rows as row (row.id)}
+						<DocumentRow
+							{row}
+							{slug}
+							accepts={data.accepts}
+							can={data.can}
+							scanning={data.scanning}
+						/>
+					{/each}
+				</ul>
+			{/if}
+			<p class="text-fg-muted text-meta border-border border-t px-4 py-2.5">{m.library_footer()}</p>
+		</section>
 	{/if}
 </main>

@@ -60,14 +60,14 @@
 
 ## 8. The library screen (design 09)
 
-- [ ] 8.1 `libraryView(ctx, filter)`: rows through `mappingStateOf`, meta, `personLabel` attribution, the per-state progress sentences pinned in design.md, version count per row, per-filter counts, coverage
-- [ ] 8.2 Rewrite `documents/+page.svelte` with the copy pinned in design.md: header and rewritten description, *Upload documents*, `UploadDropZone` with the limits sentence and the upload notice, the "5 documents · 38 of 187…" counts line, filter control in `?filter=`, the footer "Compass never changes a document. Mapping only proposes where its language could satisfy a clause.", and the existing empty-state copy kept; all new strings through paraglide messages (the i18n ratchet fails lint otherwise)
-- [ ] 8.3 `upload` action: up to 10 `file` fields, each independent, results per file; `UploadDropZone` sends one request per file with JavaScript and shows each result
-- [ ] 8.4 `DocumentRow`: type badge (`PDF`/`DOC`/`ODT`/`MD`/`TXT`), name, state chip (not colour alone), meta, progress line and bar, primary action by state with the accent emphasis on *Start RCOS mapping* and *Continue mapping* only, disabled *Start RCOS mapping* with its reason
-- [ ] 8.5 Row menu: Start RCOS mapping, Open document, Replace with a newer file, Previous versions (`VersionList` with download, restore, steward delete), Remove from library with the claims-and-versions confirmation; permission-gated
-- [ ] 8.6 Poll with `invalidate` while any row's scan is live and not stalled, stopping at terminal, stall or 15 minutes
-- [ ] 8.7 Gallery entries for `DocumentRow` (every state), `UploadDropZone`, `VersionList`
-- [ ] 8.8 Tests: e2e three files with one refused shows three outcomes; eleven files refused whole; the notice text exact; filters change list, counts and URL; a member's menu shows replace and versions but not remove; crafted removal by a member refused; replace then restore through the menu; the no-JS project uploads two files; a11y scan at 375 / 768 / 1024 / 1440
+- [x] 8.1 `libraryView(ctx, filter)`: rows through `mappingStateOf`, meta, `personLabel` attribution, the per-state progress sentences pinned in design.md, version count per row, per-filter counts, coverage
+- [x] 8.2 Rewrite `documents/+page.svelte` with the copy pinned in design.md: header and rewritten description, *Upload documents*, `UploadDropZone` with the limits sentence and the upload notice, the "5 documents · 38 of 187…" counts line, filter control in `?filter=`, the footer "Compass never changes a document. Mapping only proposes where its language could satisfy a clause.", and the existing empty-state copy kept; all new strings through paraglide messages (the i18n ratchet fails lint otherwise)
+- [x] 8.3 `upload` action: up to 10 `file` fields, each independent, results per file; `UploadDropZone` sends one request per file with JavaScript and shows each result
+- [x] 8.4 `DocumentRow`: type badge (`PDF`/`DOC`/`ODT`/`MD`/`TXT`), name, state chip (not colour alone), meta, progress line and bar, primary action by state with the accent emphasis on *Start RCOS mapping* and *Continue mapping* only, disabled *Start RCOS mapping* with its reason
+- [x] 8.5 Row menu: Start RCOS mapping, Open document, Replace with a newer file, Previous versions (`VersionList` with download, restore, steward delete), Remove from library with the claims-and-versions confirmation; permission-gated
+- [x] 8.6 Poll with `invalidate` while any row's scan is live and not stalled, stopping at terminal, stall or 15 minutes
+- [x] 8.7 Gallery entries for `DocumentRow` (every state), `UploadDropZone`, `VersionList`
+- [x] 8.8 Tests: e2e three files with one refused shows three outcomes; eleven files refused whole; the notice text exact; filters change list, counts and URL; a member's menu shows replace and versions but not remove; crafted removal by a member refused; replace then restore through the menu; the no-JS project uploads two files; a11y scan at 375 / 768 / 1024 / 1440
 
 ## 9. The text view
 

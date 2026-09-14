@@ -22,6 +22,8 @@ import {
 import { listResponses } from '../../src/lib/server/voting/consent-round.js';
 import { getVotingProvider } from '../../src/lib/server/voting/index.js';
 import { listPlatformAudit } from '../../src/lib/server/services/admin/audit.js';
+import { document, documentFileVersion } from '../../src/lib/server/db/schema/documents.js';
+import { libraryView, versionsWithPeople } from '../../src/lib/server/services/library.js';
 import { getTenant } from '../../src/lib/server/services/admin/communities.js';
 
 /**
@@ -88,6 +90,8 @@ export type Subject = {
 };
 
 const DECISION_ID = '01a00000-0000-7000-8000-000000000001';
+const LIBRARY_DOCUMENT_ID = '01a00000-0000-7000-8000-000000000002';
+const VERSIONED_DOCUMENT_ID = '01a00000-0000-7000-8000-000000000003';
 
 /** Set by the thread surface's seed, read by its `read`. */
 let threadForPersonSurface = '';
@@ -346,6 +350,77 @@ export const PERSON_SURFACES: PersonSurface[] = [
 		expect: /^$/
 	},
 	{
+		name: 'library.libraryView',
+		module: 'library.ts',
+		/**
+		 * "added 21 Aug by Ana" on every library row. The document stays — a
+		 * community's bylaws do not leave with the member who uploaded them — and
+		 * only the name beside it changes.
+		 */
+		seed: (db, ctx, subject) => {
+			db.insert(document)
+				.values({
+					id: LIBRARY_DOCUMENT_ID,
+					communityId: ctx.community.id,
+					filename: 'bylaws.pdf',
+					mime: 'application/pdf',
+					bytes: 10,
+					sha256: 'd'.repeat(64),
+					storageKey: `${ctx.community.id}/library-surface`,
+					status: 'extracted',
+					uploadedBy: subject.userId,
+					uploadedAt: new Date(0)
+				})
+				.run();
+		},
+		read: (ctx, db) =>
+			libraryView(ctx, 'all', { db })
+				.rows.map((row) => row.uploader ?? '')
+				.filter(Boolean)
+	},
+	{
+		name: 'library.versionsWithPeople',
+		module: 'library.ts',
+		/** Who uploaded each earlier file, and who replaced it — both names, both labelled. */
+		seed: (db, ctx, subject) => {
+			db.insert(document)
+				.values({
+					id: VERSIONED_DOCUMENT_ID,
+					communityId: ctx.community.id,
+					filename: 'bylaws-2024.pdf',
+					mime: 'application/pdf',
+					bytes: 10,
+					sha256: 'e'.repeat(64),
+					storageKey: `${ctx.community.id}/versioned-surface`,
+					status: 'extracted',
+					uploadedBy: ctx.user.id,
+					uploadedAt: new Date(0)
+				})
+				.run();
+			db.insert(documentFileVersion)
+				.values({
+					id: newId(),
+					documentId: VERSIONED_DOCUMENT_ID,
+					communityId: ctx.community.id,
+					filename: 'bylaws-2019.pdf',
+					mime: 'application/pdf',
+					bytes: 10,
+					sha256: 'f'.repeat(64),
+					storageKey: `${ctx.community.id}/versioned-surface-old`,
+					uploadedBy: subject.userId,
+					uploadedAt: new Date(0),
+					supersededBy: subject.userId,
+					supersededAt: new Date(0)
+				})
+				.run();
+		},
+		read: (ctx, db) =>
+			versionsWithPeople(ctx, VERSIONED_DOCUMENT_ID, { db }).flatMap((row) => [
+				row.uploader ?? '',
+				row.supersededBy ?? ''
+			])
+	},
+	{
 		name: 'admin/communities.getTenant',
 		module: 'admin/communities.ts',
 		/**
@@ -369,7 +444,9 @@ export const PERSON_SURFACES: PersonSurface[] = [
 export const NOT_A_PERSON_SURFACE: Record<string, string> = {
 	'erasure.ts':
 		'Removes a person rather than rendering one. Its own suite asserts what is left behind.',
-	'admin/status.ts': 'Counts and sizes only; the status page shows no member at all.'
+	'admin/status.ts': 'Counts and sizes only; the status page shows no member at all.',
+	'mapping.ts':
+		'Reads the user only to rebuild the context a scan runs as; its notification names the document, never a person.'
 };
 
 /**
