@@ -94,7 +94,7 @@
 - [x] 6.4 Review due: definitions past `review_due_at` → `definition.review_due` to the adopted version's author (else the creator), once per date
 - [x] 6.5 `claim-check` job `{ communityId }`:
   - computes `outwardClaim`; true → false notifies stewards with mail; always stores `claim_compliant`; the first check is silent;
-  - enqueued by the sweep for each active community, and by a freeze in its transaction
+  - run by the sweep for each active community (inline: a queued check per community starved the worker), and enqueued by a freeze in its transaction
 - [x] 6.6 Tests (integration, fixed clock), for each rule:
   - fires once, and not again on a rerun;
   - not for answered, closed, left or no-closing-time cases;
@@ -104,18 +104,18 @@
 
 ## 7. Preferences and the per-member digest
 
-- [ ] 7.1 `services/notification-preferences.ts`: read and update own `email_enabled` and `digest_day`, acting only on `ctx.membership`; registered in the tenant registry
-- [ ] 7.2 Route `/c/[slug]/notifications/settings`:
+- [x] 7.1 `services/notification-preferences.ts`: read and update own `email_enabled` and `digest_day`, acting only on `ctx.membership`; registered in the tenant registry
+- [x] 7.2 Route `/c/[slug]/notifications/settings`:
   - two fields, working without JavaScript;
   - shows the time zone digests follow, with a link to the account page;
   - says in-app notifications can't be turned off;
   - linked from the notifications page and in the route and a11y lists
-- [ ] 7.3 `digest` replaces `weekly-digest`, running hourly:
+- [x] 7.3 `digest` replaces `weekly-digest`, running hourly:
   - due members are past 07:00 on their `digest_day` in their own time zone, have email on, and a `last_digest_at` older than six days;
   - the body adds their unread counts by kind;
   - `last_digest_at` is stamped per member, including those skipped for having nothing
-- [ ] 7.4 Every notification and digest email carries the preferences link; invitation and account mail unchanged
-- [ ] 7.5 Tests:
+- [x] 7.4 Every notification and digest email carries the preferences link; invitation and account mail unchanged
+- [x] 7.5 Tests:
   - integration:
     - email off stops digest and immediate mail but not rows;
     - another community's preferences untouched;

@@ -10,7 +10,7 @@ import { recordError } from '$lib/server/services/errors';
 import { resolveActor } from '$lib/server/auth/session';
 import { requirePlatformAdmin } from '$lib/server/auth/admin';
 import { invitationLocale, publicLocale, resolveTenant } from '$lib/server/http/resolve-tenant';
-import { DIGEST_INTERVAL_MS, handlers } from '$lib/server/jobs/handlers';
+import { handlers } from '$lib/server/jobs/handlers';
 import { enqueueOnce, startWorker } from '$lib/server/jobs';
 import { enqueueRereadIfNeeded } from '$lib/server/documents/reread';
 import { systemClock } from '$lib/server/clock';
@@ -43,13 +43,10 @@ if (!config.isTest) {
 	// of the weekly mail to every member of every community, permanently.
 	enqueueOnce(db, systemClock, { kind: 'prune-rate-limits' });
 	enqueueOnce(db, systemClock, { kind: 'purge-communities' });
-	// A week before the first run, rather than mailing everyone the moment an
-	// instance restarts.
-	enqueueOnce(db, systemClock, {
-		kind: 'weekly-digest',
-		runAfter: systemClock.now() + DIGEST_INTERVAL_MS
-	});
-	// Immediately, unlike the digest: anything whose exception ran out while the
+	// Straight away: nobody is mailed on boot, because a member is only due past
+	// 07:00 on their own day and once a week (digest.ts).
+	enqueueOnce(db, systemClock, { kind: 'digest' });
+	// Immediately: anything whose exception ran out while the
 	// instance was down should stop being hidden as soon as it is up, not an
 	// hour later.
 	enqueueOnce(db, systemClock, { kind: 'expire-exceptions' });

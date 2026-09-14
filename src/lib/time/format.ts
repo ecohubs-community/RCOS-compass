@@ -183,3 +183,35 @@ export function isoDateIn(ms: number, timeZone: string): string {
 	);
 	return `${parts.year}-${parts.month}-${parts.day}`;
 }
+
+const wallClocks = new Map<string, Intl.DateTimeFormat>();
+const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+
+/**
+ * The day of the week (0 is Sunday) and the hour a moment falls on in a zone —
+ * what "Monday morning, where you are" is decided from.
+ */
+export function wallClockIn(ms: number, timeZone: string): { weekday: number; hour: number } {
+	let found = wallClocks.get(timeZone);
+	if (!found) {
+		found = new Intl.DateTimeFormat('en-US', {
+			timeZone,
+			weekday: 'short',
+			hour: '2-digit',
+			hourCycle: 'h23'
+		});
+		wallClocks.set(timeZone, found);
+	}
+	const parts = Object.fromEntries(
+		found.formatToParts(new Date(ms)).map((part) => [part.type, part.value])
+	);
+	return { weekday: WEEKDAYS.indexOf(parts.weekday ?? ''), hour: Number(parts.hour) };
+}
+
+/** A day of the week by number (0 is Sunday), in the page's language: "Monday", "Montag". */
+export function weekdayName(day: number, locale: string): string {
+	// 4 January 2026 was a Sunday; read in UTC, so no zone moves it.
+	return new Intl.DateTimeFormat(intlLocale(locale), { weekday: 'long', timeZone: 'UTC' }).format(
+		new Date(Date.UTC(2026, 0, 4 + day))
+	);
+}

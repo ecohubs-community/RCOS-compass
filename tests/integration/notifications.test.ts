@@ -1,7 +1,6 @@
 import { eq, sql } from 'drizzle-orm';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import type { Ctx } from '../../src/lib/server/auth/guard.js';
-import { fixedClock } from '../../src/lib/server/clock.js';
 import { newId } from '../../src/lib/server/db/id.js';
 import { setDbForTests, type Db } from '../../src/lib/server/db/index.js';
 import { post } from '../../src/lib/server/db/schema/discussions.js';
@@ -12,11 +11,6 @@ import {
 	communityStandard,
 	membership
 } from '../../src/lib/server/db/schema/tenancy.js';
-import {
-	countActivity,
-	digestMessage,
-	sendWeeklyDigests
-} from '../../src/lib/server/jobs/digest.js';
 import { freeze } from '../../src/lib/server/services/decisions.js';
 import { erasePerson } from '../../src/lib/server/services/erasure.js';
 import {
@@ -452,114 +446,5 @@ describe('what a list shows, and what it no longer may', () => {
 		addProposal(ana, { discussionId: second.id, body: 'Another.' }, { db });
 		expect(markAllRead(suspended, { db })).toBe(1);
 		expect(unreadCount(marco, { db })).toBe(0);
-	});
-});
-
-describe('the weekly digest carries a link and no content', () => {
-	function busyWeek() {
-		const thread = threadWith(ana);
-		addProposal(
-			ana,
-			{ discussionId: thread.id, body: 'A definition body nobody should read.' },
-			{ db }
-		);
-		freeze(
-			ana,
-			{
-				discussionId: thread.id,
-				idempotencyKey: 'k1',
-				title: 'Exit and separation',
-				type: 'strategic',
-				mechanism: 'consent',
-				rationale: 'A rationale nobody outside should read.'
-			},
-			{ db }
-		);
-	}
-
-	it('sends one message per member, with counts and a link', async () => {
-		busyWeek();
-		const result = await sendWeeklyDigests(
-			db,
-			fixedClock(NOW + DAY),
-			'https://compass.example.org'
-		);
-
-		expect(result.communities).toBe(1);
-		expect(result.sent).toBe(3);
-		for (const message of mail.sent) {
-			expect(message.text).toMatch(/1 decision was recorded/);
-			expect(message.url).toBe('https://compass.example.org/c/valle-verde');
-		}
-	});
-
-	it('carries no definition text, no discussion text, and no rationale', async () => {
-		busyWeek();
-		await sendWeeklyDigests(db, fixedClock(NOW + DAY), 'https://compass.example.org');
-
-		for (const message of mail.sent) {
-			expect(message.text).not.toContain('A definition body nobody should read.');
-			expect(message.text).not.toContain('A rationale nobody outside should read.');
-			// Not even the decision's title: an inbox is outside every visibility
-			// control the application has.
-			expect(message.text).not.toContain('Exit and separation');
-		}
-	});
-
-	it('sends nothing for a quiet week', async () => {
-		busyWeek();
-		// Two weeks later, with nothing since.
-		const result = await sendWeeklyDigests(
-			db,
-			fixedClock(NOW + 14 * DAY),
-			'https://compass.example.org'
-		);
-
-		expect(result.communities).toBe(0);
-		expect(mail.sent).toHaveLength(0);
-	});
-
-	it('does not let one bad address cost everyone else theirs', async () => {
-		busyWeek();
-		let attempts = 0;
-		setMailTransportForTests({
-			id: 'flaky',
-			send: () => {
-				attempts += 1;
-				return attempts === 1 ? Promise.reject(new Error('no such mailbox')) : Promise.resolve();
-			}
-		});
-
-		const result = await sendWeeklyDigests(
-			db,
-			fixedClock(NOW + DAY),
-			'https://compass.example.org'
-		);
-		expect(result.failed).toBe(1);
-		expect(result.sent).toBe(2);
-	});
-
-	it('counts a week of activity', () => {
-		busyWeek();
-		expect(countActivity(db, ana.community.id, NOW - DAY)).toEqual({
-			decisions: 1,
-			discussions: 1
-		});
-		expect(countActivity(db, ana.community.id, NOW + DAY)).toEqual({
-			decisions: 0,
-			discussions: 0
-		});
-	});
-
-	it('writes the body in one place, so the rule is one function to read', () => {
-		const message = digestMessage(
-			'ana@example.org',
-			'Valle Verde',
-			{ decisions: 2, discussions: 5 },
-			'https://compass.example.org/c/valle-verde'
-		);
-		expect(message.subject).toBe('This week in Valle Verde');
-		expect(message.text).toMatch(/2 decisions were recorded/);
-		expect(message.text).toMatch(/5 discussions had activity/);
 	});
 });

@@ -421,5 +421,16 @@
 	"mail_claim_withdrawn_body": "A change in {community} means its public claim of RCOS compliance was withdrawn. Compass shows what needs attention.",
 	"mail_removal_subject": "Your membership of {community} has ended",
 	"mail_removal_body": "Your membership of {community} on RCOS Compass has ended.",
-	"mail_preferences": "Choose which emails you get from {community}:"
+	"mail_preferences": "Choose which emails you get from {community}:",
+	"notification_settings_title": "Notification settings",
+	"notification_settings_heading": "Email from this community",
+	"notification_settings_intro": "What {community} sends to your inbox. These settings are yours and apply to this community only.",
+	"notification_settings_email_label": "Send me email",
+	"notification_settings_email_hint": "A consent round waiting for you, a role change, a withdrawn claim, and a weekly digest. Emails carry a link, never what was written.",
+	"notification_settings_day_label": "Weekly digest day",
+	"notification_settings_day_hint": "It arrives after 07:00 in {zone}.",
+	"notification_settings_zone_link": "Change your time zone",
+	"notification_settings_save": "Save",
+	"notification_settings_saved": "Saved.",
+	"notification_settings_in_app": "Notifications in Compass itself can't be turned off: they are the list of what concerns you here."
 }

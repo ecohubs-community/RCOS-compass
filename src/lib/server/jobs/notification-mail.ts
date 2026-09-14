@@ -82,7 +82,7 @@ export async function runNotificationMail(
 			communityName: home.name,
 			locale: localeOf(home.locale),
 			url: new URL(targetHref(home.slug, target), appUrl).toString(),
-			preferencesUrl: new URL(`${links.notifications(home.slug)}/settings`, appUrl).toString()
+			preferencesUrl: new URL(links.notificationSettings(home.slug), appUrl).toString()
 		}),
 		kind: `notification.${row.kind}`,
 		communityId: home.id,

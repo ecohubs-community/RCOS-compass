@@ -2,6 +2,7 @@
 	import { enhance } from '$app/forms';
 	import NotificationList from '$lib/components/notifications/NotificationList.svelte';
 	import Button from '$lib/components/ui/Button.svelte';
+	import { links } from '$lib/links';
 	import * as m from '$lib/paraglide/messages';
 
 	let { data } = $props();
@@ -18,7 +19,13 @@
 			</form>
 		{/if}
 	</div>
-	<p class="text-fg-secondary mt-2">{m.notifications_intro()}</p>
+	<p class="text-fg-secondary mt-2">
+		{m.notifications_intro()}
+		<a
+			href={links.notificationSettings(data.community.slug)}
+			class="text-accent underline underline-offset-2">{m.notifications_settings_link()}</a
+		>
+	</p>
 
 	{#if data.gone && !data.items.some((item) => item.id === data.gone)}
 		<p role="status" class="text-attention mt-4">{m.notifications_gone()}</p>

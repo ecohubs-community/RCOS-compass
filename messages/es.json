@@ -257,5 +257,16 @@
 	"mail_claim_withdrawn_body": "Un cambio en {community} retiró su declaración pública de conformidad con RCOS. Compass muestra qué necesita atención.",
 	"mail_removal_subject": "Tu membresía en {community} ha terminado",
 	"mail_removal_body": "Tu membresía en {community} en RCOS Compass ha terminado.",
-	"mail_preferences": "Elige qué correos recibes de {community}:"
+	"mail_preferences": "Elige qué correos recibes de {community}:",
+	"notification_settings_title": "Ajustes de notificaciones",
+	"notification_settings_heading": "Correo de esta comunidad",
+	"notification_settings_intro": "Lo que {community} envía a tu correo. Estos ajustes son tuyos y solo se aplican a esta comunidad.",
+	"notification_settings_email_label": "Enviarme correo",
+	"notification_settings_email_hint": "Una ronda de consentimiento que te espera, un cambio de rol, una declaración retirada y un resumen semanal. Los correos llevan un enlace, nunca lo escrito.",
+	"notification_settings_day_label": "Día del resumen semanal",
+	"notification_settings_day_hint": "Llega después de las 07:00 en {zone}.",
+	"notification_settings_zone_link": "Cambiar tu zona horaria",
+	"notification_settings_save": "Guardar",
+	"notification_settings_saved": "Guardado.",
+	"notification_settings_in_app": "Las notificaciones dentro de Compass no se pueden desactivar: son la lista de lo que te concierne aquí."
 }

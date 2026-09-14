@@ -257,5 +257,16 @@
 	"mail_claim_withdrawn_body": "Durch eine Änderung in {community} wurde der öffentliche Anspruch auf RCOS-Konformität zurückgezogen. Compass zeigt, was zu tun ist.",
 	"mail_removal_subject": "Deine Mitgliedschaft in {community} ist beendet",
 	"mail_removal_body": "Deine Mitgliedschaft in {community} auf RCOS Compass ist beendet.",
-	"mail_preferences": "Wähle, welche E-Mails du von {community} bekommst:"
+	"mail_preferences": "Wähle, welche E-Mails du von {community} bekommst:",
+	"notification_settings_title": "Benachrichtigungseinstellungen",
+	"notification_settings_heading": "E-Mails aus dieser Gemeinschaft",
+	"notification_settings_intro": "Was {community} an dein Postfach sendet. Diese Einstellungen gehören dir und gelten nur für diese Gemeinschaft.",
+	"notification_settings_email_label": "Schick mir E-Mails",
+	"notification_settings_email_hint": "Eine Zustimmungsrunde, die auf dich wartet, eine Rollenänderung, ein zurückgezogener Anspruch und eine wöchentliche Zusammenfassung. E-Mails enthalten einen Link, nie das Geschriebene.",
+	"notification_settings_day_label": "Tag der Wochenzusammenfassung",
+	"notification_settings_day_hint": "Sie kommt nach 07:00 Uhr in {zone}.",
+	"notification_settings_zone_link": "Zeitzone ändern",
+	"notification_settings_save": "Speichern",
+	"notification_settings_saved": "Gespeichert.",
+	"notification_settings_in_app": "Benachrichtigungen in Compass selbst lassen sich nicht abschalten: Sie sind die Liste dessen, was dich hier betrifft."
 }

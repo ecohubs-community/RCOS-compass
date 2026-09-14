@@ -11,9 +11,10 @@ import { notify } from '../services/notifications.js';
  * Whether a community can still say it complies, and who to tell when it no
  * longer can. `openspec/changes/notifications-page`, UI spec §4.11.
  *
- * A job of its own, enqueued by a freeze (the usual cause) and by the hourly
- * sweep (a standard changing, an exception running out), so computing the claim
- * never happens inside anyone's write.
+ * A job of its own when a freeze enqueues it — the usual cause, told within the
+ * minute and never computed inside the freeze's write — and run for every
+ * active community by the hourly sweep, which catches the rest (a standard
+ * changing, an exception running out).
  *
  * Only the change from yes to no is told, to the people who can act on it. The
  * first check a community ever gets records its answer silently: a community

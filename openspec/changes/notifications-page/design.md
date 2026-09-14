@@ -208,10 +208,11 @@ writes nothing new:
   with no `discussion.quiet` for that discussion written after it.
 - **Review due:** definitions whose `review_due_at` has passed, with no
   `definition.review_due` for that definition written after that date.
-- **Claims:** enqueues `claim-check` for each active community.
+- **Claims:** runs the claim check for each active community, inline — a queued
+  job per community would put every upload in the instance behind them.
 
-**The claim check** is its own job, `claim-check` `{ communityId }`, so its work
-never runs inside a write lock:
+**The claim check** is its own job, `claim-check` `{ communityId }`, when a freeze
+enqueues it, so its work never runs inside the freeze's write lock:
 
 1. Compute `outwardClaim`.
 2. If `community.claim_compliant` was true and the claim is now false, notify

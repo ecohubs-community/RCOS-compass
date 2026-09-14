@@ -7,7 +7,7 @@ import { rereadBehindDocuments } from '../documents/reread.js';
 import { runScanJob } from './scan-job.js';
 import type { ScanPayload } from '../services/mapping.js';
 import { purgeDeletedCommunities } from './purge.js';
-import { sendWeeklyDigests } from './digest.js';
+import { DIGEST_INTERVAL_MS, sendDigests } from './digest.js';
 import { expireExceptions } from '../services/visibility.js';
 import { cleanUpExports, runExport, type ExportPayload } from './export-job.js';
 import { runMirror, type MirrorPayload } from './mirror-job.js';
@@ -21,8 +21,6 @@ import type { HandlerRegistry } from './worker.js';
 export const PRUNE_INTERVAL_MS = 6 * 60 * 60_000;
 /** Daily is often enough for something with a thirty-day grace period. */
 export const PURGE_INTERVAL_MS = 24 * 60 * 60_000;
-/** Weekly, and re-armed by the handler rather than by a scheduler. */
-export const DIGEST_INTERVAL_MS = 7 * 24 * 60 * 60_000;
 /**
  * Hourly, which is a great deal more often than an exception's granularity
  * needs — they are set in days. The reason is the direction of the error: a
@@ -119,15 +117,15 @@ export const handlers: HandlerRegistry = {
 	},
 
 	/**
-	 * The weekly digest. Re-arms itself the way the pruner does, so an instance
-	 * that stays up keeps sending rather than sending once at boot.
+	 * The digest, hourly: each member is due at their own morning (see digest.ts).
+	 * Re-arms itself the way the pruner does.
 	 */
-	'weekly-digest': {
+	digest: {
 		timeoutMs: 120_000,
 		run: async (_payload, { db, clock }) => {
-			const result = await sendWeeklyDigests(db, clock, getConfig().PUBLIC_APP_URL);
-			getLogger().info(result, 'weekly digest');
-			enqueue(db, clock, { kind: 'weekly-digest', runAfter: clock.now() + DIGEST_INTERVAL_MS });
+			const result = await sendDigests(db, clock, getConfig().PUBLIC_APP_URL);
+			if (result.due > 0) getLogger().info(result, 'digest');
+			enqueue(db, clock, { kind: 'digest', runAfter: clock.now() + DIGEST_INTERVAL_MS });
 		}
 	},
 

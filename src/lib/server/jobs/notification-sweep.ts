@@ -13,7 +13,7 @@ import { notification } from '../db/schema/notifications.js';
 import { community, membership, type Community } from '../db/schema/tenancy.js';
 import { notify, type NotifyScope } from '../services/notifications.js';
 import { definitionTitle } from '../services/search.js';
-import { enqueue } from './queue.js';
+import { runClaimCheck } from './claim-check.js';
 
 /**
  * The notifications nobody's act causes: something is about to close, has gone
@@ -41,8 +41,10 @@ export function runNotificationSweep(db: Db, clock: Clock): SweepResult {
 		result.closing += remindClosingRounds(db, scope, clock.now());
 		result.quiet += tellQuietThreads(db, scope, clock.now());
 		result.reviews += tellReviewsDue(db, scope, home, clock.now());
-		// Its own job, so the claim is never computed while this one holds anything.
-		enqueue(db, clock, { kind: 'claim-check', payload: { communityId: home.id } });
+		// Here rather than as a job per community: the sweep is already a job, and
+		// one queued check for every community in an instance is a queue that
+		// makes a member's upload wait behind hundreds of them.
+		runClaimCheck(db, clock, { communityId: home.id });
 		result.claims += 1;
 	}
 	return result;

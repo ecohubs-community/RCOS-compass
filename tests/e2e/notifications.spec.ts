@@ -199,3 +199,48 @@ test.describe('mentions', () => {
 		await context.close();
 	});
 });
+
+test.describe('email settings', () => {
+	test('can be changed without JavaScript @no-js', async ({ page, browser }) => {
+		const { slug, member } = await seed(page);
+		const scripted = await browser.newContext({ javaScriptEnabled: true });
+		const helper = await scripted.newPage();
+		await signIn(helper, member.email, member.password);
+		await page.context().addCookies((await scripted.storageState()).cookies);
+		await scripted.close();
+
+		await page.goto(`/c/${slug}/notifications`);
+		await page.getByRole('link', { name: 'Email settings' }).click();
+		await expect(page).toHaveURL(new RegExp(`/c/${slug}/notifications/settings$`));
+
+		await page.getByLabel('Send me email').uncheck();
+		await page.getByLabel('Weekly digest day').selectOption({ label: 'Friday' });
+		await page.getByRole('button', { name: 'Save' }).click();
+		await expect(page.getByRole('status')).toHaveText('Saved.');
+
+		await page.goto(`/c/${slug}/notifications/settings`);
+		await expect(page.getByLabel('Send me email')).not.toBeChecked();
+		await expect(page.getByLabel('Weekly digest day')).toHaveValue('5');
+	});
+
+	test('answer a former member like a community that is not there', async ({ page, browser }) => {
+		test.slow();
+		const { slug, email, password, member } = await seed(page);
+		const context = await browser.newContext();
+		const lena = await context.newPage();
+		await signIn(lena, member.email, member.password);
+		const settings = `/c/${slug}/notifications/settings`;
+		expect((await lena.request.get(settings)).status()).toBe(200);
+
+		await signIn(page, email, password);
+		await visit(page, `/c/${slug}/members`);
+		await page.getByRole('button', { name: 'End the membership of Lena Vogt' }).click();
+		await expect(async () => {
+			expect((await lena.request.get(settings)).status()).toBe(404);
+		}).toPass({ timeout: 10_000 });
+		expect((await lena.request.get('/c/no-such-community/notifications/settings')).status()).toBe(
+			404
+		);
+		await context.close();
+	});
+});

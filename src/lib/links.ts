@@ -53,6 +53,9 @@ export const links = {
 	feedback: (slug: string) => resolve('/(app)/c/[slug]/feedback', { slug }),
 	/** A member's notifications here: what happened that concerns them. */
 	notifications: (slug: string) => resolve('/(app)/c/[slug]/notifications', { slug }),
+	/** What this member gets by email from here. */
+	notificationSettings: (slug: string) =>
+		resolve('/(app)/c/[slug]/notifications/settings', { slug }),
 	path: (slug: string) => resolve('/(app)/c/[slug]/path', { slug }),
 	interview: (slug: string) => resolve('/(app)/c/[slug]/settings/interview', { slug }),
 	decisions: (slug: string) => resolve('/(app)/c/[slug]/decisions', { slug }),

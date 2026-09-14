@@ -281,7 +281,7 @@ describe('the claim check', () => {
 		expect(check()).toBe('recorded');
 	});
 
-	it('is enqueued by a freeze, and by the sweep for every active community', () => {
+	it('is enqueued by a freeze', () => {
 		compliantBefore(true);
 		const opened = thread();
 		addProposal(ana, { discussionId: opened.id, body: 'Members may leave.' }, { db });
@@ -300,9 +300,13 @@ describe('the claim check', () => {
 			{ communityId: ana.community.id }
 		]);
 		expect(check()).toBe('withdrawn');
+	});
 
-		sweep();
-		expect(jobs('claim-check')).toHaveLength(2);
+	it('is run by the sweep for every active community, without queueing one per community', () => {
+		compliantBefore(true);
+		expect(sweep().claims).toBe(1);
+		expect(kindsFor(ana, 'claim.withdrawn')).toHaveLength(1);
+		expect(jobs('claim-check')).toHaveLength(0);
 	});
 });
 
