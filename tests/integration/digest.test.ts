@@ -5,7 +5,7 @@ import { fixedClock } from '../../src/lib/server/clock.js';
 import { setDbForTests, type Db } from '../../src/lib/server/db/index.js';
 import { user } from '../../src/lib/server/db/schema/auth.js';
 import { notification } from '../../src/lib/server/db/schema/notifications.js';
-import { membership } from '../../src/lib/server/db/schema/tenancy.js';
+import { community, membership } from '../../src/lib/server/db/schema/tenancy.js';
 import { sendDigests } from '../../src/lib/server/jobs/digest.js';
 import {
 	memoryTransport,
@@ -143,6 +143,17 @@ describe('what a digest says', () => {
 			expect(message.text).not.toContain(secret);
 			expect(message.subject).not.toContain(secret);
 		}
+	});
+
+	it('is written in the community’s language', async () => {
+		db.update(community).set({ locale: 'de' }).where(eq(community.id, marco.community.id)).run();
+		await run(MONDAY_UTC + 6.5 * HOUR);
+		const message = mail.sent.find((sent) => sent.to === 'marco@example.org')!;
+
+		expect(message.subject).toBe('Diese Woche in Valle Verde');
+		expect(message.text).toMatch(/In 1 Gespräch gab es Aktivität/);
+		expect(message.text).toMatch(/1 neuer Vorschlag/);
+		expect(message.text).not.toMatch(/This week|discussion had activity/);
 	});
 
 	it('sends nothing for a quiet week, and does not check that member again that day', async () => {

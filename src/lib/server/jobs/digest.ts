@@ -6,7 +6,10 @@ import { decision } from '../db/schema/decisions.js';
 import { discussion } from '../db/schema/discussions.js';
 import { notification } from '../db/schema/notifications.js';
 import { community, membership } from '../db/schema/tenancy.js';
+import { localeOf } from '../locale.js';
 import { getMailTransport } from '../mail/index.js';
+import * as m from '$lib/paraglide/messages';
+import type { Locale } from '$lib/paraglide/runtime';
 import type { Message } from '../mail/transport.js';
 import { links } from '../../links.js';
 import type { NotificationKind } from '../../notifications/kinds.js';
@@ -71,58 +74,80 @@ export function countUnread(db: Db, membershipId: string): UnreadCounts {
 	);
 }
 
-/** How the digest names each kind of unread notification, singular and plural. */
-const KIND_WORDS: Record<NotificationKind, [string, string]> = {
-	'discussion.reply': ['thread with new replies', 'threads with new replies'],
-	'discussion.mention': ['mention', 'mentions'],
-	'proposal.posted': ['new proposal', 'new proposals'],
-	'consent.opened': ['consent round opened', 'consent rounds opened'],
-	'consent.closing': ['consent round closing soon', 'consent rounds closing soon'],
-	'decision.frozen': ['decision recorded', 'decisions recorded'],
-	'definition.review_due': ['definition due for review', 'definitions due for review'],
-	'discussion.quiet': ['quiet thread', 'quiet threads'],
-	'document.scan_ended': ['document scan finished', 'document scans finished'],
-	'export.ready': ['export ready', 'exports ready'],
-	'membership.role_changed': ['role change', 'role changes'],
-	'claim.withdrawn': ['compliance claim withdrawn', 'compliance claims withdrawn']
+type Count = (inputs: { count: number }, options: { locale: Locale }) => string;
+
+/** How the digest counts each kind of unread notification: one, and more than one. */
+const KIND_WORDS: Record<NotificationKind, [Count, Count]> = {
+	'discussion.reply': [m.digest_kind_discussion_reply_one, m.digest_kind_discussion_reply_many],
+	'discussion.mention': [
+		m.digest_kind_discussion_mention_one,
+		m.digest_kind_discussion_mention_many
+	],
+	'proposal.posted': [m.digest_kind_proposal_posted_one, m.digest_kind_proposal_posted_many],
+	'consent.opened': [m.digest_kind_consent_opened_one, m.digest_kind_consent_opened_many],
+	'consent.closing': [m.digest_kind_consent_closing_one, m.digest_kind_consent_closing_many],
+	'decision.frozen': [m.digest_kind_decision_frozen_one, m.digest_kind_decision_frozen_many],
+	'definition.review_due': [
+		m.digest_kind_definition_review_due_one,
+		m.digest_kind_definition_review_due_many
+	],
+	'discussion.quiet': [m.digest_kind_discussion_quiet_one, m.digest_kind_discussion_quiet_many],
+	'document.scan_ended': [
+		m.digest_kind_document_scan_ended_one,
+		m.digest_kind_document_scan_ended_many
+	],
+	'export.ready': [m.digest_kind_export_ready_one, m.digest_kind_export_ready_many],
+	'membership.role_changed': [
+		m.digest_kind_membership_role_changed_one,
+		m.digest_kind_membership_role_changed_many
+	],
+	'claim.withdrawn': [m.digest_kind_claim_withdrawn_one, m.digest_kind_claim_withdrawn_many]
 };
 
+const counted = ([one, many]: [Count, Count], count: number, locale: Locale) =>
+	(count === 1 ? one : many)({ count }, { locale });
+
 /**
- * The body. Written here and nowhere else, so the no-content rule is one
- * function to read rather than a promise spread across call sites.
+ * The body, in the community's language — the language of everything its link
+ * opens. Written here and nowhere else, so the no-content rule is one function
+ * to read rather than a promise spread across call sites: it takes counts, a
+ * name and two links, and nothing a title could arrive through.
  */
 export function digestMessage(input: {
 	to: string;
 	communityName: string;
+	locale: Locale;
 	counts: DigestCounts;
 	unread: UnreadCounts;
 	url: string;
 	preferencesUrl: string;
 }): Message {
-	const { counts, unread, communityName } = input;
+	const { counts, unread, locale } = input;
+	const community = input.communityName;
+	const options = { locale };
 	const waiting = (Object.entries(unread) as [NotificationKind, number][])
-		.filter(([, n]) => n > 0)
-		.map(([kind, n]) => `  ${n} ${KIND_WORDS[kind]?.[n === 1 ? 0 : 1] ?? kind}`);
+		.filter(([kind, n]) => n > 0 && kind in KIND_WORDS)
+		.map(([kind, n]) => `  ${counted(KIND_WORDS[kind], n, locale)}`);
 
 	const lines = [
-		`This week in ${communityName}:`,
+		m.digest_heading({ community }, options),
 		'',
-		`  ${counts.decisions} ${counts.decisions === 1 ? 'decision was' : 'decisions were'} recorded`,
-		`  ${counts.discussions} ${counts.discussions === 1 ? 'discussion' : 'discussions'} had activity`,
-		...(waiting.length > 0 ? ['', 'Waiting for you:', ...waiting] : []),
+		`  ${counted([m.digest_decisions_one, m.digest_decisions_many], counts.decisions, locale)}`,
+		`  ${counted([m.digest_discussions_one, m.digest_discussions_many], counts.discussions, locale)}`,
+		...(waiting.length > 0 ? ['', m.digest_waiting({}, options), ...waiting] : []),
 		'',
-		'What was decided, and what people said, is in the app.'
+		m.digest_in_app({}, options)
 	];
 
 	return {
 		to: input.to,
-		subject: `This week in ${communityName}`,
+		subject: m.digest_subject({ community }, options),
 		text: [
 			...lines,
 			'',
 			input.url,
 			'',
-			`Choose which emails you get from ${communityName}:`,
+			m.mail_preferences({ community }, options),
 			input.preferencesUrl,
 			'',
 			'— RCOS Compass'
@@ -140,6 +165,9 @@ export async function sendDigests(db: Db, clock: Clock, appUrl: string): Promise
 	const result: DigestResult = { due: 0, sent: 0, quiet: 0, failed: 0 };
 
 	for (const home of db.select().from(community).where(eq(community.status, 'active')).all()) {
+		// A turn for the web server between communities, like the sweep: this runs
+		// in its process, and the queries here do not yield on their own.
+		await new Promise((resolve) => setImmediate(resolve));
 		const seats = db
 			.select({ membership, user })
 			.from(membership)
@@ -180,6 +208,7 @@ export async function sendDigests(db: Db, clock: Clock, appUrl: string): Promise
 					...digestMessage({
 						to: person.email,
 						communityName: home.name,
+						locale: localeOf(home.locale),
 						counts,
 						unread,
 						url: new URL(links.dashboard(home.slug), appUrl).toString(),
