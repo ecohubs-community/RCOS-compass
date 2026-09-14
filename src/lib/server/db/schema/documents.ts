@@ -88,6 +88,12 @@ export const document = sqliteTable(
 		scanDetail: text('scan_detail'),
 		/** Who started or last continued the scan, and is charged for it. */
 		scanActor: text('scan_actor').references(() => user.id, { onDelete: 'set null' }),
+		/**
+		 * A fresh id written by every claim, and carried by the scan's jobs. Two
+		 * claims by the same member over the same content — a stalled scan
+		 * continued — are still two scans, and only the newest may write.
+		 */
+		scanClaim: text('scan_claim'),
 		/** Moved by every batch; a live scan older than the stall threshold is stopped. */
 		scanHeartbeatAt: integer('scan_heartbeat_at', { mode: 'timestamp_ms' }),
 		/**

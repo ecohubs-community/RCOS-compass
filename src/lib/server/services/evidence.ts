@@ -1,5 +1,5 @@
 import { createHash } from 'node:crypto';
-import { and, eq, inArray, ne } from 'drizzle-orm';
+import { and, eq, inArray, isNotNull, ne } from 'drizzle-orm';
 import { error } from '@sveltejs/kit';
 import { requirePermission, requireWritableCommunity, type Ctx } from '../auth/guard.js';
 import { getDb, type Db } from '../db/index.js';
@@ -298,7 +298,11 @@ export function reconfirmCandidates(
 			and(
 				eq(evidence.communityId, ctx.community.id),
 				eq(evidence.documentId, documentId),
-				eq(evidence.state, 'stale')
+				eq(evidence.state, 'stale'),
+				// Only what a person had confirmed. A suggestion nobody answered
+				// goes stale too, and "confirm it again" would make it a claim
+				// nobody ever made.
+				isNotNull(evidence.confirmedAt)
 			)
 		)
 		.all();
@@ -314,9 +318,30 @@ export function reconfirmCandidates(
 	);
 	const standard = activeStandardView(db, ctx);
 
+	// A pairing already confirmed on the current passage has been put back —
+	// by this act or by confirming a new scan's suggestion — and is not offered
+	// again. Nor is the same pairing twice, from two earlier files.
+	const settled = new Set(
+		db
+			.select({ passageId: evidence.passageId, clauseKey: evidence.clauseKey })
+			.from(evidence)
+			.where(
+				and(
+					eq(evidence.communityId, ctx.community.id),
+					eq(evidence.documentId, documentId),
+					eq(evidence.state, 'confirmed')
+				)
+			)
+			.all()
+			.map((row) => `${row.passageId}:${row.clauseKey}`)
+	);
+
 	return stale.flatMap((row) => {
 		const passageId = byHash.get(sha256(row.quote));
 		if (!passageId) return [];
+		const pairing = `${passageId}:${row.clauseKey}`;
+		if (settled.has(pairing)) return [];
+		settled.add(pairing);
 		return [
 			{
 				evidenceId: row.id,

@@ -403,12 +403,11 @@ describe('a run a person then reads', () => {
 		confirmEvidence(ctx, suggestion!.id, { db });
 		const settledPassage = suggestion!.passageId!;
 
-		// A second run: the settled passage is skipped entirely, so a model cannot
-		// ask twice about something a person has answered. (The stub always names
-		// "passage 1" of whatever batch it is given, so it does produce a
-		// suggestion about a *different* passage — which is fine and expected.)
-		const again = await scanToEnd(ctx, documentId, { db });
-		expect(again.read).toBeLessThan(listPassages(ctx, documentId, { db }).length);
+		// A second scan: every paragraph was read, so there is nothing to start —
+		// a model cannot ask twice about something a person has answered.
+		expect((await catchRefusalAsync(async () => startScan(ctx, documentId, { db })))?.status).toBe(
+			409
+		);
 
 		const about = db
 			.select()

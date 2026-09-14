@@ -27,7 +27,8 @@ export async function scanToEnd(
 		communityId: ctx.community.id,
 		documentId,
 		actorId: ctx.user.id,
-		generation: found.contentGeneration
+		generation: found.contentGeneration,
+		claim: found.scanClaim ?? ''
 	};
 
 	const totals = { queued: started.queued, suggested: 0, discarded: 0, read: 0, steps: 0 };

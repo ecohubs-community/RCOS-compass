@@ -6,6 +6,7 @@ import { definitionSource, evidence, passage } from '../../src/lib/server/db/sch
 import { membership } from '../../src/lib/server/db/schema/tenancy.js';
 import {
 	changeClause,
+	confirmEvidence,
 	definitionOrigin,
 	dismissPassage,
 	languageCoverage,
@@ -259,6 +260,32 @@ describe('claims after the file changes', () => {
 		expect(confirmed.id).toBe(again.id);
 		expect(confirmed.state).toBe('confirmed');
 		expect(db.select().from(evidence).where(eq(evidence.id, claim.id)).get()!.state).toBe('stale');
+		// Put back, so no longer offered — though the old row stays stale.
+		expect(reconfirmCandidates(ana, doc.id, { db })).toEqual([]);
+	});
+
+	it('never offers a suggestion nobody confirmed', () => {
+		const doc = makeDocument(db, ana.community.id);
+		const exit = 'A member may leave at any time by telling a steward.';
+		suggestion(makePassage(db, doc.id, { text: exit }), CHOSEN.key);
+		replaceWith(doc, [exit]);
+
+		expect(reconfirmCandidates(ana, doc.id, { db })).toEqual([]);
+	});
+
+	it('stops offering a claim once the new scan-s suggestion for it is confirmed', () => {
+		const doc = makeDocument(db, ana.community.id);
+		const exit = 'A member may leave at any time by telling a steward.';
+		mapPassage(
+			ana,
+			{ passageId: makePassage(db, doc.id, { text: exit }).id, clause: CHOSEN.ref },
+			{ db }
+		);
+		const [same] = replaceWith(doc, [exit]);
+		expect(reconfirmCandidates(ana, doc.id, { db })).toHaveLength(1);
+
+		confirmEvidence(ana, suggestion(same!, CHOSEN.key).id, { db });
+		expect(reconfirmCandidates(ana, doc.id, { db })).toEqual([]);
 	});
 
 	it('answers for another community-s stale claim as if it does not exist', () => {

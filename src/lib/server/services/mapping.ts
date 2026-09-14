@@ -70,6 +70,8 @@ export type ScanPayload = {
 	actorId: string;
 	/** The document's content generation when the scan was claimed. */
 	generation: number;
+	/** The claim's own id: a later claim of the same document supersedes this one. */
+	claim: string;
 };
 
 /** What one step did — for the handler, and for tests that drive steps directly. */
@@ -198,14 +200,21 @@ export function startScan(
 	const found = getDocument(ctx, documentId, { db });
 	const available = scanAvailability(ctx, found, { db });
 	if (!available.ok) error(409, available.reason ?? 'You cannot run a scan here.');
+	// A scan with nothing left to read would only clear "Mark mapping as done" and
+	// announce a finish nobody asked for.
+	if (available.paragraphs - available.alreadyRead <= 0) {
+		error(409, 'Compass has already read every paragraph of this document.');
+	}
 
 	const now = ctx.now();
+	const claim = newId();
 	return db.transaction((tx) => {
 		const claimed = tx
 			.update(document)
 			.set({
 				scanStatus: 'queued',
 				scanActor: ctx.user.id,
+				scanClaim: claim,
 				scanDetail: null,
 				scanHeartbeatAt: new Date(now),
 				mappingDoneAt: null,
@@ -235,7 +244,8 @@ export function startScan(
 					communityId: ctx.community.id,
 					documentId: found.id,
 					actorId: ctx.user.id,
-					generation: found.contentGeneration
+					generation: found.contentGeneration,
+					claim
 				} satisfies ScanPayload,
 				// Not retried by the queue: a retry re-charges a member and could
 				// notify twice. The step records its own ending instead.
@@ -246,13 +256,18 @@ export function startScan(
 	});
 }
 
-/** This scan is still the live one, over the content it was claimed for. */
+/**
+ * This scan is still the live one, over the content it was claimed for. The
+ * claim id is what tells apart a member's stalled scan from the one they
+ * started again: both have the same actor and generation.
+ */
 const stillLive = (payload: ScanPayload) =>
 	and(
 		eq(document.id, payload.documentId),
 		eq(document.communityId, payload.communityId),
 		eq(document.contentGeneration, payload.generation),
 		eq(document.scanActor, payload.actorId),
+		eq(document.scanClaim, payload.claim),
 		inArray(document.scanStatus, ['queued', 'running'])
 	);
 

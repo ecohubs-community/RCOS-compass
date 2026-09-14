@@ -171,7 +171,7 @@ consent_response   round_id | membership_id | value consent|objection|abstain
 document           id | community_id | filename | mime | bytes | sha256 | storage_key
                    | uploaded_by | status uploaded|extracting|extracted|reference_only|failed
                    | extractor_version?  — reader version; below current re-reads at boot
-                   | scan_status none|queued|running|stopped|complete | scan_detail? | scan_actor?
+                   | scan_status none|queued|running|stopped|complete | scan_detail? | scan_actor? | scan_claim?
                    | scan_heartbeat_at? | content_generation | mapping_done_at? | mapping_done_by?
                    — always the *current* file; earlier files are document_file_version rows
 document_file_version id | document_id | community_id | filename | mime | bytes | sha256
@@ -422,7 +422,10 @@ of `document.scan` jobs, twelve paragraphs a batch:
 
 `none → queued → running → complete | stopped`. The claim is one conditional
 update: it succeeds only when no scan is live or the live one has **stalled**
-(no heartbeat for 10 minutes — a killed worker). Every batch writes inside a
+(no heartbeat for 10 minutes — a killed worker). Each claim writes a fresh `scan_claim` id its
+jobs carry, so continuing a stalled scan supersedes the old job chain rather than
+running beside it; a re-read resets the scan and the done mark, since none of the
+new paragraphs has been read. Every batch writes inside a
 transaction that re-checks `content_generation` and `scan_status = running`, so a
 replace, restore, delete or re-read that bumped the generation makes the old scan
 write nothing. A refused budget, unavailable AI or unexpected error records

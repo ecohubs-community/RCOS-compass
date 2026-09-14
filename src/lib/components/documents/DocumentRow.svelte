@@ -111,17 +111,29 @@
 				: settled / row.counts.identified
 	);
 
-	/** Starting a scan is offered on a not-scanned row, and disabled with a reason where it cannot run. */
-	const startable = $derived(row.state === 'not_scanned' && can.scan);
+	/** Paragraphs a scan has not read yet — none, and there is nothing to start or continue. */
+	const unread = $derived(row.counts.paragraphs - row.counts.paragraphsRead);
+
+	/**
+	 * Starting a scan is offered on a not-scanned row, and disabled with a reason
+	 * where it cannot run — but only to a member who may run AI at all; for anyone
+	 * else there is no control (design.md, the availability table).
+	 */
+	const startable = $derived(row.state === 'not_scanned' && can.scan && unread > 0);
 	const blockedReason = $derived(
-		row.state === 'cannot_scan'
-			? row.statusDetail
-			: startable && !scanning.offer
-				? scanning.reason
-				: null
+		!can.scan
+			? null
+			: row.state === 'cannot_scan'
+				? row.statusDetail
+				: startable && !scanning.offer
+					? scanning.reason
+					: null
 	);
 	const menuStartable = $derived(
-		can.scan && scanning.offer && (row.state === 'not_scanned' || row.state === 'in_progress')
+		can.scan &&
+			scanning.offer &&
+			unread > 0 &&
+			(row.state === 'not_scanned' || row.state === 'in_progress')
 	);
 </script>
 
@@ -216,7 +228,9 @@
 					<form method="POST" action="?/scan" use:enhance>
 						<input type="hidden" name="documentId" value={row.id} />
 						<Button type="submit" variant="ghost" class="w-full justify-start">
-							{row.state === 'in_progress' ? m.library_action_continue() : m.library_action_start()}
+							{row.counts.paragraphsRead > 0
+								? m.workspace_scan_continue({ count: unread })
+								: m.library_action_start()}
 						</Button>
 					</form>
 				{/if}

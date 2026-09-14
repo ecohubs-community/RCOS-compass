@@ -48,6 +48,7 @@ function newReading(now: Date) {
 		scanStatus: 'none' as const,
 		scanDetail: null,
 		scanActor: null,
+		scanClaim: null,
 		scanHeartbeatAt: null,
 		mappingDoneAt: null,
 		mappingDoneBy: null,

@@ -174,8 +174,17 @@ function recordReading(
 				extractorVersion: EXTRACTOR_VERSION,
 				extractedAt: verdict.status === 'failed' ? null : now,
 				// The passages were replaced: any scan claimed against the old ones
-				// must write nothing more (see jobs/scan-job.ts).
-				contentGeneration: sql`${document.contentGeneration} + 1`
+				// must write nothing more (see jobs/scan-job.ts), and nothing about the
+				// old reading's scan describes the new one — no paragraph of it has been
+				// read, so it is not scanned, not "Not governance", and not done.
+				contentGeneration: sql`${document.contentGeneration} + 1`,
+				scanStatus: 'none',
+				scanDetail: null,
+				scanActor: null,
+				scanClaim: null,
+				scanHeartbeatAt: null,
+				mappingDoneAt: null,
+				mappingDoneBy: null
 			})
 			.where(eq(document.id, found.id))
 			.run();

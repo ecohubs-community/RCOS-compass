@@ -91,12 +91,16 @@ function documentOf(ctx: Ctx, n: number) {
 	return doc;
 }
 
-const payloadFor = (ctx: Ctx, documentId: string): ScanPayload => ({
-	communityId: ctx.community.id,
-	documentId,
-	actorId: ctx.user.id,
-	generation: db.select().from(document).where(eq(document.id, documentId)).get()!.contentGeneration
-});
+const payloadFor = (ctx: Ctx, documentId: string): ScanPayload => {
+	const row = db.select().from(document).where(eq(document.id, documentId)).get()!;
+	return {
+		communityId: ctx.community.id,
+		documentId,
+		actorId: ctx.user.id,
+		generation: row.contentGeneration,
+		claim: row.scanClaim ?? ''
+	};
+};
 
 const docRow = (id: string) => db.select().from(document).where(eq(document.id, id)).get()!;
 const scanJobs = () => db.select().from(job).where(eq(job.kind, 'document.scan')).all();
@@ -251,9 +255,11 @@ describe('a scan reads each paragraph once', () => {
 		expect((await runScanStep(db, clock, payloadFor(ana, doc.id))).outcome).toBe('complete');
 		expect(model.calls()).toBe(1);
 
-		// Start again: nothing is left to read.
-		startScan(ana, doc.id, { db });
-		expect((await runScanStep(db, clock, payloadFor(ana, doc.id))).outcome).toBe('complete');
+		// Start again: nothing is left to read, so there is nothing to start.
+		expect(catchRefusal(() => startScan(ana, doc.id, { db }))).toEqual({
+			status: 409,
+			message: 'Compass has already read every paragraph of this document.'
+		});
 		expect(model.calls()).toBe(1);
 	});
 });
@@ -345,6 +351,50 @@ describe('a scan that cannot go on stops visibly', () => {
 		clock.advance(SCAN_STALL_MS + 1);
 		expect(startScan(lena, doc.id, { db }).queued).toBe(true);
 		expect(docRow(doc.id).scanActor).toBe(lena.user.id);
+	});
+
+	it('supersedes the stalled chain when the same member continues it, so only one chain reads', async () => {
+		const model = recordingModel({ answer: () => '{"pairs":[]}' });
+		const doc = documentOf(ana, 30);
+		startScan(ana, doc.id, { db });
+		const stalled = payloadFor(ana, doc.id);
+
+		clock.advance(SCAN_STALL_MS + 1);
+		expect(startScan(ana, doc.id, { db }).queued).toBe(true);
+		const continued = payloadFor(ana, doc.id);
+
+		expect((await runScanStep(db, clock, stalled)).outcome).toBe('superseded');
+		expect(model.calls()).toBe(0);
+		expect((await runScanStep(db, clock, continued)).outcome).toBe('continued');
+		expect(model.calls()).toBe(1);
+	});
+
+	it("forgets the old reading's scan when the document is read again", async () => {
+		recordingModel({ answer: () => '{"pairs":[]}' });
+		const file = new File(
+			[readFileSync(join(FIXTURES, 'valle-verde-bylaws.pdf'))],
+			'valle-verde-bylaws.pdf'
+		);
+		const created = await createDocument(
+			ana,
+			{ filename: 'valle-verde-bylaws.pdf', file: await receiveUpload(file, ana.community.id) },
+			{ db }
+		);
+		await runExtraction(db, clock, created.id);
+		startScan(ana, created.id, { db });
+		await runScanStep(db, clock, payloadFor(ana, created.id));
+		expect(docRow(created.id).scanStatus).toBe('complete');
+
+		// Read again, the way the boot sweep hands a document back to the reader.
+		db.update(document).set({ status: 'uploaded' }).where(eq(document.id, created.id)).run();
+		await runExtraction(db, clock, created.id);
+		const doc = created;
+		expect(docRow(doc.id)).toMatchObject({
+			scanStatus: 'none',
+			scanActor: null,
+			scanClaim: null,
+			mappingDoneAt: null
+		});
 	});
 });
 
