@@ -6,6 +6,7 @@ import {
 	lineRect,
 	linesFor,
 	outputScale,
+	scaled,
 	stepZoom,
 	union,
 	type Transform
@@ -65,6 +66,19 @@ describe('a line box on the rendered page', () => {
 		expect(rect.top + rect.height).toBeCloseTo(692 - (600 - 11 * 0.22));
 		expect(viewport.width).toBe(412);
 	});
+});
+
+describe('a transform at another zoom', () => {
+	it.each([0, 90, 180, 270])(
+		'matches pdf.js at scale 2.3 from the scale-1 transform, rotated %i degrees',
+		async (rotation) => {
+			const { page } = await viewportsOf('cropped-page.pdf', rotation, 1);
+			const base = page.getViewport({ scale: 1, rotation: page.rotate + rotation });
+			const zoomed = page.getViewport({ scale: 2.3, rotation: page.rotate + rotation });
+			const ours = scaled(base.transform as unknown as Transform, 2.3);
+			ours.forEach((value, index) => expect(value).toBeCloseTo(zoomed.transform[index]!));
+		}
+	);
 });
 
 describe('which lines an excerpt covers', () => {

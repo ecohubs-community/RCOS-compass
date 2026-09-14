@@ -9,8 +9,8 @@
 		/** `?page=` as asked; null starts at the top. */
 		page: number | null;
 		pageHref: (page: number) => string;
-		/** Where the Text switch goes. */
-		textHref: string;
+		/** Where the Text switch goes, for the page the viewer is showing. */
+		textHref: (page: number) => string;
 		/** Whether to show the page strip — not at phone widths. */
 		thumbnails?: boolean;
 		onselect: (passageId: string) => void;
@@ -29,7 +29,15 @@
 	import IconPlus from '~icons/tabler/plus';
 	import PageThumbnails from './PageThumbnails.svelte';
 	import PdfPage from './PdfPage.svelte';
-	import { lineRect, linesFor, stepZoom, union, type Transform } from './geometry.js';
+	import {
+		MAX_VIEWER_PAGES,
+		lineRect,
+		linesFor,
+		scaled,
+		stepZoom,
+		union,
+		type Transform
+	} from './geometry.js';
 	import { openPdf } from './load.js';
 
 	/**
@@ -64,7 +72,8 @@
 
 	let pdf = $state.raw<PDFDocumentProxy | null>(null);
 	let lib = $state.raw<typeof import('pdfjs-dist') | null>(null);
-	let sizes = $state.raw<{ width: number; height: number }[]>([]);
+	let sizes = $state.raw<{ width: number; height: number; transform: Transform }[]>([]);
+	let truncated = $state(false);
 	let zoom = $state(1);
 	let width = $state(0);
 	let scroller = $state<HTMLElement | null>(null);
@@ -89,10 +98,16 @@
 				opened = result.pdf;
 				if (destroyed) return void result.pdf.loadingTask.destroy();
 				const measured = [];
-				for (let n = 1; n <= result.pdf.numPages; n++) {
+				const count = Math.min(result.pdf.numPages, MAX_VIEWER_PAGES);
+				for (let n = 1; n <= count; n++) {
 					const viewport = (await result.pdf.getPage(n)).getViewport({ scale: 1 });
-					measured.push({ width: viewport.width, height: viewport.height });
+					measured.push({
+						width: viewport.width,
+						height: viewport.height,
+						transform: viewport.transform as unknown as Transform
+					});
 				}
+				truncated = result.pdf.numPages > count;
 				if (destroyed) return;
 				lib = result.lib;
 				sizes = measured;
@@ -160,16 +175,25 @@
 		const highlight = target.passage
 			? highlights.find((item) => item.passageId === target.passage)
 			: undefined;
-		if (highlight && lib) {
-			const viewportAt = (await pdf!.getPage(highlight.page)).getViewport({
-				scale: fit(highlight.page - 1)
-			});
+		const size = sizes[target.page - 1];
+		if (highlight && size) {
+			const at = scaled(size.transform, fit(target.page - 1));
 			const box = union(
-				linesFor(highlight.lines, highlight.excerpts).map((line) =>
-					lineRect(line, viewportAt.transform as unknown as Transform)
-				)
+				linesFor(highlight.lines, highlight.excerpts).map((line) => lineRect(line, at))
 			);
-			if (box) top = node.offsetTop + box.top - scroller.clientHeight / 3;
+			if (box) {
+				// Already in full view — the member most likely just clicked it — and
+				// the document stays where it is.
+				const boxTop = node.offsetTop + box.top;
+				const visible =
+					boxTop >= scroller.scrollTop &&
+					boxTop + box.height <= scroller.scrollTop + scroller.clientHeight;
+				if (visible) {
+					current = target.page;
+					return;
+				}
+				top = boxTop - scroller.clientHeight / 3;
+			}
 		}
 		ownScrollUntil = performance.now() + 400;
 		scroller.scrollTo({ top: Math.max(0, top) });
@@ -252,7 +276,7 @@
 			<span class="text-fg-muted text-meta" role="status">{m.original_opening()}</span>
 			<span class="flex-1"></span>
 		{/if}
-		<a href={textHref} class="text-accent-fg text-meta">{m.original_switch_text()}</a>
+		<a href={textHref(current)} class="text-accent-fg text-meta">{m.original_switch_text()}</a>
 	</div>
 
 	<div class="flex min-h-0 flex-1">
@@ -265,6 +289,11 @@
 			class="relative min-h-0 flex-1 overflow-auto py-4"
 			onscroll={track}
 		>
+			{#if truncated}
+				<p class="text-fg-secondary text-meta px-4 pb-3" role="status">
+					{m.original_truncated({ count: MAX_VIEWER_PAGES })}
+				</p>
+			{/if}
 			{#if pdf && lib}
 				<!-- The bottom room lets the last pages scroll to the top, where a revealed page belongs. -->
 				<div class="flex flex-col gap-4 pb-[50vh]">

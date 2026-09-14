@@ -514,7 +514,7 @@
 				selected="gallery-original-1"
 				page={null}
 				pageHref={(page) => `#page-${page}`}
-				textHref="#workspace"
+				textHref={() => '#workspace'}
 				onselect={() => {}}
 				onfail={() => {}}
 			/>

@@ -362,5 +362,6 @@
 	"original_view_label": "View",
 	"original_failed": "This PDF couldn’t be shown as it was uploaded. Here is its text; you can download the original.",
 	"original_phone_link": "View original page",
-	"original_back_to_queue": "← Back to the queue"
+	"original_back_to_queue": "← Back to the queue",
+	"original_truncated": "This PDF is longer than the viewer lays out, so only its first {count} pages are shown here. The text view and the download have all of it."
 }

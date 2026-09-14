@@ -60,6 +60,22 @@ export function union(rects: readonly Rect[]): Rect | null {
 	return { left, top, width: right - left, height: bottom - top };
 }
 
+/**
+ * A viewport's transform at another zoom. pdf.js's transform is the page's
+ * scale-1 transform multiplied through by the scale — offsets included — so a
+ * highlight can be placed before (or without) its page being drawn.
+ */
+export function scaled(transform: Transform, scale: number): Transform {
+	return transform.map((value) => value * scale) as unknown as Transform;
+}
+
+/**
+ * Pages the original view lays out. A file can declare any number; past this
+ * the viewer shows the first ones and says so, rather than asking a tab for a
+ * slot, an observer and a thumbnail per page of a 50 000-page PDF.
+ */
+export const MAX_VIEWER_PAGES = 1000;
+
 /** Canvas pixels one page may take, device pixels included. Above it, a page renders softer. */
 export const MAX_CANVAS_PIXELS = 16_000_000;
 

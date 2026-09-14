@@ -128,8 +128,20 @@ test.describe('the original view of a PDF', () => {
 		await strip.locator('[data-thumbnail="5"]').click();
 		await expect(view.getByText('Page 5 of 5')).toBeVisible();
 
+		// Scrolled by hand to page 4 — the URL still says 5 — and switched: the text
+		// opens where the member was looking, not where the URL last pointed.
+		// (After the viewer's own scroll to page 5 has settled: a person's scroll
+		// never lands inside the moment the viewer is moving the page itself.)
+		await page.waitForTimeout(600);
+		await view.locator('[data-page-slot="4"]').evaluate((slot) => {
+			const scroller = slot.closest('.overflow-auto')!;
+			scroller.scrollTop = (slot as HTMLElement).offsetTop;
+			scroller.dispatchEvent(new Event('scroll'));
+		});
+		await expect(view.getByText('Page 4 of 5')).toBeVisible();
 		await view.getByRole('link', { name: 'Show as text' }).click();
 		await expect(page).toHaveURL(/view=text/);
+		await expect(page).toHaveURL(/page=4/);
 		await expect(page.getByText(/^Page \d of 5$/).filter({ visible: true })).toBeVisible();
 		await expect(originalView(page)).toHaveCount(0);
 
@@ -156,6 +168,8 @@ test.describe('the original view of a PDF', () => {
 		const view = originalView(page);
 		const first = view.locator('[data-highlight]').first();
 		await expect(first).toBeVisible({ timeout: 20_000 });
+		// Page 4's highlight exists — and can take focus — before page 4 is drawn.
+		await expect(view.locator('[data-page="4"] [data-highlight]')).toHaveCount(1);
 
 		// Keyboard: the highlight takes focus, with its paragraph, state and words.
 		await first.focus();
@@ -257,6 +271,32 @@ test.describe('the original view of a PDF', () => {
 		await expect(page.getByRole('link', { name: 'Download the original' }).first()).toBeVisible();
 		await expect(page.getByText('Page 1 of 5').filter({ visible: true })).toBeVisible();
 		await expect(originalView(page)).toHaveCount(0);
+	});
+
+	test('lays out no more than a thousand pages of a file that claims more', async ({ page }) => {
+		test.slow();
+		test.skip(!wide(page), 'the original is the default at 1024px and wider');
+		const { slug, email, password } = await seed(page);
+		await signIn(page, email, password);
+		const workspace = await uploaded(
+			page,
+			slug,
+			fixturePath(DOCUMENTS.bylawsPdf),
+			DOCUMENTS.bylawsPdf
+		);
+
+		// The browser is handed a 1005-page file in place of the bylaws.
+		const { pdf } = await import('../../scripts/make-document-fixtures.mjs');
+		const long = pdf(Array.from({ length: 1005 }, (_, i) => `Page ${i + 1}.`));
+		await page.route('**/file', (route) =>
+			route.fulfill({ status: 200, contentType: 'application/pdf', body: long })
+		);
+		await visit(page, workspace);
+		const view = originalView(page);
+		await expect(view.getByText(/only its first 1000 pages are shown/)).toBeVisible({
+			timeout: 60_000
+		});
+		await expect(view.locator('[data-page-slot]')).toHaveCount(1000);
 	});
 
 	test('offers no original view for a Word document', async ({ page }) => {

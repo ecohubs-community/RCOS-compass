@@ -22,7 +22,7 @@
 <script lang="ts">
 	import type { PDFDocumentProxy, RenderTask } from 'pdfjs-dist';
 	import * as m from '$lib/paraglide/messages';
-	import { lineRect, linesFor, outputScale, union, type Transform } from './geometry.js';
+	import { lineRect, linesFor, outputScale, scaled, union, type Transform } from './geometry.js';
 
 	/**
 	 * One page of the original: canvas, text layer and highlights, drawn only
@@ -32,8 +32,8 @@
 		pdf: PDFDocumentProxy;
 		lib: typeof import('pdfjs-dist');
 		number: number;
-		/** The page's size at scale 1, in CSS pixels. */
-		size: { width: number; height: number };
+		/** The page's size at scale 1, in CSS pixels, and its scale-1 viewport transform. */
+		size: { width: number; height: number; transform: Transform };
 		scale: number;
 		near: boolean;
 		highlights: readonly Highlight[];
@@ -47,7 +47,6 @@
 
 	let canvas = $state<HTMLCanvasElement | null>(null);
 	let textLayer = $state<HTMLDivElement | null>(null);
-	let transform = $state<Transform | null>(null);
 
 	const width = $derived(Math.floor(size.width * scale));
 	const height = $derived(Math.floor(size.height * scale));
@@ -69,7 +68,6 @@
 				const ratio = outputScale(viewport.width, viewport.height, window.devicePixelRatio || 1);
 				target.width = Math.floor(viewport.width * ratio);
 				target.height = Math.floor(viewport.height * ratio);
-				transform = viewport.transform as unknown as Transform;
 
 				task = page.render({
 					canvas: target,
@@ -105,13 +103,21 @@
 			target.width = 0;
 			target.height = 0;
 			layer.replaceChildren();
-			void pdf.getPage(number).then((page) => page.cleanup());
+			// The document may already be destroyed (the viewer unmounted): nothing to release.
+			void pdf
+				.getPage(number)
+				.then((page) => page.cleanup())
+				.catch(() => {});
 		};
 	});
 
+	/**
+	 * Placed from the page's known transform, not from a finished render: every
+	 * page's highlights exist — and take keyboard focus — whether or not its
+	 * canvas has been drawn, and follow a zoom at once.
+	 */
 	const drawn = $derived.by(() => {
-		if (!transform) return [];
-		const at = transform;
+		const at = scaled(size.transform, scale);
 		return highlights.flatMap((highlight) => {
 			const rects = linesFor(highlight.lines, highlight.excerpts).map((line) => lineRect(line, at));
 			const box = union(rects);

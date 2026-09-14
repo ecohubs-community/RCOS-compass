@@ -265,7 +265,7 @@
 							selected={data.selected}
 							page={data.paper.page}
 							{pageHref}
-							textHref={viewHref('text')}
+							textHref={(page) => viewHref('text', page)}
 							onselect={(passageId) => select(passageHref(passageId))}
 							onready={() => (originalReady = true)}
 							onfail={() => (originalFailed = true)}
@@ -439,10 +439,7 @@
 							selected={data.selected}
 							page={data.paper.page}
 							{pageHref}
-							textHref="?{new URLSearchParams({
-								view: 'page',
-								...(data.paper.page !== null ? { page: String(data.paper.page) } : {})
-							})}"
+							textHref={(page) => `?${new URLSearchParams({ view: 'page', page: String(page) })}`}
 							thumbnails={false}
 							onselect={(passageId) => select(passageHref(passageId))}
 							onready={() => (originalReady = true)}
