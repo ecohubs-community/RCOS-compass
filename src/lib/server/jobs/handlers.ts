@@ -12,6 +12,8 @@ import { expireExceptions } from '../services/visibility.js';
 import { cleanUpExports, runExport, type ExportPayload } from './export-job.js';
 import { runMirror, type MirrorPayload } from './mirror-job.js';
 import { runNotificationMail, type NotificationMailPayload } from './notification-mail.js';
+import { runNotificationSweep, SWEEP_INTERVAL_MS } from './notification-sweep.js';
+import { runClaimCheck, type ClaimCheckPayload } from './claim-check.js';
 import { enqueue } from './queue.js';
 import type { HandlerRegistry } from './worker.js';
 
@@ -154,6 +156,30 @@ export const handlers: HandlerRegistry = {
 				payload as NotificationMailPayload,
 				getConfig().PUBLIC_APP_URL
 			);
+		}
+	},
+
+	/** Consent rounds closing, quiet threads, reviews due, and a claim check per community. */
+	'notification-sweep': {
+		timeoutMs: 120_000,
+		run: (_payload, { db, clock }) => {
+			const result = runNotificationSweep(db, clock);
+			if (result.closing + result.quiet + result.reviews > 0) {
+				getLogger().info(result, 'notification sweep');
+			}
+			enqueue(db, clock, {
+				kind: 'notification-sweep',
+				runAfter: clock.now() + SWEEP_INTERVAL_MS
+			});
+			return Promise.resolve();
+		}
+	},
+
+	'claim-check': {
+		timeoutMs: 60_000,
+		run: (payload, { db, clock }) => {
+			runClaimCheck(db, clock, payload as ClaimCheckPayload);
+			return Promise.resolve();
 		}
 	},
 

@@ -42,6 +42,16 @@ import type {
 
 export type { NotificationKind } from '../../notifications/kinds.js';
 
+/**
+ * Where a notification is written from: a member's request, or a job acting for
+ * the community with nobody's act to leave out.
+ */
+export type NotifyScope = {
+	community: { id: string };
+	membership?: { id: string } | null;
+	now: () => number;
+};
+
 export type NotifyInput<K extends NotificationKind = NotificationKind> = {
 	kind: K;
 	subjectType: SubjectType;
@@ -83,12 +93,12 @@ export type NotifyInput<K extends NotificationKind = NotificationKind> = {
  */
 export function notify<K extends NotificationKind>(
 	db: Db,
-	ctx: Ctx,
+	ctx: NotifyScope,
 	input: NotifyInput<K>
 ): number {
 	const now = ctx.now();
 	const named = [...new Set(input.recipients)].filter(
-		(id) => input.includeActor === true || id !== ctx.membership.id
+		(id) => input.includeActor === true || id !== ctx.membership?.id
 	);
 	const recipients = currentMembers(db, ctx.community.id, named);
 

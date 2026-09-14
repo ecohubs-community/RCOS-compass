@@ -84,7 +84,11 @@ export function indexDefinition(db: Db, communityId: string, definitionId: strin
  * the community's own locale — "Ausgabenbefugnis" is what a German community
  * would type, and the section key would match nothing anybody says out loud.
  */
-function definitionTitle(db: Db, communityId: string, row: typeof definition.$inferSelect): string {
+export function definitionTitle(
+	db: Db,
+	communityId: string,
+	row: typeof definition.$inferSelect
+): string {
 	if (row.title) return row.title;
 	if (!row.sectionKey) return '';
 

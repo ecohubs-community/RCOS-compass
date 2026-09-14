@@ -11,7 +11,7 @@ import { notificationText } from '../../src/lib/notifications/text.js';
 const SAMPLE: { [K in keyof NotificationParams]: NotificationParams[K] } = {
 	'proposal.posted': { title: 'Exit and separation' },
 	'consent.opened': { title: 'Exit and separation' },
-	'consent.closing': { title: 'Exit and separation', closesAt: 0 },
+	'consent.closing': { title: 'Exit and separation', closesAt: 0, roundId: 'r1' },
 	'decision.frozen': { title: 'Spending authority', ref: 'DEC-2026-004' },
 	'definition.review_due': { title: 'Membership' },
 	'export.ready': {},

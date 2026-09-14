@@ -23,6 +23,7 @@ import { isCurrentShape } from '../../shared/linter.js';
 import { countUnresolved } from './objections.js';
 import { proposalToFreeze } from './discussions.js';
 import { activeStandardView, DECISION_MATRIX, isArtifactComplete } from './completeness.js';
+import { enqueue } from '../jobs/queue.js';
 import { activeMemberships, notify } from './notifications.js';
 import { getSearchIndex } from '../search/index.js';
 import { indexDecision, indexDefinition } from './search.js';
@@ -456,6 +457,16 @@ export function freeze(ctx: Ctx, input: FreezeInput, options: { db?: Db } = {}):
 			},
 			recipients: activeMemberships(tx as unknown as Db, ctx.community.id)
 		});
+		// A freeze is the usual reason a claim changes; the check runs straight after,
+		// as a job, rather than waiting for the hourly sweep.
+		enqueue(
+			tx as unknown as Db,
+			{ now: ctx.now },
+			{
+				kind: 'claim-check',
+				payload: { communityId: ctx.community.id }
+			}
+		);
 
 		return tx.select().from(decision).where(eq(decision.id, decisionId)).get()!;
 	});

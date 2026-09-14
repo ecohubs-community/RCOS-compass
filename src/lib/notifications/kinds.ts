@@ -13,7 +13,7 @@
 export type NotificationParams = {
 	'proposal.posted': { title: string };
 	'consent.opened': { title: string };
-	'consent.closing': { title: string; closesAt: number };
+	'consent.closing': { title: string; closesAt: number; roundId: string };
 	'decision.frozen': { title: string; ref: string };
 	'definition.review_due': { title: string };
 	'export.ready': Record<string, never>;

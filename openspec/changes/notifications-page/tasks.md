@@ -88,14 +88,14 @@
 
 ## 6. The sweep and the claim check
 
-- [ ] 6.1 `notification-sweep` job: hourly, re-arming, enqueued at boot if absent, skipping suspended communities
-- [ ] 6.2 Consent closing: open rounds with `closes_at` within 48h → `consent.closing` to eligible members without a response, once per round and member, with mail
-- [ ] 6.3 Quiet threads: open discussions quiet for 14 days → `discussion.quiet` to the opener, once per quiet spell
-- [ ] 6.4 Review due: definitions past `review_due_at` → `definition.review_due` to the adopted version's author (else the creator), once per date
-- [ ] 6.5 `claim-check` job `{ communityId }`:
+- [x] 6.1 `notification-sweep` job: hourly, re-arming, enqueued at boot if absent, skipping suspended communities
+- [x] 6.2 Consent closing: open rounds with `closes_at` within 48h → `consent.closing` to eligible members without a response, once per round and member, with mail
+- [x] 6.3 Quiet threads: open discussions quiet for 14 days → `discussion.quiet` to the opener, once per quiet spell
+- [x] 6.4 Review due: definitions past `review_due_at` → `definition.review_due` to the adopted version's author (else the creator), once per date
+- [x] 6.5 `claim-check` job `{ communityId }`:
   - computes `outwardClaim`; true → false notifies stewards with mail; always stores `claim_compliant`; the first check is silent;
   - enqueued by the sweep for each active community, and by a freeze in its transaction
-- [ ] 6.6 Tests (integration, fixed clock), for each rule:
+- [x] 6.6 Tests (integration, fixed clock), for each rule:
   - fires once, and not again on a rerun;
   - not for answered, closed, left or no-closing-time cases;
   - the claim check is silent on first run and for never-compliant communities;

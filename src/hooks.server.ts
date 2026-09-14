@@ -53,6 +53,7 @@ if (!config.isTest) {
 	// instance was down should stop being hidden as soon as it is up, not an
 	// hour later.
 	enqueueOnce(db, systemClock, { kind: 'expire-exceptions' });
+	enqueueOnce(db, systemClock, { kind: 'notification-sweep' });
 	enqueueOnce(db, systemClock, { kind: 'clean-exports' });
 	enqueueOnce(db, systemClock, { kind: 'sweep-errors' });
 	// One-off, and only when a document was read by an older reader than this
