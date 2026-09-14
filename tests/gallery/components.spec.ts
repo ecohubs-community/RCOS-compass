@@ -65,3 +65,32 @@ test('a pending button is busy and not clickable twice', async ({ page }) => {
 	await expect(pending).toBeDisabled();
 	await expect(pending).toHaveAttribute('aria-busy', 'true');
 });
+
+test('notification bells show a count, 99+ above 99, and open a popover of the latest', async ({
+	page
+}) => {
+	await expect(page.getByRole('button', { name: 'Notifications, none unread' })).toBeVisible();
+	await expect(page.getByRole('button', { name: 'Notifications, 99+ unread' })).toContainText(
+		'99+'
+	);
+
+	const bell = page.getByRole('button', { name: 'Notifications, 2 unread' });
+	const popover = page.getByRole('dialog', { name: 'Notifications' });
+	await expect(async () => {
+		await bell.click();
+		await expect(popover).toBeVisible({ timeout: 1_000 });
+	}).toPass();
+	await expect(popover.getByRole('button', { name: /Exit and separation/ })).toBeVisible();
+	await expect(popover.getByRole('button', { name: /No longer available/ })).toBeVisible();
+	await expect(popover.getByRole('link', { name: 'See all' })).toBeVisible();
+
+	const results = await new AxeBuilder({ page })
+		.include('[role="dialog"]')
+		.withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'])
+		.analyze();
+	expect(results.violations).toEqual([]);
+
+	await page.keyboard.press('Escape');
+	await expect(popover).toBeHidden();
+	await expect(bell).toBeFocused();
+});

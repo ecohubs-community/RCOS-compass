@@ -1,3 +1,4 @@
+import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Browser, type Page } from '@playwright/test';
 import { freezeOnOpenThread, seed, seedWithProposal, signIn, visit } from './support.js';
 
@@ -83,5 +84,82 @@ test.describe('notifications', () => {
 		await page.getByRole('button', { name: /No longer available/ }).click();
 		await expect(page).toHaveURL(/\/notifications\?gone=/);
 		await expect(page.getByRole('button', { name: /^Unread: / })).toHaveCount(0);
+	});
+});
+
+test.describe('the bell', () => {
+	const bell = (page: Page, name: string | RegExp) => page.getByRole('button', { name });
+
+	test('shows the count, opens the latest, and an item reaches what it is about', async ({
+		page,
+		browser
+	}) => {
+		test.slow();
+		const { member, context, slug } = await memberToldOfADecision(page, browser);
+		// Whoever froze it is not told about their own act.
+		await visit(page, `/c/${slug}`);
+		await expect(bell(page, 'Notifications, none unread')).toBeVisible();
+
+		await visit(member, `/c/${slug}`);
+		const popover = member.getByRole('dialog', { name: 'Notifications' });
+		await bell(member, 'Notifications, 1 unread').click();
+		await expect(popover).toBeVisible();
+
+		await popover.getByRole('button', { name: /recorded:/ }).click();
+		await expect(member).toHaveURL(/\/d\/DEC-/);
+		await expect(bell(member, 'Notifications, none unread')).toBeVisible();
+
+		await bell(member, 'Notifications, none unread').click();
+		await popover.getByRole('link', { name: 'See all' }).click();
+		await expect(member).toHaveURL(new RegExp(`/c/${slug}/notifications$`));
+		await expect(popover).toBeHidden();
+		await context.close();
+	});
+
+	test('updates after a form action on the same page', async ({ page, browser }) => {
+		test.slow();
+		const { member, context, slug } = await memberToldOfADecision(page, browser);
+
+		await visit(member, `/c/${slug}/notifications`);
+		await expect(bell(member, 'Notifications, 1 unread')).toBeVisible();
+		await member.getByRole('button', { name: 'Mark all as read' }).click();
+		await expect(bell(member, 'Notifications, none unread')).toBeVisible();
+		await context.close();
+	});
+
+	test('has no violations with the popover open, on a phone and on a desktop', async ({
+		page,
+		browser
+	}) => {
+		test.slow();
+		const { member, context, slug } = await memberToldOfADecision(page, browser);
+
+		for (const size of [
+			{ width: 375, height: 812 },
+			{ width: 1440, height: 900 }
+		]) {
+			await member.setViewportSize(size);
+			await visit(member, `/c/${slug}`);
+			await bell(member, 'Notifications, 1 unread').click();
+			await expect(member.getByRole('dialog', { name: 'Notifications' })).toBeVisible();
+			const results = await new AxeBuilder({ page: member })
+				.withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'])
+				.analyze();
+			expect(results.violations, `at ${size.width}px`).toEqual([]);
+		}
+		await context.close();
+	});
+
+	test('is a link to the page without JavaScript @no-js', async ({ page, browser }) => {
+		const { slug, member } = await seed(page, { removedDocumentNotice: true });
+		const scripted = await browser.newContext({ javaScriptEnabled: true });
+		const helper = await scripted.newPage();
+		await signIn(helper, member.email, member.password);
+		await page.context().addCookies((await scripted.storageState()).cookies);
+		await scripted.close();
+
+		await page.goto(`/c/${slug}`);
+		await page.getByRole('link', { name: 'Notifications, 1 unread' }).click();
+		await expect(page).toHaveURL(new RegExp(`/c/${slug}/notifications$`));
 	});
 });

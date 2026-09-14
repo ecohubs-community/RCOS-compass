@@ -1,6 +1,8 @@
 <script lang="ts">
 	import * as m from '$lib/paraglide/messages';
 	import { links } from '$lib/links';
+	import NotificationBell from '$lib/components/notifications/NotificationBell.svelte';
+	import type { NotificationItem } from '$lib/notifications/kinds';
 	import IconPlus from '~icons/tabler/plus';
 	import IconSearch from '~icons/tabler/search';
 
@@ -14,10 +16,9 @@
 	 * all navigation, and left no home for the thing a member does most often
 	 * after reading something: start a discussion about it.
 	 *
-	 * The bell in the mockup is deliberately not here. There is an unread count —
-	 * it rides on the Discussions nav item, where it already points at the thing
-	 * to read — but no notifications screen, and an icon that opens nothing is
-	 * worse than an icon that is missing.
+	 * The bell sits beside it: the unread count and the latest few, opening onto
+	 * the notifications page (UI spec §4.11). The count used to ride on the
+	 * Discussions nav item, back when there was nowhere for it to lead.
 	 */
 	type Props = {
 		community: string;
@@ -26,9 +27,13 @@
 		crumb: string;
 		/** A step below it — the document open in the workspace, "Documents / bylaws-2019.pdf". */
 		sub?: string | null;
+		unread: number;
+		/** The bell's latest few. */
+		notifications: readonly NotificationItem[];
+		now: number;
 	};
 
-	let { community, slug, crumb, sub = null }: Props = $props();
+	let { community, slug, crumb, sub = null, unread, notifications, now }: Props = $props();
 
 	let field = $state<HTMLInputElement | null>(null);
 	/**
@@ -86,9 +91,13 @@
 		</div>
 	</form>
 
+	<div class="ml-auto">
+		<NotificationBell {slug} {unread} items={notifications} {now} />
+	</div>
+
 	<a
 		href={links.discussions(slug)}
-		class="bg-accent-solid hover:bg-accent-solid-hover ml-auto inline-flex h-7.5 items-center gap-1.5 rounded-(--radius-control) px-2.5 font-medium whitespace-nowrap text-white"
+		class="bg-accent-solid hover:bg-accent-solid-hover inline-flex h-7.5 items-center gap-1.5 rounded-(--radius-control) px-2.5 font-medium whitespace-nowrap text-white"
 	>
 		<IconPlus class="h-3.5 w-3.5 flex-none" aria-hidden="true" />
 		{m.topbar_new_discussion()}

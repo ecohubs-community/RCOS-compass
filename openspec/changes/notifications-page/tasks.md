@@ -32,12 +32,12 @@
 
 ## 3. The bell
 
-- [ ] 3.1 `NotificationBell`: a link with the count before hydration; a Bits UI popover after mount with the latest items (the same one-button forms), *Mark all as read* and *See all*; "99+" above 99; labelled "Notifications, N unread"
-- [ ] 3.2 `TopBar` hosts the bell; no count shown at zero
-- [ ] 3.3 Gallery entries: none, some and 99+ unread; the popover open; a gone item
-- [ ] 3.4 Tests:
+- [x] 3.1 `NotificationBell`: a link with the count before hydration; a Bits UI popover after mount with the latest items (the same one-button forms), *Mark all as read* and *See all*; "99+" above 99; labelled "Notifications, N unread"
+- [x] 3.2 `TopBar` hosts the bell; no count shown at zero
+- [x] 3.3 Gallery entries: none, some and 99+ unread; the popover open; a gone item
+- [x] 3.4 Tests:
   - e2e: the bell count, opening, an item reaching its subject, *See all*;
-  - another community's count is unaffected;
+  - another community's count is unaffected (integration: `notifications.test.ts`, "never crosses between two" — the e2e fixture has one community per member);
   - the count updates after a form action on the same page;
   - no-JS: the bell is a link;
   - a11y scan with the popover open at 375 and 1440

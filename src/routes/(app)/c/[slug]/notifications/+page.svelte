@@ -28,7 +28,12 @@
 		<p class="text-fg-secondary mt-8">{m.notifications_empty()}</p>
 	{:else}
 		<div class="border-border bg-surface mt-6 rounded-(--radius-card) border p-1.5">
-			<NotificationList items={data.items} now={data.now} gone={data.gone} />
+			<NotificationList
+				slug={data.community.slug}
+				items={data.items}
+				now={data.now}
+				gone={data.gone}
+			/>
 		</div>
 		{#if data.items.length >= 200}
 			<p class="text-fg-muted text-meta mt-3">{m.notifications_latest()}</p>

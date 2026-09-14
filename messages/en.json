@@ -405,5 +405,6 @@
 	"notifications_see_all": "See all",
 	"notifications_bell_label": "Notifications, {count} unread",
 	"notifications_bell_none": "Notifications, none unread",
-	"nav_notifications": "Notifications"
+	"nav_notifications": "Notifications",
+	"notifications_none": "Nothing yet."
 }

@@ -1,6 +1,5 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
-	import { page } from '$app/state';
 	import * as m from '$lib/paraglide/messages';
 	import { links } from '$lib/links';
 	import type { NotificationItem } from '$lib/notifications/kinds';
@@ -14,23 +13,31 @@
 	 * preloaded on hover, and a preloaded link must not read anything.
 	 */
 	type Props = {
+		slug: string;
 		items: readonly NotificationItem[];
 		/** The server's time the list was loaded at, for "2 hours ago" that agrees before and after hydration. */
 		now: number;
 		/** The notification `?gone=` names, shown with its sentence. */
 		gone?: string | null;
 		compact?: boolean;
+		/** Called as a row is submitted — the bell closes its popover. */
+		onopen?: () => void;
 	};
 
-	let { items, now, gone = null, compact = false }: Props = $props();
+	let { slug, items, now, gone = null, compact = false, onopen }: Props = $props();
 	const time = useTime();
-	const slug = $derived(page.params.slug ?? '');
 </script>
 
 <ul class="flex flex-col {compact ? '' : 'gap-1'}">
 	{#each items as item (item.id)}
 		<li>
-			<form method="POST" action="{links.notifications(slug)}?/open" use:enhance>
+			<form
+				method="POST"
+				action="{links.notifications(slug)}?/open"
+				use:enhance={() => {
+					onopen?.();
+				}}
+			>
 				<input type="hidden" name="id" value={item.id} />
 				<button
 					type="submit"

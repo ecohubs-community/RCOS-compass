@@ -328,6 +328,9 @@
 			{slug}
 			{crumb}
 			sub={typeof page.data.subCrumb === 'string' ? page.data.subCrumb : null}
+			unread={data.unread}
+			notifications={data.latest}
+			now={data.now}
 		/>
 		{#if data.readOnly}
 			<p

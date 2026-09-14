@@ -28,8 +28,49 @@
 	import SuggestionCard, { type Card } from '$lib/components/documents/SuggestionCard.svelte';
 	import VersionList from '$lib/components/documents/VersionList.svelte';
 	import PdfViewer from '$lib/components/documents/pdf/PdfViewer.svelte';
+	import NotificationBell from '$lib/components/notifications/NotificationBell.svelte';
+	import NotificationList from '$lib/components/notifications/NotificationList.svelte';
+	import type { NotificationItem } from '$lib/notifications/kinds';
 
 	let { data } = $props();
+
+	/** Notifications as the bell and the page show them: unread, read, and one whose subject is gone. */
+	const NOTIFIED_AT = Date.UTC(2026, 8, 3, 12, 0, 0);
+	const notificationSample: NotificationItem[] = [
+		{
+			id: 'n1',
+			kind: 'discussion.reply',
+			subjectType: 'discussion',
+			createdAt: NOTIFIED_AT - 12 * 60_000,
+			unread: true,
+			available: true,
+			params: { title: 'Exit and separation', count: 3 },
+			summary: null,
+			actor: null
+		},
+		{
+			id: 'n2',
+			kind: 'decision.frozen',
+			subjectType: 'decision',
+			createdAt: NOTIFIED_AT - 5 * 3_600_000,
+			unread: false,
+			available: true,
+			params: { title: 'Spending authority', ref: 'DEC-2026-004' },
+			summary: null,
+			actor: null
+		},
+		{
+			id: 'n3',
+			kind: 'document.scan_ended',
+			subjectType: 'document',
+			createdAt: NOTIFIED_AT - 2 * 86_400_000,
+			unread: true,
+			available: false,
+			params: null,
+			summary: null,
+			actor: null
+		}
+	];
 
 	const statuses = Object.keys(STATUS_LABELS) as Status[];
 	const modifiers = Object.keys(MODIFIER_LABELS) as Modifier[];
@@ -542,6 +583,29 @@
 			>
 				{#snippet scan()}{/snippet}
 			</MappingQueue>
+		</div>
+	</section>
+
+	<section class="mt-10" aria-labelledby="notifications">
+		<h2 id="notifications" class="text-section font-medium">Notifications</h2>
+		<p class="text-fg-secondary mt-1">Bells with none, some and more than 99 unread.</p>
+		<div class="mt-4 flex flex-wrap items-center gap-4">
+			<NotificationBell slug="valle-verde" unread={0} items={[]} now={NOTIFIED_AT} />
+			<NotificationBell
+				slug="valle-verde"
+				unread={2}
+				items={notificationSample}
+				now={NOTIFIED_AT}
+			/>
+			<NotificationBell
+				slug="valle-verde"
+				unread={120}
+				items={notificationSample}
+				now={NOTIFIED_AT}
+			/>
+		</div>
+		<div class="border-border bg-surface mt-4 max-w-md rounded-(--radius-card) border p-1.5">
+			<NotificationList slug="valle-verde" items={notificationSample} now={NOTIFIED_AT} gone="n3" />
 		</div>
 	</section>
 

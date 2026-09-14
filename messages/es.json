@@ -241,5 +241,6 @@
 	"notifications_see_all": "Ver todas",
 	"notifications_bell_label": "Notificaciones, {count} sin leer",
 	"notifications_bell_none": "Notificaciones, ninguna sin leer",
-	"nav_notifications": "Notificaciones"
+	"nav_notifications": "Notificaciones",
+	"notifications_none": "Nada todavía."
 }
