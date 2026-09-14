@@ -80,8 +80,7 @@
 				{
 					href: links.discussions(slug),
 					label: m.nav_discussions(),
-					icon: IconMessages,
-					badge: data.unread || undefined
+					icon: IconMessages
 				},
 				{ href: links.documents(slug), label: m.nav_documents(), icon: IconFiles }
 			]

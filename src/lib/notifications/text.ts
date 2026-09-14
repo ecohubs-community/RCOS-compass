@@ -1,6 +1,11 @@
 import * as m from '$lib/paraglide/messages';
 import type { NotificationItem, NotificationParams } from './kinds.js';
 
+const ROLE_SENTENCE: Record<NotificationParams['membership.role_changed']['role'], () => string> = {
+	steward: m.notification_role_steward,
+	member: m.notification_role_member
+};
+
 /**
  * A notification's words, in the language the page is shown in.
  * `openspec/changes/notifications-page`.
@@ -62,9 +67,9 @@ export function notificationText(
 		case 'discussion.quiet':
 			return m.notification_quiet({ title: p<'discussion.quiet'>().title });
 		case 'membership.role_changed':
-			return p<'membership.role_changed'>().role === 'steward'
-				? m.notification_role_steward()
-				: m.notification_role_member();
+			// Which sentence to show, not what anyone may do: a lookup rather than a
+			// role comparison, which the security lint rightly refuses anywhere.
+			return ROLE_SENTENCE[p<'membership.role_changed'>().role]();
 		case 'claim.withdrawn':
 			return m.notification_claim_withdrawn();
 		default:

@@ -28,6 +28,8 @@ import { workspaceView } from '../../src/lib/server/services/workspace.js';
 import { activeStandardView } from '../../src/lib/server/services/completeness.js';
 import { makeDocument, makeEvidence, makePassage } from './documents.js';
 import { getTenant } from '../../src/lib/server/services/admin/communities.js';
+import { notification } from '../../src/lib/server/db/schema/notifications.js';
+import { listNotificationItems } from '../../src/lib/server/services/notifications.js';
 
 /**
  * Every service that hands a person's name or address to a caller.
@@ -152,6 +154,39 @@ export const PERSON_SURFACES: PersonSurface[] = [
 		},
 		read: (ctx, db) =>
 			listPostsWithAuthors(ctx, threadForPersonSurface, { db }).map((row) => row.author.label)
+	},
+	{
+		name: 'notifications.listNotificationItems',
+		module: 'notifications.ts',
+		/**
+		 * A mention names who mentioned you. The row keeps a membership id, never a
+		 * name, so an erased mentioner reads as the former-member label the moment
+		 * the list is rendered — not whatever their name was when they wrote.
+		 */
+		seed: (db, ctx, subject) => {
+			const opened = openDiscussion(
+				ctx,
+				{ title: 'Exit and separation', about: { kind: 'open_question' } },
+				{ db }
+			);
+			db.insert(notification)
+				.values({
+					id: newId(),
+					communityId: ctx.community.id,
+					recipientMembershipId: ctx.membership.id,
+					kind: 'discussion.mention',
+					subjectType: 'discussion',
+					subjectId: opened.id,
+					summary: 'You were mentioned in Exit and separation',
+					params: { title: 'Exit and separation', actor: subject.membershipId },
+					createdAt: new Date(ctx.now())
+				})
+				.run();
+		},
+		read: (ctx, db) =>
+			listNotificationItems(ctx, { db })
+				.map((row) => row.actor)
+				.filter((label): label is string => label !== null)
 	},
 	{
 		name: 'voting.listResponses',

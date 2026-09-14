@@ -3,7 +3,7 @@ import {
 	activeStandardView,
 	incompleteMandatoryArtifacts
 } from '$lib/server/services/completeness';
-import { unreadCount } from '$lib/server/services/notifications';
+import { listNotificationItems, unreadCount } from '$lib/server/services/notifications';
 import { READINESS_DEPENDS, readiness } from '$lib/server/services/readiness';
 import { requirePermission } from '$lib/server/auth/guard';
 import { timeZoneFor } from '$lib/time/zone';
@@ -54,6 +54,9 @@ export const load: LayoutServerLoad = ({ locals, depends }) => {
 			total: mandatory
 		},
 		unread: unreadCount(ctx),
+		/** The bell's latest few, checked against what this member may still see. */
+		latest: listNotificationItems(ctx, { limit: 8 }).map(({ target: _target, ...item }) => item),
+		now: ctx.now(),
 		/** The member's own zone, else the community's; calendar dates use the community's. */
 		timeZone: timeZoneFor(ctx.user, ctx.community),
 		communityTimeZone: timeZoneFor(null, ctx.community),

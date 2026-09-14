@@ -228,5 +228,18 @@
 	"notification_role_steward": "Ahora eres responsable de esta comunidad",
 	"notification_role_member": "Ahora eres miembro de esta comunidad, ya no responsable",
 	"notification_claim_withdrawn": "Esta comunidad ya no cumple todos los requisitos obligatorios, así que retira su declaración de cumplimiento",
-	"notification_gone": "Ya no está disponible"
+	"notification_gone": "Ya no está disponible",
+	"notifications_title": "Notificaciones",
+	"notifications_heading": "Notificaciones",
+	"notifications_intro": "Lo que pasó en esta comunidad y te concierne. Abrir una la marca como leída.",
+	"notifications_mark_all": "Marcar todo como leído",
+	"notifications_unread": "No leída",
+	"notifications_empty": "Nada todavía. Cuando algo aquí te concierna — una propuesta en un hilo en el que participas, una ronda que espera tu respuesta — aparecerá aquí.",
+	"notifications_gone": "Aquello de lo que trataba esa notificación ya no está disponible para ti.",
+	"notifications_latest": "Se muestran las 200 más recientes.",
+	"notifications_settings_link": "Ajustes de correo",
+	"notifications_see_all": "Ver todas",
+	"notifications_bell_label": "Notificaciones, {count} sin leer",
+	"notifications_bell_none": "Notificaciones, ninguna sin leer",
+	"nav_notifications": "Notificaciones"
 }

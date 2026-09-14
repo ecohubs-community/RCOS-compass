@@ -9,6 +9,7 @@ import { user } from '$lib/server/db/schema/auth';
 import { community, membership } from '$lib/server/db/schema/tenancy';
 import { createTenant } from '$lib/server/services/admin/communities';
 import { acceptInvitation, inviteMember } from '$lib/server/services/invitations';
+import { notify } from '$lib/server/services/notifications';
 import { getStandard } from '$lib/server/standard';
 import { seedValleVerde, type ValleVerde } from './valle-verde';
 import type { RequestHandler } from './$types';
@@ -48,6 +49,13 @@ export const POST: RequestHandler = async ({ request }) => {
 		 * tell an English page from an untranslated one.
 		 */
 		locale?: string;
+		/**
+		 * A notification to the member about a document that has since been
+		 * removed. The product reaches this by scanning a document and then
+		 * removing it; a scan needs a model, so this writes the notification
+		 * through `notify` itself and leaves the document out.
+		 */
+		removedDocumentNotice?: boolean;
 	};
 	// Each spec seeds its own community, so specs running in parallel — and the
 	// four viewport projects — never collide over one fixture.
@@ -109,6 +117,18 @@ export const POST: RequestHandler = async ({ request }) => {
 	 */
 	const pendingEmail = `bruno-${slug}@valle-verde.test`;
 	const pending = inviteMember(ctx, { email: pendingEmail, role: 'member' }, { db });
+
+	if (body.removedDocumentNotice) {
+		const seat = db.select().from(membership).where(eq(membership.userId, member.id)).get()!;
+		notify(db, ctx, {
+			kind: 'document.scan_ended',
+			subjectType: 'document',
+			subjectId: newId(),
+			summary: 'Scan finished: bylaws.pdf',
+			params: { filename: 'bylaws.pdf', outcome: 'complete', open: 2 },
+			recipients: [seat.id]
+		});
+	}
 
 	let valleVerde: ValleVerde | null = null;
 	if (body.shape === 'valle-verde') {

@@ -16,16 +16,16 @@
 
 ## 2. Reading and marking read
 
-- [ ] 2.1 Services:
+- [x] 2.1 Services:
   - `listNotificationItems(ctx, limit)`: items with the unread flag, actor labels through `personLabel`, and no params for subjects that aren't visible;
   - `markAllRead(ctx)`;
   - `openNotification(ctx, id)` → href or null, marking read either way.
   - Remove `markRead(ids)`. Register the new services in the tenant registry and seed the cross-tenant suite
-- [ ] 2.2 Route `/c/[slug]/notifications`: load (latest 200, unread count); actions `open` (303 to target, or back with `?gone=`) and `readAll` through the shared `run` helper; allowed in a suspended community
-- [ ] 2.3 Layout load adds `latest` (8 items) beside `unread`; remove the unread badge from the *Discussions* nav item
-- [ ] 2.4 Page UI: items as one-button forms styled as rows; unread marked by a visually hidden "Unread" and weight as well as colour; times through the shared formatter in the reader's time zone; empty state; "No longer available" for gone or restricted items, and beside `?gone=`
-- [ ] 2.5 Bookkeeping: `notifications.ts` in `tests/support/person-surfaces.ts`; the new route in `tests/support/routes.ts` (a11y) and passing `route-guards`; i18n ratchet not raised
-- [ ] 2.6 Tests:
+- [x] 2.2 Route `/c/[slug]/notifications`: load (latest 200, unread count); actions `open` (303 to target, or back with `?gone=`) and `readAll` through the shared `run` helper; allowed in a suspended community
+- [x] 2.3 Layout load adds `latest` (8 items) beside `unread`; remove the unread badge from the *Discussions* nav item
+- [x] 2.4 Page UI: items as one-button forms styled as rows; unread marked by a visually hidden "Unread" and weight as well as colour; times through the shared formatter in the reader's time zone; empty state; "No longer available" for gone or restricted items, and beside `?gone=`
+- [x] 2.5 Bookkeeping: `notifications.ts` in `tests/support/person-surfaces.ts`; the new route in `tests/support/routes.ts` (a11y) and passing `route-guards`; i18n ratchet not raised
+- [x] 2.6 Tests:
   - integration: only `openNotification` and `markAllRead` mark read; another member's id answers not found and marks nothing; 250 unread counted with 200 listed; a suspended community can mark read; a restricted subject's item carries no title
   - e2e: opening an item lands on the discussion and the count drops; *Mark all as read* zeroes it; a removed document shows "No longer available"; loading or preloading the page marks nothing
   - no-JS: opening an item works

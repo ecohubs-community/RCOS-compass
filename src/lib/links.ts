@@ -51,6 +51,8 @@ export const links = {
 	/** Licences and the documents the community agreed to. */
 	about: (slug: string) => resolve('/(app)/c/[slug]/settings/about', { slug }),
 	feedback: (slug: string) => resolve('/(app)/c/[slug]/feedback', { slug }),
+	/** A member's notifications here: what happened that concerns them. */
+	notifications: (slug: string) => resolve('/(app)/c/[slug]/notifications', { slug }),
 	path: (slug: string) => resolve('/(app)/c/[slug]/path', { slug }),
 	interview: (slug: string) => resolve('/(app)/c/[slug]/settings/interview', { slug }),
 	decisions: (slug: string) => resolve('/(app)/c/[slug]/decisions', { slug }),

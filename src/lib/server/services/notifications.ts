@@ -8,7 +8,16 @@ import { discussion, post } from '../db/schema/discussions.js';
 import { consentEligible } from '../db/schema/discussions.js';
 import { membership } from '../db/schema/tenancy.js';
 import { registerTenantService } from './registry.js';
+import { user } from '../db/schema/auth.js';
+import { personLabel } from './person.js';
+import {
+	notificationTarget,
+	notificationTargets,
+	targetKey,
+	type NotificationTarget
+} from './notification-subjects.js';
 import type {
+	NotificationItem,
 	NotificationKind,
 	NotificationParams,
 	SubjectType
@@ -215,52 +224,146 @@ export function unreadCount(ctx: Ctx, options: { db?: Db } = {}): number {
 	return row?.n ?? 0;
 }
 
+export type NotificationView = NotificationItem & {
+	/** Where opening it goes; null when the subject is gone or hidden from this member. */
+	target: NotificationTarget | null;
+};
+
 /**
- * Marking read — the one write a suspended community may still do, because it
- * changes nothing anyone agreed.
- *
- * A notification that is not the caller's is reported as one that does not
- * exist, rather than skipped: silently ignoring an id is how a bug in the caller
- * goes unnoticed for a year, and it is the same answer the tenant boundary gives
- * everywhere else.
+ * A member's notifications as a screen shows them: newest first, each checked
+ * against what the member may still see, with people named through
+ * `personLabel`. An item whose subject is gone or hidden carries no values and
+ * no summary — only that it is no longer available.
  */
-export function markRead(ctx: Ctx, ids: string[], options: { db?: Db } = {}): number {
+export function listNotificationItems(
+	ctx: Ctx,
+	options: { db?: Db; limit?: number } = {}
+): NotificationView[] {
 	requirePermission(ctx, 'community.read');
-	if (ids.length === 0) return 0;
-
 	const db = options.db ?? getDb();
-
-	// Asked of the named rows rather than of the newest 200: reading ownership
-	// off a capped list means a member's own older notification is reported as
-	// not existing, which is the boundary's answer fired at the owner.
-	const mine = new Set(
-		db
-			.select({ id: notification.id })
-			.from(notification)
-			.where(
-				and(
-					eq(notification.communityId, ctx.community.id),
-					eq(notification.recipientMembershipId, ctx.membership.id),
-					inArray(notification.id, ids)
-				)
+	const rows = db
+		.select()
+		.from(notification)
+		.where(
+			and(
+				eq(notification.communityId, ctx.community.id),
+				eq(notification.recipientMembershipId, ctx.membership.id)
 			)
-			.all()
-			.map((row) => row.id)
+		)
+		.orderBy(desc(notification.createdAt))
+		.limit(Math.min(options.limit ?? 200, 200))
+		.all();
+	if (rows.length === 0) return [];
+
+	const targets = notificationTargets(db, ctx, rows);
+	const actorIds = [
+		...new Set(
+			rows
+				.map((row) => (row.params as { actor?: unknown } | null)?.actor)
+				.filter((id): id is string => typeof id === 'string')
+		)
+	];
+	const labels = new Map(
+		actorIds.length === 0
+			? []
+			: db
+					.select({
+						id: membership.id,
+						name: user.name,
+						erasedAt: user.erasedAt,
+						displayName: membership.displayName,
+						seq: membership.seq
+					})
+					.from(membership)
+					.innerJoin(user, eq(user.id, membership.userId))
+					.where(
+						and(eq(membership.communityId, ctx.community.id), inArray(membership.id, actorIds))
+					)
+					.all()
+					.map((row) => [row.id, personLabel(row)])
 	);
-	for (const id of ids) {
-		if (!mine.has(id)) error(404, 'Not found');
+
+	return rows.map((row) => {
+		const target = targets.get(targetKey(row.subjectType, row.subjectId)) ?? null;
+		const available = target !== null;
+		const actor = (row.params as { actor?: unknown } | null)?.actor;
+		return {
+			id: row.id,
+			kind: row.kind,
+			subjectType: row.subjectType,
+			createdAt: row.createdAt.getTime(),
+			unread: row.readAt === null,
+			available,
+			params: available ? (row.params ?? null) : null,
+			summary: available ? row.summary : null,
+			actor: available && typeof actor === 'string' ? (labels.get(actor) ?? null) : null,
+			target
+		};
+	});
+}
+
+/**
+ * Open one notification: mark it read and say where it leads — or null when its
+ * subject is gone or hidden, which still marks it read.
+ *
+ * The one way a single notification becomes read, and it is reached only by a
+ * form post (`/c/[slug]/notifications?/open`): preloading a link must never
+ * read a member's notifications for them. A notification that is not the
+ * caller's is reported as one that does not exist, rather than skipped — the
+ * answer the tenant boundary gives everywhere else.
+ */
+export function openNotification(
+	ctx: Ctx,
+	id: string,
+	options: { db?: Db } = {}
+): NotificationTarget | null {
+	requirePermission(ctx, 'community.read');
+	const db = options.db ?? getDb();
+	const row = db
+		.select()
+		.from(notification)
+		.where(
+			and(
+				eq(notification.id, id),
+				eq(notification.communityId, ctx.community.id),
+				eq(notification.recipientMembershipId, ctx.membership.id)
+			)
+		)
+		.get();
+	if (!row) error(404, 'Not found');
+
+	if (row.readAt === null) {
+		db.update(notification)
+			.set({ readAt: new Date(ctx.now()) })
+			.where(eq(notification.id, row.id))
+			.run();
 	}
+	return notificationTarget(db, ctx, row.subjectType, row.subjectId);
+}
 
-	db.update(notification)
+/**
+ * Every unread notification of this member in this community, read. The one
+ * write a suspended community still allows here, because it changes nothing
+ * anyone agreed.
+ */
+export function markAllRead(ctx: Ctx, options: { db?: Db } = {}): number {
+	requirePermission(ctx, 'community.read');
+	const db = options.db ?? getDb();
+	return db
+		.update(notification)
 		.set({ readAt: new Date(ctx.now()) })
-		.where(inArray(notification.id, ids))
-		.run();
-
-	return ids.length;
+		.where(
+			and(
+				eq(notification.communityId, ctx.community.id),
+				eq(notification.recipientMembershipId, ctx.membership.id),
+				isNull(notification.readAt)
+			)
+		)
+		.run().changes;
 }
 
 registerTenantService({
-	name: 'notifications.markRead',
+	name: 'notifications.open',
 	subject: 'notification',
-	call: (ctx, subjectId) => markRead(ctx, [subjectId])
+	call: (ctx, subjectId) => openNotification(ctx, subjectId)
 });

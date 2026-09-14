@@ -392,5 +392,18 @@
 	"notification_role_steward": "You are now a steward of this community",
 	"notification_role_member": "You are now a member of this community, no longer a steward",
 	"notification_claim_withdrawn": "This community no longer meets every mandatory requirement, so its compliance claim is withdrawn",
-	"notification_gone": "No longer available"
+	"notification_gone": "No longer available",
+	"notifications_title": "Notifications",
+	"notifications_heading": "Notifications",
+	"notifications_intro": "What happened in this community that concerns you. Opening one marks it read.",
+	"notifications_mark_all": "Mark all as read",
+	"notifications_unread": "Unread",
+	"notifications_empty": "Nothing yet. When something here concerns you — a proposal in a thread you are in, a round waiting for your response — it shows up here.",
+	"notifications_gone": "What that notification was about is no longer available to you.",
+	"notifications_latest": "Latest 200 shown.",
+	"notifications_settings_link": "Email settings",
+	"notifications_see_all": "See all",
+	"notifications_bell_label": "Notifications, {count} unread",
+	"notifications_bell_none": "Notifications, none unread",
+	"nav_notifications": "Notifications"
 }

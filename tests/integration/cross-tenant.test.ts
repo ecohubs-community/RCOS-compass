@@ -235,7 +235,7 @@ beforeEach(() => {
 		{ db }
 	);
 
-	// A notification in A, addressed to Alice, so `notifications.markRead` has a
+	// A notification in A, addressed to Alice, so `notifications.open` has a
 	// subject that is genuinely not Bob's.
 	const notificationInA = db.select().from(notification).all()[0];
 

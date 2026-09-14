@@ -5,7 +5,12 @@ import { fixedClock } from '../../src/lib/server/clock.js';
 import { newId } from '../../src/lib/server/db/id.js';
 import { setDbForTests, type Db } from '../../src/lib/server/db/index.js';
 import { notification } from '../../src/lib/server/db/schema/notifications.js';
-import { communityStandard, membership } from '../../src/lib/server/db/schema/tenancy.js';
+import { decision } from '../../src/lib/server/db/schema/decisions.js';
+import {
+	community,
+	communityStandard,
+	membership
+} from '../../src/lib/server/db/schema/tenancy.js';
 import {
 	countActivity,
 	digestMessage,
@@ -18,8 +23,10 @@ import {
 	openDiscussion
 } from '../../src/lib/server/services/discussions.js';
 import {
+	listNotificationItems,
 	listNotifications,
-	markRead,
+	markAllRead,
+	openNotification,
 	unreadCount
 } from '../../src/lib/server/services/notifications.js';
 import { getVotingProvider } from '../../src/lib/server/voting/index.js';
@@ -222,7 +229,10 @@ describe('reading and marking read', () => {
 
 		expect(unreadCount(marco, { db })).toBe(1);
 		const [first] = listNotifications(marco, { db });
-		expect(markRead(marco, [first!.id], { db })).toBe(1);
+		expect(openNotification(marco, first!.id, { db })).toEqual({
+			type: 'discussion',
+			id: thread.id
+		});
 		expect(unreadCount(marco, { db })).toBe(0);
 	});
 
@@ -248,8 +258,14 @@ describe('reading and marking read', () => {
 
 		// The oldest one, which no page of the list reaches.
 		const oldest = rows[0]!.id;
-		expect(markRead(marco, [oldest], { db })).toBe(1);
+		// Its decision no longer exists: it is still marked read, and leads nowhere.
+		expect(openNotification(marco, oldest, { db })).toBeNull();
 		expect(unreadCount(marco, { db })).toBe(249);
+
+		// The list is a page of 200; the count is every one of them.
+		expect(listNotificationItems(marco, { db })).toHaveLength(200);
+		expect(markAllRead(marco, { db })).toBe(249);
+		expect(unreadCount(marco, { db })).toBe(0);
 	});
 
 	it('reports someone else-s notification as one that does not exist', () => {
@@ -259,8 +275,72 @@ describe('reading and marking read', () => {
 
 		// Silently skipping it would hide a bug in the caller for a year, and it
 		// is not the answer the boundary gives anywhere else.
-		expect(catchRefusal(() => markRead(lena, [marcos!.id], { db }))?.status).toBe(404);
+		expect(catchRefusal(() => openNotification(lena, marcos!.id, { db }))?.status).toBe(404);
+		// Nor does marking everything read reach anyone else's.
+		markAllRead(lena, { db });
 		expect(unreadCount(marco, { db })).toBe(1);
+	});
+});
+
+describe('what a list shows, and what it no longer may', () => {
+	function frozenDecision() {
+		const thread = threadWith(ana);
+		addProposal(ana, { discussionId: thread.id, body: 'The rule.' }, { db });
+		return freeze(
+			ana,
+			{
+				discussionId: thread.id,
+				idempotencyKey: 'k1',
+				title: 'Spending authority',
+				type: 'strategic',
+				mechanism: 'consent'
+			},
+			{ db }
+		);
+	}
+
+	it('names the decision while the member may see it', () => {
+		frozenDecision();
+		const [item] = listNotificationItems(marco, { db }).filter((n) => n.kind === 'decision.frozen');
+		expect(item!.available).toBe(true);
+		expect(item!.params).toMatchObject({ title: 'Spending authority' });
+	});
+
+	it('carries no title once the decision is restricted from them', () => {
+		frozenDecision();
+		db.update(decision).set({ visibility: 'restricted' }).run();
+
+		// The row still exists and is still theirs to mark read; what it was about
+		// is exactly what they may no longer be told.
+		const [item] = listNotificationItems(marco, { db }).filter((n) => n.kind === 'decision.frozen');
+		expect(item!.available).toBe(false);
+		expect(item!.params).toBeNull();
+		expect(item!.summary).toBeNull();
+		expect(JSON.stringify(item)).not.toContain('Spending authority');
+	});
+
+	it('lets a suspended community mark read, because reading changes nothing agreed', () => {
+		const thread = threadWith(ana, [marco]);
+		addProposal(ana, { discussionId: thread.id, body: 'The rule.' }, { db });
+		db.update(community)
+			.set({ status: 'suspended' })
+			.where(eq(community.id, marco.community.id))
+			.run();
+		const suspended = {
+			...marco,
+			community: { ...marco.community, status: 'suspended' as const }
+		} satisfies Ctx;
+		const [first] = listNotificationItems(suspended, { db });
+
+		expect(openNotification(suspended, first!.id, { db })).not.toBeNull();
+		const second = threadWith(ana, [marco]);
+		db.update(community)
+			.set({ status: 'active' })
+			.where(eq(community.id, marco.community.id))
+			.run();
+		addProposal(ana, { discussionId: second.id, body: 'Another.' }, { db });
+		expect(markAllRead(suspended, { db })).toBe(1);
+		expect(unreadCount(marco, { db })).toBe(0);
 	});
 });
 

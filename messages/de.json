@@ -228,5 +228,18 @@
 	"notification_role_steward": "Du bist jetzt Stewardin oder Steward dieser Gemeinschaft",
 	"notification_role_member": "Du bist jetzt Mitglied dieser Gemeinschaft, nicht mehr Steward",
 	"notification_claim_withdrawn": "Diese Gemeinschaft erfüllt nicht mehr alle Pflichtanforderungen, ihr Konformitätsanspruch entfällt",
-	"notification_gone": "Nicht mehr verfügbar"
+	"notification_gone": "Nicht mehr verfügbar",
+	"notifications_title": "Benachrichtigungen",
+	"notifications_heading": "Benachrichtigungen",
+	"notifications_intro": "Was in dieser Gemeinschaft passiert ist und dich betrifft. Öffnen markiert es als gelesen.",
+	"notifications_mark_all": "Alle als gelesen markieren",
+	"notifications_unread": "Ungelesen",
+	"notifications_empty": "Noch nichts. Wenn dich hier etwas betrifft — ein Vorschlag in einem Gespräch, an dem du teilnimmst, eine Runde, die auf deine Antwort wartet —, erscheint es hier.",
+	"notifications_gone": "Worum es in dieser Benachrichtigung ging, ist für dich nicht mehr verfügbar.",
+	"notifications_latest": "Die neuesten 200 werden angezeigt.",
+	"notifications_settings_link": "E-Mail-Einstellungen",
+	"notifications_see_all": "Alle ansehen",
+	"notifications_bell_label": "Benachrichtigungen, {count} ungelesen",
+	"notifications_bell_none": "Benachrichtigungen, keine ungelesen",
+	"nav_notifications": "Benachrichtigungen"
 }
