@@ -58,6 +58,7 @@
  *   accent       5.1 /  4.7
  *   attention    6.0 /  5.6
  *   info         5.4 /  5.0   ← lifted from the mockup's #3E82C4 (4.7 / 4.4)
+ *   info-fg on its tint, over surface 5.4 (chips)
  *   danger       5.1 /  4.8
  * The two lifts resolve review finding #32; the mockups should adopt them.
  */
@@ -98,6 +99,12 @@
 	--color-attention: #d97706;
 	--color-attention-subtle: rgb(217 119 6 / 0.12);
 	--color-info: #4a8ccb;
+	/*
+	 * Info *text on its own tint* — a chip. `info` on `info-subtle` over a card is
+	 * 4.3:1, below AA at 12px; this is 5.4:1 there and 4.9:1 on `raised`. The same
+	 * move `accent-fg` makes for green.
+	 */
+	--color-info-fg: #629fd8;
 	--color-info-subtle: rgb(74 140 203 / 0.12);
 	--color-danger: #dc5b4a;
 	--color-danger-subtle: rgb(220 91 74 / 0.12);

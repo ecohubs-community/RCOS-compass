@@ -7,7 +7,14 @@ import { expect, test } from '@playwright/test';
  * is a supported surface (§7), not a courtesy.
  */
 test.beforeEach(async ({ page }) => {
-	await page.goto('/dev/components');
+	// Popovers and bells only open once the page has hydrated. A cold dev server
+	// optimises its dependencies on the first visit and reloads the page under
+	// it — an aborted navigation, then a page that never hydrates — so the load
+	// is retried until it hydrates, the same signal the e2e suite waits for.
+	await expect(async () => {
+		await page.goto('/dev/components');
+		await page.locator('html[data-hydrated]').waitFor({ state: 'attached', timeout: 20_000 });
+	}).toPass({ timeout: 90_000 });
 });
 
 test('renders every primitive without accessibility violations', async ({ page }) => {

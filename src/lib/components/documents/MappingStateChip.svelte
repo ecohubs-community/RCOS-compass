@@ -17,14 +17,18 @@
 	/**
 	 * Tone per state, from design 09's sample rows: attention for work in
 	 * progress, accent for done, muted for everything waiting or set aside.
+	 *
+	 * The two set-aside states are outlined rather than tinted: muted text on a
+	 * muted tint over a card is 4.3:1, below AA at this size, and an outline keeps
+	 * them quieter than *Not scanned* without lightening the words.
 	 */
 	const TONE: Record<MappingState, string> = {
 		reading: 'bg-fg-muted/12 text-fg-secondary',
 		could_not_read: 'bg-danger-subtle text-danger',
-		cannot_scan: 'bg-fg-muted/8 text-fg-muted',
-		scanning: 'bg-info-subtle text-info',
+		cannot_scan: 'text-fg-muted ring-1 ring-border ring-inset',
+		scanning: 'bg-info-subtle text-info-fg',
 		not_scanned: 'bg-fg-muted/12 text-fg-secondary',
-		not_governance: 'bg-fg-muted/8 text-fg-muted',
+		not_governance: 'text-fg-muted ring-1 ring-border ring-inset',
 		in_progress: 'bg-attention-subtle text-attention',
 		mapped: 'bg-accent-subtle text-accent-fg'
 	};
