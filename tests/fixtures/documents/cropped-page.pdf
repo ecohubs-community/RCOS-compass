@@ -1,0 +1,33 @@
+%PDF-1.4
+1 0 obj
+<< /Length 148 >>
+stream
+BT /F1 11 Tf 150 600 Td (This page is cropped, and its first paragraph) Tj ET
+BT /F1 11 Tf 150 584 Td (still sits where the crop box puts it.) Tj ET
+endstream
+endobj
+2 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>
+endobj
+3 0 obj
+<< /Type /Page /Parent 4 0 R /MediaBox [0 0 612 792] /CropBox [100 100 512 692] /Resources << /Font << /F1 2 0 R >> >> /Contents 1 0 R >>
+endobj
+4 0 obj
+<< /Type /Pages /Kids [3 0 R] /Count 1 >>
+endobj
+5 0 obj
+<< /Type /Catalog /Pages 4 0 R >>
+endobj
+xref
+0 6
+0000000000 65535 f 
+0000000009 00000 n 
+0000000208 00000 n 
+0000000278 00000 n 
+0000000431 00000 n 
+0000000488 00000 n 
+trailer
+<< /Size 6 /Root 5 0 R >>
+startxref
+537
+%%EOF

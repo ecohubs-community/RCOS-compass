@@ -67,6 +67,17 @@ export type Requirement = {
 	standard: string;
 };
 
+export type OriginalHighlight = {
+	passageId: string;
+	page: number;
+	number: number;
+	state: 'open' | 'confirmed';
+	/** The passage's opening words, for the highlight's label. */
+	words: string;
+	lines: { x: number; y: number; w: number; h: number; start: number; end: number }[];
+	excerpts: { start: number; end: number }[] | null;
+};
+
 export type ClauseOption = {
 	key: string;
 	ref: string;
@@ -113,6 +124,14 @@ export type WorkspaceView = {
 	}[];
 	/** Identified passages on the page shown. */
 	identifiedOnPage: number;
+	/**
+	 * For a PDF's original view: every identified paragraph, with the line boxes
+	 * it occupies. Empty for any other format. `excerpts` narrows the lines to
+	 * those an excerpt spans; null means the whole passage.
+	 */
+	highlights: OriginalHighlight[];
+	/** Pages holding an identified paragraph, for the thumbnail markers. */
+	governancePages: number[];
 	/**
 	 * The next passage with an open suggestion after the selected one, wrapping —
 	 * to the selected one itself when it is the only one left. Null: nothing open.
@@ -300,6 +319,35 @@ export function workspaceView(
 
 	const onPage = new Set(paper.passages.map((row) => row.id));
 
+	const highlights: OriginalHighlight[] = [];
+	if (paged) {
+		const live = new Map<string, WorkspaceCard[]>();
+		for (const card of cards) {
+			if (card.state === 'dismissed') continue;
+			live.set(card.passageId, [...(live.get(card.passageId) ?? []), card]);
+		}
+		for (const [passageId, claimsOn] of live) {
+			const row = byId.get(passageId)!;
+			const lines = parseLines(row.bbox);
+			if (lines.length === 0) continue;
+			highlights.push({
+				passageId,
+				page: row.page,
+				number: numbers.get(passageId) ?? 0,
+				state: claimsOn.some((card) => card.state === 'confirmed') ? 'confirmed' : 'open',
+				words: row.text.split(/\s+/).slice(0, 8).join(' '),
+				lines,
+				// Any claim about the whole passage makes the whole passage the highlight.
+				excerpts: claimsOn.every((card) => card.excerpt)
+					? claimsOn.map((card) => card.excerpt!)
+					: null
+			});
+		}
+		highlights.sort((a, b) => order.get(a.passageId)! - order.get(b.passageId)!);
+	}
+	// The same pages `governancePages` counts: any identified paragraph, answered or not.
+	const governancePages = [...new Set(cards.map((card) => card.page))].sort((a, b) => a - b);
+
 	return {
 		document: {
 			id: found.id,
@@ -341,6 +389,27 @@ export function workspaceView(
 		identifiedOnPage: new Set(
 			cards.filter((card) => onPage.has(card.passageId)).map((card) => card.passageId)
 		).size,
-		nextOpen
+		nextOpen,
+		highlights,
+		governancePages
 	};
+}
+
+/** Stored line boxes, defensively: a malformed column is no highlight, never a thrown load. */
+function parseLines(bbox: string | null): OriginalHighlight['lines'] {
+	if (!bbox) return [];
+	try {
+		const parsed: unknown = JSON.parse(bbox);
+		if (!Array.isArray(parsed)) return [];
+		return parsed.filter(
+			(line): line is OriginalHighlight['lines'][number] =>
+				typeof line === 'object' &&
+				line !== null &&
+				['x', 'y', 'w', 'h', 'start', 'end'].every(
+					(key) => typeof (line as Record<string, unknown>)[key] === 'number'
+				)
+		);
+	} catch {
+		return [];
+	}
 }

@@ -216,7 +216,10 @@ test.describe('accessibility', () => {
 			});
 		}).toPass({ timeout: 60_000 });
 		const href = (await link.getAttribute('href'))!;
-		await visit(page, `${href}?view=page&page=2`);
+		// The text view at either width: the queue's page view below 1024px, the
+		// explicit text view above it (a PDF otherwise opens as the original).
+		const wideScreen = (page.viewportSize()?.width ?? 0) >= 1024;
+		await visit(page, `${href}?view=${wideScreen ? 'text' : 'page'}&page=2`);
 		await page.getByRole('link', { name: 'Select ¶1' }).click();
 		const hand = page.getByRole('region', { name: 'Map ¶1 to a clause' }).filter({ visible: true });
 		await expect(hand).toBeVisible();

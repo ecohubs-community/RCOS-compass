@@ -51,16 +51,48 @@ establishes:
 The findings are written into this document before any component is built. The
 version is pinned exactly, and upgrades are deliberate PRs.
 
+### Spike findings (recorded before building)
+
+- **Version: `pdfjs-dist` 6.3.289**, the newest stable at the time, far past the
+  CVE-2024-4367 fix (4.2.67). It beats writing a viewer: a PDF renderer is fonts,
+  colour spaces, image codecs and a content-stream interpreter, and the one in
+  every browser already is pdf.js.
+- **`isEvalSupported` is gone.** pdf.js 6 no longer compiles glyph programs into
+  functions, so there is no eval path to switch off and the option no longer
+  exists; the CSP has no `unsafe-eval` either way.
+- **`convertToViewportRectangle` is gone.** Line boxes are mapped through the
+  viewport's `transform` applied to both corners — exactly what
+  `convertToViewportPoint` does — in `geometry.ts`, with a unit test comparing
+  against pdf.js's own viewports at 0/90/180/270° and on a cropped page.
+- **Decoders.** JPEG 2000, JBIG2 and ICC colour support use WebAssembly, with
+  JS fallbacks the worker would `import()` from `wasmUrl`. Decision:
+  `useWasm: false` and **no `wasmUrl`** — those images render blank, no
+  `wasm-unsafe-eval`, and the worker imports nothing.
+- **Fonts and CMaps** are fetched by name, so Vite's fingerprinting can't serve
+  them; `scripts/vite-pdfjs-assets.mjs` copies them under
+  `/_app/immutable/pdfjs-6.3.289/` in the client build and serves the same path
+  in development.
+- **CSP delta:** `worker-src 'self'` only. Verified under the production build's
+  policy with a `securitypolicyviolation` listener: the worker, fonts, CMaps,
+  canvas and text layer load with no violation.
+- **Alignment:** stored boxes are in raw user space (the text item's transform),
+  so the page viewport carries crop and rotation — the cropped fixture's boxes
+  land 50px in from the visible edge, as its CropBox says. Box height is taken
+  from 22% below the baseline to 92% of the font height above it, so descenders
+  and capitals sit inside the highlight.
+
 ### Loading options
 
 ```
 getDocument({
   url: fileRoute,             // same-origin, cookies sent
-  isEvalSupported: false,     // CVE-2024-4367
   enableXfa: false,
+  useWasm: false,             // no wasmUrl: no WebAssembly, no decoder imports
   maxImageSize: 16_000_000,   // pixels per decoded image
+  useSystemFonts: false,
   standardFontDataUrl, cMapUrl, cMapPacked: true,   // our origin
 })
+// (isEvalSupported no longer exists in pdf.js 6 — see the spike findings)
 page.render({ canvasContext, viewport, annotationMode: AnnotationMode.DISABLE })
 ```
 

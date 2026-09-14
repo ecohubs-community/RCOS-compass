@@ -214,7 +214,8 @@
 			>
 		{/if}
 
-		<details class="group relative">
+		<!-- The menu is placed by the row, not the button: where the actions wrap, a menu anchored to the button would open over the sidebar. -->
+		<details class="group">
 			<summary
 				class="text-fg-muted hover:text-fg flex h-8 w-8 cursor-pointer list-none items-center justify-center rounded-(--radius-control)"
 				aria-label={m.library_menu_label({ filename: row.filename })}
@@ -222,7 +223,7 @@
 				<IconDots class="h-4 w-4" aria-hidden="true" />
 			</summary>
 			<div
-				class="border-border-strong bg-surface absolute top-9 right-0 z-10 flex w-72 flex-col gap-1 rounded-(--radius-control) border p-1.5"
+				class="border-border-strong bg-surface absolute top-full right-4 -mt-2 z-10 flex w-72 flex-col gap-1 rounded-(--radius-control) border p-1.5"
 			>
 				{#if menuStartable}
 					<form method="POST" action="?/scan" use:enhance>

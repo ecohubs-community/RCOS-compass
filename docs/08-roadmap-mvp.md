@@ -185,6 +185,11 @@ fresh community, and readiness moves by the right amount.
 **Exit:** upload bylaws → confirmed evidence → a definition pre-filled with the
 community's own words; the whole flow works with `AI_PROVIDER=null`.
 
+> **Landed after P4:** the viewer with highlights. `document-mapping-workspace`
+> built the text view and the two-pane workspace; `document-original-view`
+> added the PDF as uploaded — pages, thumbnails, zoom, and line-level
+> highlights selectable both ways — with the text view as its fallback.
+
 ---
 
 ## P5 — The Path, glossary, search · ~1.5 weeks

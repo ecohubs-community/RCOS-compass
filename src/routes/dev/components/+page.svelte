@@ -27,6 +27,7 @@
 	import ScanBlock from '$lib/components/documents/ScanBlock.svelte';
 	import SuggestionCard, { type Card } from '$lib/components/documents/SuggestionCard.svelte';
 	import VersionList from '$lib/components/documents/VersionList.svelte';
+	import PdfViewer from '$lib/components/documents/pdf/PdfViewer.svelte';
 
 	let { data } = $props();
 
@@ -472,6 +473,50 @@
 				documentId="gallery"
 				{versions}
 				can={{ upload: true, destroy: true }}
+			/>
+		</div>
+
+		<h3 class="text-title mt-6 font-medium">The original PDF</h3>
+		<p class="text-fg-muted text-meta mt-1">
+			A two-page PDF drawn by pdf.js with its page strip: a confirmed passage and an open suggestion
+			narrowed to one line, the confirmed one selected. Governance marked on page 1.
+		</p>
+		<div class="border-border mt-2 flex h-[32rem] flex-col rounded-(--radius-card) border">
+			<PdfViewer
+				url="/dev/components/sample.pdf"
+				highlights={[
+					{
+						passageId: 'gallery-original-1',
+						page: 1,
+						number: 1,
+						state: 'confirmed',
+						words: 'New residents are admitted by vote of the',
+						lines: [
+							{ x: 72, y: 680, w: 330, h: 11, start: 0, end: 57 },
+							{ x: 72, y: 664, w: 300, h: 11, start: 58, end: 110 }
+						],
+						excerpts: null
+					},
+					{
+						passageId: 'gallery-original-2',
+						page: 1,
+						number: 2,
+						state: 'open',
+						words: 'Any member wishing to depart shall give',
+						lines: [
+							{ x: 72, y: 632, w: 330, h: 11, start: 0, end: 58 },
+							{ x: 72, y: 616, w: 320, h: 11, start: 59, end: 114 }
+						],
+						excerpts: [{ start: 60, end: 100 }]
+					}
+				]}
+				governancePages={[1]}
+				selected="gallery-original-1"
+				page={null}
+				pageHref={(page) => `#page-${page}`}
+				textHref="#workspace"
+				onselect={() => {}}
+				onfail={() => {}}
 			/>
 		</div>
 

@@ -27,6 +27,11 @@ const csp = {
 		'img-src': ['self', 'data:', 'blob:'],
 		'font-src': ['self'],
 		'connect-src': ['self'],
+		// The original PDF view parses files in a Web Worker. Under 'strict-dynamic'
+		// browsers ignore 'self' in script-src, and worker-src falls back to it — so
+		// without this a same-origin worker is refused. It allows exactly our own
+		// origin, and script-src gains nothing.
+		'worker-src': ['self'],
 		'object-src': ['none'],
 		'frame-ancestors': ['none'],
 		'base-uri': ['self'],

@@ -26,7 +26,13 @@ export const DOCUMENTS = {
 	/** A Windows executable wearing a PDF's name. */
 	wrongType: 'not-really.pdf',
 	/** Tells the model to mark every clause satisfied. `docs/06` §6.7. */
-	injection: 'injection.pdf'
+	injection: 'injection.pdf',
+	/** A CropBox moving the visible origin (`document-original-view`). */
+	cropped: 'cropped-page.pdf',
+	/** A document-level script on open, an external link annotation, a garbage embedded font. */
+	hostileViewer: 'hostile-viewer.pdf',
+	/** An image declaring 40 000 × 40 000 pixels. */
+	hugeImage: 'huge-image.pdf'
 } as const;
 
 export function fixturePath(name: string): string {

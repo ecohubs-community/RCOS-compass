@@ -245,7 +245,19 @@ Named here so the choice is deliberate and CSP-compatible:
   font size, columns from the gutter) stays typed in `extract.ts`.
 - **DOCX:** `mammoth` to HTML in the same worker, then walked to text +
   structure — the HTML is never stored or rendered.
-- **Viewer:** self-hosted `pdfjs-dist` — no CDN, per the CSP in `04-security.md` §7.
+- **Viewer (`document-original-view`):** `pdfjs-dist` **6.3.289**, pinned exactly
+  and self-hosted, loaded only when a PDF's original view is opened
+  (`src/lib/components/documents/pdf/`). Every page is drawn in the member's own
+  tab: parsing in a Web Worker served from `/_app/`, standard fonts and CMaps
+  copied under `/_app/immutable/pdfjs-<version>/` by `scripts/vite-pdfjs-assets.mjs`
+  (pdf.js fetches them by name, so they bypass fingerprinting). Options, all in
+  `load.ts`: XFA off, `useWasm: false` with no `wasmUrl` (JPEG 2000 and JBIG2
+  images render blank rather than the policy gaining `wasm-unsafe-eval`),
+  `maxImageSize` 16 MP, system fonts off; pages render with annotations disabled
+  and the canvas held under 16 MP. pdf.js 6 compiles no font code, so the
+  CVE-2024-4367 switch (`isEvalSupported`) no longer exists to set. Highlights
+  map stored line boxes through the page viewport's transform. The text view
+  stays the server-rendered fallback without JavaScript and when rendering fails.
 - **PDF generation** (export bundle, printable register): render a self-contained
   print stylesheet to PDF with headless Chromium via Playwright.
 

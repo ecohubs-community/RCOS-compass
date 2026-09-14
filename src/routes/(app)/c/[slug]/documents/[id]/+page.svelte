@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
 	import { goto } from '$app/navigation';
+	import { onMount, type Component } from 'svelte';
 	import HandMapCard from '$lib/components/documents/HandMapCard.svelte';
 	import MappingQueue from '$lib/components/documents/MappingQueue.svelte';
 	import MappingStateChip from '$lib/components/documents/MappingStateChip.svelte';
@@ -19,15 +20,66 @@
 	const slug = $derived(data.community.slug);
 	const doc = $derived(data.document);
 
+	/** An explicit `?view=` travels with every link and form, so a choice sticks. */
+	const withView = (params: Record<string, string>) =>
+		new URLSearchParams({ ...params, ...(data.view ? { view: data.view } : {}) }).toString();
+
 	/** Where forms post back to: the passage and page on screen. */
 	const returnTo = $derived(
-		new URLSearchParams({
+		withView({
 			...(data.selected ? { passage: data.selected } : {}),
 			...(data.paper.page !== null ? { page: String(data.paper.page) } : {})
-		}).toString()
+		})
 	);
-	const passageHref = (id: string) => `?${new URLSearchParams({ passage: id })}`;
-	const pageHref = (page: number) => `?${new URLSearchParams({ page: String(page) })}`;
+	const passageHref = (id: string) => `?${withView({ passage: id })}`;
+	const pageHref = (page: number) => `?${withView({ page: String(page) })}`;
+	const viewHref = (view: 'original' | 'text', page: number | null = data.paper.page) =>
+		`?${new URLSearchParams({
+			view,
+			...(page !== null ? { page: String(page) } : {}),
+			...(data.selected ? { passage: data.selected } : {})
+		})}`;
+
+	/**
+	 * The original PDF view (`document-original-view`). The server renders the
+	 * text view; after mount, a PDF at 1024px and wider — or one asked for with
+	 * `?view=original` on a phone — loads the viewer, which replaces the text
+	 * once the file has opened. If it cannot, the text stays, with a sentence.
+	 */
+	let wide = $state(false);
+	let mounted = $state(false);
+	onMount(() => {
+		const query = window.matchMedia('(min-width: 1024px)');
+		const update = () => (wide = query.matches);
+		update();
+		mounted = true;
+		query.addEventListener('change', update);
+		return () => query.removeEventListener('change', update);
+	});
+	let originalFailed = $state(false);
+	let originalReady = $state(false);
+	let Viewer = $state.raw<Component<
+		import('$lib/components/documents/pdf/PdfViewer.svelte').PdfViewerProps
+	> | null>(null);
+	const wantsOriginal = $derived(
+		mounted &&
+			doc.paged &&
+			doc.status === 'extracted' &&
+			data.view !== 'text' &&
+			!originalFailed &&
+			(wide || data.view === 'original')
+	);
+	$effect(() => {
+		if (!wantsOriginal || Viewer) return;
+		import('$lib/components/documents/pdf/PdfViewer.svelte').then(
+			(module) => (Viewer = module.default),
+			() => (originalFailed = true)
+		);
+	});
+	$effect(() => {
+		if (!wantsOriginal) originalReady = false;
+	});
+	const showingOriginal = $derived(wantsOriginal && originalReady && Viewer !== null);
 	const requirementHref = (ref: string) => `${links.standard(slug)}#clause-${ref}`;
 
 	/**
@@ -189,15 +241,52 @@
 				class="border-border bg-surface flex w-[45%] min-w-0 flex-none flex-col border-r"
 				aria-label={m.workspace_document_label()}
 			>
-				<PaperView
-					paper={data.paper}
-					selected={data.selected}
-					filename={doc.filename}
-					{passageHref}
-					{pageHref}
-					onselect={(_id, href) => select(href)}
-					onexcerpt={takeExcerpt}
-				/>
+				{#if originalFailed}
+					<p role="status" class="text-fg-secondary border-border border-b px-4 py-2">
+						{m.original_failed()}
+						<a
+							href={links.documentFile(slug, doc.id)}
+							class="text-accent-fg underline underline-offset-2">{m.workspace_download()}</a
+						>
+					</p>
+				{:else if doc.paged && data.view === 'text'}
+					<p class="border-border border-b px-4 py-2 text-right">
+						<a href={viewHref('original')} class="text-accent-fg text-meta"
+							>{m.original_switch_original()}</a
+						>
+					</p>
+				{/if}
+				{#if wide && wantsOriginal && Viewer}
+					<div class={originalReady ? 'flex min-h-0 flex-1 flex-col' : 'hidden'}>
+						<Viewer
+							url={links.documentFile(slug, doc.id)}
+							highlights={data.highlights}
+							governancePages={data.governancePages}
+							selected={data.selected}
+							page={data.paper.page}
+							{pageHref}
+							textHref={viewHref('text')}
+							onselect={(passageId) => select(passageHref(passageId))}
+							onready={() => (originalReady = true)}
+							onfail={() => (originalFailed = true)}
+							onpage={(page, event) => {
+								event.preventDefault();
+								void select(pageHref(page));
+							}}
+						/>
+					</div>
+				{/if}
+				{#if !showingOriginal}
+					<PaperView
+						paper={data.paper}
+						selected={data.selected}
+						filename={doc.filename}
+						{passageHref}
+						{pageHref}
+						onselect={(_id, href) => select(href)}
+						onexcerpt={takeExcerpt}
+					/>
+				{/if}
 				<footer class="border-border flex flex-none flex-col gap-2 border-t px-4 py-2.5">
 					<div class="flex items-center gap-2.5">
 						{#if data.paper.page !== null && data.paper.page > 1}
@@ -322,25 +411,70 @@
 
 		<!-- One passage at a time below 1024px. -->
 		<div class="lg:hidden">
-			<MappingQueue
-				filename={doc.filename}
-				paged={doc.paged}
-				cards={data.cards}
-				counts={data.counts}
-				requirements={data.requirements}
-				{requirementHref}
-				clauses={data.clauses}
-				can={data.can}
-				passage={data.selected}
-				step={data.step}
-				seePage={data.seePage}
-				paper={data.paper}
-				reconfirm={data.reconfirm}
-				canMarkDone={data.canMarkDone && data.can.map}
-				{scan}
-				{excerpt}
-				onexcerpt={takeExcerpt}
-			/>
+			{#if originalFailed && data.view === 'original'}
+				<p role="status" class="text-fg-secondary border-border border-b px-4 py-2">
+					{m.original_failed()}
+					<a
+						href={links.documentFile(slug, doc.id)}
+						class="text-accent-fg underline underline-offset-2">{m.workspace_download()}</a
+					>
+				</p>
+			{/if}
+			{#if !wide && wantsOriginal && Viewer}
+				<div class="flex flex-col gap-2 px-4 py-3">
+					<a
+						href="?{new URLSearchParams({
+							step: 'read',
+							...(data.selected ? { passage: data.selected } : {})
+						})}"
+						class="text-accent-fg text-meta">{m.original_back_to_queue()}</a
+					>
+					<div
+						class="border-border flex h-[80vh] flex-col overflow-hidden rounded-(--radius-card) border"
+					>
+						<Viewer
+							url={links.documentFile(slug, doc.id)}
+							highlights={data.highlights}
+							governancePages={data.governancePages}
+							selected={data.selected}
+							page={data.paper.page}
+							{pageHref}
+							textHref="?{new URLSearchParams({
+								view: 'page',
+								...(data.paper.page !== null ? { page: String(data.paper.page) } : {})
+							})}"
+							thumbnails={false}
+							onselect={(passageId) => select(passageHref(passageId))}
+							onready={() => (originalReady = true)}
+							onfail={() => (originalFailed = true)}
+						/>
+					</div>
+				</div>
+			{:else}
+				<MappingQueue
+					filename={doc.filename}
+					paged={doc.paged}
+					cards={data.cards}
+					counts={data.counts}
+					requirements={data.requirements}
+					{requirementHref}
+					clauses={data.clauses}
+					can={data.can}
+					passage={data.selected}
+					step={data.step}
+					seePage={data.seePage}
+					paper={data.paper}
+					reconfirm={data.reconfirm}
+					canMarkDone={data.canMarkDone && data.can.map}
+					{scan}
+					{excerpt}
+					onexcerpt={takeExcerpt}
+					originalHref={doc.paged
+						? (passageId, page) =>
+								`?${new URLSearchParams({ view: 'original', page: String(page), passage: passageId })}`
+						: null}
+				/>
+			{/if}
 		</div>
 	{/if}
 </div>

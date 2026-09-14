@@ -54,6 +54,12 @@ export const load: PageServerLoad = ({ locals, params, url }) => {
 		...view,
 		step: url.searchParams.get('step') === 'confirm' ? ('confirm' as const) : ('read' as const),
 		seePage: url.searchParams.get('view') === 'page',
+		/**
+		 * `?view=` for a PDF: `text` or `original`, or null — the original at
+		 * 1024px and wider, the queue below. Only the client knows the width, so
+		 * the server always renders the text view and the viewer takes over.
+		 */
+		view: (['original', 'text'] as const).find((v) => v === url.searchParams.get('view')) ?? null,
 		versions: view.counts.versions > 0 ? versionsWithPeople(ctx, params.id, { db }) : [],
 		can: {
 			map: ctxCan(ctx, 'mapping.confirm'),

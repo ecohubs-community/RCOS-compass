@@ -6,6 +6,9 @@ import type { Community, Membership } from '$lib/server/db/schema/tenancy';
 import type { Ctx } from '$lib/server/auth/guard';
 
 declare global {
+	/** Where pdf.js's standard fonts and CMaps are served; `scripts/vite-pdfjs-assets.ts`. */
+	const __PDFJS_ASSET_BASE__: string;
+
 	namespace App {
 		interface Locals {
 			/** Correlates every log line for this request. Safe to show a user. */

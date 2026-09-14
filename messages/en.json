@@ -346,5 +346,21 @@
 	"queue_change": "Change ref",
 	"queue_back": "← Back to the queue",
 	"queue_confirmed_heading": "Confirmed claims",
-	"queue_hand_hint": "To map a paragraph by hand, open the document and select the paragraph."
+	"queue_hand_hint": "To map a paragraph by hand, open the document and select the paragraph.",
+	"original_highlight_label": "¶{number}, {state}: {words}…",
+	"original_state_open": "suggestion to answer",
+	"original_state_confirmed": "mapped",
+	"original_pages_label": "Pages",
+	"original_thumbnail": "Page {page}",
+	"original_thumbnail_governance": "Page {page}, holds governance language",
+	"original_zoom_in": "Zoom in",
+	"original_zoom_out": "Zoom out",
+	"original_zoom_fit": "Fit to width",
+	"original_opening": "Opening the original…",
+	"original_switch_text": "Show as text",
+	"original_switch_original": "Show the original",
+	"original_view_label": "View",
+	"original_failed": "This PDF couldn’t be shown as it was uploaded. Here is its text; you can download the original.",
+	"original_phone_link": "View original page",
+	"original_back_to_queue": "← Back to the queue"
 }

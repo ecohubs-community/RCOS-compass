@@ -41,6 +41,19 @@ describe('content security policy', () => {
 		expect(cspDirectives['script-src']).not.toContain('*');
 		expect(cspDirectives['connect-src']).toEqual(['self']);
 	});
+
+	/**
+	 * The original PDF view (`document-original-view`) parses files in a Worker.
+	 * `worker-src 'self'` is the one addition it needs; `script-src` must not grow
+	 * to make room for it — no `unsafe-*`, `wasm-unsafe-eval` included, and no host.
+	 */
+	it('allows workers from our own origin, and script-src gains nothing for them', () => {
+		expect(cspDirectives['worker-src']).toEqual(['self']);
+		expect(cspDirectives['script-src']).toEqual(['self', 'strict-dynamic']);
+		for (const source of cspDirectives['script-src'] ?? []) {
+			expect(source).not.toMatch(/^unsafe-|unsafe-eval|:\/\/|\./);
+		}
+	});
 });
 
 describe('security headers', () => {

@@ -353,6 +353,19 @@ Defined in `05-admin-console.md`. The security-relevant parts:
 - CSP with a per-request nonce, `default-src 'self'`, no `unsafe-inline`,
   `frame-ancestors 'none'`, `object-src 'none'`. The PDF viewer is
   self-hosted, not CDN-loaded.
+- **`worker-src 'self'`** is the one directive the original PDF view added:
+  under `'strict-dynamic'` browsers ignore `'self'` in `script-src`, and
+  `worker-src` falls back to it, so a same-origin worker was otherwise refused.
+  `script-src` gained nothing — no `unsafe-*`, no `wasm-unsafe-eval`, no host —
+  and `tests/unit/security-headers.test.ts` holds it there.
+- **Rendering an uploaded PDF in the browser.** The file still comes from the
+  member-only route as an attachment; pdf.js draws it in the member's tab with
+  XFA off, no scripting (`pdf.sandbox` is never loaded), no annotation layer (a
+  document can't give a member a link or a form), no WebAssembly, a 16 MP cap on
+  decoded images and on each canvas, and only nearby pages drawn. The version is
+  pinned exactly and upgraded by deliberate PR. An e2e fixture carrying a
+  document-level script, an external link annotation and a broken font fails
+  the suite on any CSP violation, dialog or navigation.
 - HSTS, `X-Content-Type-Options: nosniff`, `Referrer-Policy: same-origin`,
   `Permissions-Policy` denying camera/mic/geolocation.
 - Dependencies: `pnpm audit` in CI, Dependabot/Renovate, lockfile committed, and

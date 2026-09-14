@@ -189,3 +189,73 @@
 		}
 	}
 }
+
+/*
+ * pdf.js's text layer — docs/02-component-guidelines.md §5, exception 2
+ * (third-party surfaces). The positioned spans pdf.js writes carry their own
+ * geometry in style attributes; these rules are the minimum that makes them
+ * line up with the canvas, lifted from pdf.js 6's `pdf_viewer.css` and scoped to
+ * `.pdf-page`. The text is transparent — it exists for selection, find-in-page
+ * and screen readers — so the layer has no colour of its own beyond the
+ * selection tint, which uses a token.
+ */
+@layer components {
+	.pdf-page {
+		--scale-round-x: 1px;
+		--scale-round-y: 1px;
+	}
+
+	.pdf-page .textLayer {
+		position: absolute;
+		inset: 0;
+		overflow: clip;
+		text-align: initial;
+		line-height: 1;
+		letter-spacing: normal;
+		word-spacing: normal;
+		text-size-adjust: none;
+		forced-color-adjust: none;
+		transform-origin: 0 0;
+		z-index: 0;
+		--min-font-size: 1;
+		--text-scale-factor: calc(var(--total-scale-factor) * var(--min-font-size));
+		--min-font-size-inv: calc(1 / var(--min-font-size));
+	}
+
+	.pdf-page .textLayer :is(span, br) {
+		color: transparent;
+		position: absolute;
+		white-space: pre;
+		cursor: text;
+		transform-origin: 0% 0%;
+	}
+
+	.pdf-page .textLayer > :not(.markedContent),
+	.pdf-page .textLayer .markedContent span:not(.markedContent) {
+		z-index: 1;
+		--font-height: 0;
+		font-size: calc(var(--text-scale-factor) * var(--font-height));
+		--scale-x: 1;
+		--rotate: 0deg;
+		transform: rotate(var(--rotate)) scaleX(var(--scale-x)) scale(var(--min-font-size-inv));
+	}
+
+	.pdf-page .textLayer .markedContent {
+		display: contents;
+	}
+
+	.pdf-page .textLayer ::selection {
+		background: color-mix(in srgb, var(--color-accent) 35%, transparent);
+		color: transparent;
+	}
+
+	.pdf-page [data-main-rotation='90'] {
+		transform: rotate(90deg) translateY(-100%);
+	}
+	.pdf-page [data-main-rotation='180'] {
+		transform: rotate(180deg) translate(-100%, -100%);
+	}
+	.pdf-page [data-main-rotation='270'] {
+		transform: rotate(270deg) translateX(-100%);
+	}
+}

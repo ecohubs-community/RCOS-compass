@@ -62,6 +62,9 @@ test.describe('a community that already wrote it down', () => {
 		await open(page, slug, [fixturePath(DOCUMENTS.bylawsPdf)], DOCUMENTS.bylawsPdf);
 
 		// --- read it as text, a page at a time ---------------------------------
+		// A PDF opens as the original at this width (original-view.spec.ts); the
+		// text view is where words are selected and mapped by hand.
+		await visit(page, `${page.url()}?view=text`);
 		await expect(page.getByText('Page 1 of 5')).toBeVisible();
 		await page.getByRole('link', { name: 'Page 2', exact: true }).first().click();
 		await expect(page).toHaveURL(/page=2/);
@@ -353,6 +356,7 @@ test.describe('the workspace by keyboard', () => {
 		const { slug, email, password } = await seed(page);
 		await signIn(page, email, password);
 		await open(page, slug, [fixturePath(DOCUMENTS.bylawsPdf)], DOCUMENTS.bylawsPdf);
+		await visit(page, `${page.url()}?view=text`);
 
 		await page.getByRole('link', { name: 'Page 2', exact: true }).first().focus();
 		await page.keyboard.press('Enter');

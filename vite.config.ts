@@ -4,6 +4,7 @@ import { sveltekit } from '@sveltejs/kit/vite';
 import tailwindcss from '@tailwindcss/vite';
 import { loadEnv, type Plugin } from 'vite';
 import { defineConfig } from 'vitest/config';
+import { pdfjsAssets } from './scripts/vite-pdfjs-assets.mjs';
 
 /**
  * Put `.env` where the application actually looks for it.
@@ -61,6 +62,7 @@ export default defineConfig({
 		 */
 		Icons({ compiler: 'svelte' }),
 		tailwindcss(),
+		pdfjsAssets(),
 		sveltekit()
 	],
 	test: {

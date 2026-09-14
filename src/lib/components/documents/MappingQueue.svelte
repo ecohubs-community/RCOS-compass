@@ -54,6 +54,8 @@
 		scan: import('svelte').Snippet;
 		excerpt: Excerpt | null;
 		onexcerpt: (excerpt: Excerpt) => void;
+		/** A PDF's original page, rendered at this width; null for other formats. */
+		originalHref?: ((passageId: string, page: number) => string) | null;
 	};
 
 	let {
@@ -73,7 +75,8 @@
 		canMarkDone,
 		scan,
 		excerpt,
-		onexcerpt
+		onexcerpt,
+		originalHref = null
 	}: Props = $props();
 
 	const current = $derived(currentSuggestion(cards, passage));
@@ -207,6 +210,13 @@
 					<a href={pageHref(current.passageId)} class="text-accent-fg underline underline-offset-2"
 						>{m.queue_see()}</a
 					>
+					{#if originalHref}
+						·
+						<a
+							href={originalHref(current.passageId, current.page)}
+							class="text-accent-fg underline underline-offset-2">{m.original_phone_link()}</a
+						>
+					{/if}
 				</p>
 				<a
 					href={confirmHref(current.passageId)}
