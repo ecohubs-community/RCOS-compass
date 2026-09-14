@@ -1,4 +1,4 @@
-import { and, eq, isNotNull, isNull, type SQL } from 'drizzle-orm';
+import { and, eq, isNotNull, isNull, ne, type SQL } from 'drizzle-orm';
 import { error } from '@sveltejs/kit';
 import { requirePermission, type Ctx } from '../auth/guard.js';
 import { ownerRoleIsValid } from '../auth/permissions.js';
@@ -148,7 +148,14 @@ export function setMemberRole(
 	const db = getDb();
 	// The change and the member being told of it — by a row and an email — or neither.
 	db.transaction((tx) => {
-		tx.update(membership).set({ role }).where(eq(membership.id, target.id)).run();
+		// Saving the role a member already has changes nothing and tells nobody: the
+		// members page offers a save on every row, preselected with the current role.
+		const changed = tx
+			.update(membership)
+			.set({ role })
+			.where(and(eq(membership.id, target.id), ne(membership.role, role)))
+			.run().changes;
+		if (changed === 0) return;
 		notify(tx as unknown as Db, ctx, {
 			kind: 'membership.role_changed',
 			subjectType: 'community',
@@ -169,6 +176,8 @@ export function endMembership(ctx: Ctx, membershipId: string): void {
 	if (!target) error(404, 'Not found');
 	if (target.isOwner) error(409, 'Transfer ownership before removing this member.');
 	refuseIfSelf(ctx, target, 'Ask another steward to end your membership.');
+	// Already ended: a second submit keeps the date it ended and sends no second email.
+	if (target.endedAt) return;
 
 	const db = getDb();
 	db.transaction((tx) => {

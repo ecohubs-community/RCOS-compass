@@ -97,6 +97,12 @@ describe('a role change', () => {
 		expect(mail.sent[0]!.text).toContain(`${APP}/c/valle-verde/notifications/settings`);
 	});
 
+	it('tells nobody when the role saved is the one the member already has', () => {
+		setMemberRole(ana, marco.membership.id, 'member');
+		expect(db.select().from(notification).all()).toHaveLength(0);
+		expect(mailJobs()).toHaveLength(0);
+	});
+
 	it('is written in the community’s language', async () => {
 		db.update(community).set({ locale: 'de' }).where(eq(community.id, ana.community.id)).run();
 		setMemberRole(ana, marco.membership.id, 'steward');
@@ -157,6 +163,18 @@ describe('a removal', () => {
 		expect(mail.sent[0]!.text).not.toContain('Ana');
 		// Nothing there is theirs to change any more.
 		expect(mail.sent[0]!.text).not.toContain('/settings');
+	});
+
+	it('is sent once, and keeps its date, when the membership is ended twice', () => {
+		endMembership(ana, marco.membership.id);
+		const ended = db.select().from(membership).where(eq(membership.id, marco.membership.id)).get()!
+			.endedAt;
+		endMembership({ ...ana, now: () => NOW + 60_000 }, marco.membership.id);
+
+		expect(mailJobs()).toHaveLength(1);
+		expect(
+			db.select().from(membership).where(eq(membership.id, marco.membership.id)).get()!.endedAt
+		).toEqual(ended);
 	});
 
 	it('is not sent when an erasure ends the membership', async () => {
