@@ -199,7 +199,22 @@
 	and the document scrolls normally, because a phone has no room to give a
 	column of navigation permanently.
 -->
-<div class="flex min-h-screen flex-col lg:h-screen lg:min-h-0 lg:flex-row lg:overflow-hidden">
+<!--
+	`relative` is load-bearing, not decoration.
+
+	Every pane below clips — the shell, the two columns, the rail — and every one
+	of them is `position: static`, so an absolutely positioned descendant is
+	clipped by none of them: its containing block is the page itself. Tailwind's
+	`sr-only` is `position: absolute`, and there is one beside every finding in
+	the linter panel, near the bottom of a rail that scrolls. Those 1px boxes sat
+	hundreds of pixels below the shell in the *document's* coordinates, and the
+	document grew to hold them — which is the strip of empty background you could
+	scroll to under a discussion. One containing block here, and the shell's own
+	`overflow-hidden` contains them.
+-->
+<div
+	class="relative flex min-h-screen flex-col lg:h-screen lg:min-h-0 lg:flex-row lg:overflow-hidden"
+>
 	<!--
 		Below 1024px the sidebar becomes a horizontal strip rather than disappearing
 		behind a button: mobile is a supported surface (docs/02 §7), and a community
