@@ -134,7 +134,14 @@ decision or audit would change?**
 | `all.kill` | **"What breaks if we delete this line?"** — a heuristic pass: no subject, no trade-off, no identity signal, and no obligation | ◦ *If this line were deleted, what would change? If nothing, it is clutter — and clutter dilutes the lines that do matter.* |
 | `all.duplicate` | Text substantially overlaps an adopted definition elsewhere in this community | ◦ *This is already binding in [Exit & separation]. Point to it rather than restating it — a re-stated MUST starts to look optional.* |
 | `all.layer0` | Touches purpose, scope, invariants or identity constraints | ◦ *This touches Layer 0. It needs the constitutional decision path (§2.1.3 / §2.3.6 / §8.1.4), not an ordinary freeze.* |
-| `all.plain` | A plain-language mirror exists and is not a copy of the body | ⚠ *Add what this means in practice. Most forgetting is that nobody rereads governance prose.* |
+| `all.plain` | A plain-language mirror exists and is not a copy of the body — **only on a surface that has the field** | ⚠ *Add what this means in practice. Most forgetting is that nobody rereads governance prose.* |
+
+**`all.plain` has three input states, not two.** A definition draft or version
+carries a plain-language field, so an empty one is worth a warning. A *proposal*
+in a discussion thread is one text and has no such field anywhere in the
+interface — so the caller passes no `plainLanguage` at all and the rule stays
+silent. It previously fired on every proposal ever written, with nowhere for the
+reader to act on it, which is how a panel teaches people to stop reading it.
 
 ### 6.1 The vagueness list
 
@@ -164,7 +171,20 @@ ships, the claim does not.
    deleted: it binds nobody, frames no trade-off, says nothing about who the
    community is, and adds nothing to a definition already adopted — in which case
    it names what it duplicates, implementing *"don't demote an enforced rule into
-   a value"*. It is advice (◦), never blocker-shaped, because it is the one rule
+   a value"*.
+
+   **"Binds nobody" means no subject at all, not "no subject and no process".**
+   A line naming somebody it could bind is exactly the line that might bind them
+   by accident, and *delete it* is the one piece of advice that must never be
+   given about a line that might bind. A line that finishes the sentence before
+   it — "If they do not, the departure is not recorded" — is spared for the same
+   reason: the unit is the sentence, so a rule and its consequence arrive as two
+   lines and the second one carries no subject of its own.
+
+   The duplicate half of this rule needs the community's adopted definitions
+   passed in (`adoptedElsewhere`). Both callers — the definition draft and a
+   proposal on write — supply them; a caller that does not gets the generic half
+   only, which is advice worth much less. It is advice (◦), never blocker-shaped, because it is the one rule
    that tells a community to delete its own words: being wrong about "this line
    has no consequence" is a correction; being wrong about "this line does
    nothing" is telling somebody what they wrote does not matter.

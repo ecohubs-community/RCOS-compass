@@ -1,10 +1,12 @@
-import { and, asc, desc, eq, inArray, isNull } from 'drizzle-orm';
+import { and, asc, desc, eq, gt, inArray, isNull, or } from 'drizzle-orm';
 import { error } from '@sveltejs/kit';
 import { requirePermission, requireWritableCommunity, type Ctx } from '../auth/guard.js';
 import { getDb, type Db } from '../db/index.js';
 import { newId } from '../db/id.js';
 import { definition } from '../db/schema/definitions.js';
 import {
+	consentEligible,
+	consentResponse,
 	consentRound,
 	discussion,
 	post,
@@ -15,6 +17,7 @@ import { user } from '../db/schema/auth.js';
 import { membership } from '../db/schema/tenancy.js';
 import { initialsOf, membershipLabel, personLabel } from './person.js';
 import { lint } from '../linter/index.js';
+import { adoptedElsewhere } from './definitions.js';
 import { activeStandardView } from './completeness.js';
 import { mentionedSeqs } from '../markdown.js';
 import { discussionParticipants, mentionedMembers, notify, notifyReply } from './notifications.js';
@@ -165,6 +168,177 @@ export function listDiscussions(ctx: Ctx, options: { db?: Db } = {}): Discussion
 		.where(eq(discussion.communityId, ctx.community.id))
 		.orderBy(desc(discussion.lastActivityAt))
 		.all();
+}
+
+/**
+ * A thread as the list draws it. Design: `design_files/platform/` screen 10.
+ *
+ * Everything on one row, and every part of it derived rather than stored:
+ *
+ * - **`inVote` is an open round, not `discussion.status`.** That column has an
+ *   `in_vote` value and nothing in the product has ever written it — a round
+ *   opens on the first response and closes on the last, none of which touches
+ *   the thread. A filter reading the column would have counted one thread in
+ *   vote for every thread ever put in vote by hand, which is none of them.
+ * - **`waitingOnMe` is per reader.** Eligible for an open round, and has not
+ *   answered it. It is the one number on the screen that is not the same for
+ *   everybody, which is exactly why the design leads with it.
+ * - **`people` is who has spoken**, in the order they first did, so the column
+ *   reads as a conversation rather than as a membership list.
+ *
+ * Three queries for the whole list rather than three per row: a community with
+ * ninety threads is ordinary, and this screen is the one they open first.
+ */
+export type DiscussionSummary = {
+	id: string;
+	title: string;
+	status: Discussion['status'];
+	origin: Discussion['origin'];
+	clauseKey: string | null;
+	openedAt: number;
+	lastActivityAt: number;
+	/** Everyone who has posted, first to speak first. */
+	people: PostAuthor[];
+	/** Who moved it last, and how — so the row says what happened, not just when. */
+	last: { author: PostAuthor; kind: Post['kind'] } | null;
+	/** The newest proposal's number, or null while the thread is still talking. */
+	version: number | null;
+	/** A round is open on the text on the table. */
+	inVote: boolean;
+	/** …and this reader is eligible for it and has not answered. */
+	waitingOnMe: boolean;
+};
+
+export function listDiscussionSummaries(ctx: Ctx, options: { db?: Db } = {}): DiscussionSummary[] {
+	requirePermission(ctx, 'discussion.read');
+	const db = options.db ?? getDb();
+	const threads = listDiscussions(ctx, { db });
+	if (threads.length === 0) return [];
+
+	const ids = threads.map((thread) => thread.id);
+
+	/**
+	 * Every post in every listed thread, oldest first.
+	 *
+	 * Labels go through `personLabel` like every other surface (`docs/03` §10) —
+	 * a member who has been erased still spoke, and the row still says so under
+	 * their community's former-member label.
+	 */
+	const posts = db
+		.select({
+			discussionId: post.discussionId,
+			authorId: post.authorId,
+			kind: post.kind,
+			proposalVersion: post.proposalVersion,
+			name: user.name,
+			erasedAt: user.erasedAt,
+			displayName: membership.displayName,
+			seq: membership.seq
+		})
+		.from(post)
+		.leftJoin(user, eq(user.id, post.authorId))
+		.leftJoin(
+			membership,
+			and(eq(membership.userId, post.authorId), eq(membership.communityId, ctx.community.id))
+		)
+		.where(inArray(post.discussionId, ids))
+		.orderBy(asc(post.createdAt))
+		.all();
+
+	const people = new Map<string, Map<string, PostAuthor>>();
+	const last = new Map<string, { author: PostAuthor; kind: Post['kind'] }>();
+	const version = new Map<string, number>();
+
+	for (const row of posts) {
+		const label = personLabel({
+			erasedAt: row.erasedAt ?? null,
+			name: row.name,
+			displayName: row.displayName,
+			seq: row.seq
+		});
+		const author = { label, initials: initialsOf(label) };
+		/**
+		 * A Map keyed by the author, so somebody who wrote nine times appears
+		 * once and keeps the position of their first post.
+		 *
+		 * By id and not by label: two members can share a display name, and
+		 * collapsing them would quietly report a conversation between two people
+		 * as a conversation with one. A post whose author is gone has no id to
+		 * key on, so those fall back to the label they are shown under.
+		 */
+		const key = row.authorId ?? label;
+		const seen = people.get(row.discussionId) ?? new Map<string, PostAuthor>();
+		if (!seen.has(key)) seen.set(key, author);
+		people.set(row.discussionId, seen);
+		last.set(row.discussionId, { author, kind: row.kind });
+		if (row.kind === 'proposal' && row.proposalVersion !== null) {
+			version.set(row.discussionId, row.proposalVersion);
+		}
+	}
+
+	/**
+	 * The rounds still taking answers.
+	 *
+	 * A round past its deadline is excluded here rather than closed: closing is a
+	 * write, and a list is a read. `closeIfDue` in the round service does the
+	 * write on the next touch, and the hourly sweep does it if nobody touches it
+	 * — so the only thing this has to avoid is telling somebody a round is
+	 * waiting on them when its deadline has gone.
+	 */
+	const now = ctx.now();
+	const openRounds = db
+		.select({
+			discussionId: post.discussionId,
+			eligible: consentEligible.membershipId,
+			answered: consentResponse.membershipId
+		})
+		.from(consentRound)
+		.innerJoin(post, eq(post.id, consentRound.proposalPostId))
+		.leftJoin(
+			consentEligible,
+			and(
+				eq(consentEligible.roundId, consentRound.id),
+				eq(consentEligible.membershipId, ctx.membership.id)
+			)
+		)
+		.leftJoin(
+			consentResponse,
+			and(
+				eq(consentResponse.roundId, consentRound.id),
+				eq(consentResponse.membershipId, ctx.membership.id)
+			)
+		)
+		.where(
+			and(
+				eq(consentRound.communityId, ctx.community.id),
+				eq(consentRound.status, 'open'),
+				inArray(post.discussionId, ids),
+				or(isNull(consentRound.closesAt), gt(consentRound.closesAt, new Date(now)))
+			)
+		)
+		.all();
+
+	const inVote = new Set(openRounds.map((row) => row.discussionId));
+	const waiting = new Set(
+		openRounds
+			.filter((row) => row.eligible !== null && row.answered === null)
+			.map((row) => row.discussionId)
+	);
+
+	return threads.map((thread) => ({
+		id: thread.id,
+		title: thread.title,
+		status: thread.status,
+		origin: thread.origin,
+		clauseKey: thread.clauseKey,
+		openedAt: thread.openedAt.getTime(),
+		lastActivityAt: thread.lastActivityAt.getTime(),
+		people: [...(people.get(thread.id)?.values() ?? [])],
+		last: last.get(thread.id) ?? null,
+		version: version.get(thread.id) ?? null,
+		inVote: inVote.has(thread.id),
+		waitingOnMe: waiting.has(thread.id)
+	}));
 }
 
 export type PostAuthor = { label: string; initials: string };
@@ -439,8 +613,20 @@ function writeProposal(
 			 * *read* — a write is not a read. Each version keeps the result that
 			 * judged its own words, so a reader a year later sees what the community
 			 * was actually told.
+			 *
+			 * Judged against what this community has already made binding, not
+			 * against the text alone: without that list the only clutter finding
+			 * that could ever fire was the generic "would anything change if you
+			 * deleted this?", and the useful one — "this is already binding in
+			 * *Member Obligations*" — was unreachable. No `plainLanguage`: a
+			 * proposal has no such field, and `undefined` is how the linter is
+			 * told so (see `LintInput`).
 			 */
-			linterResult: lint({ body: values.body, locale: ctx.community.locale })
+			linterResult: lint({
+				body: values.body,
+				locale: ctx.community.locale,
+				adoptedElsewhere: adoptedElsewhere(tx, ctx.community.id)
+			})
 		}
 	);
 

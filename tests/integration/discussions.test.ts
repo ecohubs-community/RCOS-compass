@@ -3,7 +3,11 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import type { Ctx } from '../../src/lib/server/auth/guard.js';
 import { newId } from '../../src/lib/server/db/id.js';
 import { setDbForTests, type Db } from '../../src/lib/server/db/index.js';
-import { communityArtifact } from '../../src/lib/server/db/schema/definitions.js';
+import {
+	communityArtifact,
+	definition,
+	definitionVersion
+} from '../../src/lib/server/db/schema/definitions.js';
 import { discussion, post } from '../../src/lib/server/db/schema/discussions.js';
 import { communityStandard } from '../../src/lib/server/db/schema/tenancy.js';
 import { createDefinition } from '../../src/lib/server/services/definitions.js';
@@ -12,12 +16,14 @@ import {
 	addProposal,
 	getDiscussion,
 	latestProposal,
+	listDiscussionSummaries,
 	listDiscussions,
 	listPosts,
 	openDiscussion,
 	proposalToFreeze,
 	takeOffline
 } from '../../src/lib/server/services/discussions.js';
+import { getVotingProvider } from '../../src/lib/server/voting/index.js';
 import { getStandard } from '../../src/lib/server/standard/index.js';
 import { createTestDb } from '../support/db.js';
 import { catchRefusal } from '../support/errors.js';
@@ -83,7 +89,7 @@ beforeEach(() => {
 	ctx = seeded.ctx;
 	artifactId = seeded.artifactId;
 
-	const person = makeUser(db, { email: 'lena@example.org' });
+	const person = makeUser(db, { email: 'lena@example.org', name: 'Lena Vogt' });
 	const membership = makeMembership(db, ctx.community.id, person.id, { role: 'member' });
 	memberCtx = { ...ctx, user: person, membership };
 });
@@ -95,6 +101,47 @@ afterEach(() => {
 
 const open = (title = 'Exit and separation') =>
 	openDiscussion(ctx, { title, about: { kind: 'clause', clauseKey: '3.6.1' } }, { db });
+
+/**
+ * A local definition this community has already frozen.
+ *
+ * The clutter rule's useful half compares a line against what is *adopted*, so
+ * a draft is not enough. Created through the service — a definition has check
+ * constraints a hand-written row would have to restate — and then adopted
+ * directly, because going through the freeze here would be testing `decisions`
+ * rather than the linter's input.
+ */
+function adoptLocal(title: string, body: string): string {
+	const created = createDefinition(
+		ctx,
+		{ scope: 'local', title, attach: { kind: 'community_artifact', artifactId } },
+		{ db }
+	);
+	const versionId = newId();
+	db.insert(definitionVersion)
+		.values({
+			id: versionId,
+			definitionId: created.id,
+			n: 1,
+			body,
+			plainLanguage: null,
+			type: null,
+			authorId: ctx.user.id,
+			aiAssisted: false,
+			aiTask: null,
+			linterResult: null,
+			createdAt: new Date(NOW),
+			adoptedAt: new Date(NOW),
+			decisionId: null,
+			supersedesVersionId: null
+		})
+		.run();
+	db.update(definition)
+		.set({ adoptedVersionId: versionId })
+		.where(eq(definition.id, created.id))
+		.run();
+	return created.id;
+}
 
 describe('a discussion belongs to one community and one subject', () => {
 	it('opens against a clause that has no definition yet', () => {
@@ -224,6 +271,171 @@ describe('a discussion belongs to one community and one subject', () => {
 		expect(listed.map((d) => d.title)).toEqual(['First', 'Second']);
 		expect(listed).toHaveLength(2);
 		expect(second.communityId).toBe(ctx.community.id);
+	});
+});
+
+/**
+ * The list screen's own row. Design screen 10.
+ *
+ * Three of these five facts are not columns anywhere — they are derived, and the
+ * point of the tests is that they stay derived from the right thing. `in vote`
+ * in particular must never go back to reading `discussion.status`: nothing
+ * writes that value, so a filter built on it counts nothing forever.
+ */
+describe('a proposal is linted against what the community already made binding', () => {
+	it('names the adopted definition a proposal restates', () => {
+		// `adoptedElsewhere` had no production caller at all, so the only clutter
+		// finding that could ever reach a member was the generic one.
+		const body = 'Land and buildings are held in common by the whole circle.';
+		adoptLocal('What we hold in common', body);
+
+		const opened = open('Restating the commons');
+		const written = addProposal(ctx, { discussionId: opened.id, body }, { db });
+
+		const stored = db.select().from(post).where(eq(post.id, written.id)).get()!;
+		const result = stored.linterResult as {
+			lines: { findings: { rule: string; message: string }[] }[];
+		};
+		const clutter = result.lines
+			.flatMap((line) => line.findings)
+			.find((finding) => finding.rule === 'line.clutter')!;
+		expect(clutter.message).toContain('What we hold in common');
+	});
+
+	it('does not ask a proposal for a plain-language mirror it has no field for', () => {
+		const opened = open('Exit');
+		const written = addProposal(
+			ctx,
+			{ discussionId: opened.id, body: 'Members may leave.' },
+			{ db }
+		);
+		const stored = db.select().from(post).where(eq(post.id, written.id)).get()!;
+		const result = stored.linterResult as { bodyFindings: { rule: string }[] };
+		expect(result.bodyFindings.map((finding) => finding.rule)).not.toContain('all.plain');
+	});
+});
+
+describe('a discussion summary says what a row has to say', () => {
+	it('names who has spoken, in the order they first did, and what happened last', () => {
+		const opened = open('Exit');
+		addMessage(ctx, { discussionId: opened.id, body: 'Ana opens.' }, { db });
+		addMessage(
+			{ ...memberCtx, now: () => NOW + 1000 },
+			{ discussionId: opened.id, body: 'Lena answers.' },
+			{ db }
+		);
+		addMessage(
+			{ ...ctx, now: () => NOW + 2000 },
+			{ discussionId: opened.id, body: 'Ana again.' },
+			{ db }
+		);
+
+		const [row] = listDiscussionSummaries(ctx, { db });
+		expect(row!.people.map((person) => person.label)).toEqual(['Test Person', 'Lena Vogt']);
+		expect(row!.last?.author.label).toBe('Test Person');
+		expect(row!.last?.kind).toBe('message');
+		expect(row!.version).toBeNull();
+	});
+
+	it('carries the newest proposal version, so the row can say which text is on the table', () => {
+		const opened = open('Exit');
+		addProposal(ctx, { discussionId: opened.id, body: 'Members may leave.' }, { db });
+		addProposal(
+			{ ...ctx, now: () => NOW + 1000 },
+			{ discussionId: opened.id, body: 'Members may leave with notice.' },
+			{ db }
+		);
+
+		const [row] = listDiscussionSummaries(ctx, { db });
+		expect(row!.version).toBe(2);
+		expect(row!.last?.kind).toBe('proposal');
+	});
+
+	it('reads "in vote" from an open round rather than from a column nothing writes', () => {
+		const opened = open('Exit');
+		const proposal = addProposal(
+			ctx,
+			{ discussionId: opened.id, body: 'Members may leave.' },
+			{ db }
+		);
+
+		// The column says `open` and always will: opening a round does not touch
+		// the thread, and nothing in the product sets `in_vote`.
+		expect(listDiscussionSummaries(ctx, { db })[0]!.inVote).toBe(false);
+
+		getVotingProvider().respond(
+			memberCtx,
+			{ proposalPostId: proposal.id, value: 'consent' },
+			{ db }
+		);
+
+		const [row] = listDiscussionSummaries(ctx, { db });
+		expect(row!.status).toBe('open');
+		expect(row!.inVote).toBe(true);
+	});
+
+	it('waits on the member who has not answered, and stops waiting on the one who has', () => {
+		const opened = open('Exit');
+		const proposal = addProposal(
+			ctx,
+			{ discussionId: opened.id, body: 'Members may leave.' },
+			{ db }
+		);
+		getVotingProvider().respond(
+			memberCtx,
+			{ proposalPostId: proposal.id, value: 'consent' },
+			{ db }
+		);
+
+		// Lena answered; Ana was made eligible by the same round and has not.
+		expect(listDiscussionSummaries(memberCtx, { db })[0]!.waitingOnMe).toBe(false);
+		expect(listDiscussionSummaries(ctx, { db })[0]!.waitingOnMe).toBe(true);
+
+		getVotingProvider().respond(ctx, { proposalPostId: proposal.id, value: 'abstain' }, { db });
+		expect(listDiscussionSummaries(ctx, { db })[0]!.waitingOnMe).toBe(false);
+	});
+
+	it('stops saying "in vote" once the text that was in vote has been replaced', () => {
+		const opened = open('Exit');
+		const v1 = addProposal(ctx, { discussionId: opened.id, body: 'Members may leave.' }, { db });
+		getVotingProvider().respond(memberCtx, { proposalPostId: v1.id, value: 'consent' }, { db });
+		expect(listDiscussionSummaries(ctx, { db })[0]!.inVote).toBe(true);
+
+		// Writing v2 supersedes v1's round. Lena's consent stays where it is — it
+		// is what v1 was told — but the community is no longer being asked it.
+		addProposal(
+			{ ...ctx, now: () => NOW + 1000 },
+			{ discussionId: opened.id, body: 'Members may leave with notice.' },
+			{ db }
+		);
+
+		const [row] = listDiscussionSummaries(ctx, { db });
+		expect(row!.inVote).toBe(false);
+		expect(row!.waitingOnMe).toBe(false);
+		expect(row!.version).toBe(2);
+	});
+
+	it('stops waiting when the deadline has gone, without writing to say so', () => {
+		const opened = open('Exit');
+		const proposal = addProposal(
+			ctx,
+			{ discussionId: opened.id, body: 'Members may leave.' },
+			{ db }
+		);
+		getVotingProvider().openRound(
+			ctx,
+			{ proposalPostId: proposal.id, closesAt: NOW + 86_400_000 },
+			{ db }
+		);
+
+		expect(listDiscussionSummaries(ctx, { db })[0]!.waitingOnMe).toBe(true);
+
+		// A list is a read. The round is still `open` in the table until something
+		// writes to close it; the row must not claim it is waiting on anybody.
+		const later = { ...ctx, now: () => NOW + 2 * 86_400_000 };
+		const [row] = listDiscussionSummaries(later, { db });
+		expect(row!.waitingOnMe).toBe(false);
+		expect(row!.inVote).toBe(false);
 	});
 });
 

@@ -272,9 +272,53 @@ describe('the whole body', () => {
 	});
 });
 
+describe('the rule set is told what surface it is judging', () => {
+	it('asks a definition for its plain-language mirror', () => {
+		// The field exists and is empty. That is the finding.
+		const result = lint({ body: 'Members must give notice.', plainLanguage: null, locale: 'en' });
+		expect(result.bodyFindings.map((f) => f.rule)).toContain('all.plain');
+	});
+
+	it('never asks a proposal for one, because a proposal has no such field', () => {
+		// `undefined`, not `null`: the discussion rail linted every proposal with
+		// no plain-language input and every proposal was told, forever, to add
+		// something it had nowhere to put.
+		const result = lint({ body: 'Members must give notice.', locale: 'en' });
+		expect(result.bodyFindings.map((f) => f.rule)).not.toContain('all.plain');
+	});
+});
+
+describe('clutter leaves real writing alone', () => {
+	it('says nothing about a rule addressed to one office-holder', () => {
+		// Subject and a named process, with no "must" — the shape half of real
+		// governance prose uses. It used to infer no job and fall through to
+		// "delete the line".
+		expect(
+			rulesOnLine('A member may leave at any time by telling a steward in writing.', 0)
+		).not.toContain('line.clutter');
+	});
+
+	it('says nothing about the consequence half of a rule', () => {
+		// The unit is the sentence, so a rule and its consequence arrive as two
+		// lines and the second carries no subject of its own.
+		expect(rulesOnLine('If they do not, the departure is not recorded.', 0)).not.toContain(
+			'line.clutter'
+		);
+	});
+
+	it('reads a purpose statement as expressive rather than as clutter', () => {
+		const result = of('EcoHubs exists to reduce dependency on extractive systems.');
+		expect(result.lines[0]!.job).toBe('expressive');
+		expect(result.lines[0]!.findings.map((f) => f.rule)).not.toContain('line.clutter');
+	});
+});
+
 describe('the linter is advice', () => {
 	it('reports cleanliness without ever refusing anything', () => {
-		const messy = lint({ body: 'Stuff happens.', locale: 'en' });
+		// A definition — so it has a plain-language field, and leaving it empty is
+		// worth saying. A proposal passes no `plainLanguage` at all and is not
+		// told to fill in a box it does not have.
+		const messy = lint({ body: 'Stuff happens.', plainLanguage: null, locale: 'en' });
 		expect(messy.clean).toBe(false);
 		// It returns a verdict. It has no way to stop a freeze, because `freeze`
 		// never asks it — a community may adopt a definition the linter dislikes,
