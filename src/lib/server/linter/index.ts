@@ -32,6 +32,16 @@ export type DefinitionType = LineJob;
 
 export type LintInput = {
 	body: string;
+	/**
+	 * The plain-language mirror, when the surface being linted has a field for
+	 * one.
+	 *
+	 * Three states, not two. `undefined` means *this surface has no such field* —
+	 * a proposal in a discussion thread is one text and nothing else — and
+	 * `all.plain` stays quiet, because advice nobody can act on is noise on every
+	 * proposal forever. `null` or `''` means the field exists and is empty, which
+	 * is the thing worth saying.
+	 */
 	plainLanguage?: string | null;
 	locale?: string;
 	/** Titles of adopted definitions, for the overlap check. */
@@ -53,10 +63,25 @@ const TRADEOFF = /\b(over|rather than|before|in preference to|ahead of|balanced 
 const OVERRIDE = /\b(override|overridden|depart from|exception|recorded reason|with a reason)\b/i;
 const NONBINDING =
 	/\b(aspiration|aspirational|non-binding|not binding|we hope|we aspire|a value)\b/i;
+/**
+ * A named way the thing happens — a body, an act, or a form it has to take.
+ *
+ * "by telling a steward in writing" is a process: there is a person who was
+ * told and a written thing to point at. The first list held only *bodies*, so
+ * every rule addressed to an individual office-holder, and every rule whose
+ * mechanism is a form rather than a meeting, inferred no job at all — and fell
+ * through to the clutter rule, which then told a community to delete its rules.
+ */
 const PROCESS =
-	/\b(assembly|circle|council|consent|vote|votes|voting|decision|meeting|process|procedure|reviewed?|approves?|approval|confirms?|nominates?|elects?|appoints?)\b/i;
+	/\b(assembly|circle|council|consent|vote|votes|voting|decision|meeting|process|procedure|reviewed?|approves?|approval|confirms?|nominates?|elects?|appoints?|steward|stewards|treasurer|facilitator|registrar|in writing|written|notice|notifies|notify|notifying|tells|telling|informs?|informing|request|requests|application|applies|register|registered|records?|recorded|minutes)\b/i;
+/**
+ * Something that turns on it — including the negative forms governance prose
+ * actually uses. "the departure is not recorded and their share is not
+ * released" is a consequence; none of `is not`, `are not`, `no longer` or
+ * `ceases` was in the list, so it read as a sentence about nothing.
+ */
 const CONSEQUENCE =
-	/\b(otherwise|if not|fails?|failure|then|consequence|forfeits?|loses|removed|suspended|revoked|does not|shall not|may not|is refused|reverts?)\b/i;
+	/\b(otherwise|if not|fails?|failure|then|consequence|forfeits?|loses|removed|suspended|revoked|does not|do not|did not|shall not|may not|is not|are not|was not|will not|cannot|can not|no longer|ceases?|lapses?|ends|expires?|void|invalid|withheld|denied|is refused|reverts?)\b/i;
 /**
  * Language about who the community *is*, rather than what it requires.
  *
@@ -66,7 +91,17 @@ const CONSEQUENCE =
  * quietest rule in the set would tell people to cut their own values.
  */
 const IDENTITY =
-	/\b(we are|we value|we believe|we welcome|we care|we seek|we intend|our (?:values?|culture|character|spirit|intention)|community of|committed to)\b/i;
+	/\b(we are|we value|we believe|we welcome|we care|we seek|we intend|our (?:values?|culture|character|spirit|intention|purpose)|community of|committed to|exists? to|exist to|is here to|are here to|the purpose of|aims? to|strives? to)\b/i;
+
+/**
+ * A line that finishes the sentence before it.
+ *
+ * The unit is the sentence, so "Members must give notice. Otherwise the
+ * departure is not recorded." arrives as two lines and the second one carries
+ * no subject of its own. It is the *consequence half of a rule*, and the
+ * clutter rule must not offer to delete it.
+ */
+const CONTINUATION = /^\s*(if|unless|otherwise|where|when|in that case|failing that|should)\b/i;
 
 /** Who or what is bound: a named role, or a person-shaped noun. */
 const SUBJECT =
@@ -351,7 +386,19 @@ function judge(text: string, locale: string, input: LintInput): LintedLine {
 			!TRADEOFF.test(text) &&
 			!NONBINDING.test(text) &&
 			!IDENTITY.test(text) &&
-			!(SUBJECT.test(text) && PROCESS.test(text))
+			/**
+			 * Anything naming somebody it could bind is left alone, and so is a
+			 * line that finishes the sentence before it.
+			 *
+			 * The old test was subject *and* process, which is the shape of a rule
+			 * the linter already recognised — so it only spared lines it had
+			 * nothing to say about anyway. A line with a subject and no process is
+			 * precisely the line that might bind somebody by accident, and
+			 * "delete it" is the one piece of advice that must never be given
+			 * about a line that might bind.
+			 */
+			!SUBJECT.test(text) &&
+			!CONTINUATION.test(text)
 		) {
 			findings.push({
 				rule: 'line.clutter',
@@ -401,6 +448,10 @@ function wholeBodyFindings(text: string, input: LintInput, locale: string): Find
 			)
 		);
 	}
+
+	// `undefined` is a surface with no plain-language field at all (a proposal in
+	// a thread). Silence, not a warning nobody can act on.
+	if (input.plainLanguage === undefined) return findings;
 
 	const plain = (input.plainLanguage ?? '').trim();
 	if (!plain) {

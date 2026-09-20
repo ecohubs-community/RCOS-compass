@@ -307,6 +307,43 @@ export function getDraft(ctx: Ctx, definitionId: string, options: { db?: Db } = 
  * The derived primary job is written here too, because this is the moment there
  * is something to derive it from.
  */
+/**
+ * What this community has already made binding, for the clutter rule.
+ *
+ * `docs/11` §7's most useful finding is "this is already binding in *Member
+ * Obligations* — point to it rather than restating it", and until now nothing
+ * in the product passed the list it needs, so only the generic half of the rule
+ * could ever fire. Adopted versions only: a draft somebody is still writing is
+ * not something a second text can be accused of duplicating.
+ *
+ * `exceptDefinitionId` keeps a definition from being told it duplicates itself.
+ */
+export function adoptedElsewhere(
+	db: Db,
+	communityId: string,
+	exceptDefinitionId?: string
+): { key: string; title: string; body: string }[] {
+	return db
+		.select({
+			id: definition.id,
+			sectionKey: definition.sectionKey,
+			title: definition.title,
+			body: definitionVersion.body
+		})
+		.from(definition)
+		.innerJoin(definitionVersion, eq(definitionVersion.id, definition.adoptedVersionId))
+		.where(eq(definition.communityId, communityId))
+		.all()
+		.filter((row) => row.id !== exceptDefinitionId)
+		.map((row) => ({
+			key: row.sectionKey ?? row.id,
+			// A standard definition takes its title from the section; when neither
+			// is set the finding still has to name something a reader recognises.
+			title: row.title ?? row.sectionKey ?? 'another adopted definition',
+			body: row.body
+		}));
+}
+
 export function runLinter(
 	ctx: Ctx,
 	definitionId: string,
@@ -327,7 +364,8 @@ export function runLinter(
 	const result = lint({
 		body: draft.body,
 		plainLanguage: draft.plainLanguage,
-		locale: ctx.community.locale
+		locale: ctx.community.locale,
+		adoptedElsewhere: adoptedElsewhere(db, ctx.community.id, definitionId)
 	});
 
 	db.update(definitionDraft)
