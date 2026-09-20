@@ -50,8 +50,17 @@
 	 * should only be focusable *programmatically*, which is what -1 means. It is
 	 * removed again on blur so the attribute does not linger in the DOM as a
 	 * thing somebody has to explain.
+	 *
+	 * **Not on `enter`.** A reload is not a navigation the router took focus
+	 * away from: the document arrives with focus where the browser puts it, and
+	 * moving it to the heading is both unnecessary and visible — Chrome treats a
+	 * programmatic focus after a keyboard reload as keyboard modality, so
+	 * `:focus-visible` matched and every page opened with a green ring drawn
+	 * around its title. The router only owes focus back on the navigations it
+	 * handles itself.
 	 */
-	afterNavigate(() => {
+	afterNavigate(({ type }) => {
+		if (type === 'enter') return;
 		const heading = document.querySelector<HTMLElement>('main h1, h1');
 		if (!heading) return;
 		heading.setAttribute('tabindex', '-1');
