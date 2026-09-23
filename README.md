@@ -95,7 +95,7 @@ the other is a broken restore.
 |---|---|
 | [`UI Spec — v0.1 (draft).md`](UI%20Spec%20—%20v0.1%20(draft).md) | the product spec |
 | [`RCOS Core Specification — v0.1.md`](RCOS%20Core%20Specification%20—%20v0.1.md) | the standard being implemented |
-| [`AGENT.md`](AGENT.md) | the short version, for anyone (or anything) writing code here |
+| [`AGENTS.md`](AGENTS.md) | the short version, for anyone (or anything) writing code here |
 | [`docs/`](docs/) | architecture, data model, security, testing, roadmap, legal |
 | [`openspec/`](openspec/) | change proposals and capability specs |
 

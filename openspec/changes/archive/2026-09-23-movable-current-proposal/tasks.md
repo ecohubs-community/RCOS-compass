@@ -48,5 +48,5 @@
 
 ## 7. Open questions for a human
 
-- [ ] 7.1 Should a member be able to *ask* for the question to be moved back, as a thread act, rather than having to raise it in prose? Out of scope here, but it is the obvious next thing a community will want.
+- [x] 7.1 Should a member be able to *ask* for the question to be moved back, as a thread act, rather than having to raise it in prose? Out of scope here, but it is the obvious next thing a community will want. **Answered 2026-09-23: yes** — carried into `provenance-ui`.
 - [ ] 7.2 When v3 is put back and later frozen, should the register record that the question moved? The decision quotes a tally; the tally is now the product of a round that stopped and restarted, and a reader in three years may want to know that. Recommendation: no extra field — the thread carries the post, and the change log already points at the thread.

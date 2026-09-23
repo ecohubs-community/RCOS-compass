@@ -1,4 +1,4 @@
-# AGENT.md — RCOS Compass
+# AGENTS.md — RCOS Compass
 
 A tool that turns the 213 numbered clauses of the RCOS governance standard into a
 short ordered list of things *this* community still has to decide, and keeps what
