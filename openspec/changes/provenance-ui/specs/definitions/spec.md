@@ -125,13 +125,18 @@ from the Standard browser. Below 768px each row MUST become a card.
 
 A member or steward SHALL be able to create a local definition from the
 definitions index, giving a title, a layer and a purpose, and optionally
-attaching it to an artifact and naming the clauses it touches. The layer MUST be
-required. Creating one MUST NOT adopt anything: the new definition has no
+attaching it to an artifact, naming the clauses it touches, and marking that the
+standard should require this, which MUST record it as the community's feedback on
+the standard. The layer MUST be required. Creating one MUST NOT adopt anything: the new definition has no
 adopted version until a freeze.
 
 #### Scenario: A member creates one
 - **WHEN** a member creates "Thursday dinner" in layer 5 with a purpose
 - **THEN** it exists as a local definition with no adopted version, and they are recorded as having asked for it
+
+#### Scenario: The standard should have asked
+- **WHEN** a member creates a local definition marked "RCOS should require this"
+- **THEN** it appears on the community's feedback on the standard, attributed to them
 
 #### Scenario: Layer missing
 - **WHEN** the form is submitted without a layer
