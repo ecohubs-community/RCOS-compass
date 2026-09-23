@@ -78,9 +78,9 @@ Reasoning: `UI Spec — v0.1 (draft).md` §1.2, §1.4a–b, §4.0, §4.3, §4.8,
   *Needs my attention* and *Provisional* filters, card rows below 768px, and its
   own nav entry again — now a different page from the Standard browser.
 - **Local definitions become usable end to end**: a member can create one from
-  the index (*New definition*) — ticking "RCOS should require this" records it as
-  feedback on the standard, the first screen that can — open a discussion on it, and a steward can freeze
-  it. Its detail page shows "Why we made this rule" (its purpose), who asked for
+  the index (*New definition*) — ticking "RCOS should require this" records it
+  as feedback on the standard, the first screen that can — open a discussion on
+  it, and a steward can freeze it. Its detail page shows "Why we made this rule" (its purpose), who asked for
   it and when it was first written down, instead of hiding the left column.
 
 Out of scope, named so nobody assumes otherwise: artifact-level versions (§1.2 —
@@ -116,9 +116,9 @@ in P8.
 
 ## Impact
 
-- **Schema** (additive only): `proposal_move_request`; a `move_request` post
-  kind; `community.interim_quorum` and `community.interim_min_days` (nullable).
-  No table rebuilds.
+- **Schema** (additive only): `proposal_move_request`; `local_definition_touch`;
+  a `move_request` post kind; `community.interim_quorum_num`/`_den` and
+  `community.interim_min_days` (nullable). No table rebuilds.
 - **Services**: new reads in `definitions.ts` (provenance, versions, related,
   index, derived status), `completeness.ts`/a new `artifacts.ts` (artifact
   detail), `consent-round.ts` (set closing time, checklist), `objections.ts`
