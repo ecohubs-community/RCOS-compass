@@ -25,6 +25,26 @@ FROM node:24-bookworm-slim AS runtime
 ENV NODE_ENV=production
 WORKDIR /app
 
+# The printable copy in an export. src/lib/server/services/export-pdf.ts resolves
+# `playwright` at runtime and exports without a PDF when it is missing, so it is
+# not a dependency in package.json — it is installed here, into its own prefix,
+# where `pnpm prune --prod` cannot reach it. Pinned to the `@playwright/test`
+# version in package.json (tests/unit/package-scripts.test.ts holds them
+# together), because a browser build from one release and a driver from another
+# do not talk to each other.
+#
+# Only the headless shell: `chromium.launch()` is headless, and the full browser
+# would add a second Chromium nobody opens. `--with-deps` brings its system
+# libraries and fonts from apt, which is why this runs as root and first.
+# Browsers live outside any home directory so the `node` user can read them.
+ARG PLAYWRIGHT_VERSION=1.62.1
+ENV PLAYWRIGHT_BROWSERS_PATH=/opt/playwright/browsers
+RUN npm install --prefix /opt/playwright --no-save --no-audit --no-fund \
+		"playwright@${PLAYWRIGHT_VERSION}" \
+	&& /opt/playwright/node_modules/.bin/playwright install --with-deps --only-shell chromium \
+	&& rm -rf /var/lib/apt/lists/* /root/.npm /tmp/* \
+	&& chmod -R a+rX /opt/playwright
+
 # The data volume holds the SQLite database and uploaded documents. Backing up
 # one without the other is a broken restore — docs/00-architecture.md §9.
 RUN mkdir -p /data/uploads && chown -R node:node /data
@@ -37,6 +57,10 @@ COPY --from=build --chown=node:node /app/drizzle ./drizzle
 # incomplete without it — every page that renders a clause would 500.
 COPY --from=build --chown=node:node /app/standard ./standard
 COPY --from=build --chown=node:node /app/package.json ./package.json
+# Where `import('playwright')` from /app/build looks. A link rather than a
+# second install: Node follows it to the real path, so Playwright finds its own
+# `playwright-core` beside it in /opt/playwright and nothing in pnpm's tree moves.
+RUN ln -s /opt/playwright/node_modules/playwright /app/node_modules/playwright
 
 ENV DATABASE_URL=file:/data/compass.db
 ENV UPLOAD_DIR=/data/uploads
