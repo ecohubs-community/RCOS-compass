@@ -631,21 +631,43 @@ function writeProposal(
 	);
 
 	/**
-	 * The previous version's round, closed as superseded.
+	 * The question moves to the version just written.
+	 *
+	 * In the same transaction as the round it supersedes, because the column and
+	 * the round are two statements about one fact: which text the community is
+	 * being asked about. A commit that carried one and not the other would leave
+	 * a thread whose open round is on a version nothing can answer.
+	 */
+	tx.update(discussion)
+		.set({ currentProposalPostId: written.id })
+		.where(eq(discussion.id, found.id))
+		.run();
+
+	/**
+	 * The round on the version that was the question, closed as superseded.
 	 *
 	 * Not cancelled: nobody cancelled it, the text it was about stopped being the
 	 * text on the table. Its responses stay exactly where they are — they are what
 	 * that version was told, they are what a freeze of that version should quote,
 	 * and they are not consents to these new words.
+	 *
+	 * The round on the version that *was the question*, which is not always the
+	 * version before this one: a steward may have moved the question back to v3
+	 * while v4 existed, and writing v5 then supersedes v3's round, not v4's.
 	 */
-	if (previous) {
+	if (found.currentProposalPostId) {
 		tx.update(consentRound)
 			.set({
 				status: 'superseded',
 				closedAt: new Date(ctx.now()),
 				supersededByPostId: written.id
 			})
-			.where(and(eq(consentRound.proposalPostId, previous.id), eq(consentRound.status, 'open')))
+			.where(
+				and(
+					eq(consentRound.proposalPostId, found.currentProposalPostId),
+					eq(consentRound.status, 'open')
+				)
+			)
 			.run();
 	}
 
@@ -810,6 +832,223 @@ export function latestProposal(
 }
 
 /**
+ * A superseded round, brought back because the question came back to it.
+ *
+ * Here rather than in `voting/consent-round.ts` for the reason the seam test in
+ * `tests/integration/consent.test.ts` enforces: nothing outside `voting/` may
+ * import the built-in provider, or a second provider stops being a one-module
+ * change. Closing a round when a version is written already reaches into
+ * `consent_round` from this file, because closing it is part of writing the
+ * version rather than part of voting — and moving the question back is that
+ * same act, backwards.
+ *
+ * **This never refuses the move.** It reports what happened to the round, and
+ * the caller says so. An earlier draft refused a lapsed deadline with "ask the
+ * question again as a new round", which named an act the product does not have:
+ * a version holds at most one round (`roundFor` reads one row), and the form
+ * that opened a round deliberately was removed when rounds began opening on the
+ * first response. Telling somebody to do an impossible thing is worse than
+ * telling them nothing.
+ *
+ * So a superseded round comes back, and a deadline that has gone is cleared
+ * with it — the steward is asking the question again, and a deadline nobody can
+ * still meet would have `closeIfDue` close the round on the next page view.
+ * `consent_eligible` is untouched either way: eligibility is a snapshot so that
+ * "9 of 27" cannot change meaning underneath a community.
+ */
+type ReopenOutcome =
+	/** There is a live round on this version — new or brought back. */
+	| { round: 'open'; deadlineCleared: boolean }
+	/** Nobody has ever answered this version; the first response opens one. */
+	| { round: 'none' }
+	/** The round is over. The version can be recorded, not answered. */
+	| { round: 'closed' };
+
+function reopenSupersededRound(db: Db, proposalPostId: string, now: number): ReopenOutcome {
+	const round = db
+		.select()
+		.from(consentRound)
+		.where(eq(consentRound.proposalPostId, proposalPostId))
+		.get();
+	if (!round) return { round: 'none' };
+	if (round.status === 'open') return { round: 'open', deadlineCleared: false };
+	if (round.status !== 'superseded') {
+		// `closed` is the only other status anything writes; `cancelled` exists in
+		// the enum and has never had a writer. Reported by what it is rather than
+		// by what closed it, so the sentence this puts in the thread cannot claim
+		// a deadline that was not there.
+		return { round: 'closed' };
+	}
+
+	/**
+	 * A round everybody had answered comes back like any other.
+	 *
+	 * It used to stay shut here, because `closeIfDue` closed a complete round on
+	 * sight and reopening one produced a state that lasted until the next page
+	 * view. A round now closes only at a deadline, so there is nothing to fight:
+	 * the community is being asked again, and anybody who wants to move their
+	 * answer can.
+	 */
+	const deadlineCleared = round.closesAt !== null && now >= round.closesAt.getTime();
+	db.update(consentRound)
+		.set({
+			status: 'open',
+			closedAt: null,
+			supersededByPostId: null,
+			...(deadlineCleared ? { closesAt: null } : {})
+		})
+		.where(eq(consentRound.id, round.id))
+		.run();
+	return { round: 'open', deadlineCleared };
+}
+
+/**
+ * The eligible members of a round who have not answered it.
+ *
+ * Who a reopened round is announced to. Not the people who already responded:
+ * their answer still counts and still stands, and telling them a question they
+ * have answered is open again is asking them to do something twice.
+ */
+function awaitingResponse(db: Db, proposalPostId: string): string[] {
+	const round = db
+		.select()
+		.from(consentRound)
+		.where(eq(consentRound.proposalPostId, proposalPostId))
+		.get();
+	if (!round) return [];
+
+	const answered = new Set(
+		db
+			.select({ membershipId: consentResponse.membershipId })
+			.from(consentResponse)
+			.where(eq(consentResponse.roundId, round.id))
+			.all()
+			.map((row) => row.membershipId)
+	);
+	return db
+		.select({ membershipId: consentEligible.membershipId })
+		.from(consentEligible)
+		.where(eq(consentEligible.roundId, round.id))
+		.all()
+		.map((row) => row.membershipId)
+		.filter((id) => !answered.has(id));
+}
+
+/**
+ * Put an earlier version back on the table. `openspec/changes/movable-current-proposal`.
+ *
+ * The community can freeze v3 while v4 exists and, until this, could not
+ * finish *asking* about it: nine of twenty-seven consent, somebody posts v4,
+ * and the other eighteen can never answer v3 again. Moving the question is a
+ * steward act because it decides what the community is being asked, and it
+ * closes whatever round is running to do it.
+ *
+ * One transaction, and one round open at the end of it. Not on
+ * `VotingProvider`, and not importing the built-in provider either — see
+ * `reopenSupersededRound` above for why both of those are the same rule.
+ */
+export function setCurrentProposal(
+	ctx: Ctx,
+	input: { discussionId: string; proposalPostId: string; reason?: string | null },
+	options: { db?: Db } = {}
+): Discussion {
+	requirePermission(ctx, 'proposal.set_current');
+	requireWritableCommunity(ctx);
+	const db = options.db ?? getDb();
+	const now = ctx.now();
+
+	const found = getDiscussion(ctx, input.discussionId, { db });
+
+	const target = db
+		.select()
+		.from(post)
+		.where(and(eq(post.id, input.proposalPostId), eq(post.discussionId, found.id)))
+		.get();
+	// A post from another discussion, or another community's, is not found rather
+	// than refused: neither may teach anybody that it exists.
+	if (!target) error(404, 'Not found');
+	if (target.kind !== 'proposal') {
+		error(400, 'Only a proposal version can be the question.');
+	}
+	// Already there. Silently, and with no post: a steward pressing the button
+	// twice has not moved anything, and a thread that says so twice is noise in
+	// the one record a freeze is argued about from.
+	if (found.currentProposalPostId === target.id) return found;
+
+	const previous = found.currentProposalPostId
+		? (db.select().from(post).where(eq(post.id, found.currentProposalPostId)).get() ?? null)
+		: null;
+
+	return db.transaction((tx) => {
+		const inTx = tx as unknown as Db;
+
+		const outcome = reopenSupersededRound(inTx, target.id, now);
+
+		if (found.currentProposalPostId) {
+			tx.update(consentRound)
+				.set({ status: 'superseded', closedAt: new Date(now), supersededByPostId: target.id })
+				.where(
+					and(
+						eq(consentRound.proposalPostId, found.currentProposalPostId),
+						eq(consentRound.status, 'open')
+					)
+				)
+				.run();
+		}
+
+		tx.update(discussion)
+			.set({ currentProposalPostId: target.id })
+			.where(eq(discussion.id, found.id))
+			.run();
+
+		/**
+		 * The move, in the thread.
+		 *
+		 * `docs/03` §3 treats a revision note as an event a member reads rather
+		 * than as metadata, and moving the question is at least as consequential:
+		 * it changes what everybody is being asked. So it takes the same shape —
+		 * a post, attributed, saying where the question went.
+		 */
+		const reason = input.reason?.trim();
+		writeThreadPost(ctx, inTx, {
+			discussionId: found.id,
+			body:
+				`Put v${target.proposalVersion} back on the table` +
+				(previous?.proposalVersion ? `, from v${previous.proposalVersion}` : '') +
+				(reason ? ` — ${reason}` : '.') +
+				(outcome.round === 'open' && outcome.deadlineCleared
+					? ' The round reopened without its deadline, which had passed.'
+					: '') +
+				(outcome.round === 'closed' ? ' Its round is over, so it takes no new responses.' : '')
+		});
+
+		/**
+		 * The people with something to do, and nobody else.
+		 *
+		 * `writeThreadPost` notifies nobody, and reopening creates no round — so
+		 * without this the members whose live round just came back would hear
+		 * nothing at all. Those who already answered are not told: their response
+		 * still counts, and nothing is being asked of them again. Nobody is told
+		 * about the round that closed, because a closed round needs no action.
+		 */
+		const waiting = awaitingResponse(inTx, target.id);
+		if (waiting.length > 0) {
+			notify(inTx, ctx, {
+				kind: 'consent.opened',
+				subjectType: 'discussion',
+				subjectId: found.id,
+				summary: 'A proposal is open for your response',
+				params: { title: found.title },
+				recipients: waiting,
+				mail: true
+			});
+		}
+
+		return tx.select().from(discussion).where(eq(discussion.id, found.id)).get()!;
+	});
+}
+
+/**
  * The proposal a freeze would adopt.
  *
  * Refuses rather than returning null, because the caller is about to record a
@@ -821,19 +1060,23 @@ export function proposalToFreeze(
 	discussionId: string,
 	options: { db?: Db; proposalPostId?: string } = {}
 ): Post {
-	getDiscussion(ctx, discussionId, options);
-
 	/**
-	 * The version the steward chose, not the thread's most recent.
+	 * The version the steward chose, and otherwise the one being asked about.
 	 *
 	 * A community can vote v3 through, watch v4 draw objections, and want v3.
 	 * Resolving the latest at submission time made that impossible in one
 	 * direction and silently recorded the wrong text in the other — a steward who
 	 * read v3 and submitted after v4 landed adopted v4's words under v3's tally.
+	 *
+	 * The fallback is the *current* version rather than the newest, and for the
+	 * same reason: a form that carries no version id would otherwise record v4's
+	 * words under the tally v3 was given — the identical failure, arriving
+	 * through the one door still open to it.
 	 */
+	const found = getDiscussion(ctx, discussionId, options);
 	const proposal = options.proposalPostId
 		? proposalInDiscussion(discussionId, options.proposalPostId, options)
-		: latestProposal(ctx, discussionId, options);
+		: currentProposal(found, options);
 
 	if (!proposal) {
 		error(409, 'There is no proposal to record yet. Write one first, then freeze it.');
@@ -842,6 +1085,30 @@ export function proposalToFreeze(
 		error(409, 'That proposal has already been recorded as a decision.');
 	}
 	return proposal;
+}
+
+/**
+ * The version a discussion is currently asking about, or null while it has none.
+ *
+ * Reads the column rather than the highest version number. `latestProposal` is
+ * still right for the callers that mean *newest* — the rail's "v4 is the later
+ * version" warning is about newest, by definition — and wrong for every caller
+ * that means *the question*.
+ *
+ * Takes the `Discussion` and no `Ctx`, because it checks nothing: the caller
+ * has already been through `getDiscussion`, which is where the community is
+ * checked. A `ctx` parameter this ignored would read as a guard and be none.
+ */
+export function currentProposal(found: Discussion, options: { db?: Db } = {}): Post | null {
+	if (!found.currentProposalPostId) return null;
+	const db = options.db ?? getDb();
+	return (
+		db
+			.select()
+			.from(post)
+			.where(and(eq(post.id, found.currentProposalPostId), eq(post.discussionId, found.id)))
+			.get() ?? null
+	);
 }
 
 /** A proposal, but only if it is this discussion's. */
@@ -894,4 +1161,15 @@ registerTenantService({
 	name: 'discussions.proposalToFreeze',
 	subject: 'discussion',
 	call: proposalToFreeze
+});
+/**
+ * Keyed on the *proposal*, because that is the id an attacker would supply: the
+ * discussion is theirs and the version is somebody else's. Moving the question
+ * to another community's post must answer 404 like everything else.
+ */
+registerTenantService({
+	name: 'discussions.setCurrentProposal',
+	subject: 'proposal',
+	call: (ctx, subjectId) =>
+		setCurrentProposal(ctx, { discussionId: subjectId, proposalPostId: subjectId })
 });

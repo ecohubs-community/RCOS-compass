@@ -5,6 +5,7 @@ import { ctxCan } from '$lib/server/auth/guard';
 import { systemClock } from '$lib/server/clock';
 import { getDb } from '$lib/server/db';
 import { decision } from '$lib/server/db/schema/decisions';
+import type { Discussion } from '$lib/server/db/schema/discussions';
 import { enqueue } from '$lib/server/jobs/queue';
 import { freeze } from '$lib/server/services/decisions';
 import {
@@ -12,7 +13,9 @@ import {
 	addProposal,
 	getDiscussion,
 	listPostsWithAuthors,
+	currentProposal,
 	mentionDirectory,
+	setCurrentProposal,
 	takeOffline
 } from '$lib/server/services/discussions';
 import { listObjections, resolveObjection } from '$lib/server/services/objections';
@@ -53,13 +56,22 @@ export const load: PageServerLoad = ({ locals, params, url }) => {
 	/**
 	 * The version on screen.
 	 *
-	 * An unknown or malformed `?v=` falls back to the newest rather than erroring:
-	 * a stale link is a stale link, and an error page is a worse answer than the
-	 * version the reader would have got anyway.
+	 * An unknown or malformed `?v=` falls back to the version the community is
+	 * being asked about rather than erroring: a stale link is a stale link, and an
+	 * error page is a worse answer than the version the reader would have got
+	 * anyway.
+	 *
+	 * The *current* version and not the newest. Those were the same thing until
+	 * the question became movable; now a thread where a steward has put v3 back
+	 * would otherwise open on v4 with the response form sitting on v3 — one
+	 * screen disagreeing with itself about what is being decided.
 	 */
 	const asked = Number(url.searchParams.get('v') ?? '');
-	const selected =
-		proposals.find((entry) => entry.proposalVersion === asked) ?? proposals.at(-1) ?? null;
+	const current =
+		proposals.find((entry) => entry.id === thread.currentProposalPostId) ??
+		proposals.at(-1) ??
+		null;
+	const selected = proposals.find((entry) => entry.proposalVersion === asked) ?? current;
 
 	/** What a version's button says: never frozen, in force, or superseded. */
 	const decisions = new Map(
@@ -82,6 +94,9 @@ export const load: PageServerLoad = ({ locals, params, url }) => {
 	};
 
 	const round = selected ? roundFor(db, selected.id) : undefined;
+	// Read once and used twice — for the list and for this reader's own answer.
+	// It joins four tables, and this is the most-opened screen in the app.
+	const roundResponses = round ? listResponses(ctx, round.id, { db }) : [];
 	const inForce = thread.frozenDecisionId ? decisions.get(thread.frozenDecisionId) : undefined;
 
 	/**
@@ -120,6 +135,7 @@ export const load: PageServerLoad = ({ locals, params, url }) => {
 			status: thread.status,
 			origin: thread.origin,
 			clauseKey: thread.clauseKey,
+			currentProposalPostId: thread.currentProposalPostId,
 			decidedRef: inForce?.ref ?? null,
 			decidedTitle: inForce?.title ?? null
 		},
@@ -142,6 +158,7 @@ export const load: PageServerLoad = ({ locals, params, url }) => {
 		versions: proposals.map((entry) => ({
 			id: entry.id,
 			version: entry.proposalVersion,
+			isCurrent: entry.id === current?.id,
 			...frozenState(entry.frozenDecisionId)
 		})),
 		proposal: selected && {
@@ -151,6 +168,12 @@ export const load: PageServerLoad = ({ locals, params, url }) => {
 			createdAt: selected.createdAt.getTime(),
 			raw: selected.body,
 			body: parseMarkdown(selected.body),
+			/**
+			 * Whether this version is the one being asked about — which is what
+			 * every caller of `isLatest` has always meant, back when the two could
+			 * not differ. The rail gates the response form on it.
+			 */
+			isCurrent: selected.id === current?.id,
 			isLatest: selected.id === proposals.at(-1)?.id,
 			...frozenState(selected.frozenDecisionId),
 			/**
@@ -176,16 +199,35 @@ export const load: PageServerLoad = ({ locals, params, url }) => {
 				? { fromVersion: previous.proposalVersion, from: previous.body, to: selected.body }
 				: null,
 		previousVersion: previous?.proposalVersion ?? null,
-		/** The later version, when the reader is looking at an older one. */
+		/**
+		 * The later version, when the reader is looking at an older one.
+		 *
+		 * Genuinely *newest*, not *current*: this warns a reader that something
+		 * newer than what they are reading exists, which is true whether or not
+		 * the community has moved the question to it.
+		 */
 		laterVersion:
 			selected && selected.id !== proposals.at(-1)?.id ? proposals.at(-1)!.proposalVersion : null,
+		/** Which version answers, so the rail can mark it and gate the form on it. */
+		currentVersion: current?.proposalVersion ?? null,
 		round: round && {
 			id: round.id,
 			status: round.status,
 			openedAt: round.openedAt.getTime(),
 			closesAt: round.closesAt?.getTime() ?? null,
 			tally: getVotingProvider().tally(ctx, round.id, { db }),
-			responses: listResponses(ctx, round.id, { db })
+			responses: roundResponses,
+			/**
+			 * What this reader already said, if anything.
+			 *
+			 * The three buttons are offered whether or not you have answered, and
+			 * answering again replaces your answer rather than adding a second one
+			 * (`consent_response` is unique per round and member). Without this the
+			 * screen never says which of the three you chose, so consenting and
+			 * then objecting reads as casting two votes — and a member who cannot
+			 * see their own answer cannot tell whether changing it worked.
+			 */
+			mine: roundResponses.find((entry) => entry.membershipId === ctx.membership.id) ?? null
 		},
 		previousTally,
 		/**
@@ -200,7 +242,8 @@ export const load: PageServerLoad = ({ locals, params, url }) => {
 			comment: ctxCan(ctx, 'discussion.comment'),
 			propose: ctxCan(ctx, 'proposal.create'),
 			freeze: ctxCan(ctx, 'decision.freeze'),
-			respond: ctxCan(ctx, 'consent.respond')
+			respond: ctxCan(ctx, 'consent.respond'),
+			setCurrent: ctxCan(ctx, 'proposal.set_current')
 		},
 		// Told before the modal is confirmed, not after (UI spec §5.1).
 		wouldBeProvisional: !isArtifactComplete(ctx, DECISION_MATRIX, { db }),
@@ -314,6 +357,35 @@ export const actions: Actions = {
 
 		// Returned, never posted: it lands in a field with a Send button beside it.
 		return { step: 'suggest', suggestion: outcome.text, suggestionKind: kind };
+	},
+
+	/**
+	 * Put an earlier version back on the table.
+	 *
+	 * A form like every other act here, so it works before the bundle does. The
+	 * redirect lands on the version that is now the question, because that is the
+	 * screen the steward was asking for.
+	 */
+	setCurrent: async (event) => {
+		const form = await event.request.formData();
+		const outcome = await run('setCurrent', () =>
+			setCurrentProposal(
+				event.locals.ctx!,
+				{
+					discussionId: event.params.id,
+					proposalPostId: String(form.get('proposalPostId') ?? ''),
+					reason: String(form.get('reason') ?? '') || null
+				},
+				{ db: getDb() }
+			)
+		);
+		if ('status' in outcome) return outcome;
+
+		// The version number, and nothing else. Reading the whole thread for it
+		// resolved a person label per post and threw all of them away.
+		const moved = outcome.result as Discussion;
+		const version = currentProposal(moved, { db: getDb() })?.proposalVersion;
+		redirect(303, `/c/${event.params.slug}/discussions/${event.params.id}?v=${version ?? ''}`);
 	},
 
 	resolveObjection: async (event) => {

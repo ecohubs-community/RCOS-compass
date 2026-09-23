@@ -65,24 +65,79 @@ not reach.
 
 ## Reopening, precisely
 
-A round has three closed states and they are not the same:
+`consent_round.status` is `open | closed | cancelled | superseded`, and the
+closed ones are not the same thing:
 
 | status | why it closed | reopen? |
 |---|---|---|
 | `superseded` | the text stopped being the question | **yes** — that is this change |
 | `closed`, deadline reached | a time somebody chose has passed | no |
 | `closed`, everyone answered | there is nobody left to ask | no — and nothing to gain |
+| `cancelled` | not reachable today | no |
 
-Reopening a superseded round keeps its `consent_eligible` rows. This is the one
-detail that must not be got wrong: eligibility is a snapshot precisely so that
-"9 of 27" cannot change meaning underneath a community, and re-snapshotting on
-reopen would silently re-base a denominator members had already been given.
-Someone who joined while v4 was the question is not eligible for v3's round.
-They become eligible for whatever round opens next.
+Two of those also apply to a *superseded* round, and each needs an answer:
 
-A round closed by its deadline stays closed. A steward who wants that question
-asked again opens a fresh round on it, which is a new denominator honestly
-declared, rather than a dead round brought back with an old one.
+- **A round superseded before its deadline, reopened after it.** `closeIfDue`
+  runs on read as well as on write, so leaving the deadline on would close the
+  round again the next time anybody looked at the page. The deadline is cleared
+  as the round comes back, and the form says so before the click. A steward
+  putting v3 back *is* asking the question again; a date nobody can still meet
+  is not part of that question.
+- **A round every eligible member had already answered.** Nothing to gather, and
+  `closeIfDue` would close it again anyway. It stays closed — and the move still
+  happens, because a steward moving the question back may be about to record
+  that version, and the tally it holds is exactly what the freeze should quote.
+
+**The state of a round never refuses the move**, and this is a correction. An
+earlier draft refused both cases with *"ask the question again as a new
+round"* — an instruction to do something the product cannot do. The form that
+opened a round deliberately was removed when rounds began opening on the first
+response, and `roundFor` reads **one** round per version, so a second round
+would make every tally on the screen ambiguous. Refusing with an impossible
+remedy is worse than not refusing: it leaves somebody stuck and tells them it is
+their move.
+
+Allowing more than one round per version is a real option and a larger one — it
+changes what "9 of 27" names everywhere the number appears — so it is out of
+scope here rather than quietly half-built.
+
+Reopening keeps its `consent_eligible` rows. This is the one detail that must
+not be got wrong: eligibility is a snapshot precisely so that "9 of 27" cannot
+change meaning underneath a community, and re-snapshotting on reopen would
+silently re-base a denominator members had already been given. Someone who
+joined while v4 was the question is not eligible for v3's round. They become
+eligible for whatever round opens next.
+
+## Who is told
+
+`createRound` notifies every eligible member that a proposal is open for their
+response. Reopening creates no round, so as written it would notify nobody — and
+the people whose live round just came back are precisely the people with
+something to do.
+
+Reopening therefore sends the same `consent.opened` notification, to the
+eligible members who have **not** answered. Not to those who have: their
+response is still counted and still theirs, and nothing is being asked of them
+again. Nobody is notified about the round that *closed*; a closed round needs no
+action, and the thread carries the post that says what happened.
+
+## Three readers of "the latest version", and only one of them meant it
+
+Naming the current version splits a phrase that has been doing two jobs:
+
+| Reader | Meant | Today |
+|---|---|---|
+| `respondableProposal` | the question | newest |
+| the rail's default `?v=` | the question | newest |
+| `proposalToFreeze` fallback | the question | newest |
+| `laterVersion` / "v4 is the text on the table" | newest, to warn the reader | newest |
+| `listDiscussionSummaries.version` | newest, for "v4" on a row | newest |
+
+The first three are wrong the moment the two differ, and the last two are right.
+The freeze fallback is the dangerous one: a form submitted without a version id
+would record v4's words under the tally the community gave v3 — the exact
+failure `proposalToFreeze` was rewritten to prevent in `discussion-detail-rail`,
+arriving through a different door.
 
 ## Moving the question is a post
 
@@ -112,6 +167,46 @@ Without this, the rail would have to claim v4 is the question because it is
 newest, while the response form sat on v3 — which is the kind of disagreement
 between two parts of one screen that teaches people to distrust both.
 
+## No new provider methods, and no provider import either
+
+`VotingProvider` is `openRound`, `respond`, `tally`. Supersession is not on it:
+`writeProposal` updates `consent_round` directly, in its own transaction,
+because closing a round is part of writing a version rather than part of voting.
+Moving the question back is the same act in reverse and goes the same way.
+
+Adding `supersede`/`restore` to the interface would be a seam with one caller
+and one implementation, invented for a second provider nobody has specified —
+and it would have to be implemented by that provider before it could refuse to
+support the feature, which is the wrong way round.
+
+The implementation found a second, sharper reason. `tests/integration/consent.test.ts`
+asserts that **nothing outside `voting/` imports `voting/consent-round`** — the
+whole value of the interface being that a second provider changes one module.
+The reopen helpers therefore live in `services/discussions.ts` beside the
+supersession that is already there, reaching the tables through the schema
+rather than through the provider. Same decision, arrived at twice.
+
+## Answering is not an ending
+
+`closeIfDue` closed a round the moment the last eligible member responded. The
+reason written beside it was that *"a community of nine should not wait three
+days for a deadline once the ninth person has responded"* — and nothing was ever
+waiting. A round informs a freeze; a person presses Freeze. The tally is
+complete the instant the ninth answers, whether the round is open or shut.
+
+What closing bought was nothing, and what it cost was the round's own point.
+`respond` refuses a closed round, so the ninth member took the other eight's
+right to change their mind away with them — silently, by being last. A member
+who hit it was looking at the answer they had given, with three live buttons
+that did nothing.
+
+So a round now closes at its deadline, when the version it belongs to is
+superseded, or at the freeze. Never because the answering finished.
+
+This also removes the last reason `reopenSupersededRound` had to refuse: a round
+everybody had answered used to stay shut, because reopening it produced a state
+`closeIfDue` undid on the next page view. Nothing undoes it now.
+
 ## Risks
 
 - **A steward could park a community on a version members have moved past.** It
@@ -122,3 +217,18 @@ between two parts of one screen that teaches people to distrust both.
 - **The backfill must be exactly today's behaviour.** Highest
   `proposal_version` per discussion, null where there are no proposals. Any
   other choice silently changes which version answers for every existing thread.
+- **The column has no foreign key**, matching `discussion.frozen_decision_id`
+  beside it. `post.discussion_id` already references `discussion` on cascade, so
+  a constraint pointing back is a cycle; the table has been avoiding it in the
+  same place for the same reason. The cost is that a stale id is possible in
+  principle — and posts are never deleted in this product, so in practice it is
+  the cheaper of the two.
+- **A round with no deadline now never closes on its own.** That is the
+  intended trade: it ends when the text is replaced or when somebody records it,
+  both of which are acts a person takes. A thread abandoned mid-round leaves an
+  open round behind, exactly as a thread abandoned mid-discussion leaves an open
+  discussion — the Path's "quiet for over 12 days" is what surfaces both.
+- **`current_proposal_post_id` and the round's `proposal_post_id` can disagree
+  if either write escapes its transaction.** Both moves — forward in
+  `writeProposal`, back in `setCurrentProposal` — set the column and touch the
+  round in one commit, and the tests assert the failure case leaves neither.

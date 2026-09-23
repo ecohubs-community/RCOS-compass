@@ -169,6 +169,13 @@
       "when": 1789418182677,
       "tag": "0023_stormy_susan_delgado",
       "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "6",
+      "when": 1789931513373,
+      "tag": "0024_open_shooting_star",
+      "breakpoints": true
     }
   ]
 }

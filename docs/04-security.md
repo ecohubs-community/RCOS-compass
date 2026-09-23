@@ -54,6 +54,7 @@ So:
 | Respond in a consent round | ✓ | ✓ | |
 | Raise an objection, withdraw their own | ✓ | ✓ | |
 | **Open a consent round** | ✓ | — | |
+| **Put an earlier proposal version back on the table** | ✓ | — | Closes the round that was running; a member writes the next version, a steward says which one is being asked about |
 | **Freeze a decision** | ✓ | — | |
 | Resolve or overrule someone else's objection | ✓ | — | |
 | Ratify provisional definitions | ✓ | — | |

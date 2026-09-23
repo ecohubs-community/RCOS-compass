@@ -32,7 +32,23 @@ export const discussion = sqliteTable(
 		openedAt: integer('opened_at', { mode: 'timestamp_ms' }).notNull(),
 		/** Drives "stalled 12 days" on the dashboard. */
 		lastActivityAt: integer('last_activity_at', { mode: 'timestamp_ms' }).notNull(),
-		frozenDecisionId: text('frozen_decision_id')
+		frozenDecisionId: text('frozen_decision_id'),
+		/**
+		 * The proposal version the community is currently being asked about.
+		 *
+		 * Named rather than derived. It used to be `max(proposal_version)`, which
+		 * made writing a version the only event that could move the question and
+		 * made that move irreversible: nine of twenty-seven consent to v3,
+		 * somebody posts v4, and the other eighteen can never answer v3 again.
+		 * Posting still moves it forward; a steward can move it back.
+		 *
+		 * No foreign key, exactly like `frozen_decision_id` above it:
+		 * `post.discussion_id` already references this table on cascade, so a
+		 * constraint pointing the other way is a cycle SQLite has to unpick every
+		 * time a community is deleted. Posts are never deleted here, so the
+		 * stale-id risk it trades for is theoretical.
+		 */
+		currentProposalPostId: text('current_proposal_post_id')
 	},
 	(table) => [
 		index('discussion_community_idx').on(table.communityId, table.lastActivityAt),

@@ -39,6 +39,7 @@ const EXPECTED: Record<Capability, { steward: boolean; member: boolean; ownerOnl
 
 	'consent.open': { steward: true, member: false },
 	'decision.freeze': { steward: true, member: false },
+	'proposal.set_current': { steward: true, member: false },
 	'objection.resolve': { steward: true, member: false },
 	'definition.ratify': { steward: true, member: false },
 	'document.destroy': { steward: true, member: false },
@@ -103,6 +104,7 @@ describe('the line the roles divide along', () => {
 	it('lets a member do nothing that produces authority', () => {
 		for (const capability of [
 			'decision.freeze',
+			'proposal.set_current',
 			'consent.open',
 			'definition.ratify',
 			'artifact.publish',

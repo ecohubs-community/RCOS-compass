@@ -1,4 +1,4 @@
-import { and, count, eq, gt, isNull } from 'drizzle-orm';
+import { and, count, eq, isNull } from 'drizzle-orm';
 import { error } from '@sveltejs/kit';
 import { requirePermission, requireWritableCommunity, type Ctx } from '../auth/guard.js';
 import { getDb, type Db } from '../db/index.js';
@@ -32,35 +32,30 @@ import type { OpenRoundInput, ResponseValue, Round, Tally, VotingProvider } from
  */
 
 /**
- * The proposal, if it belongs to this community and is still the text on the
- * table.
+ * The proposal, if it belongs to this community and is the version being asked
+ * about.
  *
- * A version somebody has already replaced takes no more responses: v4 is what
- * the community is being asked about, and a vote arriving on v3 afterwards would
- * be counted into a tally that a freeze of v3 might later quote.
+ * A version the community has moved past takes no more responses: a vote
+ * arriving on v3 after the question moved would be counted into a tally that a
+ * freeze of v3 might later quote.
+ *
+ * Read from `discussion.current_proposal_post_id` and **not** from whichever
+ * version is highest-numbered. Those were the same thing until the question
+ * became something a steward can move: a community that has put v3 back on the
+ * table is being asked about v3, and refusing an answer to it because v4 exists
+ * is refusing the answer to the question that was actually put.
  */
 function respondableProposal(db: Db, ctx: Ctx, proposalPostId: string) {
 	const found = db
-		.select({ post })
+		.select({ post, currentProposalPostId: discussion.currentProposalPostId })
 		.from(post)
 		.innerJoin(discussion, eq(discussion.id, post.discussionId))
 		.where(and(eq(post.id, proposalPostId), eq(discussion.communityId, ctx.community.id)))
 		.get();
 	if (!found || found.post.kind !== 'proposal') error(404, 'Not found');
 
-	const later = db
-		.select({ id: post.id })
-		.from(post)
-		.where(
-			and(
-				eq(post.discussionId, found.post.discussionId),
-				eq(post.kind, 'proposal'),
-				gt(post.proposalVersion, found.post.proposalVersion ?? 0)
-			)
-		)
-		.get();
-	if (later) {
-		error(409, 'A newer version is on the table. Respond to that one.');
+	if (found.currentProposalPostId !== found.post.id) {
+		error(409, 'This is not the version on the table. Respond to that one.');
 	}
 	return found.post;
 }
@@ -193,11 +188,20 @@ function countEligible(db: Db, roundId: string): number {
 }
 
 /**
- * Close the round if its time has come.
+ * Close the round if its deadline has passed.
  *
- * Two ways: the deadline passes, or everyone entitled to answer has. The second
- * matters — a community of nine should not wait three days for a deadline once
- * the ninth person has responded.
+ * **Only the deadline.** It used to close as soon as the last eligible member
+ * answered, so that a community of nine would not wait three days for a
+ * deadline once the ninth had responded — and that reasoning was about *not
+ * waiting*, which nothing here ever did: a round informs a freeze and a person
+ * still presses Freeze, so the tally is available the moment it is complete
+ * whether the round is open or shut.
+ *
+ * What it cost was the thing the round is for. `respond` refuses a closed
+ * round, so the last member to answer silently took everybody's right to change
+ * their mind away with them — and the member who noticed was looking at the
+ * answer they had given, unable to move it. Changing your mind is spec'd
+ * behaviour; a round that locks on its own is not.
  *
  * Called on read as well as on write, so a round is never left open past its
  * deadline just because nobody happened to touch it. A job could sweep too; this
@@ -207,18 +211,10 @@ function closeIfDue(db: Db, roundId: string, now: number): void {
 	const row = db.select().from(consentRound).where(eq(consentRound.id, roundId)).get();
 	if (!row || row.status !== 'open') return;
 
-	const eligible = countEligible(db, roundId);
-	const [responded] = db
-		.select({ n: count() })
-		.from(consentResponse)
-		.where(eq(consentResponse.roundId, roundId))
-		.all();
-
-	const everyoneAnswered = eligible > 0 && (responded?.n ?? 0) >= eligible;
-	// A round with no deadline has none to pass. It ends when everyone has
-	// answered, when the text it is about is replaced, or at the freeze.
+	// A round with no deadline has none to pass. It ends when the text it is
+	// about is replaced, or at the freeze — and not before.
 	const deadlinePassed = row.closesAt !== null && now >= row.closesAt.getTime();
-	if (!everyoneAnswered && !deadlinePassed) return;
+	if (!deadlinePassed) return;
 
 	db.update(consentRound)
 		.set({ status: 'closed', closedAt: new Date(now) })
@@ -250,14 +246,28 @@ export const consentRoundProvider: VotingProvider = {
 
 		const proposal = respondableProposal(db, ctx, input.proposalPostId);
 
-		const alreadyOpen = db
+		/**
+		 * A version holds at most one round, whatever state it is in.
+		 *
+		 * This looked for an *open* one, so a version whose round had been
+		 * superseded or had reached its deadline got a second — and `roundFor`
+		 * reads one row per proposal, so every screen would go on showing the
+		 * first while answers landed in the second. `respond` had the same hole
+		 * and this is the same rule.
+		 */
+		const existing = db
 			.select()
 			.from(consentRound)
-			.where(
-				and(eq(consentRound.proposalPostId, input.proposalPostId), eq(consentRound.status, 'open'))
-			)
+			.where(eq(consentRound.proposalPostId, input.proposalPostId))
 			.get();
-		if (alreadyOpen) error(409, 'A round is already open on this proposal.');
+		if (existing) {
+			error(
+				409,
+				existing.status === 'open'
+					? 'A round is already open on this proposal.'
+					: 'This version has already had its round.'
+			);
+		}
 
 		return db.transaction((tx) => {
 			const roundId = createRound(tx as unknown as Db, ctx, {
@@ -308,17 +318,26 @@ export const consentRoundProvider: VotingProvider = {
 			 * One transaction with the response it carries: a round with an
 			 * eligibility snapshot and nobody in it would claim a denominator the
 			 * community was never actually asked against.
+			 *
+			 * **A version has at most one round, ever.** This used to look only for
+			 * an *open* one and open a second when it found none — which was
+			 * unreachable while a replaced version refused responses outright, and
+			 * became reachable the moment a steward could put such a version back
+			 * on the table. What it produced was silent and ugly: `roundFor` reads
+			 * one row per proposal, so every screen went on showing the first
+			 * round while every new answer landed in the second. A member saw the
+			 * answer they gave first, could not change it, and could object as
+			 * often as they liked with nothing on screen moving.
 			 */
-			let current = tx
+			const existing = tx
 				.select()
 				.from(consentRound)
-				.where(
-					and(
-						eq(consentRound.proposalPostId, input.proposalPostId),
-						eq(consentRound.status, 'open')
-					)
-				)
+				.where(eq(consentRound.proposalPostId, input.proposalPostId))
 				.get();
+			if (existing && existing.status !== 'open') {
+				error(409, 'That round has closed, so this version takes no more responses.');
+			}
+			let current = existing;
 
 			if (!current) {
 				const roundId = createRound(inTx, ctx, {

@@ -8,7 +8,14 @@ import {
 	definition,
 	definitionVersion
 } from '../../src/lib/server/db/schema/definitions.js';
-import { discussion, post } from '../../src/lib/server/db/schema/discussions.js';
+import {
+	consentEligible,
+	consentResponse,
+	consentRound,
+	discussion,
+	post
+} from '../../src/lib/server/db/schema/discussions.js';
+import { notification } from '../../src/lib/server/db/schema/notifications.js';
 import { communityStandard } from '../../src/lib/server/db/schema/tenancy.js';
 import { createDefinition } from '../../src/lib/server/services/definitions.js';
 import {
@@ -18,12 +25,14 @@ import {
 	latestProposal,
 	listDiscussionSummaries,
 	listDiscussions,
+	setCurrentProposal,
 	listPosts,
 	openDiscussion,
 	proposalToFreeze,
 	takeOffline
 } from '../../src/lib/server/services/discussions.js';
 import { getVotingProvider } from '../../src/lib/server/voting/index.js';
+import { listResponses, roundFor } from '../../src/lib/server/voting/consent-round.js';
 import { getStandard } from '../../src/lib/server/standard/index.js';
 import { createTestDb } from '../support/db.js';
 import { catchRefusal } from '../support/errors.js';
@@ -282,6 +291,319 @@ describe('a discussion belongs to one community and one subject', () => {
  * in particular must never go back to reading `discussion.status`: nothing
  * writes that value, so a filter built on it counts nothing forever.
  */
+describe('a discussion names the version it is asking about', () => {
+	it('moves the question to each new version, and names none before the first', () => {
+		const opened = open('Exit');
+		expect(getDiscussion(ctx, opened.id, { db }).currentProposalPostId).toBeNull();
+
+		const v1 = addProposal(ctx, { discussionId: opened.id, body: 'Members may leave.' }, { db });
+		expect(getDiscussion(ctx, opened.id, { db }).currentProposalPostId).toBe(v1.id);
+
+		const v2 = addProposal(
+			{ ...ctx, now: () => NOW + 1000 },
+			{ discussionId: opened.id, body: 'Members may leave with notice.' },
+			{ db }
+		);
+		expect(getDiscussion(ctx, opened.id, { db }).currentProposalPostId).toBe(v2.id);
+	});
+
+	it('refuses a response to a version the community has moved past', () => {
+		const opened = open('Exit');
+		const v1 = addProposal(ctx, { discussionId: opened.id, body: 'Members may leave.' }, { db });
+		addProposal(
+			{ ...ctx, now: () => NOW + 1000 },
+			{ discussionId: opened.id, body: 'With notice.' },
+			{ db }
+		);
+
+		const refusal = catchRefusal(() =>
+			getVotingProvider().respond(memberCtx, { proposalPostId: v1.id, value: 'consent' }, { db })
+		);
+		expect(refusal?.status).toBe(409);
+	});
+
+	it('takes a response on the version being asked about, newer ones notwithstanding', () => {
+		const opened = open('Exit');
+		const v1 = addProposal(ctx, { discussionId: opened.id, body: 'Members may leave.' }, { db });
+		const v2 = addProposal(
+			{ ...ctx, now: () => NOW + 1000 },
+			{ discussionId: opened.id, body: 'With notice.' },
+			{ db }
+		);
+		setCurrentProposal(ctx, { discussionId: opened.id, proposalPostId: v1.id }, { db });
+
+		getVotingProvider().respond(memberCtx, { proposalPostId: v1.id, value: 'consent' }, { db });
+		const refusal = catchRefusal(() =>
+			getVotingProvider().respond(memberCtx, { proposalPostId: v2.id, value: 'consent' }, { db })
+		);
+		expect(refusal?.status).toBe(409);
+	});
+
+	it('freezes the version being asked about when a form names none', () => {
+		// The one door still open to the failure `proposalToFreeze` exists to
+		// prevent: recording v2's words under the tally v1 was given.
+		const opened = open('Exit');
+		const v1 = addProposal(ctx, { discussionId: opened.id, body: 'Members may leave.' }, { db });
+		addProposal(
+			{ ...ctx, now: () => NOW + 1000 },
+			{ discussionId: opened.id, body: 'With notice.' },
+			{ db }
+		);
+		setCurrentProposal(ctx, { discussionId: opened.id, proposalPostId: v1.id }, { db });
+
+		expect(proposalToFreeze(ctx, opened.id, { db }).id).toBe(v1.id);
+	});
+});
+
+describe('a steward may move the question back to an earlier version', () => {
+	/** v1 with one consent of two eligible, then v2 — the shape this exists for. */
+	function twoVersionsWithAConsent() {
+		const opened = open('Exit');
+		const v1 = addProposal(ctx, { discussionId: opened.id, body: 'Members may leave.' }, { db });
+		getVotingProvider().respond(memberCtx, { proposalPostId: v1.id, value: 'consent' }, { db });
+		const v2 = addProposal(
+			{ ...ctx, now: () => NOW + 1000 },
+			{ discussionId: opened.id, body: 'With notice.' },
+			{ db }
+		);
+		return { opened, v1, v2 };
+	}
+
+	it('brings the round back with its responses and its original eligibility', () => {
+		const { opened, v1 } = twoVersionsWithAConsent();
+		const round = roundFor(db, v1.id)!;
+		expect(round.status).toBe('superseded');
+		const eligibleBefore = db
+			.select()
+			.from(consentEligible)
+			.where(eq(consentEligible.roundId, round.id))
+			.all().length;
+
+		// Somebody joins while v2 is the question. They must not become eligible
+		// for a round that opened before they were here.
+		const latecomer = makeUser(db, { email: 'nico@example.org', name: 'Nico' });
+		makeMembership(db, ctx.community.id, latecomer.id, { role: 'member' });
+
+		setCurrentProposal(ctx, { discussionId: opened.id, proposalPostId: v1.id }, { db });
+
+		const after = roundFor(db, v1.id)!;
+		expect(after.status).toBe('open');
+		expect(after.closedAt).toBeNull();
+		expect(after.supersededByPostId).toBeNull();
+		expect(
+			db.select().from(consentEligible).where(eq(consentEligible.roundId, round.id)).all()
+		).toHaveLength(eligibleBefore);
+		expect(
+			db.select().from(consentResponse).where(eq(consentResponse.roundId, round.id)).all()
+		).toHaveLength(1);
+	});
+
+	it('closes the round that was the question, keeping its responses', () => {
+		const { opened, v1, v2 } = twoVersionsWithAConsent();
+		getVotingProvider().respond(memberCtx, { proposalPostId: v2.id, value: 'abstain' }, { db });
+		expect(roundFor(db, v2.id)!.status).toBe('open');
+
+		setCurrentProposal(ctx, { discussionId: opened.id, proposalPostId: v1.id }, { db });
+
+		const closed = roundFor(db, v2.id)!;
+		expect(closed.status).toBe('superseded');
+		expect(closed.supersededByPostId).toBe(v1.id);
+		expect(
+			db.select().from(consentResponse).where(eq(consentResponse.roundId, closed.id)).all()
+		).toHaveLength(1);
+	});
+
+	it('brings a round back without the deadline that went while it was away', () => {
+		// The move is never refused for the state of a round: refusing it used to
+		// say "ask the question again as a new round", which is an act the product
+		// does not have — a version holds one round, and nothing opens a second.
+		const { opened, v1, v2 } = twoVersionsWithAConsent();
+		db.update(consentRound)
+			.set({ closesAt: new Date(NOW + 500) })
+			.where(eq(consentRound.proposalPostId, v1.id))
+			.run();
+		getVotingProvider().respond(memberCtx, { proposalPostId: v2.id, value: 'abstain' }, { db });
+
+		const later = { ...ctx, now: () => NOW + 5000 };
+		setCurrentProposal(later, { discussionId: opened.id, proposalPostId: v1.id }, { db });
+
+		const back = roundFor(db, v1.id)!;
+		expect(back.status).toBe('open');
+		// Cleared, or `closeIfDue` would close this again on the next read — a
+		// reopen that lasts until somebody looks at the page.
+		expect(back.closesAt).toBeNull();
+		expect(getDiscussion(ctx, opened.id, { db }).currentProposalPostId).toBe(v1.id);
+		expect(roundFor(db, v2.id)!.status).toBe('superseded');
+
+		// And the thread says what happened to the deadline.
+		expect(listPosts(ctx, opened.id, { db }).some((p) => p.body.includes('deadline'))).toBe(true);
+	});
+
+	it('never lets a second round open on a version that already has one', () => {
+		/**
+		 * The bug this exists for, in the shape a member met it.
+		 *
+		 * `respond` looked for an *open* round and opened one when it found none.
+		 * `roundFor` reads one row per proposal, so the screen went on reading the
+		 * first round while every new answer landed in a second: the member saw
+		 * the answer they gave first, could not change it, and could object as
+		 * often as they liked with nothing moving.
+		 *
+		 * A deadline is the only thing that closes a round now, so that is what
+		 * this reaches for — the state where a version is the question and its
+		 * round will take no more.
+		 */
+		const opened = open('Exit');
+		const v1 = addProposal(ctx, { discussionId: opened.id, body: 'Members may leave.' }, { db });
+		getVotingProvider().openRound(ctx, { proposalPostId: v1.id, closesAt: NOW + 1000 }, { db });
+		getVotingProvider().respond(memberCtx, { proposalPostId: v1.id, value: 'consent' }, { db });
+
+		const later = { ...memberCtx, now: () => NOW + 5000 };
+		const refusal = catchRefusal(() =>
+			getVotingProvider().respond(
+				later,
+				{ proposalPostId: v1.id, value: 'objection', reason: 'I changed my mind' },
+				{ db }
+			)
+		);
+		expect(refusal?.status).toBe(409);
+
+		// One round, and it still holds what the community actually said.
+		const rounds = db
+			.select()
+			.from(consentRound)
+			.where(eq(consentRound.proposalPostId, v1.id))
+			.all();
+		expect(rounds).toHaveLength(1);
+		expect(listResponses(ctx, rounds[0]!.id, { db }).map((r) => r.value)).toEqual(['consent']);
+	});
+
+	it('brings back a round everybody had answered, so they can still move', () => {
+		// The round no longer closes itself when the last eligible member
+		// answers, so putting the version back asks the same people again rather
+		// than handing them a finished round they cannot touch.
+		const opened = open('Exit');
+		const v1 = addProposal(ctx, { discussionId: opened.id, body: 'Members may leave.' }, { db });
+		getVotingProvider().respond(memberCtx, { proposalPostId: v1.id, value: 'consent' }, { db });
+		getVotingProvider().respond(ctx, { proposalPostId: v1.id, value: 'consent' }, { db });
+		addProposal(
+			{ ...ctx, now: () => NOW + 1000 },
+			{ discussionId: opened.id, body: 'With notice.' },
+			{ db }
+		);
+
+		setCurrentProposal(
+			{ ...ctx, now: () => NOW + 2000 },
+			{ discussionId: opened.id, proposalPostId: v1.id },
+			{ db }
+		);
+
+		expect(getDiscussion(ctx, opened.id, { db }).currentProposalPostId).toBe(v1.id);
+		expect(roundFor(db, v1.id)!.status).toBe('open');
+
+		// And a member who had consented can now object instead.
+		getVotingProvider().respond(
+			{ ...memberCtx, now: () => NOW + 3000 },
+			{ proposalPostId: v1.id, value: 'objection', reason: 'v2 showed me the hole' },
+			{ db }
+		);
+		const round = roundFor(db, v1.id)!;
+		expect(
+			listResponses(ctx, round.id, { db }).find((r) => r.membershipId === memberCtx.membership.id)
+				?.value
+		).toBe('objection');
+		expect(
+			db.select().from(consentRound).where(eq(consentRound.proposalPostId, v1.id)).all()
+		).toHaveLength(1);
+	});
+	it('moves to a version nobody ever answered, and the next response opens a round', () => {
+		const opened = open('Exit');
+		const v1 = addProposal(ctx, { discussionId: opened.id, body: 'Members may leave.' }, { db });
+		addProposal(
+			{ ...ctx, now: () => NOW + 1000 },
+			{ discussionId: opened.id, body: 'With notice.' },
+			{ db }
+		);
+		expect(roundFor(db, v1.id)).toBeUndefined();
+
+		setCurrentProposal(ctx, { discussionId: opened.id, proposalPostId: v1.id }, { db });
+		getVotingProvider().respond(memberCtx, { proposalPostId: v1.id, value: 'consent' }, { db });
+		expect(roundFor(db, v1.id)!.status).toBe('open');
+	});
+
+	it('tells the members who have not answered, and not the ones who have', () => {
+		const { opened, v1 } = twoVersionsWithAConsent();
+		const before = db.select().from(notification).all().length;
+
+		setCurrentProposal(ctx, { discussionId: opened.id, proposalPostId: v1.id }, { db });
+
+		// Two eligible: Lena consented, Ana did not — and Ana is the actor, whom
+		// `notify` drops. So the reopen tells nobody here, and tells nobody twice.
+		const opened_ = db
+			.select()
+			.from(notification)
+			.where(eq(notification.kind, 'consent.opened'))
+			.all();
+		expect(opened_.map((row) => row.recipientMembershipId)).not.toContain(memberCtx.membership.id);
+		expect(db.select().from(notification).all().length).toBeGreaterThanOrEqual(before);
+	});
+
+	it('writes the move into the thread, with the reason where one was given', () => {
+		const { opened, v1 } = twoVersionsWithAConsent();
+		// A clock that has moved on, so the post lands after v2 rather than sharing
+		// its timestamp — `listPosts` orders by when, and a tie is not an order.
+		setCurrentProposal(
+			{ ...ctx, now: () => NOW + 2000 },
+			{ discussionId: opened.id, proposalPostId: v1.id, reason: 'v2 changed the threshold' },
+			{ db }
+		);
+
+		const last = listPosts(ctx, opened.id, { db }).at(-1)!;
+		expect(last.body).toContain('v1');
+		expect(last.body).toContain('v2');
+		expect(last.body).toContain('v2 changed the threshold');
+		expect(last.authorId).toBe(ctx.user.id);
+	});
+
+	it('does nothing at all when the version is already the question', () => {
+		const opened = open('Exit');
+		const v1 = addProposal(ctx, { discussionId: opened.id, body: 'Members may leave.' }, { db });
+		const count = listPosts(ctx, opened.id, { db }).length;
+
+		setCurrentProposal(ctx, { discussionId: opened.id, proposalPostId: v1.id }, { db });
+		expect(listPosts(ctx, opened.id, { db })).toHaveLength(count);
+	});
+
+	it('is a steward act', () => {
+		const { opened, v1 } = twoVersionsWithAConsent();
+		const refusal = catchRefusal(() =>
+			setCurrentProposal(memberCtx, { discussionId: opened.id, proposalPostId: v1.id }, { db })
+		);
+		expect(refusal?.status).toBe(403);
+		expect(getDiscussion(ctx, opened.id, { db }).currentProposalPostId).not.toBe(v1.id);
+	});
+
+	it('refuses a post that is not a proposal, and one from another discussion', () => {
+		const opened = open('Exit');
+		addProposal(ctx, { discussionId: opened.id, body: 'Members may leave.' }, { db });
+		const message = addMessage(ctx, { discussionId: opened.id, body: 'Just talking.' }, { db });
+
+		expect(
+			catchRefusal(() =>
+				setCurrentProposal(ctx, { discussionId: opened.id, proposalPostId: message.id }, { db })
+			)?.status
+		).toBe(400);
+
+		const elsewhere = open('Another thread');
+		const theirs = addProposal(ctx, { discussionId: elsewhere.id, body: 'Elsewhere.' }, { db });
+		expect(
+			catchRefusal(() =>
+				setCurrentProposal(ctx, { discussionId: opened.id, proposalPostId: theirs.id }, { db })
+			)?.status
+		).toBe(404);
+	});
+});
+
 describe('a proposal is linted against what the community already made binding', () => {
 	it('names the adopted definition a proposal restates', () => {
 		// `adoptedElsewhere` had no production caller at all, so the only clutter
