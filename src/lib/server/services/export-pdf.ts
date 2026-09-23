@@ -14,7 +14,9 @@ import { isoDateIn } from '../../time/format.js';
  * So Playwright is **not a dependency of this package at all**. It is resolved
  * at runtime through a non-literal specifier, which also keeps it out of the
  * bundler's graph: an instance that wants printable copies installs it, and one
- * that does not is smaller and works. Adding it as an optional dependency was
+ * that does not is smaller and works. The published image is the first kind —
+ * its Dockerfile installs `playwright` and a headless Chromium outside the
+ * package's own tree. Adding it as an optional dependency was
  * tried and pulled a second copy of `playwright-core` into the tree beside the
  * one the test runner uses, which broke type-checking for a third output
  * format.

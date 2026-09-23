@@ -81,3 +81,34 @@ describe('the container is configured by its environment, not by a file', () => 
 		expect(dockerfile).not.toMatch(/--env-file/);
 	});
 });
+
+describe('the image can print', () => {
+	const dockerfile = readFileSync(join(root, 'Dockerfile'), 'utf8');
+	const pkg = JSON.parse(readFileSync(join(root, 'package.json'), 'utf8')) as {
+		dependencies: Record<string, string>;
+		devDependencies: Record<string, string>;
+	};
+
+	it('installs the package the PDF renderer imports', () => {
+		// `export-pdf.ts` resolves this name at runtime and exports without a PDF
+		// when it is missing — so installing the wrong package fails nowhere but in
+		// a bundle that quietly lacks its printable copy.
+		const renderer = readFileSync(join(root, 'src/lib/server/services/export-pdf.ts'), 'utf8');
+		const specifier = renderer.match(/const specifier = '([^']+)'/)?.[1];
+		expect(specifier).toBe('playwright');
+		expect(dockerfile).toMatch(/"playwright@\$\{PLAYWRIGHT_VERSION\}"/);
+		expect(dockerfile).toContain(`/app/node_modules/${specifier}`);
+	});
+
+	it('pins it to the version the test runner uses', () => {
+		// A driver and a browser build from different releases refuse each other,
+		// and the version CI renders with is the one the tests proved.
+		const pinned = dockerfile.match(/^ARG PLAYWRIGHT_VERSION=(\S+)$/m)?.[1];
+		expect(pinned).toBe(pkg.devDependencies['@playwright/test']);
+	});
+
+	it('keeps it out of the package, where it would weigh on every install', () => {
+		expect(pkg.dependencies).not.toHaveProperty('playwright');
+		expect(pkg.devDependencies).not.toHaveProperty('playwright');
+	});
+});
