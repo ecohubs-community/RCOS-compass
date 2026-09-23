@@ -305,7 +305,8 @@ a public artifact rather than the only holder of a private one.
 - Readiness/compliance computed **per standard**, even though only one exists —
   a one-row loop today, no rewrite later.
 - The migration-map schema and the `standard/migrations/` directory, empty but
-  validated, so authoring 0.2 has a target.
+  validated, so authoring 0.2 has a target. *Not built in the MVP after all — it
+  moved to P8 (post-MVP), with the rest of migration.*
 - Content pipeline that can load more than one standard (`standard/<standard>/<version>/`).
 
 **Post-MVP** (in roadmap order): the module catalogue and adoption flow; module

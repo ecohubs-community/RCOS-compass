@@ -2,8 +2,9 @@
 
 A tool that turns the 213 numbered clauses of the RCOS governance standard into a
 short ordered list of things *this* community still has to decide, and keeps what
-they decided findable and attributable. Multi-tenant web app. Implementation has
-not started.
+they decided findable and attributable. Multi-tenant web app. The MVP phases
+P0–P7 are built (`docs/08-roadmap-mvp.md` says what each left out); the first
+deployment and pilot are next.
 
 **It never decides for them.** That is the product, not a slogan — several rules
 below exist only to enforce it.
@@ -23,7 +24,7 @@ below exist only to enforce it.
 | `docs/11-definition-linter.md` | the linter's rule set, with messages and fixtures |
 | `docs/10-legal-and-operations.md` | licence, hosting, data residency, plans |
 | `docs/05-admin-console.md` · `docs/06-testing-strategy.md` · `docs/08-roadmap-mvp.md` | |
-| `design_files/platform/` | visual source of truth (dark theme, Linear-dense) |
+| `design_files/platform/` | layout and interaction reference (dark theme, Linear-dense). **Not** the colour or type authority: the code deliberately diverged (muted and info lifted to pass contrast, 14px body — see `src/app.css`). Where the two differ, the tokens in `app.css` win |
 
 ## Stack
 
@@ -52,7 +53,9 @@ review passes. `openspec/specs/` is behaviour a test can pin down. A proposal
 cites the docs; it does not restate them. When the two disagree, the spec wins for
 behaviour and the doc gets corrected.
 
-Current change: `scaffold-project` (P0). Nothing is implemented yet.
+What is in flight: `openspec list`. What shipped: `openspec/changes/archive/`.
+Next up is the provenance UI; modules and standard migration (P8) are post-MVP —
+deploy and test what is built first.
 
 ```bash
 pnpm dev          # dev server
@@ -188,8 +191,10 @@ one; `1.0.0` is a deliberate release decision, never an automatic one.
 The RCOS standard and its 22 templates are markdown in the sibling repo
 `RCOS-website` (SvelteKit, five locales, CC BY 4.0). That
 repo generates YAML; Compass **vendors** it at `standard/rcos-core/0.1/` pinned by
-sha256 and never fetches it at runtime. A weekly CI job opens a PR when upstream
-changes — it never auto-updates, because a published version is immutable.
+sha256 and never fetches it at runtime; `pnpm check:standard` (first step in CI)
+fails on any byte that no longer matches. Updating is a deliberate re-vendor,
+never automatic, because a published version is immutable. (A weekly job that
+opens a PR when upstream changes is planned, not built.)
 
 **Never copy code from that repo.** It is AGPL-3.0; Compass is PolyForm
 Noncommercial. Consume the generated data, not the source.
@@ -234,9 +239,11 @@ Noncommercial. Consume the generated data, not the source.
   roll back a decision.
 - **Unresolved objections are never hidden.** A decision frozen over an open
   objection says so permanently, in the register and on its permalink.
-- The standard is materialised into read-only DB tables at boot; published
-  versions are immutable, and an upsert that would change an active clause's text
-  fails the boot.
+- The standard is **not** in the database. The loader reads the vendored YAML
+  and caches it in memory; tenant tables (`clause_coverage`, `decision_clause`)
+  hold the clause key with no foreign key to it. Published versions are
+  immutable because `pnpm check:standard` holds the vendored bytes to the
+  upstream hashes — never edit `standard/` by hand.
 
 ## Project facts
 
@@ -246,6 +253,10 @@ Noncommercial. Consume the generated data, not the source.
   (CC BY 4.0)** and lives in `RCOS-website`. That repo's own
   code is **AGPL-3.0** — consume its generated data, never copy its source, or
   Compass inherits AGPL.
+- **Deployment:** a Plesk server running Node — the adapter-node build, started
+  with `node build/index.js`, one instance. The Docker image stays supported but
+  is secondary. Backups beyond `pnpm snapshot` / `pnpm restore` are deferred until
+  close to the first deployment. README §Deployment has the steps.
 - **Hosting:** Germany. EcoHubs is not a legal entity yet, so no DPA can be signed
   — pilot terms only, and never onboard a community you do not personally know
   until that changes.

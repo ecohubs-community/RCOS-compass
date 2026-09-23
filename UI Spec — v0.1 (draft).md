@@ -23,6 +23,10 @@ relates_to: RCOS Core Specification — v0.1.md; Writing Good Definitions — En
 
 # RCOS Compass — product spec v0.4
 
+> The filename still says v0.1; it is kept because other documents link to it.
+> The content is v0.4, amended since by *As built* notes where the code settled
+> something.
+
 **One line:** a tool that turns the 213 numbered clauses of RCOS-Core into a
 short, ordered list of things *this* community still has to decide — and then
 keeps what they decided findable, alive, and attributable.
@@ -561,7 +565,7 @@ with the community's own words.
 
 This is the single biggest adoption unlock in the product. A forming community
 starting at zero will bounce. An existing community that uploads its bylaws and
-sees *"you already have language for 38 of 187 requirements"* stays.
+sees *"you already have language for 38 of 173 requirements"* stays.
 
 **As built (`document-mapping-workspace`).**
 
@@ -1198,23 +1202,29 @@ names when an artifact is published, and where the operator's powers stop
 
 **Still open:**
 
-1. **Who owns the data if the community leaves?** A one-click full export
-   (JSON + Markdown + the git mirror) should be a stated product promise, not a
-   feature. RCOS requires exit to be non-punitive for members — the same should
+1. ~~**Who owns the data if the community leaves?**~~ **Answered:** the
+   community, and it can leave with everything. A full export (JSON + Markdown +
+   an optional PDF, as one zip, readable without the app) and a git mirror (a
+   local repository and downloadable bundle for every community, a remote if
+   linked) are built — `docs/00-architecture.md` §9, `docs/10` §1.3.
+   RCOS requires exit to be non-punitive for members — the same should
    be true for communities leaving the tool.
 2. **What is the free tier?** Existing communities can pay; forming ones can't,
    and they're the ones who most need to start explicit. Something like:
-   free for Layer 0–1 and up to N members, paid beyond.
-3. **Two very different first users.** EcoHubs online is already RCOS-compliant
+   free for Layer 0–1 and up to N members, paid beyond. *Deferred, not answered:
+   every community is unlimited during testing (`docs/10` §4).*
+3. ~~**Two very different first users.**~~ **Answered by question 6 below.** EcoHubs online is already RCOS-compliant
    on paper — for them the tool is import, register and *keeping it alive*.
    FruitHaven is place-based, predates RCOS, and hasn't fully shifted — for them
    it is discovery, mapping and sequencing. These pull the MVP in different
    directions. Which one does v1 optimise for?
-4. **Where does the template content live** — markdown in a repo, or a CMS?
-   Decides whether §6.3 is a script or a migration.
+4. ~~**Where does the template content live** — markdown in a repo, or a CMS?~~
+   **Answered:** markdown in the `RCOS-website` repo, which generates YAML that
+   Compass vendors under `standard/`, pinned by hash — a script, not a migration
+   (`docs/08-roadmap-mvp.md` P1).
 5. ~~**Does a definition belong to one section only?**~~ **Resolved:** one owning
    definition per clause, enforced by a unique constraint, plus non-owning
-   cross-references. Consequence: every one of the 187 `MUST` clauses must be
+   cross-references. Consequence: every one of the 185 `MUST` clauses must be
    assigned to exactly one template section during the content build, and CI
    fails on an unassigned or doubly-assigned clause.
 

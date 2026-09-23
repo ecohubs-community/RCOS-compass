@@ -1,7 +1,7 @@
 # request-pipeline Specification
 
 ## Purpose
-TBD - created by archiving change scaffold-project. Update Purpose after archive.
+Covers what happens to every request around the route that handles it: a request id carried onto every log line, with the community and actor but never governance content or personal data; a per-request-nonce Content-Security-Policy and the other security headers; unexpected errors that answer with a generic message and the request id while a scrubbed record is kept on the instance under the same id; an unauthenticated health endpoint reporting build, migration and database state and nothing else; and rate limits per client address and per signed-in user, so one noisy member cannot exhaust a community's capacity.
 ## Requirements
 ### Requirement: Every request carries an identity that reaches the logs
 

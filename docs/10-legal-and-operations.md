@@ -164,10 +164,10 @@ The product is **RCOS Compass**. Repo `rcos-compass`, package `rcos-compass`,
 | Document | By |
 |---|---|
 | `LICENSE.md` (PolyForm NC 1.0.0) + README licensing paragraph | **done** |
-| CC BY 4.0 line carried into generated YAML, exports and public pages | P1 |
-| Recorded permission to use the RCOS name for this product (§1.2a) | P0 — one line, do it now |
+| CC BY 4.0 line carried into generated YAML, exports and public pages | **done** — `meta.yaml`, the export manifest and README, the public pages' footer |
+| Recorded permission to use the RCOS name for this product (§1.2a) | P0 — one line, do it now. *Not recorded anywhere in this repo yet* |
 | CLA, if outside contributions are ever wanted | before the repo is made public |
-| Sub-processor list (hosting, mail, AI, error tracking) | P4, when the AI provider is chosen |
-| Privacy policy — including the erasure-vs-register position (`03-data-model.md` §10) and the AI provider's terms | P7 |
-| Pilot terms — no DPA yet, German hosting, export and deletion on request | P7, before the first real community |
+| Sub-processor list (hosting, mail, AI, error tracking) | **drafted** (P7) — `content/legal/sub-processors.md`, served at `/sub-processors`; no error tracker, errors stay on the instance |
+| Privacy policy — including the erasure-vs-register position (`03-data-model.md` §10) and the AI provider's terms | **drafted** (P7) — `content/legal/privacy.md`, served at `/privacy`, written from `13-data-inventory.md` |
+| Pilot terms — no DPA yet, German hosting, export and deletion on request | **drafted** (P7) — `content/legal/pilot-terms.md`, served at `/terms` |
 | Terms of service, DPA template | before general availability, with the legal entity |

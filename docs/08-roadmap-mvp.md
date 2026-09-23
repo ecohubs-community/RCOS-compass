@@ -1,5 +1,5 @@
 ---
-status: draft for discussion
+status: living — phases marked as built
 version: 0.1
 date: 2026-08-31
 ---
@@ -15,6 +15,20 @@ overlap if content authoring is happening in parallel.
 
 Each phase names an **exit criterion** — the thing that must be demonstrably true
 before the next phase starts. No phase is "done" because its tickets are closed.
+
+## Where it stands — 2026-09-23
+
+- **P0–P7 are built**, each archived under `openspec/changes/archive/`. The gaps
+  are named in each phase below: P1 has no `standard/migrations/` and no weekly
+  upstream check; P7's operational half — `14-pilot-preflight.md` — is not done.
+- **Next: deploy and test what is built.** The target is a Plesk server running
+  Node (`00-architecture.md` §7, README §Deployment). Scheduled backups and a
+  restore drill on the real host are deferred until close to that deployment.
+- **Next feature work: the provenance UI** — a definition's *How we got here*
+  column, an artifact detail page, a consent-round view, a definitions index, and
+  a member asking for the question to be moved back to an earlier proposal.
+- **P8 is post-MVP.** Its proposal (`openspec/changes/modules-and-migration`)
+  exists and is parked until the MVP has run on real material.
 
 ---
 
@@ -69,6 +83,10 @@ Then:
 
 **Exit:** CI green, container runs, `openspec list` shows the seed specs.
 
+> **Built** (`openspec/changes/archive/2026-09-02-scaffold-project`). Still open
+> from the carry-over: updating the design files for the six divergences (task
+> 9.1). The template-content question was settled in P1.
+
 ---
 
 ## P1 — Standard as data · ~1.5 weeks
@@ -121,6 +139,14 @@ in all five locales; every MUST clause has exactly one owner or an explicit
 non-`defined_by_section` disposition; a script prints readiness for a synthetic
 community; a second, fake standard id loads alongside core without a code change.
 
+> **Built, partly** (`openspec/changes/archive/2026-09-03-standard-as-data`).
+> The vendored copy, the hash and one-owner checks (`pnpm check:standard`, first
+> in CI), the multi-standard loader and the dispositions are in. **Not built:**
+> `standard/migrations/` and its schema — they arrive with P8, post-MVP — and the
+> weekly job that opens a PR when upstream changes; re-vendoring is by hand. Every
+> authored section carries a question in `annotations.yaml`, but Layers 2–6 still
+> have the placeholder `one_meeting` effort and no dependency edges.
+
 ---
 
 ## P2 — Auth, tenancy, permissions · ~1.5 weeks
@@ -137,6 +163,8 @@ community; a second, fake standard id loads alongside core without a code change
 **Exit:** the security suite in `06-testing-strategy.md` §6.1–6.3 passes;
 two communities exist and provably cannot see each other; admin CRUD works and
 is audit-logged.
+
+> **Built** (`openspec/changes/archive/2026-09-03-auth-tenancy-permissions`).
 
 ---
 
@@ -165,6 +193,10 @@ is audit-logged.
 **Exit:** the e2e loop spec in `06-testing-strategy.md` §7 passes end to end on a
 fresh community, and readiness moves by the right amount.
 
+> **Built** (`openspec/changes/archive/2026-09-04-core-loop`), and extended
+> since by `discussion-detail-rail`, `notifications-page`, `local-time` and
+> `movable-current-proposal`.
+
 ---
 
 ## P4 — Documents, evidence, and the one AI feature · ~2.5 weeks
@@ -185,6 +217,9 @@ fresh community, and readiness moves by the right amount.
 **Exit:** upload bylaws → confirmed evidence → a definition pre-filled with the
 community's own words; the whole flow works with `AI_PROVIDER=null`.
 
+> **Built** (`openspec/changes/archive/2026-09-04-documents-evidence-ai`), with
+> the linter made line-by-line in `line-by-line-linter`.
+>
 > **Landed after P4:** the viewer with highlights. `document-mapping-workspace`
 > built the text view and the two-pane workspace; `document-original-view`
 > added the PDF as uploaded — pages, thumbnails, zoom, and line-level
@@ -203,6 +238,8 @@ community's own words; the whole flow works with `AI_PROVIDER=null`.
 
 **Exit:** a day-one community completes the setup interview and gets a defensible
 ordered list; reverse lookup answers the water-pump question from the mockup.
+
+> **Built** (`openspec/changes/archive/2026-09-07-path-glossary-search`).
 
 ---
 
@@ -223,6 +260,10 @@ ordered list; reverse lookup answers the water-pump question from the mockup.
 
 **Exit:** the public index test passes; a community exports itself and the bundle
 opens without the app.
+
+> **Built** (`openspec/changes/archive/2026-09-07-publishing-export-i18n`). The
+> PDF in the bundle is present only where the instance has Playwright and
+> Chromium installed (`00-architecture.md` §8); the manifest says which.
 
 ---
 
@@ -260,7 +301,8 @@ an operational act this phase prepared for.
 
 **Exit:** the four criteria in `tests/e2e/hardening.spec.ts` pass. EcoHubs online
 and Fruit Haven using it on real material is the operational half, and remains
-ahead.
+ahead — starting with the checklist in `14-pilot-preflight.md`, none of which is
+done yet.
 
 ---
 
@@ -282,6 +324,10 @@ do — see `09-standards-versions-modules.md` §5).
 Trigger for starting P8: either the first module templates being published, or
 core 0.2 entering draft. Whichever comes first decides the order of the two
 halves.
+
+> **Decided 2026-09-23: post-MVP.** A proposal was written ahead of the trigger
+> (`openspec/changes/modules-and-migration`, none of its tasks started). It stays
+> parked: first deploy and test what P0–P7 built.
 
 ---
 
