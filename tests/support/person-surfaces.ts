@@ -31,6 +31,8 @@ import { makeDocument, makeEvidence, makePassage } from './documents.js';
 import { getTenant } from '../../src/lib/server/services/admin/communities.js';
 import { notification } from '../../src/lib/server/db/schema/notifications.js';
 import { listNotificationItems } from '../../src/lib/server/services/notifications.js';
+import { standardFeedback } from '../../src/lib/server/db/schema/definitions.js';
+import { listStandardFeedback } from '../../src/lib/server/services/standard-feedback.js';
 
 /**
  * Every service that hands a person's name or address to a caller.
@@ -376,6 +378,36 @@ export const PERSON_SURFACES: PersonSurface[] = [
 				.run();
 		},
 		read: (ctx, db) => listFeedback(ctx, { db }).map((row) => row.from)
+	},
+	{
+		name: 'standard-feedback.listStandardFeedback',
+		module: 'standard-feedback.ts',
+		/**
+		 * "Recorded by Ana" beside what the community wished the standard had
+		 * asked for. The entry stays — it is the community's, and it may already
+		 * be in a message to the standard's stewards — and only the name changes.
+		 */
+		seed: (db, ctx, subject) => {
+			db.insert(standardFeedback)
+				.values({
+					id: newId(),
+					communityId: ctx.community.id,
+					definitionId: null,
+					clauseKey: null,
+					standardId: 'rcos-core',
+					version: '0.1',
+					kind: 'gap',
+					body: 'Quiet hours',
+					createdBy: subject.userId,
+					createdAt: new Date(0),
+					sharedUpstream: false
+				})
+				.run();
+		},
+		read: (ctx, db) =>
+			listStandardFeedback(ctx, { db })
+				.map((row) => row.author ?? '')
+				.filter(Boolean)
 	},
 	{
 		name: 'invitations.listInvitations',

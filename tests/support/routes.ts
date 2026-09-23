@@ -125,6 +125,11 @@ export const ROUTES: RouteCoverage[] = [
 		path: (slug) => `/c/${slug}/settings/publishing`
 	},
 	{
+		id: '(app)/c/[slug]/settings/standard-feedback',
+		scan: 'a11y',
+		path: (slug) => `/c/${slug}/settings/standard-feedback`
+	},
+	{
 		id: '(app)/c/[slug]/settings/transparency',
 		scan: 'a11y',
 		path: (slug) => `/c/${slug}/settings/transparency`

@@ -46,6 +46,9 @@ export const links = {
 	publishing: (slug: string) => resolve('/(app)/c/[slug]/settings/publishing', { slug }),
 	audit: (slug: string) => resolve('/(app)/c/[slug]/audit', { slug }),
 	exportSettings: (slug: string) => resolve('/(app)/c/[slug]/settings/export', { slug }),
+	/** What the community recorded as something the standard should ask for. */
+	standardFeedback: (slug: string) =>
+		resolve('/(app)/c/[slug]/settings/standard-feedback', { slug }),
 	mirror: (slug: string) => resolve('/(app)/c/[slug]/settings/mirror', { slug }),
 	language: (slug: string) => resolve('/(app)/c/[slug]/settings/language', { slug }),
 	/** Licences and the documents the community agreed to. */

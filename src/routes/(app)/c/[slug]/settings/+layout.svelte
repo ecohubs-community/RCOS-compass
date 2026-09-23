@@ -9,6 +9,7 @@
 	import IconGitBranch from '~icons/tabler/git-branch';
 	import IconInfoCircle from '~icons/tabler/info-circle';
 	import IconLanguage from '~icons/tabler/language';
+	import IconMessageReport from '~icons/tabler/message-report';
 	import IconSparkles from '~icons/tabler/sparkles';
 	import IconWorld from '~icons/tabler/world';
 
@@ -36,6 +37,11 @@
 		{ href: links.aiSettings(slug), label: m.nav_ai_settings(), icon: IconSparkles },
 		{ href: links.transparency(slug), label: m.nav_transparency(), icon: IconEyeOff },
 		{ href: links.publishing(slug), label: m.nav_publishing(), icon: IconWorld },
+		{
+			href: links.standardFeedback(slug),
+			label: m.nav_standard_feedback(),
+			icon: IconMessageReport
+		},
 		{ href: links.exportSettings(slug), label: m.nav_export(), icon: IconDownload },
 		{ href: links.mirror(slug), label: m.nav_mirror(), icon: IconGitBranch },
 		{ href: links.about(slug), label: m.nav_about(), icon: IconInfoCircle }
