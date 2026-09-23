@@ -34,6 +34,7 @@ export const CAPABILITIES = [
 	'feedback.record',
 	// Recording — authority
 	'decision.freeze',
+	'proposal.set_current',
 	'objection.resolve',
 	'definition.ratify',
 	'document.destroy',
@@ -79,6 +80,10 @@ const MATRIX: Record<Capability, readonly Role[]> = {
 	'feedback.record': ['steward', 'member'],
 
 	'decision.freeze': ['steward'],
+	// Moving the question back to an earlier version decides what the community
+	// is being asked, and closes whatever round is running to do it. A member
+	// may write the next version; saying which one is on the table is recording.
+	'proposal.set_current': ['steward'],
 	'objection.resolve': ['steward'],
 	'definition.ratify': ['steward'],
 	// Replacing or removing a document invalidates other people's confirmed

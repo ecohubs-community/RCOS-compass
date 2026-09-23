@@ -246,6 +246,26 @@ test.describe('accessibility', () => {
 		expect(results.violations).toEqual([]);
 	});
 
+	test('the rail has no violations with the move-the-question control present', async ({
+		page
+	}) => {
+		test.slow();
+		await seedWithProposal(page);
+		const thread = page.url().split('?')[0]!;
+
+		// A second version, so v1 stops being the question and the control appears.
+		await page.getByRole('link', { name: 'Revise the proposal' }).click();
+		await expect(page.getByRole('button', { name: /^Save as v/ })).toBeVisible();
+		await page.getByLabel('The text a decision would adopt').fill('The later text.');
+		await page.getByRole('button', { name: /^Save as v/ }).click();
+
+		await visit(page, `${thread}?v=1`);
+		await expect(page.getByRole('button', { name: 'Put v1 back on the table' })).toBeVisible();
+
+		const results = await scan(page).analyze();
+		expect(results.violations).toEqual([]);
+	});
+
 	test('the loop is reachable by keyboard alone', async ({ page }) => {
 		test.slow();
 		// docs/06 §7 asks for a keyboard-only pass. The thing that would break it

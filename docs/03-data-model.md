@@ -161,6 +161,15 @@ decision_clause    decision_id | standard_id | version | ref | clause_key
                    -- ref stored AS QUOTED at decision time; never rewritten by a migration
 discussion         id | community_id | definition_id? | clause_key? | title | status
                    | opened_by | opened_at | last_activity_at | frozen_decision_id?
+                   | current_proposal_post_id?  -- the version the community is being ASKED about
+                   -- Named, not derived. It was `max(proposal_version)`, which made writing a
+                   -- version the only thing that could move the question and made that move
+                   -- irreversible: nine of twenty-seven consent to v3, somebody posts v4, and
+                   -- the other eighteen can never answer v3 again. Writing a version still
+                   -- moves it forward; a steward (`proposal.set_current`) can move it back,
+                   -- which reopens that version's superseded round with its own eligibility
+                   -- snapshot. No FK, like frozen_decision_id: post.discussion_id already
+                   -- cascades from here, so a constraint pointing back is a cycle.
                    | origin clause|ai_session|offline   -- hook for the post-MVP Ask AI flow
 post               id | discussion_id | author_id | body | created_at | kind message|proposal|offline_summary
                    | proposal_version n? | edited_at?
@@ -168,7 +177,10 @@ objection          id | proposal_post_id | raised_by | reason | raised_at
                    | state open|withdrawn|addressed|overruled
                    | resolved_by? | resolved_at? | resolution_note?
 consent_round      id | community_id | proposal_post_id | opened_by | opened_at
-                   | closes_at | status open|closed|cancelled
+                   | closes_at | status open|closed|cancelled|superseded
+                   -- `superseded` is the only closure that can be undone, and only while the
+                   -- round could still be answered: a deadline that has since passed, or a
+                   -- round everybody answered, would be closed again by the next read.
                    | eligibility all_members|selected  -- see §5
 consent_eligible   round_id | membership_id   -- snapshot, written when the round opens
 consent_response   round_id | membership_id | value consent|objection|abstain

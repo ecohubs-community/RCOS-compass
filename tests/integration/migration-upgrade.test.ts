@@ -500,6 +500,58 @@ describe('upgrading a database that already has rows in it', () => {
 		after.close();
 	});
 
+	it('names each thread the version that answered it before the column existed', () => {
+		// The backfill must reproduce today's behaviour exactly: whichever version
+		// is highest-numbered is the one that was answering, because that is what
+		// `max(proposal_version)` meant everywhere. Getting it wrong would silently
+		// move the question on every discussion that already exists.
+		const { folder } = previousMigrations('0023_stormy_susan_delgado');
+		const file = join(dir, 'current-proposal.db');
+
+		const before = new Database(file);
+		before.pragma('foreign_keys = ON');
+		migrate(drizzle(before), { migrationsFolder: folder });
+
+		// Three threads: three versions, one version, and none at all.
+		before.exec(`
+			insert into community (id, slug, name, locale, timezone, status, publish_names_policy,
+				ai_enabled, git_mirror_enabled, public_index_enabled, created_at, updated_at)
+			values ('c1', 'vv', 'Valle Verde', 'en', 'UTC', 'active', 'roles_and_counts', 0, 0, 0, 1, 1);
+
+			insert into user (id, name, email, email_verified, two_factor_enabled, locale, created_at, updated_at)
+			values ('u1', 'Ana', 'ana@example.org', 1, 0, 'en', 1, 1);
+
+			insert into discussion (id, community_id, title, status, origin, opened_at, last_activity_at)
+			values ('three', 'c1', 'Exit', 'open', 'clause', 1000, 3000),
+				('one', 'c1', 'Quiet hours', 'open', 'clause', 1000, 3000),
+				('none', 'c1', 'Just talking', 'open', 'clause', 1000, 3000);
+
+			-- Deliberately inserted out of version order, so the backfill cannot
+			-- pass by accidentally taking the last row written.
+			insert into post (id, discussion_id, author_id, body, kind, proposal_version, created_at)
+			values ('t3', 'three', 'u1', 'v3', 'proposal', 3, 3000),
+				('t1', 'three', 'u1', 'v1', 'proposal', 1, 1000),
+				('t2', 'three', 'u1', 'v2', 'proposal', 2, 2000),
+				('o1', 'one', 'u1', 'only', 'proposal', 1, 1000),
+				('chat', 'none', 'u1', 'a message', 'message', null, 1000);
+		`);
+		before.close();
+
+		const after = new Database(file);
+		after.pragma('foreign_keys = ON');
+		migrate(drizzle(after), { migrationsFolder: join(ROOT, 'drizzle') });
+
+		expect(
+			after.prepare('select id, current_proposal_post_id from discussion order by id').all()
+		).toEqual([
+			{ id: 'none', current_proposal_post_id: null },
+			{ id: 'one', current_proposal_post_id: 'o1' },
+			{ id: 'three', current_proposal_post_id: 't3' }
+		]);
+		expect(after.pragma('foreign_key_check')).toEqual([]);
+		after.close();
+	});
+
 	it('has a migration for every schema change', () => {
 		// A schema edited without generating a migration is a deploy that works on
 		// the developer's machine and nowhere else.

@@ -18,7 +18,10 @@ async function revise(page: Page, text: string, note?: string) {
 	// typing — not for a URL. A client-side navigation fires no `load` event, so
 	// `waitForURL` can hang on the very transition it is meant to wait for.
 	await page.getByRole('link', { name: 'Revise the proposal' }).click();
-	await expect(page.getByRole('button', { name: /^Save as v/ })).toBeVisible();
+	// Generous, because this is a client-side navigation under a loaded worker
+	// and the default 5s loses roughly one run in ninety — a flake that reads as
+	// "the composer is missing" and is really "the router had not arrived yet".
+	await expect(page.getByRole('button', { name: /^Save as v/ })).toBeVisible({ timeout: 15_000 });
 	await page.getByLabel('The text a decision would adopt').fill(text);
 	if (note) await page.getByLabel('What changed').fill(note);
 	await page.getByRole('button', { name: /^Save as v/ }).click();
@@ -193,6 +196,99 @@ test.describe('freezing the version a community actually agreed on', () => {
 
 		// v2 is still on the table and can still be recorded.
 		await expect(page.getByRole('button', { name: 'Freeze v2' })).toBeVisible();
+	});
+});
+
+test.describe('a question the community can move', () => {
+	test('finishes a round on v1 after v2 was written, and freezes v1 on the full tally', async ({
+		page,
+		browser
+	}) => {
+		// The journey this exists for. Ana consents to v1, somebody writes v2, and
+		// without moving the question Lena could never answer v1 at all — leaving
+		// a steward to record 1 of 2 or abandon a text everybody was agreeing to.
+		const fixture = await seedWithProposal(page);
+		const thread = page.url().split('?')[0]!;
+
+		await rail(page).getByRole('button', { name: 'Consent' }).click();
+		await expect(rail(page)).toContainText('1 of 2');
+		await revise(page, 'A version that went too far.', 'widened it');
+
+		// v2 is the question, so v1 says so and offers no response buttons.
+		await visit(page, `${thread}?v=1`);
+		await expect(rail(page)).toContainText('v2 is the version on the table');
+
+		await rail(page)
+			.getByPlaceholder('Why — optional, and it goes in the thread…')
+			.fill('v2 widened it too far');
+		await rail(page).getByRole('button', { name: 'Put v1 back on the table' }).click();
+
+		// Back on v1, which now answers: the earlier consent is still there.
+		await expect(rail(page).getByRole('heading', { name: 'Responses to v1' })).toBeVisible();
+		await expect(rail(page)).toContainText('1 of 2');
+		await expect(page.getByText('v2 widened it too far')).toBeVisible();
+
+		// The other member can finish the round they were locked out of.
+		const theirs = await browser.newContext();
+		const them = await theirs.newPage();
+		await signIn(them, fixture.member.email, fixture.member.password);
+		await visit(them, `${thread}?v=1`);
+		await rail(them).getByRole('button', { name: 'Consent' }).click();
+		await expect(rail(them)).toContainText('2 of 2');
+		await theirs.close();
+
+		// And the steward records v1 on the tally the community actually gave.
+		await visit(page, `${thread}?v=1`);
+		await page.getByRole('button', { name: 'Freeze v1' }).click();
+		const form = page.getByRole('region', { name: 'Freeze v1 into a decision' });
+		await expect(form.getByLabel('Who was present')).toHaveValue('2');
+		await form.getByRole('button', { name: 'Record decision' }).click();
+		await expect(page).toHaveURL(new RegExp(`/c/${fixture.slug}/d/DEC-`));
+	});
+
+	test('is a form, so it works with no JavaScript @no-js', async ({ browser }) => {
+		const context = await browser.newContext({ javaScriptEnabled: false });
+		const page = await context.newPage();
+
+		const fixture = await seed(page);
+		await page.goto('/sign-in');
+		await page.getByLabel('Email').fill(fixture.email);
+		await page.getByLabel('Password').fill(fixture.password);
+		await page.getByRole('button', { name: 'Sign in' }).click();
+
+		await page.goto(`/c/${fixture.slug}/discussions`);
+		await page.getByLabel('Start a discussion').fill('Moving the question without scripts');
+		await page.getByRole('button', { name: 'Start' }).click();
+
+		await page.getByRole('link', { name: 'Revise the proposal' }).click();
+		await page.getByLabel('The text a decision would adopt').fill('The first text.');
+		await page.getByRole('button', { name: /^Save as v/ }).click();
+		await page.getByRole('link', { name: 'Revise the proposal' }).click();
+		await page.getByLabel('The text a decision would adopt').fill('The second text.');
+		await page.getByRole('button', { name: /^Save as v/ }).click();
+
+		const thread = page.url().split('?')[0]!;
+		await page.goto(`${thread}?v=1`);
+		await page.getByRole('button', { name: 'Put v1 back on the table' }).click();
+
+		await expect(rail(page).getByRole('heading', { name: 'Responses to v1' })).toBeVisible();
+		await expect(rail(page)).toContainText('nobody yet');
+		await expect(page.getByText('Put v1 back on the table, from v2.')).toBeVisible();
+	});
+
+	test('a member is not offered the control', async ({ page, browser }) => {
+		const fixture = await seedWithProposal(page);
+		const thread = page.url().split('?')[0]!;
+		await revise(page, 'The later text.', 'reworded');
+
+		const theirs = await browser.newContext();
+		const them = await theirs.newPage();
+		await signIn(them, fixture.member.email, fixture.member.password);
+		await visit(them, `${thread}?v=1`);
+
+		await expect(rail(them)).toContainText('v2 is the version on the table');
+		await expect(rail(them).getByRole('button', { name: /Put v1 back/ })).toHaveCount(0);
+		await theirs.close();
 	});
 });
 

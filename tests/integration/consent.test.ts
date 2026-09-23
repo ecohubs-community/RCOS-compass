@@ -335,19 +335,34 @@ describe('a consent round collects one response per member and closes', () => {
 		expect(tally.consent).toBe(1);
 	});
 
-	it('closes when the last eligible member answers', () => {
+	it('stays open once the last eligible member answers, so anybody can still move', () => {
 		const round = openRound();
 		provider().respond(members[0]!, { proposalPostId: proposalId, value: 'consent' }, { db });
 		provider().respond(members[1]!, { proposalPostId: proposalId, value: 'consent' }, { db });
 		expect(provider().tally(ctx, round.id, { db }).closedAt).toBeNull();
 
-		// A community of three should not wait a day once the third has answered.
+		/**
+		 * It used to close here, so that a community of three would not wait a day
+		 * once the third had answered — and nothing was ever waiting: a round
+		 * informs a freeze, a person presses Freeze, and the tally is complete
+		 * whether the round is open or shut. What closing cost was the right to
+		 * change your mind, taken from everybody by whoever happened to answer
+		 * last.
+		 */
 		const after = provider().respond(
 			members[2]!,
 			{ proposalPostId: proposalId, value: 'abstain' },
 			{ db }
 		);
-		expect(after.status).toBe('closed');
+		expect(after.status).toBe('open');
+
+		const tally = provider().tally(ctx, round.id, { db });
+		expect(tally.responded).toBe(3);
+		expect(tally.closedAt).toBeNull();
+
+		// And the third member can still move, which is the point.
+		provider().respond(members[2]!, { proposalPostId: proposalId, value: 'consent' }, { db });
+		expect(provider().tally(ctx, round.id, { db }).consent).toBe(3);
 	});
 
 	it('closes at the deadline with people still silent', () => {
@@ -413,7 +428,9 @@ describe('a round informs a freeze and never performs one', () => {
 			provider().respond(member, { proposalPostId: proposalId, value: 'consent' }, { db });
 		}
 
-		expect(provider().tally(ctx, round.id, { db }).closedAt).not.toBeNull();
+		// Read past the deadline, which is what closes a round — answering does
+		// not, so that anybody can still move until the question does.
+		expect(provider().tally(at(ctx, NOW + 2 * DAY), round.id, { db }).closedAt).not.toBeNull();
 		// A person still has to press Freeze, with their name on it.
 		expect(db.select().from(decision).all()).toHaveLength(0);
 	});
@@ -609,7 +626,7 @@ describe('a round opens on the first response', () => {
 		expect(tally.closedAt).toBeNull();
 	});
 
-	it('closes once the last eligible member has answered, with no deadline', () => {
+	it('runs on after the last eligible member has answered, with no deadline', () => {
 		provider().respond(members[0]!, { proposalPostId: proposalId, value: 'consent' }, { db });
 		provider().respond(members[1]!, { proposalPostId: proposalId, value: 'consent' }, { db });
 		const last = provider().respond(
@@ -618,7 +635,9 @@ describe('a round opens on the first response', () => {
 			{ db }
 		);
 
-		expect(last.status).toBe('closed');
+		// A round with no deadline ends when the text is replaced or at the
+		// freeze. Answering is not an ending — see the round above.
+		expect(last.status).toBe('open');
 	});
 
 	it('writes a reason into the thread for every value, and none when there is no reason', () => {

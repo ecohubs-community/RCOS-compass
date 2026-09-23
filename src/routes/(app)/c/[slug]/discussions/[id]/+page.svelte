@@ -10,6 +10,7 @@
 	import TextField from '$lib/components/ui/TextField.svelte';
 	import { links } from '$lib/links';
 	import { diffWords } from '$lib/shared/diff';
+	import IconArrowBackUp from '~icons/tabler/arrow-back-up';
 	import IconFilePlus from '~icons/tabler/file-plus';
 	import IconGavel from '~icons/tabler/gavel';
 	import IconNotes from '~icons/tabler/notes';
@@ -400,11 +401,7 @@
 								<a
 									href="?v={version.version}"
 									aria-current={version.version === data.proposal?.version ? 'true' : undefined}
-									title={version.state === 'in_force'
-										? `Frozen as ${version.ref}, in force`
-										: version.state === 'superseded'
-											? `Frozen as ${version.ref}, since superseded`
-											: 'Never frozen'}
+									title={`${version.isCurrent ? 'The version being asked about' : 'Not the version being asked about'} — ${version.state === 'in_force' ? `frozen as ${version.ref}, in force` : version.state === 'superseded' ? `frozen as ${version.ref}, since superseded` : 'never frozen'}`}
 									class="rounded-(--radius-control) border px-2 py-0.5 {version.version ===
 									data.proposal?.version
 										? 'border-border bg-raised text-fg'
@@ -416,6 +413,13 @@
 											: ''}"
 								>
 									v{version.version}
+									<!--
+										Three marks, not two. `◎` is the version being asked about,
+										which used to be the newest by definition and is now a fact of
+										its own — without it the rail would present a draft as the
+										question while the response form sat elsewhere on the same screen.
+									-->
+									{#if version.isCurrent}<span class="text-info-fg" aria-hidden="true">◎</span>{/if}
 									{#if version.state === 'in_force'}<span class="text-accent" aria-hidden="true"
 											>●</span
 										>{:else if version.state === 'superseded'}<span
@@ -540,6 +544,61 @@
 						>
 					{/if}
 
+					{#if data.can.setCurrent && !data.proposal.isCurrent}
+						<!--
+							Putting an earlier version back on the table.
+							`openspec/changes/movable-current-proposal`.
+
+							Only on a version that is not the question, only for somebody
+							who may, and a plain form so it works before the bundle does.
+							The sentence under the button says what it will do to the round
+							that is running, because closing somebody's live round is not
+							something a button labelled "put this back" announces on its own.
+						-->
+						<form
+							method="POST"
+							action="?/setCurrent"
+							class="border-border rounded-(--radius-card) border px-3 py-3"
+							use:enhance
+						>
+							<input type="hidden" name="proposalPostId" value={data.proposal.id} />
+							<h3 class="text-fg font-medium">Put v{data.proposal.version} back on the table</h3>
+							<p class="text-fg-muted text-meta mt-1">
+								The community would be asked about v{data.proposal.version} again, with the responses
+								it already has.
+								{#if data.currentVersion !== null}
+									Any round open on v{data.currentVersion} closes, and its responses stay with it.
+								{/if}
+								{#if data.round?.closesAt !== null && data.round?.closesAt !== undefined && data.round.closesAt <= data.now}
+									<!--
+										Said before the click, not discovered after. A deadline
+										that has gone cannot be met, and leaving it on would have
+										the round close itself again on the next page view.
+									-->
+									Its deadline has passed, so the round comes back without one.
+								{/if}
+							</p>
+							<label for="move-reason" class="sr-only">Why</label>
+							<input
+								id="move-reason"
+								name="reason"
+								placeholder="Why — optional, and it goes in the thread…"
+								class="border-border bg-bg text-fg mt-2 w-full rounded-(--radius-control) border px-2 py-1.5"
+							/>
+							<Button type="submit" variant="secondary" icon={IconArrowBackUp} class="mt-2">
+								Put v{data.proposal.version} back on the table
+							</Button>
+							<!--
+								A refusal is a sentence, not a button that does nothing: a
+								round that ran out of time, or one everybody has answered,
+								cannot come back, and the steward has to hear why.
+							-->
+							{#if errorFor('setCurrent')}<p role="alert" class="text-danger mt-2">
+									{errorFor('setCurrent')}
+								</p>{/if}
+						</form>
+					{/if}
+
 					<!-- ── Responses to this version ──────────────────────── -->
 					<section class="border-border rounded-(--radius-card) border" aria-labelledby="responses">
 						<div class="border-border flex flex-wrap items-baseline gap-2 border-b px-3 py-2">
@@ -586,7 +645,7 @@
 							{/each}
 						</ul>
 
-						{#if data.can.respond && data.proposal.isLatest && data.proposal.state === 'open'}
+						{#if data.can.respond && data.proposal.isCurrent && data.proposal.state === 'open' && (!data.round || data.round.status === 'open')}
 							<form
 								method="POST"
 								action="?/respond"
@@ -594,6 +653,26 @@
 								use:enhance
 							>
 								<input type="hidden" name="proposalPostId" value={data.proposal.id} />
+								{#if data.round?.mine}
+									{@const mine = data.round.mine}
+									<!--
+										What you already said, and that saying something else
+										replaces it.
+
+										A response is unique per member per round, so consenting
+										and then objecting has always *replaced* the consent —
+										but the screen never said so, and three buttons that
+										stay live after you have pressed one read as three votes
+										you can cast. Changing your mind is meant to be
+										possible; looking like you voted twice is not.
+									-->
+									<p class="text-fg-secondary text-meta">
+										You answered <span class="text-fg"
+											>{(VALUE_LABEL[mine.value] ?? mine.value).toLowerCase()}</span
+										>
+										{time(mine.respondedAt)}. Answering again replaces it.
+									</p>
+								{/if}
 								<label for="reason" class="sr-only">Add a reason</label>
 								<input
 									id="reason"
@@ -604,22 +683,46 @@
 								<p class="text-fg-muted text-meta">A reason posts into the thread.</p>
 								<div class="flex gap-2">
 									{#each ['consent', 'abstain', 'objection'] as value (value)}
+										{@const chosen = data.round?.mine?.value === value}
 										<button
 											type="submit"
 											name="value"
 											{value}
-											class="border-border text-fg hover:bg-raised flex-1 cursor-pointer rounded-(--radius-control) border px-2 py-1.5"
-											>{VALUE_LABEL[value]}</button
+											aria-pressed={chosen ? 'true' : undefined}
+											class="flex-1 cursor-pointer rounded-(--radius-control) border px-2 py-1.5 {chosen
+												? 'border-accent bg-accent-subtle text-fg'
+												: 'border-border text-fg hover:bg-raised'}"
 										>
+											{VALUE_LABEL[value]}{#if chosen}<span class="sr-only">
+													— your current answer</span
+												>{/if}
+										</button>
 									{/each}
 								</div>
 								{#if errorFor('round')}<p role="alert" class="text-danger">
 										{errorFor('round')}
 									</p>{/if}
 							</form>
-						{:else if !data.proposal.isLatest}
+						{:else if data.proposal.isCurrent && data.round && data.round.status !== 'open'}
+							<!--
+							The question is on this version and its round has reached its
+							deadline. Offering the three buttons here put a member in front
+							of a control that could only fail — and, until `respond` was
+							taught that a version holds one round, quietly opened a second
+							one whose answers no screen ever read.
+						-->
 							<p class="border-border text-fg-muted text-meta border-t px-3 py-2">
-								v{data.laterVersion} is the text on the table, so this version takes no more responses.
+								The round on v{data.proposal.version} reached its deadline, so it takes no more responses.
+								It can still be recorded.
+							</p>
+						{:else if !data.proposal.isCurrent}
+							<!--
+								"The text on the table" stopped being the same sentence as "the
+								newest version" the moment a steward could put an earlier one back,
+								so the line names the version actually being asked about.
+							-->
+							<p class="border-border text-fg-muted text-meta border-t px-3 py-2">
+								v{data.currentVersion} is the version on the table, so this one takes no more responses.
 							</p>
 						{/if}
 

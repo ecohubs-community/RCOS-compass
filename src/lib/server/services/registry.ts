@@ -53,9 +53,35 @@ export type TenantService = {
 
 const services: TenantService[] = [];
 
+/**
+ * True only under `vite dev`, where a module's top level runs more than once.
+ *
+ * Vite invalidates a changed module and everything that imports it, so editing
+ * `db/schema/notifications.ts` re-runs `services/notifications.ts` — while this
+ * module, which nothing invalidated, keeps the entries from the previous run.
+ * The registration below then looked exactly like the mistake it guards against
+ * and threw, and every route that imports a service answered 500 until someone
+ * restarted the server.
+ *
+ * `import.meta.hot` is undefined in SvelteKit's SSR environment, so it cannot
+ * tell us this; `DEV` without `TEST` can. `import.meta.env` itself is absent
+ * when a script under `scripts/` runs this file through tsx rather than Vite,
+ * which is why it is reached carefully.
+ */
+const reEvaluates = import.meta.env?.DEV === true && !import.meta.env?.TEST;
+
 export function registerTenantService(service: TenantService): TenantService {
-	if (services.some((s) => s.name === service.name)) {
-		throw new Error(`Duplicate tenant service: ${service.name}`);
+	const taken = services.findIndex((s) => s.name === service.name);
+	if (taken !== -1) {
+		// A build, a test run and a production server each evaluate a module once,
+		// so a name registered twice there is two services sharing one name: the
+		// second hides the first from the cross-tenant suite, and that is the kind
+		// of silence this registry exists to prevent.
+		if (!reEvaluates) {
+			throw new Error(`Duplicate tenant service: ${service.name}`);
+		}
+		services[taken] = service;
+		return service;
 	}
 	services.push(service);
 	return service;

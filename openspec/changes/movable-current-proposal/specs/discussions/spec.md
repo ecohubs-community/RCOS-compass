@@ -1,3 +1,53 @@
+## MODIFIED Requirements
+
+### Requirement: One version is selected, and the whole proposal panel follows it
+
+A discussion MUST let a reader select any proposal version the thread has
+produced. The proposal text, the responses, the linter result and the freeze MUST
+all show that version and no other.
+
+The selection MUST be addressable, so that a link to a version opens on it and
+the panel works without JavaScript. With no selection given, the version the
+discussion is currently asking about MUST be selected — not the most recent,
+which is the same version only while nobody has moved the question.
+
+A freeze submitted without naming a version MUST adopt the version being asked
+about, for the same reason: recording the newest text under a tally gathered on
+an older one is the failure this requirement exists to prevent.
+
+#### Scenario: A version is selected
+- **WHEN** a reader selects v2 in a thread that has reached v4
+- **THEN** the panel shows v2's text, v2's responses and v2's linter result
+- **AND** v4's responses are not counted anywhere on the panel
+
+#### Scenario: A version is linked
+- **WHEN** someone opens a link naming v2
+- **THEN** the panel opens with v2 selected
+
+#### Scenario: No version is named
+- **WHEN** a reader opens the discussion with no version named
+- **THEN** the version the discussion is asking about is selected
+
+#### Scenario: No version is named and the question has been moved
+- **WHEN** a reader opens a discussion where v4 exists and v3 is the version being asked about
+- **THEN** v3 is selected, so the panel and the response form agree
+
+#### Scenario: A version that does not exist
+- **WHEN** a link names a version the thread never produced
+- **THEN** the version being asked about is selected, rather than an empty panel
+
+#### Scenario: A version from another discussion
+- **WHEN** a link names a proposal belonging to a different discussion
+- **THEN** it is not shown, and the version this discussion is asking about is selected
+
+#### Scenario: A freeze names no version
+- **WHEN** a freeze is submitted for a thread where v4 exists and v3 is being asked about, naming no version
+- **THEN** v3 is the version recorded
+
+#### Scenario: A thread with no proposal
+- **WHEN** a reader opens a discussion nobody has proposed in
+- **THEN** no version is selected and the panel offers writing one
+
 ## ADDED Requirements
 
 ### Requirement: A discussion names the version it is currently asking about
