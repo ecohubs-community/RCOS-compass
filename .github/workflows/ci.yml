@@ -90,13 +90,19 @@ jobs:
         run: docker build -t rcos-compass:ci .
       - name: Smoke test — boots, migrates, serves
         run: |
+          # ORIGIN is required in production — the boot check refuses to start
+          # without it (src/lib/server/config.ts).
           docker run -d --name smoke -p 3000:3000 \
             -e BETTER_AUTH_SECRET=ci-secret-that-is-long-enough-for-tests \
+            -e ORIGIN=http://localhost:3000 \
+            -e PUBLIC_APP_URL=http://localhost:3000 \
             rcos-compass:ci
           for i in $(seq 1 30); do
             if curl -fsS http://localhost:3000/healthz > /tmp/health.json; then break; fi
             sleep 2
           done
+          # A container that exited on boot says why here, not in a curl timeout.
+          docker logs smoke
           cat /tmp/health.json
           grep -q '"database":"ok"' /tmp/health.json
           grep -q '"status":"ok"' /tmp/health.json

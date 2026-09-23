@@ -76,6 +76,30 @@ remote.
 Determinism is part of it: services take `ctx.now()` (never `Date.now()`), UUIDs
 are seeded in tests, CI runs `TZ=UTC` with `AI_PROVIDER=null`.
 
+## Versioning
+
+**Every PR that changes what ships bumps `version` in `package.json`, without
+being asked.** Semantic versioning, decided by what a self-hoster or member would
+notice, not by lines changed:
+
+| Bump | When |
+|---|---|
+| major | breaking for a deployment: a renamed or removed env var, a migration that needs a manual step, a data-volume layout change, a removed URL others link to |
+| minor | a new capability a member or steward can use |
+| patch | a fix, a performance or copy change, a refactor with no visible effect |
+| none | docs, tests, CI or tooling only — nothing in the image changes |
+
+While the version is `0.y.z` a breaking change is a **minor** bump, not a major
+one; `1.0.0` is a deliberate release decision, never an automatic one.
+
+- One bump per PR, at the highest level its changes reach. Compare against
+  `main`'s version, not the branch's: if the branch already bumped and a later
+  commit reaches a higher level, raise it; never bump twice for the same level.
+- `pnpm version <major|minor|patch> --no-git-tag-version` — tags are cut on
+  release, not per PR.
+- Say the bump and the reason in the PR description (`0.3.1 → 0.4.0: members can
+  move the question back to an earlier proposal`).
+
 ## The rules that are not negotiable
 
 **Architecture**
