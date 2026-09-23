@@ -1,7 +1,7 @@
 # runtime-config Specification
 
 ## Purpose
-TBD - created by archiving change scaffold-project. Update Purpose after archive.
+Covers how an instance learns its configuration: every server setting read through one module that validates the environment at boot and refuses to start — naming the variable at fault, never printing a secret — rather than start wrong; secrets that only server code can import and that never reach a client bundle; and platform-admin identity taken from `ADMIN_EMAILS` against a verified email on every request, never cached in a session or stored in the database, so removing an address takes effect on the next request rather than the next sign-in.
 ## Requirements
 ### Requirement: Configuration is validated once, at boot
 

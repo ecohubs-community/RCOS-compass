@@ -30,11 +30,11 @@ Versions are the latest published as of 2026-08-31. Pin exact versions in
 | Auth | **better-auth** | 1.7.x | Email+password and magic-link, sessions in DB, organization-shaped multi-tenancy, invitations. |
 | Validation | **Valibot** | 1.x | Every server boundary. Smaller than Zod, same ergonomics; one schema per action, exported for tests. |
 | AI | **Provider interface + Google AI Studio adapter** (`@google/genai` 2.20.x) | | See §4. Never called from the browser. |
-| Email | **Nodemailer over SMTP**, with a Resend adapter behind the same interface | 9.1.x | *Added in review — the spec promised invites and review-date nags with no way to send them.* |
+| Email | **Nodemailer over SMTP**, behind a transport interface a Resend adapter could slot into (not built) | 9.1.x | *Added in review — the spec promised invites and review-date nags with no way to send them.* |
 | Testing | **Vitest** 4.1.x, **Playwright** 1.62.x | | See `06-testing-strategy.md`. |
 | Lint/format | ESLint 9 flat config, Prettier, `svelte-check` | | |
 | Runtime | Node 24 LTS, pnpm 10 | | |
-| Packaging | Docker image (app + SQLite volume) | | The self-host promise in UI spec §2. |
+| Packaging | The `adapter-node` build, run by Node on a Plesk server (§7); a Docker image (app + SQLite volume) as the secondary path | | The self-host promise in UI spec §2. |
 | Desktop (post-MVP) | **Tauri 2** | | Wraps the same frontend against a remote server. Constrains nothing today except §2's "services, not routes" rule. |
 
 **Deliberately not in the stack:** a component library with opinions (shadcn-svelte
@@ -52,8 +52,9 @@ docs/                        these documents
 standard/                    RCOS as data — YAML, versioned (UI spec §8, docs/09)
   rcos-core/0.1/             clauses.yaml, sections.yaml, artifacts.yaml, glossary.yaml
   rcos-module-*/<version>/   same shape — post-MVP content, MVP-ready loader
-  migrations/                core-0.1-to-0.2.yaml … (empty now, schema validated in CI)
-  schema.json                validated in CI
+  upstream-manifest.json     sha256 per vendored file; `pnpm check:standard` holds the copy to it
+  migrations/                core-0.1-to-0.2.yaml … — NOT BUILT: comes with P8 (post-MVP)
+  schema.json                NOT BUILT: CI checks hashes and the one-owner invariant instead
 src/
   lib/
     server/                  NEVER importable from a .svelte file
@@ -217,10 +218,15 @@ move to a release step.
 
 ## 7. Deployment target and URL shape
 
-- **`adapter-node` on a VPS with a mounted volume** (Hetzner/Coolify-shaped), not
-  a serverless platform. Serverless would force libSQL/Turso or Postgres on day
-  one and break the in-process worker — a real decision, made here so nobody
-  discovers it during P2.
+- **`adapter-node` on a server with a real disk**, not a serverless platform.
+  Serverless would force libSQL/Turso or Postgres on day one and break the
+  in-process worker — a real decision, made here so nobody discovers it during P2.
+
+  > **Decided 2026-09-23.** The first deployment is a **Plesk server running
+  > Node**: the build started with `node build/index.js`, one process, the data
+  > directory (database + uploads) outside anything a redeploy replaces. The
+  > Docker image stays supported and smoke-tested in CI, but is the secondary
+  > path. Steps and the required environment are in the README, §Deployment.
 - **Path-based tenancy** — `app.example.org/c/valle-verde/…`. One origin, one
   cookie, no wildcard TLS, no subdomain-scoped session bugs.
 - **Leave room for community sites on their own domains.** A community publishing
@@ -287,6 +293,14 @@ Named here so the choice is deliberate and CSP-compatible:
 
 - SQLite in WAL mode on a mounted volume; nightly `VACUUM INTO` snapshot plus
   Litestream-style continuous replication when hosted.
+
+  > **Status, 2026-09-23.** Built: `pnpm snapshot` (a `VACUUM INTO` copy plus the
+  > uploads, takeable while the instance serves) and `pnpm restore` (refuses half
+  > a snapshot), with the drill in the suite (`durability` spec). **Not built, and
+  > deferred until close to the first deployment:** running snapshots nightly,
+  > getting them off the machine, continuous replication, and the quarterly
+  > restore drill on the real host. Until then this bullet is the plan, not a
+  > description.
 - **Git mirror (UI spec §8.1)** runs as a *background job after* a freeze
   commits, never inside the freeze transaction. A failed push is retried with
   backoff, surfaced in settings, and never blocks governance. Restricted-visibility
@@ -353,7 +367,7 @@ UPLOAD_PER_USER_HOUR=20
 UPLOAD_PER_USER_DAY=40
 UPLOAD_PER_COMMUNITY_DAY=60
 STORAGE_MB=2048
-SMTP_URL=                      # or RESEND_API_KEY
+SMTP_URL=                      # smtps://user:pass@host:465; empty refuses every send
 MAIL_FROM="RCOS Compass <no-reply@example.org>"
 UPLOAD_DIR=./data/uploads
 MAX_UPLOAD_MB=25
@@ -372,7 +386,9 @@ does. So both kinds of entry point are told explicitly:
 - **Plain node** (`pnpm preview`, `pnpm db:migrate`) — `--env-file-if-exists=.env`.
 - **The container** — neither. Its configuration comes from the environment, and
   an image expecting a bundled `.env` would either ship secrets or start
-  misconfigured.
+  misconfigured. The same goes for the production build on Plesk: `node
+  build/index.js` reads no `.env`, so the variables come from the panel, or the
+  start command adds `--env-file` itself.
 
 All three let a real environment variable win over the file, which is what
 `--env-file` does. Without any of this the failure reads exactly like a missing
@@ -403,7 +419,13 @@ is a restart, not a session hunt.
 Structured JSON logs (pino) with `requestId`, `communityId`, `userId` on every
 line; never log definition bodies, discussion text, or document contents.
 `/healthz` returns build SHA, migration version, and DB reachability.
-Errors go to a Sentry-compatible endpoint with PII scrubbing on.
+Unexpected errors are recorded **on this instance**, not sent to a third-party
+tracker (P7): a scrubbed `error_report` row grouped by fingerprint, under the
+request id, readable on `/admin/status` and swept after 30 days
+(`src/lib/server/services/errors.ts`). Mail failures are recorded the same way.
+A Sentry-compatible endpoint was the original plan; it was dropped because it
+would have been one more sub-processor for a pilot that will not fill a page of
+errors.
 
 ---
 
@@ -432,7 +454,8 @@ they imply are in `10-legal-and-operations.md`.
   pages. **Never copy code from the standard repo** — it is AGPL-3.0 and
   incompatible with this licence; Compass consumes its generated *data*, not its
   source (`10-legal-and-operations.md` §1.2a).
-- **Hosting in Germany**, backups in the EU, a published sub-processor list.
+- **Hosting in Germany**, backups in the EU (once scheduled backups exist — §9),
+  a published sub-processor list.
 - **The AI region is a real constraint, not a footnote.** German hosting with a
   US inference endpoint is a third-country transfer. Prefer an EU-region endpoint
   (Vertex `europe-west*` or an EU provider); if not, name the region on the screen
@@ -452,7 +475,7 @@ they imply are in `10-legal-and-operations.md`.
 | A5 | Tenant from URL, never from session | Session-held active tenant — the classic cross-tenant leak |
 | A6 | SMTP/Resend added to the stack | No email — invites and review nags are unshippable without it |
 | A7 | SQLite-backed job table + in-process worker; **MVP is single-instance** | An external queue — unjustified for a pilot, and it would break the self-host story |
-| A8 | `adapter-node` on a VPS with a volume; path-based tenancy | Serverless — would force Postgres on day one and break the worker |
+| A8 | `adapter-node` on a server with a real disk (Plesk + Node first, Docker secondary); path-based tenancy | Serverless — would force Postgres on day one and break the worker |
 | A9 | AI off by default per community, provider terms shown on the enabling screen | AI on by default — sends governance drafts to a third party before anyone chose to |
 | A10 | First-party funnel counters, no third-party analytics | Plausible/PostHog — more than we need; or nothing — ships onboarding blind |
 | A11 | PolyForm Noncommercial for the app; the standard stays CC BY 4.0 in its own repo; consume its data, never its AGPL code | One licence for both — would either restrict the standard or give away the app |

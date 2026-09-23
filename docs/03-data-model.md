@@ -69,6 +69,14 @@ change the text of a clause in an `active` version fails the boot rather than
 silently rewriting what communities have already answered. Editing a published
 clause means publishing a new version.
 
+> **As built (P1): not materialised.** The loader (`src/lib/server/standard/`)
+> reads the vendored YAML and caches it in memory; there are no standard tables.
+> `clause_coverage` and `decision_clause` store the clause key (and
+> `decision_clause` the quoted ref) as plain text with no foreign key to it.
+> Immutability is held in CI instead of at boot: `pnpm check:standard` fails on
+> any vendored byte that no longer matches the upstream hash. The table sketch
+> below is the shape of the loaded data, not a schema.
+
 `standard_id` is `rcos-core` today and a module id later — the loader does not
 care which.
 
@@ -360,7 +368,7 @@ a house rule as a standard requirement. Both failures are tested
 - Rationale: readiness and compliance must be countable without double-counting,
   and "which definition answers this clause" must have one answer when an auditor
   asks.
-- Consequence for content authoring: every one of the 187 MUST clauses must be
+- Consequence for content authoring: every one of the 185 MUST clauses must be
   assigned to exactly one section in `standard/`. A CI check fails the build on
   an unassigned or doubly-assigned clause. This is the single most important
   invariant in the content pipeline.
@@ -434,7 +442,7 @@ and that lives in *their* Membership Charter, not in ours. So:
 `suggested → confirmed | dismissed`. Confirmed evidence goes **stale** when its
 document is replaced or re-extracted and the passage's `text_hash` no longer
 matches — it is not silently re-pointed. Stale evidence surfaces in *Needs
-attention* and does not count toward "you already have language for N of 187".
+attention* and does not count toward "you already have language for N of 173".
 After a replacement, restore or re-read, stale evidence whose quote still hashes
 to a current passage of the same document is offered for **re-confirmation** —
 one click, never automatic. `reason` is the model's one-sentence account of what

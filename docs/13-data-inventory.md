@@ -58,7 +58,7 @@ which replaces the span in place and records that it did.
 | `error_report` | scrubbed message, route, request id, community | To make failures visible to an operator | 30 days |
 | `mail_failure` | message kind, community, what it was for | To make delivery failures visible | 30 days. **Never the recipient's address** |
 | `funnel_event` | community, milestone, time | To answer "does onboarding work" | Kept. No member, no path, no session — one row per community per milestone, enforced by a unique index |
-| `feedback_report` | a member's own words, the route, their membership | So a pilot's feedback becomes work | Open reports are kept; handled ones are removed 30 days after being handled |
+| `feedback_report` | a member's own words, the route, their membership | So a pilot's feedback becomes work | Open reports are kept. **Intended:** handled ones removed 30 days after being handled — **not yet enforced**: no job deletes them, so today a handled report is kept like an open one |
 | `produced_file` | filename, `requested_by` | An export somebody asked for | Removed at expiry, file and row together |
 
 ## 5. What has not been decided

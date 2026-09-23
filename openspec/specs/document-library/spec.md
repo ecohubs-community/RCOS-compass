@@ -78,8 +78,8 @@ kept in the URL.
 - **THEN** its row says three became definitions
 
 #### Scenario: The coverage count
-- **WHEN** confirmed evidence covers 38 of the community's 187 countable requirements
-- **THEN** the library reads that 38 of 187 requirements already have language
+- **WHEN** confirmed evidence covers 38 of the community's 173 countable requirements
+- **THEN** the library reads that 38 of 173 requirements already have language
 - **AND** readiness is unchanged by it
 
 #### Scenario: Counts ignore other communities

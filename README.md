@@ -7,9 +7,9 @@ then keeps what they decided findable, alive, and attributable.
 For intentional communities of 5–150 people, place-based or online.
 **It never decides for them.**
 
-> Status: **scaffolding.** The application boots, but no product feature exists
-> yet. See [`docs/08-roadmap-mvp.md`](docs/08-roadmap-mvp.md) for the path to an
-> MVP, and `openspec/changes/` for what is in flight.
+> Status: **MVP built, not yet deployed.** Phases P0–P7 of
+> [`docs/08-roadmap-mvp.md`](docs/08-roadmap-mvp.md) are in the code; the first
+> deployment and the pilot are next. `openspec list` shows what is in flight.
 
 ## What it does
 
@@ -77,17 +77,100 @@ boot, migrate, serve).
 
 ## Deployment
 
-`adapter-node` on a VPS with a mounted volume — not serverless. SQLite and the
+`adapter-node` on a server with a real disk — not serverless. SQLite and the
 in-process job worker both assume one process with a real filesystem, so **the
 MVP runs as a single instance**; that is why migrations run at boot.
 
+The target is a **Plesk server running Node**. The Docker image works too and
+CI smoke-tests it, but it is the secondary path.
+
+### Plesk + Node
+
+Node 24 and pnpm (`corepack enable`). Install and build on the server itself —
+`better-sqlite3` compiles a native binding for the Node it will run under — and
+use pnpm rather than Plesk's *NPM install* button, which would ignore
+`pnpm-lock.yaml`.
+
 ```bash
-docker build -t rcos-compass .
-docker run -p 3000:3000 -v compass-data:/data -e BETTER_AUTH_SECRET=… rcos-compass
+pnpm install --frozen-lockfile
+pnpm build
+pnpm prune --prod
 ```
 
-The volume holds both the database and uploaded documents. Backing up one without
-the other is a broken restore.
+The application root must then hold `build/`, `node_modules/`, `drizzle/`
+(migrations), `standard/` (the RCOS content, read from disk at runtime) and
+`package.json`, and the process must start **in that directory** — both
+`drizzle/` and `standard/` are found relative to it. In the Node.js settings:
+startup file `build/index.js`, application mode *production*.
+
+**Environment.** Set these in Plesk's environment variables, or keep them in a
+`.env` and start with `node --env-file=.env build/index.js` — plain `node` reads
+no `.env` by itself. Boot validates all of them and refuses to start, naming the
+variable, rather than start wrong (`src/lib/server/config.ts`).
+
+| Variable | |
+|---|---|
+| `NODE_ENV=production` | the production checks below only run in production |
+| `PUBLIC_APP_URL` | the public address, e.g. `https://compass.example.org` |
+| `ORIGIN` | **the same value as `PUBLIC_APP_URL`.** Required in production: without it adapter-node assumes `http://localhost` and every form submission is refused as cross-site |
+| `BETTER_AUTH_SECRET` | required, 32+ characters: `openssl rand -base64 32`. Back it up apart from the data — the export-link and mirror-credential keys derive from it |
+| `BODY_SIZE_LIMIT` | required in production, at least `MAX_UPLOAD_MB` + 1 MB (`26M` for the default 25). adapter-node's own 512 KB default refuses every real upload |
+| `DATABASE_URL` | `file:/absolute/path/data/compass.db` — outside the document root and outside anything a redeploy replaces |
+| `UPLOAD_DIR` | `/absolute/path/data/uploads`, beside the database |
+| `SMTP_URL`, `MAIL_FROM` | not checked at boot, but verification links are the only way in; without mail nobody can sign up |
+| `ADMIN_EMAILS` | platform admins; empty means no admin console |
+
+Everything else (AI provider, upload and rate limits, log level) has a default;
+`.env.example` lists and explains every variable.
+
+**On the Plesk side, check:** that Node 24 is offered; that the app runs as
+**one** process — the job worker and the hourly sweep live inside it, so a pool
+of several processes, or one that is stopped when idle, breaks background work;
+and that `/healthz` answers once it is up. Migrations run on every start.
+
+**The data directory is the instance.** It holds the database and the uploaded
+documents, and backing up one without the other is a broken restore.
+`pnpm snapshot` / `pnpm restore` take and restore both together (they run from a
+full checkout — they need the dev dependencies — pointed at the same
+`DATABASE_URL` and `UPLOAD_DIR`). Scheduling them, getting copies off the
+machine, and rehearsing a restore on the real host are deferred until close to
+the first deployment; `docs/14-pilot-preflight.md` §2 is the checklist.
+
+**PDF in exports (optional).** An export bundle includes a printable PDF only
+when the `playwright` package and a Chromium are present at runtime; without
+them the bundle is complete minus that file, and its manifest says
+`unavailable on this instance`. Playwright is deliberately not a dependency
+(`src/lib/server/services/export-pdf.ts`), so install it next to the app, at the
+version `@playwright/test` pins in `package.json`:
+
+```bash
+# one directory ABOVE the application root, so a redeploy or `pnpm prune` does
+# not remove it — Node finds it by walking up from build/
+npm install playwright@1.62.1
+npx playwright install --with-deps chromium
+```
+
+Run the second command as the user the app runs as — the browser is downloaded
+into that user's cache. `--with-deps` installs Chromium's system libraries and
+needs root; on a Plesk subscription without it, run
+`npx playwright install chromium` yourself and ask the server admin to run
+`npx playwright install-deps chromium`.
+
+### Docker
+
+```bash
+docker build -t rcos-compass .
+docker run -p 3000:3000 -v compass-data:/data \
+  -e PUBLIC_APP_URL=https://compass.example.org \
+  -e ORIGIN=https://compass.example.org \
+  -e BETTER_AUTH_SECRET=… \
+  -e SMTP_URL=… \
+  rcos-compass
+```
+
+The image sets `NODE_ENV`, `DATABASE_URL`, `UPLOAD_DIR` and `BODY_SIZE_LIMIT`
+itself; `ORIGIN` and `PUBLIC_APP_URL` are deliberately left to you. The `/data`
+volume holds both the database and uploaded documents.
 
 ## Documentation
 

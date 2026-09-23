@@ -1,7 +1,7 @@
 # background-jobs Specification
 
 ## Purpose
-TBD - created by archiving change scaffold-project. Update Purpose after archive.
+Covers work that cannot run inside a request — document extraction, git mirror pushes, export generation and expiry sweeps: a durable job row worked by an in-process worker and delivered at least once, so every handler is idempotent; retries with exponential backoff that end in a dead letter an operator can see; jobs enqueued only after the transaction that scheduled them commits, so a failure never rolls back or blocks the decision behind it; produced files that are stored, expire and are cleaned up; credentials read from encrypted storage at run time and never written to a job row, a log or a dead letter; and scheduled sweeps that revert state only where a stated deadline has passed, each change recorded in the community's change log.
 ## Requirements
 ### Requirement: Background work runs through a durable job queue
 
