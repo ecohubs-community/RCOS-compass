@@ -199,8 +199,10 @@ test.describe('a community that wants to be seen', () => {
 		// appear rather than made to wait.
 		await expect(page.getByText(/preparing|queued|will appear/i)).toBeVisible();
 
+		// Past the page's last poll (~61 s), so a slow queue fails as the page
+		// giving up, not as the test giving up first.
 		const link = page.getByRole('link', { name: /download/i });
-		await expect(link).toBeVisible({ timeout: 60_000 });
+		await expect(link).toBeVisible({ timeout: 75_000 });
 		const href = await link.getAttribute('href');
 
 		// Signed and scoped: an altered link is refused rather than serving
