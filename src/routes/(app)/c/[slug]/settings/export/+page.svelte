@@ -13,16 +13,25 @@
 	 *
 	 * A bounded poll rather than a socket or a spinner that never resolves: a
 	 * community's whole governance is a few hundred kilobytes and the worker
-	 * wakes every few seconds, so this is over in one or two rounds. If it is
-	 * not, the message says to reload rather than pretending to still be working.
+	 * wakes every few seconds, so this is usually over in one or two rounds. The
+	 * worker is shared with every other job on the instance, though, and behind
+	 * a queue an export can take longer than a flat fifteen seconds of polling
+	 * covered — so it backs off, out to about a minute. If it is still not
+	 * there, the message says to reload rather than pretending to still be
+	 * working.
 	 */
 	let waiting = $state(false);
+
+	/** ~61 s in all: quick at first, when the export is most likely to land. */
+	const pollDelaysMs = [
+		1500, 1500, 1500, 2500, 2500, 4000, 4000, 6000, 6000, 8000, 8000, 8000, 8000
+	];
 
 	async function waitForIt() {
 		waiting = true;
 		const started = data.exports.length;
-		for (let attempt = 0; attempt < 10; attempt += 1) {
-			await new Promise((resolve) => setTimeout(resolve, 1500));
+		for (const delay of pollDelaysMs) {
+			await new Promise((resolve) => setTimeout(resolve, delay));
 			await invalidateAll();
 			if (data.exports.length > started) break;
 		}
