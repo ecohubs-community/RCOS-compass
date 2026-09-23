@@ -6,8 +6,10 @@ import { getConfig } from '$lib/server/config';
 import { getDb } from '$lib/server/db';
 import { newId } from '$lib/server/db/id';
 import { user } from '$lib/server/db/schema/auth';
+import { communityArtifact } from '$lib/server/db/schema/definitions';
 import { community, membership } from '$lib/server/db/schema/tenancy';
 import { createTenant } from '$lib/server/services/admin/communities';
+import { createDefinition } from '$lib/server/services/definitions';
 import { acceptInvitation, inviteMember } from '$lib/server/services/invitations';
 import { notify } from '$lib/server/services/notifications';
 import { getStandard } from '$lib/server/standard';
@@ -56,6 +58,12 @@ export const POST: RequestHandler = async ({ request }) => {
 		 * through `notify` itself and leaves the document out.
 		 */
 		removedDocumentNotice?: boolean;
+		/**
+		 * One entry of feedback on the standard, recorded by the member. No screen
+		 * creates a local definition yet, so `createDefinition` with the box ticked
+		 * is the only path that produces one — and it is the product's own path.
+		 */
+		standardFeedback?: boolean;
 	};
 	// Each spec seeds its own community, so specs running in parallel — and the
 	// four viewport projects — never collide over one fixture.
@@ -128,6 +136,28 @@ export const POST: RequestHandler = async ({ request }) => {
 			params: { filename: 'bylaws.pdf', outcome: 'complete', open: 2 },
 			recipients: [seat.id]
 		});
+	}
+
+	if (body.standardFeedback) {
+		const shelf = db
+			.select()
+			.from(communityArtifact)
+			.where(eq(communityArtifact.communityId, communityId))
+			.get()!;
+		createDefinition(
+			{
+				...ctx,
+				user: member,
+				membership: db.select().from(membership).where(eq(membership.userId, member.id)).get()!
+			},
+			{
+				scope: 'local',
+				title: 'Guests staying longer than a week need the circle’s consent',
+				attach: { kind: 'community_artifact', artifactId: shelf.id },
+				standardShouldRequireThis: true
+			},
+			{ db }
+		);
 	}
 
 	let valleVerde: ValleVerde | null = null;

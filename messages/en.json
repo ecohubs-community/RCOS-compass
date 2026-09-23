@@ -489,5 +489,20 @@
 	"discussions_last_opened": "Opened {when}",
 	"discussions_last_replied": "{who} replied {when}",
 	"discussions_last_proposed": "{who} proposed v{version} {when}",
-	"discussions_last_meeting": "{who} wrote up a meeting {when}"
+	"discussions_last_meeting": "{who} wrote up a meeting {when}",
+	"nav_standard_feedback": "Feedback on the standard",
+	"standard_feedback_title": "Feedback on the standard",
+	"standard_feedback_intro": "What this community has said RCOS should ask for. Each entry was recorded when somebody wrote a local rule and ticked “RCOS should require this”.",
+	"standard_feedback_not_sent": "Nothing here has been sent anywhere. Passing it on to the standard’s stewards is up to you — copy it from this page, or export the community and it is in the bundle.",
+	"standard_feedback_empty": "Nothing recorded yet. When somebody writes a local rule they think every community should have, ticking “RCOS should require this” puts it here.",
+	"standard_feedback_recorded": "Recorded by {who}, {when}",
+	"standard_feedback_unknown_author": "an unknown member",
+	"standard_feedback_about": "About {standard} v{version}",
+	"standard_feedback_open_definition": "Open the definition",
+	"standard_feedback_open_clause": "Clause {ref} in the standard",
+	"standard_feedback_definition_gone": "The definition it came from has since been removed.",
+	"standard_feedback_kind_gap": "Something the standard does not ask for",
+	"standard_feedback_kind_ambiguity": "Something the standard leaves unclear",
+	"standard_feedback_kind_conflict": "Something the standard contradicts",
+	"standard_feedback_kind_suggestion": "A suggestion"
 }

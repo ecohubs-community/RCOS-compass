@@ -21,7 +21,7 @@ export type Fixture = {
 /** A fresh community, built through the application's own paths. */
 export async function seed(
 	page: Page,
-	options: { locale?: string; removedDocumentNotice?: boolean } = {}
+	options: { locale?: string; removedDocumentNotice?: boolean; standardFeedback?: boolean } = {}
 ): Promise<Fixture> {
 	const response = await page.request.post('/__test/seed', { data: options });
 	expect(response.ok(), 'the seed route is gated on ALLOW_TEST_ROUTES').toBe(true);

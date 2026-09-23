@@ -13,6 +13,7 @@ import { community } from '../db/schema/tenancy.js';
 import { standardViewFor } from './completeness.js';
 import { listDecisions } from './decisions.js';
 import { artifactToMarkdown, renderArtifact } from './render-artifact.js';
+import { listStandardFeedback, standardFeedbackAsMarkdown } from './standard-feedback.js';
 import { isoDateIn } from '../../time/format.js';
 import { timeZoneFor } from '../../time/zone.js';
 
@@ -41,7 +42,7 @@ export type BundleManifest = {
 	/** What the exporter could see. A partial bundle that says so is honest. */
 	visibilityLevels: string[];
 	files: string[];
-	counts: { artifacts: number; decisions: number };
+	counts: { artifacts: number; decisions: number; standardFeedback: number };
 	/**
 	 * Whether the printable copy is in here.
 	 *
@@ -116,6 +117,34 @@ export function buildBundle(
 		)
 	);
 
+	/**
+	 * What the community wished the standard had asked for. UI spec §1.4b: "the
+	 * entries appear in the community's own export". Read through the same
+	 * service as the settings panel, so the file and the page cannot disagree —
+	 * and only for a signed-in exporter, the one audience this is built for. Any
+	 * other gets an empty file rather than a second, unguarded query.
+	 */
+	const feedback = audience.kind === 'signed_in' ? listStandardFeedback(audience.ctx, { db }) : [];
+	add(
+		'standard-feedback.md',
+		standardFeedbackAsMarkdown(feedback, home.name, timeZoneFor(null, home))
+	);
+	add(
+		'standard-feedback.json',
+		JSON.stringify(
+			feedback.map((entry) => ({
+				kind: entry.kind,
+				body: entry.body,
+				standard: entry.standard,
+				clauseRef: entry.clauseRef,
+				author: entry.author,
+				createdAt: new Date(entry.createdAt).toISOString()
+			})),
+			null,
+			2
+		)
+	);
+
 	if (extras.pdf) {
 		files['governance.pdf'] = extras.pdf;
 		names.push('governance.pdf');
@@ -137,7 +166,11 @@ export function buildBundle(
 		exportedAt: new Date(now).toISOString(),
 		visibilityLevels: [...visibleLevels(audience)],
 		files: [...names, 'manifest.json', 'README.md'],
-		counts: { artifacts: artifacts.length, decisions: decisions.length },
+		counts: {
+			artifacts: artifacts.length,
+			decisions: decisions.length,
+			standardFeedback: feedback.length
+		},
 		pdf: extras.pdf ? 'included' : 'unavailable on this instance'
 	};
 	add('manifest.json', JSON.stringify(manifest, null, 2));
@@ -200,6 +233,9 @@ function readme(manifest: BundleManifest): string {
 		'  community adopted and how each part was decided.',
 		'- `decisions.md` and `decisions.json` — the decision register: what was',
 		'  decided, when, by what mechanism, and with what tally.',
+		'- `standard-feedback.md` and `standard-feedback.json` — what the community',
+		'  recorded as something the standard should ask for. None of it has been',
+		'  sent anywhere.',
 		'- `manifest.json` — what this bundle contains and what it does not.',
 		'',
 		manifest.standard
