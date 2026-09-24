@@ -52,7 +52,7 @@ export function getObjection(ctx: Ctx, objectionId: string, options: { db?: Db }
 
 export function raiseObjection(
 	ctx: Ctx,
-	input: { proposalPostId: string; reason: string },
+	input: { proposalPostId: string; reason: string; postId?: string | null },
 	options: { db?: Db } = {}
 ): Objection {
 	requirePermission(ctx, 'objection.raise');
@@ -72,6 +72,7 @@ export function raiseObjection(
 			proposalPostId: input.proposalPostId,
 			raisedBy: ctx.user.id,
 			reason,
+			postId: input.postId ?? null,
 			raisedAt: new Date(ctx.now()),
 			state: 'open',
 			resolvedBy: null,

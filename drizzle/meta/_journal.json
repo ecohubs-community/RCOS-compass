@@ -176,6 +176,13 @@
       "when": 1789931513373,
       "tag": "0024_open_shooting_star",
       "breakpoints": true
+    },
+    {
+      "idx": 25,
+      "version": "6",
+      "when": 1790283368697,
+      "tag": "0025_watery_starbolt",
+      "breakpoints": true
     }
   ]
 }

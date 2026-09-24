@@ -57,11 +57,24 @@ export const discussion = sqliteTable(
 );
 
 /**
- * A message, a proposal, or the summary of a meeting.
+ * Everything a thread says, in the order it was said.
  *
  * A proposal is a post with `kind = 'proposal'` and a `proposalVersion`, not a
  * table of its own — it belongs to the thread it was written in, and a second
  * table would be a second thing to keep in step with it.
+ *
+ * The kind says what the post *is*, because a reader has to be able to tell a
+ * reason given with a vote from a reply, and a steward moving the question
+ * from somebody's opinion — they are all text by a person, and until they
+ * carried a kind the thread rendered them identically:
+ *
+ * - `message` — a reply, written in the composer.
+ * - `proposal` — a version of the text a decision would adopt.
+ * - `offline_summary` — what happened in a meeting.
+ * - `response` — the reason somebody gave with their answer to a round.
+ *   `responseValue` is the answer and `subjectPostId` the version it answered.
+ * - `event` — the thread recording an act on it (the question moved to
+ *   another version). `subjectPostId` is the version it concerns.
  */
 export const post = sqliteTable(
 	'post',
@@ -72,9 +85,22 @@ export const post = sqliteTable(
 			.references(() => discussion.id, { onDelete: 'cascade' }),
 		authorId: text('author_id').references(() => user.id, { onDelete: 'set null' }),
 		body: text('body').notNull(),
-		kind: text('kind', { enum: ['message', 'proposal', 'offline_summary'] })
+		kind: text('kind', { enum: ['message', 'proposal', 'offline_summary', 'response', 'event'] })
 			.notNull()
 			.default('message'),
+		/**
+		 * The answer a `response` post gave, as it was given. Not read back from
+		 * `consent_response`: that row is replaced when somebody changes their
+		 * mind, and the post that carried their first answer stays in the thread
+		 * saying what it said then.
+		 */
+		responseValue: text('response_value', { enum: ['consent', 'objection', 'abstain'] }),
+		/**
+		 * The proposal version a `response` or `event` is about. No foreign key,
+		 * for the same reason `frozen_decision_id` has none: a post pointing at a
+		 * post in its own thread, which the discussion's cascade already removes.
+		 */
+		subjectPostId: text('subject_post_id'),
 		/** 1, 2, 3 … across the proposals of one discussion. Null for a message. */
 		proposalVersion: integer('proposal_version'),
 		/**
@@ -122,6 +148,12 @@ export const objection = sqliteTable(
 			.references(() => post.id, { onDelete: 'cascade' }),
 		raisedBy: text('raised_by').references(() => user.id, { onDelete: 'set null' }),
 		reason: text('reason').notNull(),
+		/**
+		 * The post in the thread that says it, so the thread can show where the
+		 * objection stands next to the words that raised it. Null for an
+		 * objection raised outside a round.
+		 */
+		postId: text('post_id'),
 		raisedAt: integer('raised_at', { mode: 'timestamp_ms' }).notNull(),
 		state: text('state', { enum: ['open', 'withdrawn', 'addressed', 'overruled'] })
 			.notNull()

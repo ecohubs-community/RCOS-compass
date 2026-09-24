@@ -412,14 +412,20 @@ export const consentRoundProvider: VotingProvider = {
 			 * renders the conversation renders it too.
 			 */
 			const reasonPostId = reason
-				? writeThreadPost(ctx, inTx, { discussionId: proposal.discussionId, body: reason }).id
+				? writeThreadPost(ctx, inTx, {
+						discussionId: proposal.discussionId,
+						body: reason,
+						kind: 'response',
+						responseValue: input.value,
+						subjectPostId: current.proposalPostId
+					}).id
 				: null;
 
 			let objectionId: string | null = null;
 			if (input.value === 'objection') {
 				objectionId = raiseObjection(
 					ctx,
-					{ proposalPostId: current.proposalPostId, reason: reason! },
+					{ proposalPostId: current.proposalPostId, reason: reason!, postId: reasonPostId },
 					{ db: inTx }
 				).id;
 			}

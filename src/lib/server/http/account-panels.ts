@@ -13,6 +13,7 @@ import { systemClock } from '$lib/server/clock';
 import { getConfig, isPlatformAdmin } from '$lib/server/config';
 import { getDb } from '$lib/server/db';
 import { run } from '$lib/server/http/form-action';
+import * as m from '$lib/paraglide/messages';
 import { erasureSummary, renamePerson } from '$lib/server/services/account';
 import { recordAudit } from '$lib/server/services/audit';
 import { erasePerson } from '$lib/server/services/erasure';
@@ -64,7 +65,7 @@ export const accountPanel = {
 					.trim()
 					.toLowerCase() !== 'erase'
 			) {
-				return fail(400, { step: 'erase', error: 'Type erase to confirm.' });
+				return fail(400, { step: 'erase', error: m.account_erase_error_confirm() });
 			}
 
 			try {
@@ -112,8 +113,11 @@ export const timeZonePanel = {
  * Enrolment is two steps on purpose. Step one mints a secret and leaves it
  * unverified; step two proves a code from the app matches it. An enrolment
  * abandoned halfway locks nobody out, because an unverified factor is not one.
+ *
+ * Refusals are the panel's own messages rather than the schemas': those are
+ * shared with the sign-in screens, which are English, and this panel speaks the
+ * community's language.
  */
-const WRONG_PASSWORD = 'That password was not accepted.';
 
 export const twoFactorPanel = {
 	load: (event: Event) => {
@@ -140,13 +144,13 @@ export const twoFactorPanel = {
 			if (state.requiresPassword) {
 				const parsed = v.safeParse(passwordSchema, form.get('password'));
 				if (!parsed.success) {
-					return fail(400, { step: 'begin', error: parsed.issues[0]!.message });
+					return fail(400, { step: 'begin', error: m.two_factor_error_password_missing() });
 				}
 				password = parsed.output;
 			}
 
 			const outcome = await beginEnrolment(event.request.headers, password);
-			if (!outcome.ok) return fail(400, { step: 'begin', error: WRONG_PASSWORD });
+			if (!outcome.ok) return fail(400, { step: 'begin', error: m.two_factor_error_password() });
 
 			return {
 				step: 'confirm' as const,
@@ -164,15 +168,12 @@ export const twoFactorPanel = {
 
 			const parsed = v.safeParse(totpCodeSchema, form.get('code'));
 			if (!parsed.success) {
-				return fail(400, { step: 'confirm', error: parsed.issues[0]!.message });
+				return fail(400, { step: 'confirm', error: m.two_factor_error_code_shape() });
 			}
 
 			const outcome = await confirmEnrolment(event.request.headers, parsed.output);
 			if (!outcome.ok) {
-				return fail(400, {
-					step: 'confirm',
-					error: 'That code did not match. Codes change every 30 seconds — try the current one.'
-				});
+				return fail(400, { step: 'confirm', error: m.two_factor_error_code_mismatch() });
 			}
 
 			// Verifying rotates the session; the new one needs its own ceiling.
@@ -202,13 +203,13 @@ export const twoFactorPanel = {
 			if (state.requiresPassword) {
 				const parsed = v.safeParse(passwordSchema, form.get('password'));
 				if (!parsed.success) {
-					return fail(400, { step: 'remove', error: parsed.issues[0]!.message });
+					return fail(400, { step: 'remove', error: m.two_factor_error_password_missing() });
 				}
 				password = parsed.output;
 			}
 
 			const outcome = await removeEnrolment(event.request.headers, password);
-			if (!outcome.ok) return fail(400, { step: 'remove', error: WRONG_PASSWORD });
+			if (!outcome.ok) return fail(400, { step: 'remove', error: m.two_factor_error_password() });
 
 			applyAuthCookies(outcome.response, event.cookies);
 			recordAudit(getDb(), systemClock, {

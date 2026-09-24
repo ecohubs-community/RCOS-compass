@@ -75,4 +75,20 @@ test.describe('the account menu', () => {
 		await page.getByRole('button', { name: 'Sign out' }).click();
 		await expect(page).toHaveURL(/\/sign-in$/);
 	});
+
+	test('speaks the community’s language on the Two-factor panel', async ({ page }) => {
+		const fixture = await seed(page, { locale: 'de' });
+		await signIn(page, fixture.member.email, fixture.member.password);
+		await visit(page, `/c/${fixture.slug}/settings/two-factor`);
+
+		await expect(
+			page.getByRole('heading', { level: 1, name: 'Zwei-Faktor-Authentifizierung' })
+		).toBeVisible();
+		await expect(page.getByLabel('Dein Passwort')).toBeVisible();
+
+		// A refusal from the server, not only the labels the page was built with.
+		await page.getByLabel('Dein Passwort').fill('not-the-password');
+		await page.getByRole('button', { name: 'Zwei-Faktor-Authentifizierung einrichten' }).click();
+		await expect(page.getByRole('alert')).toHaveText('Dieses Passwort wurde nicht akzeptiert.');
+	});
 });

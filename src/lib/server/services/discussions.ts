@@ -9,8 +9,10 @@ import {
 	consentResponse,
 	consentRound,
 	discussion,
+	objection,
 	post,
 	type Discussion,
+	type Objection,
 	type Post
 } from '../db/schema/discussions.js';
 import { user } from '../db/schema/auth.js';
@@ -344,6 +346,17 @@ export function listDiscussionSummaries(ctx: Ctx, options: { db?: Db } = {}): Di
 export type PostAuthor = { label: string; initials: string };
 
 /**
+ * A post as the thread shows it: who wrote it, which version a response or
+ * event is about, and — for a post that raised an objection — where that
+ * objection stands now.
+ */
+export type ThreadPost = Post & {
+	author: PostAuthor;
+	subjectVersion: number | null;
+	objectionState: Objection['state'] | null;
+};
+
+/**
  * The thread, with a name against everything in it.
  *
  * Names go through `personLabel` like every other surface (`docs/03` §10), and
@@ -354,7 +367,7 @@ export function listPostsWithAuthors(
 	ctx: Ctx,
 	discussionId: string,
 	options: { db?: Db } = {}
-): (Post & { author: PostAuthor })[] {
+): ThreadPost[] {
 	getDiscussion(ctx, discussionId, options);
 	const db = options.db ?? getDb();
 
@@ -376,6 +389,28 @@ export function listPostsWithAuthors(
 		.orderBy(post.createdAt)
 		.all();
 
+	/**
+	 * Where each objection said in this thread stands now. Read at view time,
+	 * because an objection is addressed or withdrawn long after the post that
+	 * raised it, and the thread must not keep calling it open.
+	 */
+	const postIds = rows.map((row) => row.post.id);
+	const objectionState = new Map(
+		postIds.length === 0
+			? []
+			: db
+					.select({ postId: objection.postId, state: objection.state })
+					.from(objection)
+					.where(inArray(objection.postId, postIds))
+					.all()
+					.map((row) => [row.postId!, row.state])
+	);
+	const versionOf = new Map(
+		rows
+			.filter((row) => row.post.kind === 'proposal')
+			.map((row) => [row.post.id, row.post.proposalVersion])
+	);
+
 	return rows.map((row) => {
 		const label = personLabel({
 			erasedAt: row.erasedAt ?? null,
@@ -383,7 +418,14 @@ export function listPostsWithAuthors(
 			displayName: row.displayName,
 			seq: row.seq
 		});
-		return { ...row.post, author: { label, initials: initialsOf(label) } };
+		return {
+			...row.post,
+			author: { label, initials: initialsOf(label) },
+			subjectVersion: row.post.subjectPostId
+				? (versionOf.get(row.post.subjectPostId) ?? null)
+				: null,
+			objectionState: objectionState.get(row.post.id) ?? null
+		};
 	});
 }
 
@@ -746,18 +788,25 @@ export function takeOffline(
 }
 
 /**
- * A message written by something other than the composer.
+ * A post written by something other than the composer.
  *
  * The reason somebody gave with their vote is a thing they said, so it belongs
  * in the thread with everything else they said rather than in a column the
  * conversation cannot see. Exported so the voting provider can write one without
  * reaching into `post` itself — the permission that allowed the vote is the
  * permission that allows this, and it has already been checked by the caller.
+ *
+ * Always a `response` or an `event`, never a `message`: a post nobody typed
+ * into the reply box has to say what it is, or the thread shows a vote and a
+ * reply as the same thing.
  */
 export function writeThreadPost(
 	ctx: Ctx,
 	db: Db,
-	values: { discussionId: string; body: string }
+	values: { discussionId: string; body: string; subjectPostId: string } & (
+		| { kind: 'response'; responseValue: 'consent' | 'objection' | 'abstain' }
+		| { kind: 'event' }
+	)
 ): Post {
 	return writePost(
 		ctx,
@@ -765,9 +814,11 @@ export function writeThreadPost(
 		{
 			discussionId: values.discussionId,
 			body: values.body,
-			kind: 'message',
+			kind: values.kind,
 			proposalVersion: null,
-			revisionNote: null
+			revisionNote: null,
+			responseValue: values.kind === 'response' ? values.responseValue : null,
+			subjectPostId: values.subjectPostId
 		}
 	);
 }
@@ -778,10 +829,12 @@ function writePost(
 	values: {
 		discussionId: string;
 		body: string;
-		kind: 'message' | 'proposal' | 'offline_summary';
+		kind: Post['kind'];
 		proposalVersion: number | null;
 		revisionNote?: string | null;
 		linterResult?: unknown;
+		responseValue?: Post['responseValue'];
+		subjectPostId?: string | null;
 	}
 ): Post {
 	const db = options.db ?? getDb();
@@ -798,6 +851,8 @@ function writePost(
 			proposalVersion: values.proposalVersion,
 			revisionNote: values.revisionNote ?? null,
 			linterResult: values.linterResult ?? null,
+			responseValue: values.responseValue ?? null,
+			subjectPostId: values.subjectPostId ?? null,
 			frozenDecisionId: null,
 			createdAt: new Date(now),
 			editedAt: null
@@ -1012,6 +1067,8 @@ export function setCurrentProposal(
 		const reason = input.reason?.trim();
 		writeThreadPost(ctx, inTx, {
 			discussionId: found.id,
+			kind: 'event',
+			subjectPostId: target.id,
 			body:
 				`Put v${target.proposalVersion} back on the table` +
 				(previous?.proposalVersion ? `, from v${previous.proposalVersion}` : '') +
