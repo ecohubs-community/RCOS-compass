@@ -4,12 +4,17 @@ import { assertConfigOrExit, getConfig } from '$lib/server/config';
 import { getDb, initDatabase } from '$lib/server/db';
 import { getLogger } from '$lib/server/logger';
 import { securityHeaders } from '$lib/server/http/security-headers';
-import { baseLocale, withLocale } from '$lib/server/locale';
+import { baseLocale, localeOf, withLocale } from '$lib/server/locale';
 import { rateLimitRequest } from '$lib/server/http/rate-limit-request';
 import { recordError } from '$lib/server/services/errors';
 import { resolveActor } from '$lib/server/auth/session';
 import { requirePlatformAdmin } from '$lib/server/auth/admin';
-import { invitationLocale, publicLocale, resolveTenant } from '$lib/server/http/resolve-tenant';
+import {
+	invitationLocale,
+	publicLocale,
+	resolveTenant,
+	signInLocale
+} from '$lib/server/http/resolve-tenant';
 import { handlers } from '$lib/server/jobs/handlers';
 import { enqueueOnce, startWorker } from '$lib/server/jobs';
 import { enqueueRereadIfNeeded } from '$lib/server/documents/reread';
@@ -132,17 +137,28 @@ export const handle: Handle = async ({ event, resolve }) => {
 	 * answered in English however the community works. `invitationLocale` is the
 	 * fourth for the same reason and one screen earlier — the person reading an
 	 * invitation is not a member yet, and that is no reason to greet them in a
-	 * language their community does not use.
+	 * language their community does not use. `signInLocale` is last: the sign-in
+	 * screens have no community at all, and there the browser is asked.
 	 */
-	const response = await withLocale(
+	const locale = localeOf(
 		event.locals.ctx?.community.locale ??
 			event.locals.community?.locale ??
 			publicLocale(event, db) ??
 			invitationLocale(event, db) ??
-			baseLocale,
-		event.url.origin,
-		() => resolve(event)
+			signInLocale(event) ??
+			baseLocale
 	);
+	const response = await withLocale(locale, event.url.origin, () =>
+		resolve(event, {
+			// The document says which language it is in, so a screen reader reads a
+			// German page with German pronunciation. WCAG 3.1.1.
+			transformPageChunk: ({ html }) => html.replace('%lang%', locale)
+		})
+	);
+	// The same sign-in URL answers in more than one language, chosen by header.
+	if (/^\/sign-in(\/|$)/.test(event.url.pathname)) {
+		response.headers.append('vary', 'Accept-Language');
+	}
 
 	// CSP is set by SvelteKit from svelte.config.js, which nonces its own inline
 	// scripts. Everything else is set here.

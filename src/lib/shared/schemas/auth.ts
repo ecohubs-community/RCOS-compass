@@ -1,4 +1,5 @@
 import * as v from 'valibot';
+import * as m from '$lib/paraglide/messages';
 
 /**
  * Shapes for the authentication forms. docs/01-server-client-contract.md §1:
@@ -8,21 +9,28 @@ import * as v from 'valibot';
  * These describe *form* input only. Whether the credentials are correct is
  * better-auth's question, not this file's — and the answer it gives is
  * deliberately the same for a wrong password and an address with no account.
+ *
+ * Messages are functions, as in `invitations.ts`: Valibot calls them while
+ * parsing, inside the request, so they come out in the language the request is
+ * answered in — the browser's on the sign-in screens, the community's elsewhere.
  */
 
 const email = v.pipe(
-	v.string('Enter your email address.'),
+	v.string(() => m.auth_error_email_missing()),
 	v.trim(),
 	v.toLowerCase(),
-	v.email('That does not look like an email address.'),
-	v.maxLength(320, 'That address is too long.')
+	v.email(() => m.auth_error_email_invalid()),
+	v.maxLength(320, () => m.auth_error_email_long())
 );
 
 export const signInSchema = v.object({
 	email,
 	// No length rule on sign-in: the minimum belongs to sign-up, and applying it
 	// here would tell an attacker which passwords are too short to be real.
-	password: v.pipe(v.string('Enter your password.'), v.minLength(1, 'Enter your password.'))
+	password: v.pipe(
+		v.string(() => m.auth_error_password_missing()),
+		v.minLength(1, () => m.auth_error_password_missing())
+	)
 });
 
 /**
@@ -31,9 +39,9 @@ export const signInSchema = v.object({
  * is checked rather than being rejected as a typo.
  */
 export const totpCodeSchema = v.pipe(
-	v.string('Enter the six-digit code.'),
+	v.string(() => m.auth_error_code_missing()),
 	v.transform((value) => value.replace(/[\s-]/g, '')),
-	v.regex(/^\d{6}$/, 'Enter the six-digit code from your authenticator app.')
+	v.regex(/^\d{6}$/, () => m.auth_error_code_shape())
 );
 
 /**
@@ -42,16 +50,16 @@ export const totpCodeSchema = v.pipe(
  * down in.
  */
 export const backupCodeSchema = v.pipe(
-	v.string('Enter a recovery code.'),
+	v.string(() => m.auth_error_recovery_missing()),
 	v.trim(),
-	v.minLength(6, 'That is not a recovery code.'),
-	v.maxLength(64, 'That is not a recovery code.')
+	v.minLength(6, () => m.auth_error_recovery_invalid()),
+	v.maxLength(64, () => m.auth_error_recovery_invalid())
 );
 
 /** Re-authentication before a change to the second factor. */
 export const passwordSchema = v.pipe(
-	v.string('Enter your password.'),
-	v.minLength(1, 'Enter your password.'),
+	v.string(() => m.auth_error_password_missing()),
+	v.minLength(1, () => m.auth_error_password_missing()),
 	v.maxLength(200)
 );
 

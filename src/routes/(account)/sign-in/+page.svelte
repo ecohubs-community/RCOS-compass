@@ -2,15 +2,16 @@
 	import { enhance } from '$app/forms';
 	import Button from '$lib/components/ui/Button.svelte';
 	import TextField from '$lib/components/ui/TextField.svelte';
+	import * as m from '$lib/paraglide/messages';
 
 	let { data, form } = $props();
 	let pending = $state(false);
 </script>
 
-<svelte:head><title>Sign in · RCOS Compass</title></svelte:head>
+<svelte:head><title>{m.sign_in_title()} · RCOS Compass</title></svelte:head>
 
 <main class="border-border bg-surface rounded-(--radius-card) border p-6">
-	<h1 class="text-section font-medium">Sign in</h1>
+	<h1 class="text-section font-medium">{m.sign_in_title()}</h1>
 
 	<form
 		method="POST"
@@ -37,7 +38,7 @@
 		<TextField
 			id="email"
 			name="email"
-			label="Email"
+			label={m.sign_in_email_label()}
 			type="email"
 			autocomplete="username"
 			required
@@ -47,7 +48,7 @@
 		<TextField
 			id="password"
 			name="password"
-			label="Password"
+			label={m.sign_in_password_label()}
 			type="password"
 			autocomplete="current-password"
 			required
@@ -55,7 +56,7 @@
 		/>
 
 		<Button type="submit" variant="primary" {pending} class="mt-2 w-full">
-			{pending ? 'Signing in' : 'Sign in'}
+			{pending ? m.sign_in_pending() : m.sign_in_submit()}
 		</Button>
 	</form>
 </main>

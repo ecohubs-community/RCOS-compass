@@ -2,6 +2,7 @@
 	import { enhance } from '$app/forms';
 	import Button from '$lib/components/ui/Button.svelte';
 	import TextField from '$lib/components/ui/TextField.svelte';
+	import * as m from '$lib/paraglide/messages';
 
 	let { data, form } = $props();
 	let pending = $state(false);
@@ -17,12 +18,12 @@
 	};
 </script>
 
-<svelte:head><title>Two-factor code · RCOS Compass</title></svelte:head>
+<svelte:head><title>{m.sign_in_code_title()} · RCOS Compass</title></svelte:head>
 
 <main class="border-border bg-surface rounded-(--radius-card) border p-6">
-	<h1 class="text-section font-medium">Enter your code</h1>
+	<h1 class="text-section font-medium">{m.sign_in_code_heading()}</h1>
 	<p class="text-fg-secondary mt-2">
-		Open your authenticator app and enter the six-digit code it shows for RCOS Compass.
+		{m.sign_in_code_intro()}
 	</p>
 
 	{#if form?.error}
@@ -40,14 +41,14 @@
 			<TextField
 				id="code"
 				name="code"
-				label="Six-digit code"
+				label={m.sign_in_code_label()}
 				inputmode="numeric"
 				autocomplete="one-time-code"
 				required
 				data-tabular
 			/>
 			<Button type="submit" variant="primary" {pending} class="w-full">
-				{pending ? 'Checking' : 'Continue'}
+				{pending ? m.sign_in_checking() : m.sign_in_continue()}
 			</Button>
 		</form>
 
@@ -56,7 +57,7 @@
 			class="text-fg-secondary hover:text-fg mt-4 cursor-pointer underline underline-offset-2"
 			onclick={() => (useRecovery = true)}
 		>
-			I don't have my authenticator
+			{m.sign_in_no_authenticator()}
 		</button>
 	{:else}
 		<form
@@ -69,13 +70,13 @@
 			<TextField
 				id="recovery-code"
 				name="code"
-				label="Recovery code"
-				hint="One of the codes you saved when you set this up. Each one works once."
+				label={m.sign_in_recovery_label()}
+				hint={m.sign_in_recovery_hint()}
 				autocomplete="one-time-code"
 				required
 			/>
 			<Button type="submit" variant="primary" {pending} class="w-full">
-				{pending ? 'Checking' : 'Continue'}
+				{pending ? m.sign_in_checking() : m.sign_in_continue()}
 			</Button>
 		</form>
 
@@ -84,7 +85,7 @@
 			class="text-fg-secondary hover:text-fg mt-4 cursor-pointer underline underline-offset-2"
 			onclick={() => (useRecovery = false)}
 		>
-			Use my authenticator instead
+			{m.sign_in_use_authenticator()}
 		</button>
 	{/if}
 </main>

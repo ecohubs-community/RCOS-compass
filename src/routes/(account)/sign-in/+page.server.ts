@@ -9,6 +9,7 @@ import { getDb } from '$lib/server/db';
 import { safeRedirectTarget } from '$lib/server/http/redirect-target';
 import { recordAudit } from '$lib/server/services/audit';
 import { fieldErrors, signInSchema } from '$lib/shared/schemas/auth';
+import * as m from '$lib/paraglide/messages';
 import type { Actions, PageServerLoad } from './$types';
 
 /**
@@ -18,9 +19,9 @@ import type { Actions, PageServerLoad } from './$types';
  * and an unverified address all answer the same way, because any difference
  * between them is a list of who has an account here — and this instance's users
  * are members of named communities.
+ *
+ * In the browser's language (`signInLocale`): there is no community yet to ask.
  */
-const REFUSED = 'Those details did not match an account. Check them and try again.';
-
 export const load: PageServerLoad = ({ locals, url }) => {
 	if (locals.user) redirect(303, safeRedirectTarget(url.searchParams.get('redirectTo')));
 	return { redirectTo: safeRedirectTarget(url.searchParams.get('redirectTo')) };
@@ -60,7 +61,7 @@ export const actions: Actions = {
 				// person at the keyboard is told only that it did not match.
 				meta: { reason: outcome.code ?? 'unknown' }
 			});
-			const errors: Record<string, string> = { form: REFUSED };
+			const errors: Record<string, string> = { form: m.sign_in_refused() };
 			return fail(400, { email, errors });
 		}
 

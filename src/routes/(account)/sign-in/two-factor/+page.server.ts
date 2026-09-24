@@ -12,6 +12,7 @@ import { getDb } from '$lib/server/db';
 import { safeRedirectTarget } from '$lib/server/http/redirect-target';
 import { recordAudit } from '$lib/server/services/audit';
 import { backupCodeSchema, totpCodeSchema } from '$lib/shared/schemas/auth';
+import * as m from '$lib/paraglide/messages';
 import type { Actions, PageServerLoad, RequestEvent } from './$types';
 
 /**
@@ -22,7 +23,6 @@ import type { Actions, PageServerLoad, RequestEvent } from './$types';
  * The failure message does not distinguish a wrong code from an expired
  * challenge — that difference is only useful to someone guessing.
  */
-const REFUSED = 'That code was not accepted. Codes change every 30 seconds — try the current one.';
 
 export const load: PageServerLoad = ({ locals, url, cookies }) => {
 	const target = safeRedirectTarget(url.searchParams.get('redirectTo'));
@@ -56,7 +56,7 @@ async function answer(kind: 'totp' | 'backup', event: RequestEvent) {
 			userAgent: request.headers.get('user-agent'),
 			meta: { stage: 'two_factor', method: kind, reason: outcome.code ?? 'unknown' }
 		});
-		return fail(400, { mode: kind, error: REFUSED });
+		return fail(400, { mode: kind, error: m.sign_in_code_refused() });
 	}
 
 	applyAuthCookies(outcome.response, cookies);

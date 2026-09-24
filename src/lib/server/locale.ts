@@ -50,3 +50,35 @@ export function localeOf(value: string | null | undefined): Locale {
 export function withLocale<T>(locale: string, origin: string, run: () => T): T {
 	return storage.run({ locale: localeOf(locale), origin }, run);
 }
+
+/**
+ * The first language in an `Accept-Language` header that the interface has.
+ *
+ * Only for the screens somebody sees before they are anybody — signing in —
+ * where there is no community to ask. Everywhere else the community decides,
+ * and this is never consulted.
+ *
+ * Weights are honoured and `q=0` means "not this"; a regional tag falls back to
+ * its language (`de-AT` reads German), and `*` chooses nothing, because "any"
+ * is not a preference. Null when nothing matches, so the caller's default wins.
+ */
+export function negotiateLocale(header: string | null | undefined): Locale | null {
+	if (!header) return null;
+	const ranked = header
+		.split(',')
+		.map((part, order) => {
+			const [tag = '', ...params] = part.trim().split(';');
+			const q = params.map((p) => p.trim()).find((p) => p.startsWith('q='));
+			const weight = q ? Number(q.slice(2)) : 1;
+			return { tag: tag.trim().toLowerCase(), weight: Number.isFinite(weight) ? weight : 0, order };
+		})
+		.filter((entry) => entry.tag && entry.tag !== '*' && entry.weight > 0)
+		.sort((a, b) => b.weight - a.weight || a.order - b.order);
+
+	for (const { tag } of ranked) {
+		if (isLocale(tag)) return assertIsLocale(tag);
+		const language = tag.split('-')[0]!;
+		if (isLocale(language)) return assertIsLocale(language);
+	}
+	return null;
+}

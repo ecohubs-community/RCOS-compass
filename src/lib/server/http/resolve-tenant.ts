@@ -4,6 +4,7 @@ import { requirePermission, type Ctx } from '../auth/guard.js';
 import type { Clock } from '../clock.js';
 import type { Db } from '../db/index.js';
 import { community } from '../db/schema/tenancy.js';
+import { negotiateLocale } from '../locale.js';
 import { resolveCommunity, resolveSlugRedirect } from '../services/tenancy.js';
 
 /**
@@ -21,6 +22,7 @@ import { resolveCommunity, resolveSlugRedirect } from '../services/tenancy.js';
 const TENANT_PATH = /^\/c\/([^/]+)(\/|$)/;
 const PUBLIC_PATH = /^\/p\/([^/]+)(\/|$)/;
 const INVITATION_PATH = /^\/invitations\//;
+const SIGN_IN_PATH = /^\/sign-in(\/|$)/;
 
 /**
  * The language a request is answered in, when there is no member to ask.
@@ -66,6 +68,19 @@ export function invitationLocale(event: RequestEvent, db: Db): string | null {
 		.where(and(eq(community.slug, slug), eq(community.status, 'active')))
 		.get();
 	return row?.locale ?? null;
+}
+
+/**
+ * The language of the sign-in screens, from the browser.
+ *
+ * The one place the browser is asked. Everywhere else the language belongs to a
+ * community, but somebody signing in has not said which community they are
+ * for, and guessing one from the URL would tell a stranger which communities
+ * exist. The browser's own list discloses nothing and is usually right.
+ */
+export function signInLocale(event: RequestEvent): string | null {
+	if (!SIGN_IN_PATH.test(event.url.pathname)) return null;
+	return negotiateLocale(event.request.headers.get('accept-language'));
 }
 
 export function resolveTenant(event: RequestEvent, db: Db, clock: Clock): void {
