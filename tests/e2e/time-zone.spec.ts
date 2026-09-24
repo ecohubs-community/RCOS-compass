@@ -23,7 +23,7 @@ test.describe('a person’s time zone', () => {
 		await signIn(lisbon.page, email, password);
 		await visit(lisbon.page, `/c/${slug}`);
 		await expect(async () => {
-			await visit(lisbon.page, '/account');
+			await visit(lisbon.page, `/c/${slug}/settings/time-zone`);
 			await expect(lisbon.page.getByLabel('Your time zone')).toHaveValue('Europe/Lisbon', {
 				timeout: 2_000
 			});
@@ -33,7 +33,7 @@ test.describe('a person’s time zone', () => {
 		const tokyo = await browserIn(browser, 'Asia/Tokyo');
 		await signIn(tokyo.page, email, password);
 		await visit(tokyo.page, `/c/${slug}`);
-		await visit(tokyo.page, '/account');
+		await visit(tokyo.page, `/c/${slug}/settings/time-zone`);
 		await expect(tokyo.page.getByLabel('Your time zone')).toHaveValue('Europe/Lisbon');
 		await tokyo.page
 			.getByRole('button', { name: 'Use this device’s time zone (Asia/Tokyo)' })
@@ -50,8 +50,9 @@ test.describe('a person’s time zone', () => {
 		const tokyo = await browserIn(browser, 'Asia/Tokyo');
 		await seedWithProposal(tokyo.page);
 		const thread = tokyo.page.url();
+		const slug = new URL(thread).pathname.split('/')[2];
 		// Let detection settle, so the server renders in the person's zone too.
-		await visit(tokyo.page, '/account');
+		await visit(tokyo.page, `/c/${slug}/settings/time-zone`);
 		await expect(tokyo.page.getByLabel('Your time zone')).toHaveValue('Asia/Tokyo', {
 			timeout: 20_000
 		});
@@ -61,7 +62,6 @@ test.describe('a person’s time zone', () => {
 		await freezeOnOpenThread(tokyo.page);
 		await expect(tokyo.page).toHaveURL(/\/d\/DEC-/);
 		const decision = tokyo.page.url();
-		const slug = new URL(thread).pathname.split('/')[2];
 
 		const TIME = /\b\d{1,2} [A-Z][a-z]{2,4}(?:, \d{2}:\d{2}| \d{4})?\b/g;
 		for (const url of [thread, decision, `/c/${slug}`]) {
@@ -81,14 +81,14 @@ test.describe('a person’s time zone', () => {
 
 	test('can be chosen without JavaScript @no-js', async ({ page, browser }) => {
 		test.slow();
-		const { email, password } = await seed(page);
+		const { email, password, slug } = await seed(page);
 		const scripted = await browser.newContext({ javaScriptEnabled: true, timezoneId: 'UTC' });
 		const helper = await scripted.newPage();
 		await signIn(helper, email, password);
 		await page.context().addCookies((await scripted.storageState()).cookies);
 		await scripted.close();
 
-		await page.goto('/account');
+		await page.goto(`/c/${slug}/settings/time-zone`);
 		await page.getByLabel('Your time zone').selectOption('America/New_York');
 		await page.getByRole('button', { name: 'Save time zone' }).click();
 		await expect(page.getByLabel('Your time zone')).toHaveValue('America/New_York');

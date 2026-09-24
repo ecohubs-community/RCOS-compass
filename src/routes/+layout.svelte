@@ -22,7 +22,7 @@
 		if (!zone) return;
 		const body = new FormData();
 		body.set('timeZone', zone);
-		void fetch(`${resolve('/(account)/account')}?/detectTimeZone`, {
+		void fetch(`${resolve('/')}?/detectTimeZone`, {
 			method: 'POST',
 			body,
 			headers: { 'x-sveltekit-action': 'true' }

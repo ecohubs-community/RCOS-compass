@@ -53,7 +53,8 @@ whatever their time zone.
 
 The application MUST set a signed-in person's time zone from their browser the first
 time they load a page without one, MUST NOT change a time zone that is already set
-without their action, and MUST let them choose another on their account page. A time
+without their action, and MUST let them choose another in the Time zone panel of their
+settings. A time
 zone MUST be accepted only if the runtime recognises it.
 
 #### Scenario: First visit
@@ -62,7 +63,7 @@ zone MUST be accepted only if the runtime recognises it.
 
 #### Scenario: Travelling
 - **WHEN** a person whose time zone is Europe/Lisbon loads a page from a browser set to Asia/Tokyo
-- **THEN** their time zone stays Europe/Lisbon, and the account page offers to use Asia/Tokyo
+- **THEN** their time zone stays Europe/Lisbon, and the Time zone panel offers to use Asia/Tokyo
 
 #### Scenario: A made-up zone
 - **WHEN** a request sets the time zone to "Mars/Olympus"

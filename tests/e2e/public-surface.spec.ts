@@ -47,7 +47,7 @@ test.describe('what the world can read', () => {
 		const body = await response!.text();
 
 		expect(body).toContain('Allow: /p/');
-		for (const surface of ['/c/', '/admin/', '/account/', '/api/']) {
+		for (const surface of ['/c/', '/admin/', '/api/']) {
 			expect(body, `${surface} should not be advertised to crawlers`).toContain(
 				`Disallow: ${surface}`
 			);

@@ -51,6 +51,10 @@ export const links = {
 		resolve('/(app)/c/[slug]/settings/standard-feedback', { slug }),
 	mirror: (slug: string) => resolve('/(app)/c/[slug]/settings/mirror', { slug }),
 	language: (slug: string) => resolve('/(app)/c/[slug]/settings/language', { slug }),
+	/** The person's own panels, under the community they happen to be in. */
+	accountSettings: (slug: string) => resolve('/(app)/c/[slug]/settings/account', { slug }),
+	twoFactorSettings: (slug: string) => resolve('/(app)/c/[slug]/settings/two-factor', { slug }),
+	timeZoneSettings: (slug: string) => resolve('/(app)/c/[slug]/settings/time-zone', { slug }),
 	/** Licences and the documents the community agreed to. */
 	about: (slug: string) => resolve('/(app)/c/[slug]/settings/about', { slug }),
 	feedback: (slug: string) => resolve('/(app)/c/[slug]/feedback', { slug }),

@@ -51,11 +51,14 @@ test.describe('the two-factor challenge', () => {
 });
 
 test.describe('the enrolment page', () => {
-	test('asks an anonymous visitor to sign in first, and remembers where they were going', async ({
-		page
-	}) => {
-		await page.goto('/account/two-factor');
-		await expect(page).toHaveURL(/\/sign-in\?redirectTo=%2Faccount%2Ftwo-factor$/);
+	test('is nothing to an anonymous visitor, wherever it is mounted', async ({ request }) => {
+		// Under a community it is that community's settings, which a stranger may
+		// not learn exist; in the console it is the console, which does not
+		// announce itself. Both answer as a page that is not there.
+		for (const path of ['/c/valle-verde/settings/two-factor', '/admin/settings/two-factor']) {
+			const response = await request.get(path, { maxRedirects: 0 });
+			expect(response.status(), path).toBe(404);
+		}
 	});
 });
 

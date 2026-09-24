@@ -34,6 +34,7 @@ export function makeCommunity(
 	db: Db,
 	overrides: {
 		slug?: string;
+		name?: string;
 		status?: 'active' | 'suspended' | 'deleted';
 		/** Decision references are year-stamped in it, so tests need to set it. */
 		timezone?: string;
@@ -44,7 +45,7 @@ export function makeCommunity(
 	const row = {
 		id: newId(),
 		slug: overrides.slug ?? `community-${newId().slice(-8)}`,
-		name: 'Valle Verde',
+		name: overrides.name ?? 'Valle Verde',
 		locale: overrides.locale ?? 'en',
 		timezone: overrides.timezone ?? 'America/Guayaquil',
 		status: overrides.status ?? ('active' as const),

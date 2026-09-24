@@ -16,7 +16,12 @@ test.describe('the admin console', () => {
 		'/admin/communities/new',
 		'/admin/communities/some-id',
 		'/admin/audit',
-		'/admin/status'
+		'/admin/status',
+		'/admin/settings',
+		'/admin/settings/account',
+		// The one page an unenrolled admin may open is still nothing to a stranger.
+		'/admin/settings/two-factor',
+		'/admin/settings/time-zone'
 	];
 
 	for (const path of paths) {
@@ -41,8 +46,18 @@ test.describe('the admin console', () => {
 		// The Origin header is deliberate. Without it SvelteKit's CSRF check
 		// answers 403 before the route runs, which would make this test pass for
 		// the wrong reason — it would prove the origin check works, not the guard.
-		for (const action of ['?/rename', '?/slug', '?/delete', '?/transfer']) {
-			const response = await request.post(`/admin/communities/some-id${action}`, {
+		for (const action of [
+			'/admin/communities/some-id?/rename',
+			'/admin/communities/some-id?/slug',
+			'/admin/communities/some-id?/delete',
+			'/admin/communities/some-id?/transfer',
+			// The account panels' actions are shared with the community's settings;
+			// in the console they sit behind the same guard as everything else.
+			'/admin/settings/account?/rename',
+			'/admin/settings/account?/erase',
+			'/admin/settings/two-factor?/begin'
+		]) {
+			const response = await request.post(action, {
 				headers: { origin: baseURL! },
 				form: { name: 'x' },
 				maxRedirects: 0

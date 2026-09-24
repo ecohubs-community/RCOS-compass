@@ -30,7 +30,7 @@ test.describe('the phase is finished when', () => {
 		const registerBefore = await steward.locator('main').innerText();
 
 		/**
-		 * A member erases themselves, from their own account screen.
+		 * A member erases themselves, from the Account panel of the settings.
 		 *
 		 * The screen states what survives before it offers the button — including
 		 * the `Former member (M-####)` they will read as — because that is the
@@ -40,7 +40,7 @@ test.describe('the phase is finished when', () => {
 		const memberContext = await browser.newContext();
 		const member = await memberContext.newPage();
 		await signIn(member, fixture.member.email, fixture.member.password);
-		await visit(member, '/account');
+		await visit(member, `/c/${fixture.slug}/settings/account`);
 		await expect(member.getByText(/former member \(M-\d{4}\)/i)).toBeVisible();
 		await member.getByLabel(/type erase/i).fill('erase');
 		await member.getByRole('button', { name: /erase my account/i }).click();

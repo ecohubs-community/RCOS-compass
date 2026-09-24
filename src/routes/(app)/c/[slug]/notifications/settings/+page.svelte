@@ -1,6 +1,5 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
-	import { resolve } from '$app/paths';
 	import { page } from '$app/state';
 	import Button from '$lib/components/ui/Button.svelte';
 	import { links } from '$lib/links';
@@ -73,8 +72,9 @@
 			</select>
 			<p id="digest-day-hint" class="text-fg-secondary text-meta">
 				{m.notification_settings_day_hint({ zone: data.digestZone })}
-				<a href={resolve('/(account)/account')} class="text-accent underline underline-offset-2"
-					>{m.notification_settings_zone_link()}</a
+				<a
+					href={links.timeZoneSettings(data.community.slug)}
+					class="text-accent underline underline-offset-2">{m.notification_settings_zone_link()}</a
 				>
 			</p>
 		</div>

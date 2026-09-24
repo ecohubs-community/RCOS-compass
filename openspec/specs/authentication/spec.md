@@ -49,11 +49,17 @@ whether an account exists.
 ### Requirement: Platform admins must hold a second factor
 
 A user whose verified email is listed as a platform admin MUST have TOTP enrolled
-before reaching any admin route.
+before reaching any admin route other than the console's own Two-factor panel, which
+MUST remain reachable to them so that enrolment is possible, and MUST answer 404 to
+anybody who is not a listed admin.
 
 #### Scenario: An admin without a second factor
 - **WHEN** an admin-email user without TOTP requests an admin route
 - **THEN** they are sent to enrolment and the route is not served
+
+#### Scenario: The enrolment panel for somebody who is not an admin
+- **WHEN** anybody who is not a listed admin requests the console's Two-factor panel
+- **THEN** the answer is 404, the same as for any other admin route
 
 #### Scenario: An ordinary member without a second factor
 - **WHEN** a member without TOTP uses the application

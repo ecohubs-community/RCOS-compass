@@ -138,7 +138,10 @@ describe('credential attempts have their own, tighter ceiling', () => {
 
 	it('covers the challenge and enrolment, not only the password', () => {
 		expect(isCredentialAttempt('/sign-in/two-factor', 'POST')).toBe(true);
-		expect(isCredentialAttempt('/account/two-factor', 'POST')).toBe(true);
+		// Enrolment lives in the settings panel, under a community or the console.
+		expect(isCredentialAttempt('/c/valle-verde/settings/two-factor', 'POST')).toBe(true);
+		expect(isCredentialAttempt('/admin/settings/two-factor', 'POST')).toBe(true);
+		expect(isCredentialAttempt('/c/valle-verde/settings/account', 'POST')).toBe(false);
 		expect(isCredentialAttempt('/api/auth/sign-in/email', 'POST')).toBe(true);
 		expect(isCredentialAttempt('/c/valle-verde/definitions', 'POST')).toBe(false);
 		// Not a prefix match on a path that merely starts with the same letters.

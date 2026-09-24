@@ -1,6 +1,10 @@
 import { eq } from 'drizzle-orm';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { adminStatus } from '../../src/lib/server/auth/admin.js';
+import {
+	ENROLMENT_PATH,
+	adminStatus,
+	requirePlatformAdmin
+} from '../../src/lib/server/auth/admin.js';
 import { createAuth, resetAuthForTests } from '../../src/lib/server/auth/auth.js';
 import { parseSetCookie } from '../../src/lib/server/auth/cookies.js';
 import {
@@ -343,5 +347,48 @@ describe('the admin gate depends on all of it', () => {
 
 		const account = db.select().from(user).where(eq(user.id, userId)).get()!;
 		expect(adminStatus(account)).toBe('needs_two_factor');
+	});
+});
+
+describe('the enrolment page is the one console page an unenrolled admin may open', () => {
+	/** What the guard threw, if anything: a redirect or an HTTP error, never a plain Error. */
+	function refusal(act: () => void): { status?: number; location?: string } | null {
+		try {
+			act();
+			return null;
+		} catch (thrown) {
+			return thrown as { status?: number; location?: string };
+		}
+	}
+
+	it('lets a listed admin without a factor reach enrolment, and nothing else', async () => {
+		vi.stubEnv('ADMIN_EMAILS', credentials.email);
+		resetConfigForTests();
+		const { userId } = await signedIn();
+		const account = db.select().from(user).where(eq(user.id, userId)).get()!;
+
+		expect(refusal(() => requirePlatformAdmin(account, ENROLMENT_PATH))).toBeNull();
+		// Anywhere else in the console sends them to it, rather than a dead end.
+		expect(refusal(() => requirePlatformAdmin(account, '/admin/communities'))).toMatchObject({
+			status: 303,
+			location: ENROLMENT_PATH
+		});
+		expect(refusal(() => requirePlatformAdmin(account, '/admin/settings/account'))).toMatchObject({
+			status: 303,
+			location: ENROLMENT_PATH
+		});
+	});
+
+	it('is the same 404 as the rest of the console for somebody who is not listed', async () => {
+		resetConfigForTests();
+		const { userId } = await signedIn();
+		const account = db.select().from(user).where(eq(user.id, userId)).get()!;
+
+		expect(refusal(() => requirePlatformAdmin(account, ENROLMENT_PATH))).toMatchObject({
+			status: 404
+		});
+		expect(refusal(() => requirePlatformAdmin(null, ENROLMENT_PATH))).toMatchObject({
+			status: 404
+		});
 	});
 });

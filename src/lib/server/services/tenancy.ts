@@ -1,4 +1,4 @@
-import { and, eq, gt, isNull } from 'drizzle-orm';
+import { and, asc, eq, gt, isNull, ne } from 'drizzle-orm';
 import type { Db } from '../db/index.js';
 import {
 	community,
@@ -65,6 +65,34 @@ export function resolveCommunity(db: Db, slug: string, userId: string | null): R
 	}
 
 	return { kind: 'ok', community: found, membership: current };
+}
+
+/** A community somebody can open, as the front page lists it. */
+export type OwnCommunity = { slug: string; name: string; suspended: boolean };
+
+/**
+ * The communities a person can open right now, for the front page.
+ *
+ * The same boundary as {@link resolveCommunity}, read the other way round: a
+ * membership that has ended and a community that has been deleted are left out,
+ * because following either link would be a 404. A suspended one stays — its
+ * members can still read and export — and says so.
+ */
+export function communitiesOf(db: Db, userId: string): OwnCommunity[] {
+	return db
+		.select({ slug: community.slug, name: community.name, status: community.status })
+		.from(membership)
+		.innerJoin(community, eq(community.id, membership.communityId))
+		.where(
+			and(
+				eq(membership.userId, userId),
+				isNull(membership.endedAt),
+				ne(community.status, 'deleted')
+			)
+		)
+		.orderBy(asc(community.name), asc(community.slug))
+		.all()
+		.map(({ slug, name, status }) => ({ slug, name, suspended: status === 'suspended' }));
 }
 
 /**

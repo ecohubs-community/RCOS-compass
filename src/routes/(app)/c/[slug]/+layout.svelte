@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { page } from '$app/state';
+	import AccountMenu from '$lib/components/AccountMenu.svelte';
 	import Footer from '$lib/components/legal/Footer.svelte';
 	import TopBar from '$lib/components/TopBar.svelte';
 	import GlossaryPanel from '$lib/components/GlossaryPanel.svelte';
@@ -11,7 +12,6 @@
 	import IconFiles from '~icons/tabler/files';
 	import IconGavel from '~icons/tabler/gavel';
 	import IconLayoutDashboard from '~icons/tabler/layout-dashboard';
-	import IconLogout from '~icons/tabler/logout';
 	import IconMessageReport from '~icons/tabler/message-report';
 	import IconMessages from '~icons/tabler/messages';
 	import IconRoute from '~icons/tabler/route';
@@ -323,15 +323,7 @@
 					>{(ROLE_LABELS[data.membership.role] ?? (() => data.membership.role))()}</span
 				>
 			</span>
-			<form method="POST" action="/sign-out">
-				<button
-					type="submit"
-					class="text-fg-muted hover:text-fg text-meta flex cursor-pointer items-center gap-1.5"
-				>
-					<IconLogout class="h-3.5 w-3.5" aria-hidden="true" />
-					{m.nav_sign_out()}
-				</button>
-			</form>
+			<AccountMenu preferences={links.accountSettings(slug)} />
 		</div>
 	</aside>
 

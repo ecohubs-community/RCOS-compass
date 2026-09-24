@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { resolve } from '$app/paths';
 	import { page } from '$app/state';
+	import AccountMenu from '$lib/components/AccountMenu.svelte';
 
 	let { data, children } = $props();
 
@@ -36,14 +37,7 @@
 	</div>
 	<div class="flex items-center gap-4">
 		<span class="text-fg-muted text-meta">{data.adminEmail}</span>
-		<form method="POST" action="/sign-out">
-			<button
-				type="submit"
-				class="text-fg-secondary hover:text-fg text-meta cursor-pointer underline underline-offset-2"
-			>
-				Sign out
-			</button>
-		</form>
+		<AccountMenu preferences={resolve('/(admin)/admin/settings/account')} side="bottom" />
 	</div>
 </div>
 

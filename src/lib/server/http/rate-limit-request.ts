@@ -36,13 +36,13 @@ const EXEMPT_PREFIXES = ['/healthz', '/_app/', '/favicon'];
  * six-digit code, a recovery code. Only their POSTs are held to the tighter
  * ceiling; rendering the sign-in page is an ordinary request.
  */
-const AUTH_PREFIXES = [
-	'/sign-in',
-	'/sign-up',
-	'/reset-password',
-	'/account/two-factor',
-	'/api/auth'
-];
+const AUTH_PREFIXES = ['/sign-in', '/sign-up', '/reset-password', '/api/auth'];
+
+/**
+ * The Two-factor panel, wherever it is mounted: under any community's settings,
+ * and in the admin console's. Its POSTs take a password or a six-digit code.
+ */
+const TWO_FACTOR_PANEL = /^\/(?:c\/[^/]+|admin)\/settings\/two-factor\/?$/;
 
 const AUTH_WINDOW_MS = 15 * 60_000;
 const GENERAL_WINDOW_MS = 60_000;
@@ -63,7 +63,10 @@ export function isExemptFromRateLimit(pathname: string): boolean {
 
 export function isCredentialAttempt(pathname: string, method: string): boolean {
 	if (method.toUpperCase() !== 'POST') return false;
-	return AUTH_PREFIXES.some((prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`));
+	return (
+		AUTH_PREFIXES.some((prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`)) ||
+		TWO_FACTOR_PANEL.test(pathname)
+	);
 }
 
 export function isAdminAction(pathname: string, method: string): boolean {

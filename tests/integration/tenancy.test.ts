@@ -4,6 +4,7 @@ import { membership } from '../../src/lib/server/db/schema/tenancy.js';
 import { eq } from 'drizzle-orm';
 import {
 	RESERVED_SLUGS,
+	communitiesOf,
 	resolveCommunity,
 	validateSlug
 } from '../../src/lib/server/services/tenancy.js';
@@ -169,5 +170,42 @@ describe('the schema enforces what the roles document says', () => {
 		const person = makeUser(db);
 		makeMembership(db, c.id, person.id);
 		expect(() => makeMembership(db, c.id, person.id)).toThrow();
+	});
+});
+
+describe('the communities a person can open, for the front page', () => {
+	it('lists only their own, by name', () => {
+		const alice = makeUser(db);
+		const bob = makeUser(db);
+		const zeta = makeCommunity(db, { slug: 'zeta', name: 'Zeta Farm' });
+		const alpha = makeCommunity(db, { slug: 'alpha', name: 'Alpha Commons' });
+		const theirs = makeCommunity(db, { slug: 'theirs', name: 'Bob’s Place' });
+		makeMembership(db, zeta.id, alice.id);
+		makeMembership(db, alpha.id, alice.id, { role: 'steward' });
+		makeMembership(db, theirs.id, bob.id);
+
+		expect(communitiesOf(db, alice.id)).toEqual([
+			{ slug: 'alpha', name: 'Alpha Commons', suspended: false },
+			{ slug: 'zeta', name: 'Zeta Farm', suspended: false }
+		]);
+	});
+
+	it('leaves out an ended membership and a deleted community, and marks a suspended one', () => {
+		const alice = makeUser(db);
+		const left = makeCommunity(db, { slug: 'left' });
+		const gone = makeCommunity(db, { slug: 'gone', status: 'deleted' });
+		const paused = makeCommunity(db, { slug: 'paused', status: 'suspended' });
+		makeMembership(db, left.id, alice.id, { ended: true });
+		makeMembership(db, gone.id, alice.id);
+		makeMembership(db, paused.id, alice.id);
+
+		// Every link on the page must open: the two left out would both be a 404.
+		expect(communitiesOf(db, alice.id)).toEqual([
+			{ slug: 'paused', name: 'Valle Verde', suspended: true }
+		]);
+	});
+
+	it('is empty for somebody who belongs nowhere', () => {
+		expect(communitiesOf(db, makeUser(db).id)).toEqual([]);
 	});
 });

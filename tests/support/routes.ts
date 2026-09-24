@@ -40,13 +40,11 @@ export const ROUTES: RouteCoverage[] = [
 		scan: 'a11y',
 		coveredBy: 'reached only mid-enrolment; the two-factor spec drives it'
 	},
-	{ id: '(account)/account', scan: 'a11y', path: () => '/account' },
 	{
 		id: '(account)/invitations/[token]',
 		scan: 'a11y',
 		coveredBy: 'the invitation page has no violations in any of its states'
 	},
-	{ id: '(account)/account/two-factor', scan: 'a11y', path: () => '/account/two-factor' },
 	{ id: '(app)/c/[slug]', scan: 'a11y', path: (slug) => `/c/${slug}` },
 	{ id: '(app)/c/[slug]/audit', scan: 'a11y', path: (slug) => `/c/${slug}/audit` },
 	{ id: '(app)/c/[slug]/artifacts', scan: 'a11y', path: (slug) => `/c/${slug}/artifacts` },
@@ -84,6 +82,21 @@ export const ROUTES: RouteCoverage[] = [
 	{ id: '(app)/c/[slug]/members', scan: 'a11y', path: (slug) => `/c/${slug}/members` },
 	{ id: '(app)/c/[slug]/path', scan: 'a11y', path: (slug) => `/c/${slug}/path` },
 	{ id: '(app)/c/[slug]/search', scan: 'a11y', path: (slug) => `/c/${slug}/search` },
+	{
+		id: '(app)/c/[slug]/settings/account',
+		scan: 'a11y',
+		path: (slug) => `/c/${slug}/settings/account`
+	},
+	{
+		id: '(app)/c/[slug]/settings/two-factor',
+		scan: 'a11y',
+		path: (slug) => `/c/${slug}/settings/two-factor`
+	},
+	{
+		id: '(app)/c/[slug]/settings/time-zone',
+		scan: 'a11y',
+		path: (slug) => `/c/${slug}/settings/time-zone`
+	},
 	{
 		id: '(app)/c/[slug]/settings/about',
 		scan: 'a11y',
@@ -183,6 +196,21 @@ export const ROUTES: RouteCoverage[] = [
 		id: '(admin)/admin/legal',
 		scan: 'exempt',
 		because: 'Operator tooling; the documents themselves are scanned where a community reads them.'
+	},
+	{
+		id: '(admin)/admin/settings/account',
+		scan: 'exempt',
+		because: 'The same panel as a community’s settings/account, which the walk scans.'
+	},
+	{
+		id: '(admin)/admin/settings/two-factor',
+		scan: 'exempt',
+		because: 'The same panel as a community’s settings/two-factor, which the walk scans.'
+	},
+	{
+		id: '(admin)/admin/settings/time-zone',
+		scan: 'exempt',
+		because: 'The same panel as a community’s settings/time-zone, which the walk scans.'
 	},
 	{
 		id: '__test/boom',

@@ -91,7 +91,7 @@ export const handle: Handle = async ({ event, resolve }) => {
 	// The first of three admin checks (docs/05-admin-console.md §5). Doing it here
 	// means an unguarded admin route never even runs.
 	if (event.url.pathname.startsWith('/admin')) {
-		requirePlatformAdmin(event.locals.user);
+		requirePlatformAdmin(event.locals.user, event.url.pathname);
 	}
 
 	const refusal = rateLimitRequest({

@@ -564,6 +564,8 @@ export const NOT_A_PERSON_SURFACE: Record<string, string> = {
 	'admin/status.ts': 'Counts and sizes only; the status page shows no member at all.',
 	'time-zone.ts':
 		'Writes and reads a person’s own time zone; it never renders a name or an address.',
+	'account.ts':
+		'Writes a person’s own name, returned only to that person; every other reader gets it through `personLabel`.',
 	'mapping.ts':
 		'Reads the user only to rebuild the context a scan runs as; its notification names the document, never a person.'
 };

@@ -17,7 +17,6 @@ export const GET: RequestHandler = () => {
 		'Allow: /p/',
 		'Disallow: /c/',
 		'Disallow: /admin/',
-		'Disallow: /account/',
 		'Disallow: /sign-in',
 		'Disallow: /api/',
 		'',
