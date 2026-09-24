@@ -13,7 +13,11 @@ import {
 	post
 } from '../../src/lib/server/db/schema/discussions.js';
 import { communityStandard, membership } from '../../src/lib/server/db/schema/tenancy.js';
-import { addProposal, openDiscussion } from '../../src/lib/server/services/discussions.js';
+import {
+	addProposal,
+	listPostsWithAuthors,
+	openDiscussion
+} from '../../src/lib/server/services/discussions.js';
 import {
 	listObjections,
 	raiseObjection,
@@ -659,11 +663,14 @@ describe('a round opens on the first response', () => {
 			.from(post)
 			.where(eq(post.discussionId, thread))
 			.all()
-			.filter((row) => row.kind === 'message');
+			.filter((row) => row.kind === 'response');
 
 		expect(messages.map((m) => m.body)).toEqual(['It names who settles.', 'Not mine to judge.']);
 		// The reason is attributed to the person who gave it, not to the thread.
 		expect(messages[0]!.authorId).toBe(members[1]!.user.id);
+		// And it says what it is: an answer, and to which version — not a reply.
+		expect(messages.map((m) => m.responseValue)).toEqual(['consent', 'abstain']);
+		expect(messages.map((m) => m.subjectPostId)).toEqual([proposalId, proposalId]);
 
 		const linked = db
 			.select()
@@ -691,11 +698,49 @@ describe('a round opens on the first response', () => {
 			.from(post)
 			.where(eq(post.discussionId, thread))
 			.all()
-			.filter((row) => row.kind === 'message')
-			.map((row) => row.body);
+			.filter((row) => row.kind === 'response')
+			.map((row) => [row.body, row.responseValue]);
 
-		// What they said first is still readable: other people answered it.
-		expect(messages).toEqual(['Three months is too long.', 'The revision answers it.']);
+		// What they said first is still readable, as the objection it was when
+		// they said it: other people answered it.
+		expect(messages).toEqual([
+			['Three months is too long.', 'objection'],
+			['The revision answers it.', 'consent']
+		]);
+	});
+
+	it('shows an objection in the thread as it stands now, not as it was raised', () => {
+		const thread = discussionIdOf(proposalId);
+		provider().respond(
+			members[1]!,
+			{ proposalPostId: proposalId, value: 'objection', reason: 'Three months is too long.' },
+			{ db }
+		);
+		const raised = listObjections(ctx, proposalId, { db })[0]!;
+		const said = () =>
+			listPostsWithAuthors(ctx, thread, { db }).find((row) => row.kind === 'response')!;
+
+		expect(raised.postId).toBe(said().id);
+		expect(said().objectionState).toBe('open');
+		expect(said().subjectVersion).toBe(1);
+
+		resolveObjection(
+			ctx,
+			{ objectionId: raised.id, state: 'addressed', note: 'Window shortened.' },
+			{ db }
+		);
+		expect(said().objectionState).toBe('addressed');
+	});
+
+	it('gives a consent or abstain reason no objection state', () => {
+		const thread = discussionIdOf(proposalId);
+		provider().respond(
+			members[1]!,
+			{ proposalPostId: proposalId, value: 'consent', reason: 'It names who settles.' },
+			{ db }
+		);
+		const said = listPostsWithAuthors(ctx, thread, { db }).find((row) => row.kind === 'response')!;
+		expect(said.objectionState).toBeNull();
 	});
 });
 

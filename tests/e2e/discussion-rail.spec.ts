@@ -108,8 +108,14 @@ test.describe('the votes on a version, read together', () => {
 			.fill('It names who settles.');
 		await rail(page).getByRole('button', { name: 'Consent' }).click();
 
-		// The reason is a thing somebody said, so it reads in the conversation.
-		await expect(page.getByText('It names who settles.').first()).toBeVisible();
+		// The reason is a thing somebody said, so it reads in the conversation —
+		// as the answer it came with, not as one more reply.
+		await expect(
+			page
+				.getByRole('region', { name: 'The discussion' })
+				.locator(':scope > ol > li')
+				.filter({ hasText: 'consented to v1' })
+		).toContainText('It names who settles.');
 
 		// Collapsed, the block summarises; expanded, it lists who said what.
 		const block = page.locator('details').filter({ hasText: 'answered v1' });
@@ -196,6 +202,59 @@ test.describe('freezing the version a community actually agreed on', () => {
 
 		// v2 is still on the table and can still be recorded.
 		await expect(page.getByRole('button', { name: 'Freeze v2' })).toBeVisible();
+	});
+});
+
+test.describe('each kind of post reads as what it is', () => {
+	test('tells a reply from a proposal, a revision, an objection and a moved question', async ({
+		page,
+		browser
+	}) => {
+		// Every one of these used to render as a name, a time and a paragraph —
+		// an objection and "I agree" looked like two more replies, and a steward
+		// moving the question looked like somebody's opinion about it.
+		const fixture = await seedWithProposal(page);
+		const thread = page.url().split('?')[0]!;
+		const conversation = page.getByRole('region', { name: 'The discussion' });
+		// The thread's own entries, not the rows inside the votes block.
+		const entry = (text: string) =>
+			conversation.locator(':scope > ol > li').filter({ hasText: text });
+
+		await page.getByLabel('Reply to the thread').fill('Could it say who settles?');
+		await page.getByRole('button', { name: 'Send' }).click();
+		await expect(entry('Could it say who settles?')).toBeVisible();
+
+		const theirs = await browser.newContext();
+		const them = await theirs.newPage();
+		await signIn(them, fixture.member.email, fixture.member.password);
+		await visit(them, thread);
+		await rail(them)
+			.getByPlaceholder('Add a reason — optional on all three…')
+			.fill('Nothing about money.');
+		await rail(them).getByRole('button', { name: 'Object' }).click();
+		await expect(rail(them)).toContainText('1 of 2');
+		await theirs.close();
+
+		await visit(page, thread);
+		await revise(page, 'A member may leave; their share is settled in three months.', 'a window');
+		await expect(rail(page).getByRole('heading', { name: 'Responses to v2' })).toBeVisible();
+		await visit(page, `${thread}?v=1`);
+		await rail(page).getByRole('button', { name: 'Put v1 back on the table' }).click();
+		await expect(rail(page).getByRole('heading', { name: 'Responses to v1' })).toBeVisible();
+
+		// The reply is a person talking, and says nothing about a vote.
+		await expect(entry('Could it say who settles?')).not.toContainText(/objected|consented/);
+		// The proposal and its revision are events with their version on them.
+		await expect(entry('proposed v1')).toContainText('A member may leave at any time.');
+		await expect(entry('revised the proposal to v2')).toContainText('a window');
+		await expect(
+			entry('revised the proposal to v2').getByRole('link', { name: 'see the change' })
+		).toBeVisible();
+		// The objection says it is one, to which version, and that it is still open.
+		await expect(entry('objected to v1')).toContainText('Nothing about money.');
+		await expect(entry('objected to v1')).toContainText('open');
+		// And moving the question is recorded as something that happened to it.
+		await expect(entry('Put v1 back on the table, from v2.')).not.toContainText('objected');
 	});
 });
 

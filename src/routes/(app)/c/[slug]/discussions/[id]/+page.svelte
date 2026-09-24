@@ -6,11 +6,13 @@
 	import LinterNotRun from '$lib/components/ui/LinterNotRun.svelte';
 	import Markdown from '$lib/components/ui/Markdown.svelte';
 	import MentionField from '$lib/components/discussions/MentionField.svelte';
+	import ThreadEntry from './_components/ThreadEntry.svelte';
 	import { setMentionLabels } from '$lib/components/ui/mentions';
 	import TextField from '$lib/components/ui/TextField.svelte';
 	import { links } from '$lib/links';
 	import { diffWords } from '$lib/shared/diff';
 	import IconArrowBackUp from '~icons/tabler/arrow-back-up';
+	import IconChecklist from '~icons/tabler/checklist';
 	import IconFilePlus from '~icons/tabler/file-plus';
 	import IconGavel from '~icons/tabler/gavel';
 	import IconNotes from '~icons/tabler/notes';
@@ -47,11 +49,22 @@
 		if (data.freezeOpen) freezeOpen = true;
 	});
 
-	const KIND_LABEL: Record<string, string> = {
-		message: 'Message',
-		proposal: 'Proposal',
-		offline_summary: 'Taken offline'
-	};
+	/**
+	 * The thread in order, with the block of votes on the selected version
+	 * placed where its round opened (the first response to it) rather than
+	 * trailing at the end. Before anything written at or after that moment, so
+	 * the reason given with the first response follows the block it belongs to
+	 * whether or not the two landed in the same millisecond.
+	 */
+	type Item = { kind: 'post'; entry: (typeof data.posts)[number] } | { kind: 'votes' };
+	const thread = $derived.by((): Item[] => {
+		const items: Item[] = data.posts.map((entry) => ({ kind: 'post', entry }));
+		if (!data.round || data.round.responses.length === 0) return items;
+		const openedAt = data.round.openedAt;
+		const at = data.posts.findIndex((entry) => entry.createdAt >= openedAt);
+		items.splice(at === -1 ? items.length : at, 0, { kind: 'votes' });
+		return items;
+	});
 	const VALUE_LABEL: Record<string, string> = {
 		consent: 'Consent',
 		abstain: 'Abstain',
@@ -133,81 +146,55 @@
 				class="min-h-0 flex-1 px-6 py-5 lg:overflow-y-auto"
 			>
 				<ol class="flex flex-col gap-5">
-					{#each data.posts as entry (entry.id)}
-						<li class="flex gap-3">
-							<span
-								class="bg-raised text-fg-secondary text-meta flex h-7 w-7 flex-none items-center justify-center rounded-full font-medium"
-								aria-hidden="true">{entry.author.initials}</span
-							>
-							<div class="min-w-0 flex-1">
-								<p class="flex flex-wrap items-baseline gap-x-2">
-									<span class="text-fg font-medium">{entry.author.label}</span>
-									<span class="text-fg-muted text-meta">{time(entry.createdAt)}</span>
-									{#if entry.kind !== 'message'}
-										<span class="text-fg-muted text-meta"
-											>· {KIND_LABEL[
-												entry.kind
-											]}{#if entry.proposalVersion}&nbsp;v{entry.proposalVersion}{/if}</span
+					{#each thread as item (item.kind === 'votes' ? 'votes' : item.entry.id)}
+						{#if item.kind === 'post'}
+							<li><ThreadEntry entry={item.entry} /></li>
+						{:else if data.round}
+							<!--
+								Every vote on this version, in one place, at the moment its round
+								opened — which is the first response to it. A count in the rail
+								can stand for one response or nineteen, so it cannot point at a
+								single post; it points here.
+							-->
+							<li class="flex gap-3">
+								<span
+									class="text-info-fg flex w-7 flex-none justify-center pt-3.5"
+									aria-hidden="true"
+								>
+									<IconChecklist class="h-4 w-4" />
+								</span>
+								<details
+									id="votes-v{data.proposal?.version}"
+									class="border-border bg-surface min-w-0 flex-1 rounded-(--radius-card) border"
+								>
+									<summary class="cursor-pointer px-4 py-3">
+										<span class="text-fg font-medium"
+											>{data.round.tally.responded} of {data.round.tally.eligible} answered v{data
+												.proposal?.version}</span
 										>
-									{/if}
-									{#if entry.state === 'in_force'}
-										<span class="text-accent text-meta">· recorded {entry.ref}</span>
-									{:else if entry.state === 'superseded'}
-										<span class="text-fg-muted text-meta">· {entry.ref}, since superseded</span>
-									{/if}
-								</p>
-								{#if entry.kind === 'proposal' && entry.revisionNote}
-									<p class="text-fg-secondary text-meta mt-1">
-										Revised to v{entry.proposalVersion} — {entry.revisionNote}
-										<a
-											href="?v={entry.proposalVersion}"
-											class="hover:text-fg underline underline-offset-2">see the change</a
-										>
-									</p>
-								{/if}
-								<Markdown blocks={entry.body} class="mt-1" />
-							</div>
-						</li>
+										<span class="text-fg-secondary text-meta" data-tabular>
+											· {data.round.tally.consent} consent · {data.round.tally.abstain} abstain ·
+											{data.round.tally.objection} object
+										</span>
+									</summary>
+									<ul class="border-border flex flex-col gap-2 border-t px-4 py-3">
+										{#each data.round.responses as response (response.who + response.respondedAt)}
+											<li class="flex flex-wrap items-baseline gap-x-2">
+												<span class="text-fg-secondary text-meta w-16 flex-none"
+													>{VALUE_LABEL[response.value]}</span
+												>
+												<span class="text-fg font-medium">{response.who}</span>
+												<span class="text-fg-muted text-meta">{time(response.respondedAt)}</span>
+												{#if response.reason}
+													<span class="text-fg-secondary w-full pl-16">{response.reason}</span>
+												{/if}
+											</li>
+										{/each}
+									</ul>
+								</details>
+							</li>
+						{/if}
 					{/each}
-
-					<!--
-					Every vote on this version, in one place, where the first was cast.
-					A count in the rail can stand for one response or nineteen, so it
-					cannot point at a single post — it points here.
-				-->
-					{#if data.round && data.round.responses.length > 0}
-						<li>
-							<details
-								id="votes-v{data.proposal?.version}"
-								class="border-border bg-surface rounded-(--radius-card) border"
-							>
-								<summary class="cursor-pointer px-4 py-3">
-									<span class="text-fg font-medium"
-										>{data.round.tally.responded} of {data.round.tally.eligible} answered v{data
-											.proposal?.version}</span
-									>
-									<span class="text-fg-secondary text-meta" data-tabular>
-										· {data.round.tally.consent} consent · {data.round.tally.abstain} abstain ·
-										{data.round.tally.objection} object
-									</span>
-								</summary>
-								<ul class="border-border flex flex-col gap-2 border-t px-4 py-3">
-									{#each data.round.responses as response (response.who + response.respondedAt)}
-										<li class="flex flex-wrap items-baseline gap-x-2">
-											<span class="text-fg-secondary text-meta w-16 flex-none"
-												>{VALUE_LABEL[response.value]}</span
-											>
-											<span class="text-fg font-medium">{response.who}</span>
-											<span class="text-fg-muted text-meta">{time(response.respondedAt)}</span>
-											{#if response.reason}
-												<span class="text-fg-secondary w-full pl-16">{response.reason}</span>
-											{/if}
-										</li>
-									{/each}
-								</ul>
-							</details>
-						</li>
-					{/if}
 				</ol>
 			</div>
 

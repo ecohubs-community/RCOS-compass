@@ -563,6 +563,11 @@ describe('a steward may move the question back to an earlier version', () => {
 		expect(last.body).toContain('v2');
 		expect(last.body).toContain('v2 changed the threshold');
 		expect(last.authorId).toBe(ctx.user.id);
+		// An event about v1, not a reply: the thread draws it as something that
+		// happened to the question.
+		expect(last.kind).toBe('event');
+		expect(last.subjectPostId).toBe(v1.id);
+		expect(last.responseValue).toBeNull();
 	});
 
 	it('does nothing at all when the version is already the question', () => {

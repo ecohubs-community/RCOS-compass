@@ -552,6 +552,73 @@ describe('upgrading a database that already has rows in it', () => {
 		after.close();
 	});
 
+	it('marks the reasons still linked to an answer, and guesses at nothing else', () => {
+		// A reason post becomes a `response` only where a `consent_response` still
+		// points at it. A reason whose answer was later replaced lost that link and
+		// has to stay a plain message — the thread shows it as what somebody said,
+		// which is true, rather than as a vote it can no longer prove.
+		const { folder } = previousMigrations('0025_watery_starbolt');
+		const file = join(dir, 'post-kinds.db');
+
+		const before = new Database(file);
+		before.pragma('foreign_keys = ON');
+		migrate(drizzle(before), { migrationsFolder: folder });
+
+		before.exec(`
+			insert into community (id, slug, name, locale, timezone, status, publish_names_policy,
+				ai_enabled, git_mirror_enabled, public_index_enabled, created_at, updated_at)
+			values ('c1', 'vv', 'Valle Verde', 'en', 'UTC', 'active', 'roles_and_counts', 0, 0, 0, 1, 1);
+
+			insert into user (id, name, email, email_verified, two_factor_enabled, locale, created_at, updated_at)
+			values ('u1', 'Ana', 'ana@example.org', 1, 0, 'en', 1, 1),
+				('u2', 'Tomás', 'tomas@example.org', 1, 0, 'en', 1, 1);
+
+			insert into membership (id, community_id, user_id, joined_at, seq)
+			values ('m1', 'c1', 'u1', 1, 1), ('m2', 'c1', 'u2', 1, 2);
+
+			insert into discussion (id, community_id, title, status, origin, opened_at, last_activity_at)
+			values ('d1', 'c1', 'Exit', 'open', 'clause', 1000, 3000);
+
+			insert into post (id, discussion_id, author_id, body, kind, proposal_version, created_at)
+			values ('v1', 'd1', 'u1', 'Members may leave.', 'proposal', 1, 1000),
+				('said', 'd1', 'u2', 'Too long.', 'message', null, 2000),
+				('orphan', 'd1', 'u1', 'I used to object.', 'message', null, 2100),
+				('chat', 'd1', 'u1', 'Put v1 back on the table.', 'message', null, 2200);
+
+			insert into consent_round (id, community_id, proposal_post_id, opened_at)
+			values ('r1', 'c1', 'v1', 2000);
+
+			insert into objection (id, proposal_post_id, raised_by, reason, raised_at)
+			values ('o1', 'v1', 'u2', 'Too long.', 2000);
+
+			insert into consent_response (round_id, membership_id, value, objection_id, reason_post_id, responded_at)
+			values ('r1', 'm2', 'objection', 'o1', 'said', 2000),
+				('r1', 'm1', 'consent', null, null, 2100);
+		`);
+		before.close();
+
+		const after = new Database(file);
+		after.pragma('foreign_keys = ON');
+		migrate(drizzle(after), { migrationsFolder: join(ROOT, 'drizzle') });
+
+		expect(
+			after
+				.prepare('select id, kind, response_value, subject_post_id from post order by created_at')
+				.all()
+		).toEqual([
+			{ id: 'v1', kind: 'proposal', response_value: null, subject_post_id: null },
+			{ id: 'said', kind: 'response', response_value: 'objection', subject_post_id: 'v1' },
+			{ id: 'orphan', kind: 'message', response_value: null, subject_post_id: null },
+			// Words that look like an event are still somebody's message.
+			{ id: 'chat', kind: 'message', response_value: null, subject_post_id: null }
+		]);
+		expect(after.prepare('select id, post_id from objection').all()).toEqual([
+			{ id: 'o1', post_id: 'said' }
+		]);
+		expect(after.pragma('foreign_key_check')).toEqual([]);
+		after.close();
+	});
+
 	it('has a migration for every schema change', () => {
 		// A schema edited without generating a migration is a deploy that works on
 		// the developer's machine and nowhere else.

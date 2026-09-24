@@ -76,7 +76,9 @@ test.describe('the core loop, on a fresh community', () => {
 		// It lands on the rail as the version on the table, and the version button
 		// is the rail's navigation.
 		await expect(page.getByRole('heading', { name: 'Responses to v1' })).toBeVisible();
-		await expect(page.getByRole('link', { name: 'v1' })).toBeVisible();
+		await expect(
+			page.getByRole('navigation', { name: 'Proposal versions' }).getByRole('link', { name: 'v1' })
+		).toBeVisible();
 
 		// The linter is advice, and it is visible.
 		// Named for the version it judged: each version keeps the result that read
