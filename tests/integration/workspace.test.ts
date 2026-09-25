@@ -6,6 +6,7 @@ import type { Ctx } from '../../src/lib/server/auth/guard.js';
 import { resetConfigForTests } from '../../src/lib/server/config.js';
 import { setDbForTests, type Db } from '../../src/lib/server/db/index.js';
 import { activeStandardView } from '../../src/lib/server/services/completeness.js';
+import { lineBox } from '../../src/lib/components/documents/pdf/geometry.js';
 import { workspaceView } from '../../src/lib/server/services/workspace.js';
 import { createTestDb } from '../support/db.js';
 import { adoptStandard, makeDocument, makeEvidence, makePassage } from '../support/documents.js';
@@ -193,5 +194,105 @@ describe('whether the file is stored', () => {
 		expect(shown.paper.passages.length).toBeGreaterThan(0);
 		// Present or absent is all it says: never where the file was kept.
 		expect(JSON.stringify(shown)).not.toContain(doc.storageKey);
+	});
+});
+
+describe('where each paragraph of a PDF sits', () => {
+	const box = (y: number, start: number, end: number) => ({
+		x: 72.04321,
+		y: y + 0.0371,
+		w: 330.456,
+		h: 11,
+		start,
+		end
+	});
+
+	function pdfWithLines() {
+		const doc = makeDocument(db, ana.community.id, { pagesTotal: 2 });
+		const heading = makePassage(db, doc.id, {
+			page: 1,
+			kind: 'heading',
+			text: 'Membership',
+			bbox: JSON.stringify([box(720, 0, 10)])
+		});
+		const claimed = makePassage(db, doc.id, {
+			page: 1,
+			text: 'New residents are admitted by vote.',
+			bbox: JSON.stringify([box(680, 0, 35)])
+		});
+		const unclaimed = makePassage(db, doc.id, {
+			page: 2,
+			text: 'Guests are welcome for a week, and longer stays go to the assembly.',
+			bbox: JSON.stringify([box(680, 0, 40), box(664, 41, 67)])
+		});
+		claim(claimed, 'suggested');
+		return { doc, heading, claimed, unclaimed };
+	}
+
+	it('sends the lines of a paragraph nobody has claimed, to within 0.1 pt', () => {
+		const { doc, unclaimed } = pdfWithLines();
+
+		const sent = view(doc.id).paragraphLines.find((row) => row.passageId === unclaimed.id);
+		expect(sent?.page).toBe(2);
+		const stored = JSON.parse(unclaimed.bbox!) as ReturnType<typeof box>[];
+		expect(sent!.lines).toHaveLength(2);
+		sent!.lines.map(lineBox).forEach((line, index) => {
+			const original = stored[index]!;
+			for (const key of ['x', 'y', 'w', 'h'] as const) {
+				expect(Math.abs(line[key] - original[key])).toBeLessThanOrEqual(0.05);
+			}
+			expect([line.start, line.end]).toEqual([original.start, original.end]);
+		});
+	});
+
+	it('sends a claimed paragraph once, as lines, and its highlight without them', () => {
+		const { doc, claimed } = pdfWithLines();
+		const shown = view(doc.id);
+
+		expect(shown.paragraphLines.filter((row) => row.passageId === claimed.id)).toHaveLength(1);
+		const highlight = shown.highlights.find((row) => row.passageId === claimed.id);
+		expect(highlight).toBeDefined();
+		expect(highlight).not.toHaveProperty('lines');
+	});
+
+	it('leaves out headings, which are never mapped', () => {
+		const { doc, heading } = pdfWithLines();
+		expect(view(doc.id).paragraphLines.map((row) => row.passageId)).not.toContain(heading.id);
+	});
+
+	it('carries positions only, never the words of a paragraph', () => {
+		const { doc, unclaimed } = pdfWithLines();
+		const serialised = JSON.stringify(view(doc.id, { page: 1 }).paragraphLines);
+		expect(serialised).not.toContain('Guests');
+		expect(serialised).not.toContain(unclaimed.text.slice(0, 12));
+	});
+
+	it('sends nothing for a document without pages', () => {
+		const doc = makeDocument(db, ana.community.id, {
+			filename: 'agreements.docx',
+			mime: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+		});
+		makePassage(db, doc.id, { text: 'Quiet hours are agreed each season.' });
+		expect(view(doc.id).paragraphLines).toEqual([]);
+	});
+
+	it('is a 404 for a member of another community', () => {
+		const { doc } = pdfWithLines();
+		const elsewhere = makeCommunity(db, { slug: 'other-place' });
+		const stranger = makeUser(db, { email: 'marco@example.org', name: 'Marco' });
+		const outsider: Ctx = {
+			user: stranger,
+			community: elsewhere,
+			membership: makeMembership(db, elsewhere.id, stranger.id, { role: 'steward' }),
+			now: () => NOW
+		};
+
+		let status: number | undefined;
+		try {
+			workspaceView(outsider, doc.id, { page: null, passage: null }, { db });
+		} catch (problem) {
+			status = (problem as { status?: number }).status;
+		}
+		expect(status).toBe(404);
 	});
 });

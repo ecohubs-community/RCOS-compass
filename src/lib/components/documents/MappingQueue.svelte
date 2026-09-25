@@ -7,6 +7,7 @@
 	import IconCheck from '~icons/tabler/check';
 	import ClausePicker, { type ClauseOption } from './ClausePicker.svelte';
 	import HandMapCard from './HandMapCard.svelte';
+	import type { SelectedWords } from '$lib/shared/excerpt';
 	import PaperView, { type Excerpt, type Paper } from './PaperView.svelte';
 	import ReconfirmBlock from './ReconfirmBlock.svelte';
 	import RequirementTip, { type Requirement } from './RequirementTip.svelte';
@@ -53,7 +54,10 @@
 		canMarkDone: boolean;
 		scan: import('svelte').Snippet;
 		excerpt: Excerpt | null;
-		onexcerpt: (excerpt: Excerpt) => void;
+		onexcerpt: (selection: SelectedWords) => void;
+		onselectionproblem: () => void;
+		/** The last selection ran across two paragraphs; said above the card. */
+		selectionProblem: boolean;
 		/** A PDF's original page, rendered at this width; null for other formats. */
 		originalHref?: ((passageId: string, page: number) => string) | null;
 	};
@@ -76,6 +80,8 @@
 		scan,
 		excerpt,
 		onexcerpt,
+		onselectionproblem,
+		selectionProblem,
 		originalHref = null
 	}: Props = $props();
 
@@ -159,8 +165,12 @@
 				onselect={(_id, href) =>
 					goto(href, { replaceState: true, noScroll: true, keepFocus: true })}
 				{onexcerpt}
+				{onselectionproblem}
 			/>
 		</div>
+		{#if selectionProblem}
+			<p role="status" class="text-fg-secondary text-meta">{m.workspace_select_one_paragraph()}</p>
+		{/if}
 		{#if selectedParagraph && !selectedHasClaims && can.map}
 			<HandMapCard
 				passageId={selectedParagraph.id}

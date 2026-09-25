@@ -420,6 +420,7 @@
 	"original_switch_original": "Show the original",
 	"original_view_label": "View",
 	"original_failed": "This PDF couldn’t be shown as it was uploaded. Here is its text; you can download the original.",
+	"workspace_select_one_paragraph": "That selection runs across two paragraphs. Select words within one paragraph, or click a paragraph to map it whole.",
 	"workspace_file_missing": "The file for this document is missing from storage, so it can’t be shown or downloaded. The text below is what Compass read from it before it went missing. Whoever runs this Compass can restore it from a backup.",
 	"workspace_file_missing_upload": "You can also upload it again under Previous versions, with Replace.",
 	"original_phone_link": "View original page",

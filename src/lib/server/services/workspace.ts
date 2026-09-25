@@ -68,6 +68,20 @@ export type Requirement = {
 	standard: string;
 };
 
+/** A stored line box as `{x, y, w, h, start, end}`: PDF user space, and its slice of the text. */
+type StoredLine = { x: number; y: number; w: number; h: number; start: number; end: number };
+
+/**
+ * A line box on its way to the original view: `[x, y, w, h, start, end]`,
+ * coordinates to 0.1 pt. A tuple because every line of a PDF travels — an
+ * object would repeat six key names per line and more than double the bytes.
+ * `lineBox()` in the viewer's `geometry.ts` reads it back.
+ */
+export type LineTuple = [x: number, y: number, w: number, h: number, start: number, end: number];
+
+/** Where one paragraph of a PDF sits on its page. Positions only, never text. */
+export type ParagraphLines = { passageId: string; page: number; lines: LineTuple[] };
+
 export type OriginalHighlight = {
 	passageId: string;
 	page: number;
@@ -75,7 +89,7 @@ export type OriginalHighlight = {
 	state: 'open' | 'confirmed';
 	/** The passage's opening words, for the highlight's label. */
 	words: string;
-	lines: { x: number; y: number; w: number; h: number; start: number; end: number }[];
+	/** Its lines are the passage's entry in `paragraphLines`. */
 	excerpts: { start: number; end: number }[] | null;
 };
 
@@ -128,11 +142,18 @@ export type WorkspaceView = {
 	/** Identified passages on the page shown. */
 	identifiedOnPage: number;
 	/**
-	 * For a PDF's original view: every identified paragraph, with the line boxes
-	 * it occupies. Empty for any other format. `excerpts` narrows the lines to
-	 * those an excerpt spans; null means the whole passage.
+	 * For a PDF's original view: every identified paragraph, drawn over its lines
+	 * in `paragraphLines`. Empty for any other format. `excerpts` narrows the
+	 * lines to those an excerpt spans; null means the whole passage.
 	 */
 	highlights: OriginalHighlight[];
+	/**
+	 * For a PDF's original view: the lines of every paragraph, identified or not,
+	 * so a click or a selection anywhere on a page can be told which paragraph it
+	 * is in. Headings are left out — they are never mapped. Empty for any other
+	 * format.
+	 */
+	paragraphLines: ParagraphLines[];
 	/** Pages holding an identified paragraph, for the thumbnail markers. */
 	governancePages: number[];
 	/**
@@ -331,15 +352,13 @@ export function workspaceView(
 		}
 		for (const [passageId, claimsOn] of live) {
 			const row = byId.get(passageId)!;
-			const lines = parseLines(row.bbox);
-			if (lines.length === 0) continue;
+			if (parseLines(row.bbox).length === 0) continue;
 			highlights.push({
 				passageId,
 				page: row.page,
 				number: numbers.get(passageId) ?? 0,
 				state: claimsOn.some((card) => card.state === 'confirmed') ? 'confirmed' : 'open',
 				words: row.text.split(/\s+/).slice(0, 8).join(' '),
-				lines,
 				// Any claim about the whole passage makes the whole passage the highlight.
 				excerpts: claimsOn.every((card) => card.excerpt)
 					? claimsOn.map((card) => card.excerpt!)
@@ -348,6 +367,14 @@ export function workspaceView(
 		}
 		highlights.sort((a, b) => order.get(a.passageId)! - order.get(b.passageId)!);
 	}
+	const paragraphLines: ParagraphLines[] = paged
+		? passages.flatMap((row) => {
+				if (row.kind !== 'paragraph') return [];
+				const lines = parseLines(row.bbox).map(toTuple);
+				return lines.length === 0 ? [] : [{ passageId: row.id, page: row.page, lines }];
+			})
+		: [];
+
 	// The same pages `governancePages` counts: any identified paragraph, answered or not.
 	const governancePages = [...new Set(cards.map((card) => card.page))].sort((a, b) => a - b);
 
@@ -395,18 +422,19 @@ export function workspaceView(
 		).size,
 		nextOpen,
 		highlights,
+		paragraphLines,
 		governancePages
 	};
 }
 
 /** Stored line boxes, defensively: a malformed column is no highlight, never a thrown load. */
-function parseLines(bbox: string | null): OriginalHighlight['lines'] {
+function parseLines(bbox: string | null): StoredLine[] {
 	if (!bbox) return [];
 	try {
 		const parsed: unknown = JSON.parse(bbox);
 		if (!Array.isArray(parsed)) return [];
 		return parsed.filter(
-			(line): line is OriginalHighlight['lines'][number] =>
+			(line): line is StoredLine =>
 				typeof line === 'object' &&
 				line !== null &&
 				['x', 'y', 'w', 'h', 'start', 'end'].every(
@@ -416,4 +444,10 @@ function parseLines(bbox: string | null): OriginalHighlight['lines'] {
 	} catch {
 		return [];
 	}
+}
+
+const tenth = (value: number) => Math.round(value * 10) / 10;
+
+function toTuple(line: StoredLine): LineTuple {
+	return [tenth(line.x), tenth(line.y), tenth(line.w), tenth(line.h), line.start, line.end];
 }

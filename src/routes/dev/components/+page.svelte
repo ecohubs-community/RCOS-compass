@@ -532,10 +532,6 @@
 						number: 1,
 						state: 'confirmed',
 						words: 'New residents are admitted by vote of the',
-						lines: [
-							{ x: 72, y: 680, w: 330, h: 11, start: 0, end: 57 },
-							{ x: 72, y: 664, w: 300, h: 11, start: 58, end: 110 }
-						],
 						excerpts: null
 					},
 					{
@@ -544,11 +540,25 @@
 						number: 2,
 						state: 'open',
 						words: 'Any member wishing to depart shall give',
-						lines: [
-							{ x: 72, y: 632, w: 330, h: 11, start: 0, end: 58 },
-							{ x: 72, y: 616, w: 320, h: 11, start: 59, end: 114 }
-						],
 						excerpts: [{ start: 60, end: 100 }]
+					}
+				]}
+				paragraphs={[
+					{
+						passageId: 'gallery-original-1',
+						page: 1,
+						lines: [
+							[72, 680, 330, 11, 0, 57],
+							[72, 664, 300, 11, 58, 110]
+						]
+					},
+					{
+						passageId: 'gallery-original-2',
+						page: 1,
+						lines: [
+							[72, 632, 330, 11, 0, 58],
+							[72, 616, 320, 11, 59, 114]
+						]
 					}
 				]}
 				governancePages={[1]}
@@ -580,6 +590,8 @@
 				canMarkDone={false}
 				excerpt={null}
 				onexcerpt={() => {}}
+				onselectionproblem={() => {}}
+				selectionProblem={false}
 			>
 				{#snippet scan()}{/snippet}
 			</MappingQueue>

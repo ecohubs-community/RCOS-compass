@@ -1,3 +1,4 @@
+import { joinsAcrossHyphen } from '../../shared/hyphenation.js';
 import { getConfig } from '../config.js';
 import { inlineText, parseMarkdown, type BlockNode } from '../markdown.js';
 import type { AcceptedType } from './sniff.js';
@@ -273,7 +274,7 @@ function groupParagraphs(column: Line[]): Grouped[] {
 		for (const line of lines) {
 			let joiner = text === '' ? '' : ' ';
 			// A word split with a hyphen at the line break comes back whole.
-			if (/[\p{L}]-$/u.test(text) && /^\p{Ll}/u.test(line.text)) {
+			if (joinsAcrossHyphen(text, line.text)) {
 				text = text.slice(0, -1);
 				const previous = boxes.at(-1);
 				if (previous) previous.end -= 1;

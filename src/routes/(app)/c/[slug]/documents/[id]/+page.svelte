@@ -11,6 +11,7 @@
 	import SuggestionCard from '$lib/components/documents/SuggestionCard.svelte';
 	import VersionList from '$lib/components/documents/VersionList.svelte';
 	import { pollWhileScanning } from '$lib/components/documents/poll';
+	import { findExcerpt, type SelectedWords } from '$lib/shared/excerpt';
 	import Button from '$lib/components/ui/Button.svelte';
 	import * as m from '$lib/paraglide/messages';
 	import { links } from '$lib/links';
@@ -92,11 +93,28 @@
 		// eslint-disable-next-line svelte/no-navigation-without-resolve -- same page, query only
 		goto(href, { replaceState: true, noScroll: true, keepFocus: true });
 
-	/** Words selected in a paragraph; only used while that paragraph is the one selected. */
-	let excerpt = $state<Excerpt | null>(null);
-	function takeExcerpt(chosen: Excerpt) {
-		excerpt = chosen;
+	/**
+	 * Words selected in a paragraph, in either view, until they are matched. The
+	 * paragraph is selected first — its text arrives with the page it is on — and
+	 * the excerpt is then found in that text (`pdf-selection-mapping`, design
+	 * decision 3). The words stay here: only `?passage=` reaches the URL.
+	 */
+	let pending = $state<SelectedWords | null>(null);
+	/** The last selection ran from one paragraph into another. */
+	let selectionProblem = $state(false);
+	function takeSelection(chosen: SelectedWords) {
+		pending = chosen;
+		selectionProblem = false;
 		if (chosen.passageId !== data.selected) void select(passageHref(chosen.passageId));
+	}
+	function refuseSelection() {
+		pending = null;
+		selectionProblem = true;
+	}
+	/** A paragraph chosen by a click: whole, and any earlier problem forgotten. */
+	function selectParagraph(href: string) {
+		selectionProblem = false;
+		void select(href);
 	}
 
 	$effect(() => (data.scan.live ? pollWhileScanning() : undefined));
@@ -114,6 +132,19 @@
 		data.paper.passages.find((row) => row.id === data.selected && row.kind === 'paragraph') ?? null
 	);
 	const selectedHasClaims = $derived(data.cards.some((card) => card.passageId === data.selected));
+	/** The words to map, as the passage stores them; null maps the paragraph whole. */
+	const excerpt = $derived.by((): Excerpt | null => {
+		if (!pending || !selectedParagraph || pending.passageId !== selectedParagraph.id) return null;
+		const found = findExcerpt(selectedParagraph.text, pending.words, pending.near);
+		return found
+			? {
+					passageId: pending.passageId,
+					...found,
+					text: selectedParagraph.text.slice(found.start, found.end)
+				}
+			: null;
+	});
+	const handMapOpen = $derived(!!selectedParagraph && !selectedHasClaims && data.can.map);
 	const mapped = $derived(data.counts.identified - data.counts.open);
 	const coveragePercent = $derived(
 		data.coverage.of === 0 ? 0 : Math.round((data.coverage.have / data.coverage.of) * 100)
@@ -274,12 +305,21 @@
 						<Viewer
 							url={links.documentFile(slug, doc.id)}
 							highlights={data.highlights}
+							paragraphs={data.paragraphLines}
 							governancePages={data.governancePages}
 							selected={data.selected}
 							page={data.paper.page}
 							{pageHref}
 							textHref={(page) => viewHref('text', page)}
-							onselect={(passageId) => select(passageHref(passageId))}
+							onselect={(passageId) => selectParagraph(passageHref(passageId))}
+							onexcerpt={takeSelection}
+							onselectionproblem={refuseSelection}
+							pending={handMapOpen && selectedParagraph
+								? {
+										passageId: selectedParagraph.id,
+										excerpt: excerpt ? { start: excerpt.start, end: excerpt.end } : null
+									}
+								: null}
 							onready={() => (originalReady = true)}
 							onfail={() => (originalFailed = true)}
 							onpage={(page, event) => {
@@ -296,8 +336,9 @@
 						filename={doc.filename}
 						{passageHref}
 						{pageHref}
-						onselect={(_id, href) => select(href)}
-						onexcerpt={takeExcerpt}
+						onselect={(_id, href) => selectParagraph(href)}
+						onexcerpt={takeSelection}
+						onselectionproblem={refuseSelection}
 					/>
 				{/if}
 				<footer class="border-border flex flex-none flex-col gap-2 border-t px-4 py-2.5">
@@ -391,7 +432,12 @@
 				>
 					<ReconfirmBlock candidates={data.reconfirm} canMap={data.can.map} {returnTo} />
 
-					{#if selectedParagraph && !selectedHasClaims && data.can.map}
+					{#if selectionProblem}
+						<p role="status" class="text-fg-secondary text-meta">
+							{m.workspace_select_one_paragraph()}
+						</p>
+					{/if}
+					{#if handMapOpen && selectedParagraph}
 						<HandMapCard
 							passageId={selectedParagraph.id}
 							number={selectedParagraph.number ?? 0}
@@ -450,6 +496,7 @@
 						<Viewer
 							url={links.documentFile(slug, doc.id)}
 							highlights={data.highlights}
+							paragraphs={data.paragraphLines}
 							governancePages={data.governancePages}
 							selected={data.selected}
 							page={data.paper.page}
@@ -480,7 +527,9 @@
 					canMarkDone={data.canMarkDone && data.can.map}
 					{scan}
 					{excerpt}
-					onexcerpt={takeExcerpt}
+					onexcerpt={takeSelection}
+					onselectionproblem={refuseSelection}
+					{selectionProblem}
 					originalHref={doc.paged && doc.stored
 						? (passageId, page) =>
 								`?${new URLSearchParams({ view: 'original', page: String(page), passage: passageId })}`

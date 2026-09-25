@@ -36,6 +36,7 @@
 
 <script lang="ts">
 	import InlineText from '$lib/components/ui/InlineText.svelte';
+	import type { SelectedWords } from '$lib/shared/excerpt';
 	import * as m from '$lib/paraglide/messages';
 
 	/**
@@ -57,7 +58,10 @@
 		/** Anchors are `{prefix}{id}`; the queue uses its own so two views never share an id. */
 		anchorPrefix?: string;
 		onselect?: (passageId: string, href: string) => void;
-		onexcerpt?: (excerpt: Excerpt) => void;
+		/** Words selected inside one paragraph. */
+		onexcerpt?: (selection: SelectedWords) => void;
+		/** A selection that runs from one paragraph into another. */
+		onselectionproblem?: () => void;
 	};
 
 	let {
@@ -68,7 +72,8 @@
 		pageHref,
 		anchorPrefix = 'passage-',
 		onselect,
-		onexcerpt
+		onexcerpt,
+		onselectionproblem
 	}: Props = $props();
 
 	let sheet = $state<HTMLElement | null>(null);
@@ -80,38 +85,42 @@
 	}
 
 	/**
-	 * Words selected inside one paragraph become the excerpt. The offsets are
-	 * found in the passage's source text, so what the server stores is what the
-	 * document says, whatever the rendering did with it.
+	 * Words selected inside one paragraph, reported with roughly where they begin
+	 * in it. The page matches them to the passage's stored text
+	 * (`$lib/shared/excerpt.ts`), so what the server stores is what the document
+	 * says, whatever the rendering did with it — and the occurrence stored is the
+	 * one selected, not the first.
 	 */
 	function selectWords() {
 		if (!onexcerpt || !sheet) return;
 		const selection = window.getSelection();
-		if (!selection || selection.isCollapsed) return;
+		if (!selection || selection.isCollapsed || selection.rangeCount === 0) return;
 		const holder = (node: Node | null) =>
 			(node instanceof Element ? node : node?.parentElement)?.closest<HTMLElement>(
 				'[data-passage]'
 			);
 		const from = holder(selection.anchorNode);
-		if (!from || from !== holder(selection.focusNode) || !sheet.contains(from)) return;
+		const to = holder(selection.focusNode);
+		if (!from || !to || !sheet.contains(from) || !sheet.contains(to)) return;
+		if (from !== to) {
+			onselectionproblem?.();
+			return;
+		}
 		const passage = paper.passages.find((row) => row.id === from.dataset.passage);
-		const words = selection.toString().replace(/\s+/g, ' ').trim();
-		if (!passage || passage.kind !== 'paragraph' || words === '') return;
-		// Whitespace in the selection and in the source may differ (a line break
-		// rendered as a space), so the words are matched with any run of it between.
-		const pattern = new RegExp(
-			words
-				.split(' ')
-				.map((word) => word.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'))
-				.join('\\s+')
-		);
-		const found = pattern.exec(passage.text);
-		if (!found) return;
+		const words = selection.toString();
+		if (!passage || passage.kind !== 'paragraph' || words.trim() === '') return;
+
+		// How much of the paragraph's rendered text comes before the selection,
+		// less the ¶ link at its head: roughly where in the passage it begins.
+		const before = document.createRange();
+		before.setStart(from, 0);
+		const range = selection.getRangeAt(0);
+		before.setEnd(range.startContainer, range.startOffset);
+		const link = from.querySelector('a')?.textContent?.length ?? 0;
 		onexcerpt({
 			passageId: passage.id,
-			start: found.index,
-			end: found.index + found[0].length,
-			text: words
+			words,
+			near: Math.max(0, before.toString().length - link)
 		});
 	}
 

@@ -12,6 +12,19 @@
 
 export type LineBox = { x: number; y: number; w: number; h: number; start: number; end: number };
 
+/**
+ * A line box as the workspace sends it, `[x, y, w, h, start, end]` — mirrored
+ * from `$lib/server/services/workspace.ts`, which components may not import.
+ */
+export type LineTuple = readonly [number, number, number, number, number, number];
+
+/** Where one paragraph sits on its page, as the workspace sends it. */
+export type ParagraphLines = { passageId: string; page: number; lines: readonly LineTuple[] };
+
+export function lineBox([x, y, w, h, start, end]: LineTuple): LineBox {
+	return { x, y, w, h, start, end };
+}
+
 /** A viewport's `transform`: `[a, b, c, d, e, f]`. */
 export type Transform = readonly [number, number, number, number, number, number];
 
@@ -37,6 +50,61 @@ export function lineRect(box: LineBox, transform: Transform): Rect {
 	const left = Math.min(x1, x2);
 	const top = Math.min(y1, y2);
 	return { left, top, width: Math.abs(x2 - x1), height: Math.abs(y2 - y1) };
+}
+
+/**
+ * The transform back: rendered page pixels to PDF user space. What lets a click
+ * or a selection on the page be compared with stored line boxes, whatever the
+ * rotation, crop box or zoom — it undoes exactly what `lineRect` applies.
+ */
+export function inverse(transform: Transform): Transform {
+	const [a, b, c, d, e, f] = transform;
+	const det = a * d - b * c;
+	return [d / det, -b / det, -c / det, a / det, (c * f - d * e) / det, (b * e - a * f) / det];
+}
+
+/** A point on the rendered page, in PDF user space. */
+export function toUserSpace(transform: Transform, x: number, y: number): [number, number] {
+	return point(inverse(transform), x, y);
+}
+
+export type Hit = { passageId: string; line: LineBox };
+
+/**
+ * Which paragraph line a point in user space falls on: the line whose box —
+ * padded as `lineRect` pads it — holds the point, or else the nearest one within
+ * half a line height, so a point in the leading between two lines still counts.
+ * Null for a margin, a heading or anything else no paragraph occupies.
+ */
+export function hitLine(
+	[x, y]: [number, number],
+	paragraphs: readonly { passageId: string; lines: readonly LineBox[] }[]
+): Hit | null {
+	let best: (Hit & { distance: number }) | null = null;
+	for (const paragraph of paragraphs) {
+		for (const line of paragraph.lines) {
+			const bottom = line.y - line.h * BELOW;
+			const top = line.y + line.h * ABOVE;
+			const dx = Math.max(line.x - x, 0, x - (line.x + line.w));
+			const dy = Math.max(bottom - y, 0, y - top);
+			const distance = Math.hypot(dx, dy);
+			if (distance > line.h / 2) continue;
+			if (!best || distance < best.distance) {
+				best = { passageId: paragraph.passageId, line, distance };
+			}
+		}
+	}
+	return best ? { passageId: best.passageId, line: best.line } : null;
+}
+
+/**
+ * Roughly where in the passage text a point on a line is: the line's slice,
+ * taken proportionally across its width. Approximate — glyphs are not equally
+ * wide — which is all `findExcerpt` asks of it: which occurrence is nearer.
+ */
+export function nearOffset(line: LineBox, [x]: [number, number]): number {
+	const along = line.w > 0 ? Math.min(1, Math.max(0, (x - line.x) / line.w)) : 0;
+	return line.start + Math.round(along * (line.end - line.start));
 }
 
 /** The lines an excerpt spans — every line whose `[start, end)` overlaps it — or all of them. */

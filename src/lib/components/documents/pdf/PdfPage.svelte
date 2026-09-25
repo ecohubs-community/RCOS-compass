@@ -22,7 +22,15 @@
 <script lang="ts">
 	import type { PDFDocumentProxy, RenderTask } from 'pdfjs-dist';
 	import * as m from '$lib/paraglide/messages';
-	import { lineRect, linesFor, outputScale, scaled, union, type Transform } from './geometry.js';
+	import {
+		lineRect,
+		linesFor,
+		outputScale,
+		scaled,
+		union,
+		type LineBox,
+		type Transform
+	} from './geometry.js';
 
 	/**
 	 * One page of the original: canvas, text layer and highlights, drawn only
@@ -37,13 +45,26 @@
 		scale: number;
 		near: boolean;
 		highlights: readonly Highlight[];
+		/** Lines the hand-map card is about to map, outlined while it is open. */
+		pending?: readonly LineBox[] | null;
 		selected: string | null;
 		onselect: (passageId: string) => void;
 		onfail: (problem: unknown) => void;
 	};
 
-	let { pdf, lib, number, size, scale, near, highlights, selected, onselect, onfail }: Props =
-		$props();
+	let {
+		pdf,
+		lib,
+		number,
+		size,
+		scale,
+		near,
+		highlights,
+		pending = null,
+		selected,
+		onselect,
+		onfail
+	}: Props = $props();
 
 	let canvas = $state<HTMLCanvasElement | null>(null);
 	let textLayer = $state<HTMLDivElement | null>(null);
@@ -83,6 +104,8 @@
 
 				layer.replaceChildren();
 				text = new lib.TextLayer({
+					// Default normalisation, as extraction reads the page: selected words
+					// are matched against the stored text (`extract-worker.js`).
 					textContentSource: page.streamTextContent(),
 					container: layer,
 					viewport
@@ -125,6 +148,11 @@
 		});
 	});
 
+	/** Placed like the highlights, from the page's transform. */
+	const pendingRects = $derived(
+		pending ? pending.map((line) => lineRect(line, scaled(size.transform, scale))) : []
+	);
+
 	const label = (highlight: Highlight) =>
 		m.original_highlight_label({
 			number: highlight.number,
@@ -142,6 +170,16 @@
 >
 	<canvas bind:this={canvas} class="absolute inset-0 h-full w-full" aria-hidden="true"></canvas>
 	<div bind:this={textLayer} class="textLayer"></div>
+	<!-- What the hand-map card will map: an outline, not a tint alone, and not a control —
+	     the card is where it is named and acted on. -->
+	{#each pendingRects as rect, index (index)}
+		<span
+			class="outline-accent-deep bg-accent/15 pointer-events-none absolute z-10 rounded-[2px] outline-2 outline-offset-1"
+			style="left: {rect.left}px; top: {rect.top}px; width: {rect.width}px; height: {rect.height}px;"
+			aria-hidden="true"
+			data-pending-line
+		></span>
+	{/each}
 	{#each drawn as { highlight, box, rects } (highlight.passageId)}
 		<button
 			type="button"

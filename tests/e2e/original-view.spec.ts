@@ -473,3 +473,275 @@ test.describe('the original view elsewhere', () => {
 		await expect(page.locator('[data-original-view]')).toHaveCount(0);
 	});
 });
+
+/**
+ * Mapping by hand from a selection. `openspec/changes/pdf-selection-mapping`:
+ * words selected — or a paragraph clicked — in the original view reach the same
+ * hand-map card as the text view, and in both views the words stored are the
+ * occurrence the member selected.
+ */
+
+/**
+ * Page 1: a heading; ¶1 saying "the council decides" on its first and third
+ * lines; ¶2 with "committee" hyphenated across its line break. Pages 2 and 3
+ * hold one paragraph each.
+ */
+function councilPdf(path: string) {
+	return import('../../scripts/make-document-fixtures.mjs').then(({ pdf }) =>
+		writeFileSync(
+			path,
+			pdf([
+				{
+					ops: [
+						{ x: 72, y: 720, size: 18, text: 'Membership' },
+						{ x: 72, y: 680, size: 11, text: 'In a dispute the council decides first, and the' },
+						{ x: 72, y: 664, size: 11, text: 'members may ask for it to be heard again. Then' },
+						{ x: 72, y: 648, size: 11, text: 'the council decides last, and records its reasons.' },
+						{
+							x: 72,
+							y: 616,
+							size: 11,
+							text: 'Quiet hours are agreed each season by the housekeeping commit-'
+						},
+						{ x: 72, y: 600, size: 11, text: 'tee, and posted on the board beside the kitchen.' }
+					]
+				},
+				'Guests are welcome for a week, and longer stays go to the assembly.',
+				'Pets are agreed with the neighbours on either side of the home.'
+			])
+		)
+	);
+}
+
+/**
+ * Select words in the original view's text layer, from `from.words` in the line
+ * reading `from.line` to the end of `to.words` in `to.line`. `pointer` ends it
+ * with a pointer-up, as a mouse does; without, only `selectionchange` fires, as
+ * when touch handles are dragged.
+ */
+async function selectInOriginal(
+	page: Page,
+	from: { line: string; words: string },
+	to: { line: string; words: string } = from,
+	pointer = true
+) {
+	await page.evaluate(
+		({ from, to, pointer }) => {
+			const spans = [
+				...document.querySelectorAll<HTMLElement>('[data-original-view] .textLayer span')
+			].filter((span) => span.offsetParent !== null);
+			const at = (want: { line: string; words: string }, end: boolean) => {
+				const span = spans.find((candidate) => candidate.textContent === want.line)!;
+				const node = span.firstChild!;
+				const index = want.line.lastIndexOf(want.words);
+				return { node, offset: end ? index + want.words.length : index, span };
+			};
+			const start = at(from, false);
+			const finish = at(to, true);
+			const range = document.createRange();
+			range.setStart(start.node, start.offset);
+			range.setEnd(finish.node, finish.offset);
+			getSelection()!.removeAllRanges();
+			getSelection()!.addRange(range);
+			if (pointer) finish.span.dispatchEvent(new PointerEvent('pointerup', { bubbles: true }));
+		},
+		{ from, to, pointer }
+	);
+}
+
+const LINE = {
+	a1: 'In a dispute the council decides first, and the',
+	a2: 'members may ask for it to be heard again. Then',
+	a3: 'the council decides last, and records its reasons.',
+	b1: 'Quiet hours are agreed each season by the housekeeping commit-',
+	b2: 'tee, and posted on the board beside the kitchen.',
+	page3: 'Pets are agreed with the neighbours on either side of the home.'
+};
+
+const handCard = (page: Page, number: number) =>
+	page.getByRole('region', { name: `Map ¶${number} to a clause` }).filter({ visible: true });
+
+async function openCouncil(page: Page, query = '') {
+	const path = test.info().outputPath('council.pdf');
+	await councilPdf(path);
+	const { slug, email, password } = await seed(page);
+	await signIn(page, email, password);
+	const workspace = await uploaded(page, slug, path, 'council.pdf');
+	await visit(page, `${workspace}${query}`);
+	const view = originalView(page);
+	await expect(view.locator('.textLayer span', { hasText: LINE.b2 })).toHaveCount(1, {
+		timeout: 20_000
+	});
+	return { workspace, view };
+}
+
+async function submitClause(page: Page, card: ReturnType<typeof handCard>) {
+	await card.getByLabel('Clause').fill('3.6.2');
+	await page.keyboard.press('Escape');
+	await card.getByRole('button', { name: 'Map to this clause' }).click();
+	await expect(card).toBeHidden();
+}
+
+/** The vertical middle of a text-layer line, and of a drawn box, to compare which line is which. */
+const middleOf = async (locator: import('@playwright/test').Locator) => {
+	const box = (await locator.boundingBox())!;
+	return box.y + box.height / 2;
+};
+
+test.describe('mapping by hand from the original view', () => {
+	test('selected words become the excerpt, shown on the page, kept out of the URL, and mapped to their line', async ({
+		page
+	}) => {
+		test.slow();
+		test.skip(!wide(page), 'the original is the default at 1024px and wider');
+		const { view } = await openCouncil(page);
+
+		await selectInOriginal(page, { line: LINE.b2, words: 'posted on the board' });
+		const card = handCard(page, 2);
+		await expect(card).toContainText('Only the words you selected: “posted on the board”');
+		await expect(page).toHaveURL(/passage=/);
+		expect(page.url()).not.toContain('posted');
+		await expect(view.locator('[data-pending-line]')).toHaveCount(1);
+
+		await submitClause(page, card);
+		const highlight = view.locator('[data-highlight]');
+		await expect(highlight).toHaveCount(1);
+		await expect(highlight.locator('span')).toHaveCount(1);
+		const drawn = await middleOf(highlight.locator('span'));
+		const line = await middleOf(view.locator('.textLayer span', { hasText: LINE.b2 }));
+		expect(Math.abs(drawn - line)).toBeLessThan(8);
+	});
+
+	test('finds a hyphenated word as stored, and the occurrence of a repeated phrase that was selected', async ({
+		page
+	}) => {
+		test.slow();
+		test.skip(!wide(page), 'the original is the default at 1024px and wider');
+		const { view } = await openCouncil(page);
+
+		await selectInOriginal(
+			page,
+			{ line: LINE.b1, words: 'housekeeping' },
+			{ line: LINE.b2, words: 'tee' }
+		);
+		await expect(handCard(page, 2)).toContainText('“housekeeping committee”');
+
+		await selectInOriginal(page, { line: LINE.a3, words: 'the council decides' });
+		const card = handCard(page, 1);
+		await expect(card).toContainText('“the council decides”');
+		const pending = view.locator('[data-pending-line]');
+		await expect(pending).toHaveCount(1);
+		const third = await middleOf(view.locator('.textLayer span', { hasText: LINE.a3 }));
+		expect(Math.abs((await middleOf(pending)) - third)).toBeLessThan(8);
+	});
+
+	test('a click selects a whole paragraph in place; headings, and selections across paragraphs, are not mapped', async ({
+		page
+	}) => {
+		test.slow();
+		test.skip(!wide(page), 'the original is the default at 1024px and wider');
+		const { view } = await openCouncil(page);
+		const scroller = view.locator('[data-original-scroller]');
+
+		const before = await scroller.evaluate((node) => node.scrollTop);
+		await view.locator('.textLayer span', { hasText: LINE.a2 }).click();
+		const card = handCard(page, 1);
+		await expect(card).toContainText('otherwise the whole paragraph is mapped');
+		await expect(view.locator('[data-pending-line]')).toHaveCount(3);
+		expect(Math.abs((await scroller.evaluate((node) => node.scrollTop)) - before)).toBeLessThan(2);
+
+		const url = page.url();
+		await selectInOriginal(page, { line: 'Membership', words: 'Membership' });
+		await page.waitForTimeout(600);
+		expect(page.url()).toBe(url);
+		await expect(card).not.toContainText('Only the words you selected');
+
+		await selectInOriginal(
+			page,
+			{ line: LINE.a3, words: 'records its reasons' },
+			{ line: LINE.b1, words: 'Quiet hours' }
+		);
+		await expect(
+			page.getByText('That selection runs across two paragraphs.').filter({ visible: true })
+		).toBeVisible();
+		await expect(card).not.toContainText('Only the words you selected');
+	});
+
+	test('a selection made without a pointer, on a page other than the one in the URL, settles into the card', async ({
+		page
+	}) => {
+		test.slow();
+		test.skip(!wide(page), 'the original is the default at 1024px and wider');
+		const { view } = await openCouncil(page, '?page=1');
+
+		const slot = view.locator('[data-page-slot="3"]');
+		await slot.scrollIntoViewIfNeeded();
+		await expect(view.locator('.textLayer span', { hasText: LINE.page3 })).toHaveCount(1, {
+			timeout: 20_000
+		});
+		await selectInOriginal(
+			page,
+			{ line: LINE.page3, words: 'agreed with the neighbours' },
+			undefined,
+			false
+		);
+		await expect(handCard(page, 1)).toContainText('“agreed with the neighbours”');
+		await expect(slot).toBeInViewport();
+	});
+
+	test('the text view stores the occurrence selected, and refuses a selection across paragraphs', async ({
+		page
+	}) => {
+		test.slow();
+		test.skip(!wide(page), 'selecting words, in the two panes');
+		const { workspace } = await openCouncil(page);
+		await visit(page, `${workspace}?view=text&page=1`);
+
+		const select = (from: string, to: string | null) =>
+			page.evaluate(
+				({ from, to }) => {
+					const holders = [...document.querySelectorAll<HTMLElement>('p[data-passage]')].filter(
+						(el) => el.offsetParent !== null
+					);
+					const textIn = (holder: HTMLElement, words: string) => {
+						const walker = document.createTreeWalker(holder, NodeFilter.SHOW_TEXT);
+						for (let node = walker.nextNode(); node; node = walker.nextNode()) {
+							const at = node.textContent!.lastIndexOf(words);
+							if (at >= 0) return { node, at };
+						}
+						throw new Error(`no "${words}"`);
+					};
+					const start = holders.find((el) => el.textContent!.includes(from))!;
+					const end = to ? holders.find((el) => el.textContent!.includes(to))! : start;
+					const a = textIn(start, from);
+					const b = to ? textIn(end, to) : a;
+					const range = document.createRange();
+					range.setStart(a.node, a.at);
+					range.setEnd(b.node, b.at + (to ?? from).length);
+					getSelection()!.removeAllRanges();
+					getSelection()!.addRange(range);
+					end.dispatchEvent(new MouseEvent('mouseup', { bubbles: true }));
+				},
+				{ from, to }
+			);
+
+		await select('records its reasons', 'Quiet hours');
+		await expect(
+			page.getByText('That selection runs across two paragraphs.').filter({ visible: true })
+		).toBeVisible();
+
+		// The last occurrence, on the paragraph's third line.
+		await select('the council decides', null);
+		const card = handCard(page, 1);
+		await expect(card).toContainText('“the council decides”');
+		await submitClause(page, card);
+
+		await visit(page, `${workspace}?view=original`);
+		const highlight = originalView(page).locator('[data-highlight] span');
+		await expect(highlight).toHaveCount(1, { timeout: 20_000 });
+		const third = await middleOf(
+			originalView(page).locator('.textLayer span', { hasText: LINE.a3 })
+		);
+		expect(Math.abs((await middleOf(highlight)) - third)).toBeLessThan(8);
+	});
+});

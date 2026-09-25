@@ -1,9 +1,16 @@
 <script lang="ts" module>
 	import type { Highlight } from './PdfPage.svelte';
+	import type { SelectedWords } from '$lib/shared/excerpt';
+	import type { ParagraphLines } from './geometry.js';
+
+	/** A highlight as the workspace sends it: its lines come from `paragraphs`. */
+	export type ViewerHighlight = Omit<Highlight, 'lines'>;
 
 	export type PdfViewerProps = {
 		url: string;
-		highlights: readonly Highlight[];
+		highlights: readonly ViewerHighlight[];
+		/** Every paragraph's lines, identified or not. */
+		paragraphs: readonly ParagraphLines[];
 		governancePages: readonly number[];
 		selected: string | null;
 		/** `?page=` as asked; null starts at the top. */
@@ -14,6 +21,15 @@
 		/** Whether to show the page strip — not at phone widths. */
 		thumbnails?: boolean;
 		onselect: (passageId: string) => void;
+		/** Words selected inside one paragraph. */
+		onexcerpt?: (selection: SelectedWords) => void;
+		/** A selection that runs from one paragraph into another. */
+		onselectionproblem?: () => void;
+		/**
+		 * What the hand-map card is about to map, drawn over the page while it is
+		 * open: the excerpt's lines, or the whole paragraph's when it is null.
+		 */
+		pending?: { passageId: string; excerpt: { start: number; end: number } | null } | null;
 		onready?: () => void;
 		onfail: () => void;
 		onpage?: (page: number, event: MouseEvent) => void;
@@ -31,10 +47,14 @@
 	import PdfPage from './PdfPage.svelte';
 	import {
 		MAX_VIEWER_PAGES,
+		hitLine,
+		lineBox,
 		lineRect,
 		linesFor,
+		nearOffset,
 		scaled,
 		stepZoom,
+		toUserSpace,
 		union,
 		type Transform
 	} from './geometry.js';
@@ -57,7 +77,8 @@
 
 	let {
 		url,
-		highlights,
+		highlights: sent,
+		paragraphs,
 		governancePages,
 		selected,
 		page,
@@ -65,10 +86,38 @@
 		textHref,
 		thumbnails = true,
 		onselect,
+		onexcerpt,
+		onselectionproblem,
+		pending = null,
 		onready,
 		onfail,
 		onpage
 	}: Props = $props();
+
+	/** Each paragraph's line boxes, by passage. */
+	const boxes = $derived(
+		new Map(paragraphs.map((paragraph) => [paragraph.passageId, paragraph.lines.map(lineBox)]))
+	);
+	/** The paragraphs on each page, for telling which one a point is in. */
+	const byPage = $derived(
+		Map.groupBy(
+			paragraphs.map((paragraph) => ({
+				passageId: paragraph.passageId,
+				page: paragraph.page,
+				lines: boxes.get(paragraph.passageId) ?? []
+			})),
+			(paragraph) => paragraph.page
+		)
+	);
+	const pageOf = $derived(
+		new Map(paragraphs.map((paragraph) => [paragraph.passageId, paragraph.page]))
+	);
+	const highlights = $derived(
+		sent.flatMap((highlight) => {
+			const lines = boxes.get(highlight.passageId);
+			return lines ? [{ ...highlight, lines }] : [];
+		})
+	);
 
 	let pdf = $state.raw<PDFDocumentProxy | null>(null);
 	let lib = $state.raw<typeof import('pdfjs-dist') | null>(null);
@@ -172,15 +221,14 @@
 		const node = slot(target.page);
 		if (!scroller || !node) return;
 		let top = node.offsetTop - 12;
-		const highlight = target.passage
-			? highlights.find((item) => item.passageId === target.passage)
-			: undefined;
+		// Any paragraph, identified or not: selecting one the member just clicked
+		// must find it already in view, not fall back to the top of its page.
+		const lines = target.passage ? boxes.get(target.passage) : undefined;
+		const excerpts = highlights.find((item) => item.passageId === target.passage)?.excerpts ?? null;
 		const size = sizes[target.page - 1];
-		if (highlight && size) {
+		if (lines && size) {
 			const at = scaled(size.transform, fit(target.page - 1));
-			const box = union(
-				linesFor(highlight.lines, highlight.excerpts).map((line) => lineRect(line, at))
-			);
+			const box = union(linesFor(lines, excerpts).map((line) => lineRect(line, at)));
 			if (box) {
 				// Already in full view — the member most likely just clicked it — and
 				// the document stays where it is.
@@ -205,7 +253,7 @@
 	let revealed = '';
 	$effect(() => {
 		if (!pdf || sizes.length === 0) return;
-		const passagePage = highlights.find((item) => item.passageId === selected)?.page;
+		const passagePage = selected ? pageOf.get(selected) : undefined;
 		const key = `${selected ?? ''}|${page ?? ''}`;
 		if (key === revealed) return;
 		revealed = key;
@@ -214,6 +262,115 @@
 	});
 
 	const onPage = (number: number) => highlights.filter((item) => item.page === number);
+
+	/** The lines the hand-map card is about to map, on the page they are on. */
+	const pendingLines = $derived.by(() => {
+		if (!pending) return null;
+		const lines = boxes.get(pending.passageId);
+		const page = pageOf.get(pending.passageId);
+		if (!lines || page === undefined) return null;
+		return { page, lines: linesFor(lines, pending.excerpt ? [pending.excerpt] : null) };
+	});
+
+	/**
+	 * The paragraph under a point on screen, if any: which page the point is on,
+	 * then back through that page's transform into user space, where the stored
+	 * line boxes live.
+	 */
+	function locate(clientX: number, clientY: number) {
+		if (!scroller) return null;
+		for (const node of scroller.querySelectorAll<HTMLElement>('[data-page]')) {
+			const rect = node.getBoundingClientRect();
+			if (
+				clientX < rect.left ||
+				clientX > rect.right ||
+				clientY < rect.top ||
+				clientY > rect.bottom
+			) {
+				continue;
+			}
+			const number = Number(node.dataset.page);
+			const size = sizes[number - 1];
+			if (!size) return null;
+			const at = scaled(size.transform, fit(number - 1));
+			const user = toUserSpace(at, clientX - rect.left, clientY - rect.top);
+			const hit = hitLine(user, byPage.get(number) ?? []);
+			return hit ? { ...hit, user } : null;
+		}
+		return null;
+	}
+
+	const middle = (rect: DOMRect) =>
+		[rect.left + rect.width / 2, rect.top + rect.height / 2] as const;
+
+	/**
+	 * A selection, once it has settled. Called on pointer-up for a mouse and after
+	 * `selectionchange` has been quiet for touch, whose handles fire no pointer-up
+	 * — so the same selection can arrive twice, and is reported once.
+	 */
+	let reported: [Node, number, Node, number] | null = null;
+	function readSelection() {
+		const selection = window.getSelection();
+		if (!onexcerpt || !scroller || !selection || selection.rangeCount === 0) return;
+		if (selection.isCollapsed) {
+			// Selecting the same words again, after a click, is a new selection.
+			reported = null;
+			return;
+		}
+		const range = selection.getRangeAt(0);
+		if (!scroller.contains(range.commonAncestorContainer)) return;
+		const key: [Node, number, Node, number] = [
+			range.startContainer,
+			range.startOffset,
+			range.endContainer,
+			range.endOffset
+		];
+		if (reported?.every((part, index) => part === key[index])) return;
+		reported = key;
+
+		const words = selection.toString();
+		const rects = [...range.getClientRects()].filter((rect) => rect.width > 0 && rect.height > 0);
+		if (words.trim() === '' || rects.length === 0) return;
+		const start = locate(...middle(rects[0]!));
+		// Starting in a heading, a margin or a running header: nothing to map.
+		if (!start) return;
+		const end = locate(...middle(rects.at(-1)!));
+		if (end && end.passageId !== start.passageId) {
+			onselectionproblem?.();
+			return;
+		}
+		onexcerpt?.({
+			passageId: start.passageId,
+			words,
+			near: nearOffset(start.line, start.user)
+		});
+	}
+
+	let settle: ReturnType<typeof setTimeout> | undefined;
+	onMount(() => {
+		const changed = () => {
+			clearTimeout(settle);
+			settle = setTimeout(readSelection, 400);
+		};
+		document.addEventListener('selectionchange', changed);
+		return () => {
+			clearTimeout(settle);
+			document.removeEventListener('selectionchange', changed);
+		};
+	});
+
+	/**
+	 * A click that selected no words: the paragraph under it, identified or not.
+	 * Only where the viewer maps by hand — a viewer given no `onexcerpt` (the
+	 * phone's "view original page") selects through its highlights alone.
+	 */
+	function clickParagraph(event: MouseEvent) {
+		if (!onexcerpt) return;
+		if (!(event.target instanceof Element) || event.target.closest('button, a')) return;
+		if (window.getSelection()?.isCollapsed === false) return;
+		const hit = locate(event.clientX, event.clientY);
+		if (hit) onselect(hit.passageId);
+	}
 </script>
 
 <!--
@@ -283,11 +440,18 @@
 		{#if pdf && thumbnails}
 			<PageThumbnails {pdf} {sizes} {governancePages} {current} {pageHref} {onpage} />
 		{/if}
+		<!-- A click or a selection on the page is a pointer convenience: the highlights are
+		     the viewer's keyboard stops, and the text view is the keyboard route to mapping
+		     any paragraph by hand (`pdf-selection-mapping`, design "Decided with the owner"). -->
+		<!-- svelte-ignore a11y_click_events_have_key_events, a11y_no_static_element_interactions -->
 		<div
 			bind:this={scroller}
 			bind:clientWidth={width}
 			class="relative min-h-0 flex-1 overflow-auto py-4"
 			onscroll={track}
+			onpointerup={() => setTimeout(readSelection)}
+			data-original-scroller
+			onclick={clickParagraph}
 		>
 			{#if truncated}
 				<p class="text-fg-secondary text-meta px-4 pb-3" role="status">
@@ -308,6 +472,7 @@
 								scale={fit(index)}
 								near={near.has(number)}
 								highlights={onPage(number)}
+								pending={pendingLines?.page === number ? pendingLines.lines : null}
 								{selected}
 								{onselect}
 								onfail={fail}

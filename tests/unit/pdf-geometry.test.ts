@@ -3,11 +3,15 @@ import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import {
 	MAX_CANVAS_PIXELS,
+	hitLine,
+	inverse,
 	lineRect,
 	linesFor,
 	outputScale,
 	scaled,
+	nearOffset,
 	stepZoom,
+	toUserSpace,
 	union,
 	type Transform
 } from '../../src/lib/components/documents/pdf/geometry.js';
@@ -80,6 +84,77 @@ describe('a transform at another zoom', { timeout: 30_000 }, () => {
 			ours.forEach((value, index) => expect(value).toBeCloseTo(zoomed.transform[index]!));
 		}
 	);
+});
+
+describe('a point on the rendered page, back in user space', { timeout: 30_000 }, () => {
+	const cases = [
+		['rotated-page.pdf', 0],
+		['rotated-page.pdf', 90],
+		['cropped-page.pdf', 0],
+		['cropped-page.pdf', 270]
+	] as const;
+
+	it.each(cases.flatMap(([name, rotation]) => [1, 2.3].map((zoom) => [name, rotation, zoom])))(
+		'returns to where it came from on %s rotated %i degrees at zoom %d',
+		async (name, rotation, zoom) => {
+			const { page } = await viewportsOf(name as string, rotation as number, 1);
+			const base = page.getViewport({ scale: 1, rotation: page.rotate + (rotation as number) });
+			const transform = scaled(base.transform as unknown as Transform, zoom as number);
+			const rect = lineRect(box, transform);
+
+			// The middle of the drawn line comes back as a point on the stored one.
+			const [x, y] = toUserSpace(transform, rect.left + rect.width / 2, rect.top + rect.height / 2);
+			expect(x).toBeCloseTo(box.x + box.w / 2);
+			expect(y).toBeCloseTo(box.y + (box.h * (0.92 - 0.22)) / 2);
+		}
+	);
+
+	it('undoes the transform exactly', () => {
+		const transform: Transform = [0, 1.5, 1.5, 0, -150, -150];
+		const back = inverse(inverse(transform));
+		back.forEach((value, index) => expect(value).toBeCloseTo(transform[index]!));
+	});
+});
+
+describe('which paragraph a point falls on', () => {
+	const first = {
+		passageId: 'first',
+		lines: [
+			{ x: 72, y: 680, w: 300, h: 11, start: 0, end: 60 },
+			{ x: 72, y: 664, w: 200, h: 11, start: 61, end: 100 }
+		]
+	};
+	const second = {
+		passageId: 'second',
+		lines: [{ x: 72, y: 632, w: 300, h: 11, start: 0, end: 58 }]
+	};
+
+	it('finds the paragraph and the line a point is on', () => {
+		expect(hitLine([100, 667], [first, second])).toEqual({
+			passageId: 'first',
+			line: first.lines[1]
+		});
+		expect(hitLine([300, 635], [first, second])?.passageId).toBe('second');
+	});
+
+	it('finds nothing in the margin', () => {
+		expect(hitLine([20, 667], [first, second])).toBeNull();
+		expect(hitLine([500, 682], [first, second])).toBeNull();
+		expect(hitLine([100, 760], [first, second])).toBeNull();
+	});
+
+	it('takes a point in the leading between two lines to the nearer line', () => {
+		// First line's padded box runs down to 680 - 2.42; the second's up to 664 + 10.12.
+		expect(hitLine([100, 676.5], [first, second])?.line).toBe(first.lines[0]);
+		expect(hitLine([100, 674.9], [first, second])?.line).toBe(first.lines[1]);
+	});
+
+	it('says roughly where along the line a point is, in the passage text', () => {
+		const line = first.lines[0]!;
+		expect(nearOffset(line, [72, 0])).toBe(0);
+		expect(nearOffset(line, [222, 0])).toBe(30);
+		expect(nearOffset(line, [900, 0])).toBe(60);
+	});
 });
 
 describe('which lines an excerpt covers', () => {
