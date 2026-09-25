@@ -401,6 +401,10 @@ test.describe('the queue below 1024 pixels', () => {
 		await hand.getByLabel('Clause').fill('3.6.2');
 		await page.keyboard.press('Escape');
 		await hand.getByRole('button', { name: 'Map to this clause' }).click();
+		// The mapping is recorded, and the form's own update done, before leaving:
+		// a click on Back while that update is in flight is overtaken by it, and
+		// the page stays where the form was.
+		await expect(hand).toBeHidden();
 
 		await page.getByRole('link', { name: '← Back to the queue' }).click();
 		await expect(

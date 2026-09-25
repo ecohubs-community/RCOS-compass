@@ -97,7 +97,9 @@ test.describe('the document library', () => {
 		await expect(async () => {
 			await page.reload();
 			await expect(row(page, DOCUMENTS.bylawsPdf)).toContainText('Not scanned', { timeout: 2_000 });
-		}).toPass({ timeout: 30_000 });
+			// As every other wait on extraction: in a full run the one worker's queue
+			// held an extraction for up to 49 s behind claim checks and mirror commits.
+		}).toPass({ timeout: 60_000 });
 
 		const filters = page.getByRole('navigation', { name: 'Show' });
 		await expect(filters.getByRole('link', { name: 'Not mapped · 1' })).toBeVisible();

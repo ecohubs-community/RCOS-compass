@@ -109,17 +109,27 @@ export default defineConfig({
 			// deployment actually has — the 5 MB upload spec exists to meet it.
 			BODY_SIZE_LIMIT: '26M',
 			/**
-			 * Four browser projects share one loopback address, so the real
-			 * credential ceiling (10 per 15 minutes) would be spent by the sign-in
-			 * specs themselves rather than by anything under test. The ceiling is
-			 * proved in tests/integration/rate-limit-request.ts, where the clock is
-			 * controlled; here it only needs to be out of the way.
+			 * Every project shares one loopback address, and nearly every test seeds
+			 * its own community and signs in as its people — a sign-in per test is
+			 * the suite's shape, not something a saved session could replace. So the
+			 * real credential ceiling (10 per 15 minutes) would be spent by the suite
+			 * rather than by anything under test. The ceiling itself is proved in
+			 * tests/integration/rate-limit-request.test.ts, against a controlled
+			 * clock; here it only needs to be out of the way.
+			 *
+			 * The arithmetic, measured on 2026-09-25 from `rate_limit_bucket`: a full
+			 * run makes 565 credential POSTs in about 11 minutes — all of them inside
+			 * one 15-minute window. The old ceiling of 500 therefore refused the last
+			 * ~40 tests of every full run. 5000 holds a full run nearly nine times
+			 * over: room for the suite to grow, and for a second run against a reused
+			 * server (`reuseExistingServer` outside CI keeps the database, and with it
+			 * the count) inside the same window.
 			 */
-			AUTH_ATTEMPTS_PER_15MIN: '500',
-			// Same reasoning for the general ceiling: 145 specs across four projects
-			// come from one loopback address inside a minute, so 300/min is spent by
-			// the suite rather than by anything under test. Proved in the same
-			// integration test, against a clock that does not move on its own.
+			AUTH_ATTEMPTS_PER_15MIN: '5000',
+			// Same reasoning for the general ceiling: a full run peaks at about 1100
+			// requests a minute from the one address (measured with the above), so
+			// the real 300/min is spent by the suite rather than by anything under
+			// test. Proved in the same integration test.
 			REQUESTS_PER_MINUTE: '20000',
 			LOG_LEVEL: 'silent',
 			BUILD_SHA: 'e2e'
