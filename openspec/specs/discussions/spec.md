@@ -268,19 +268,28 @@ meeting summary MUST NOT take replies. Replying MUST work without JavaScript.
 ### Requirement: A post can mention a member
 
 A member MUST be able to mention another current member of the community in a
-post, by their membership number. With JavaScript the composer MUST offer current
-members by their label and insert the number for the one chosen. A mention MUST be
-shown as the member's person label, so an erased member reads as a former member.
+post, by writing their name after `@`. A name carried by exactly one current
+member MUST be stored as that member's number, so the mention survives a rename,
+a shared name and an erasure; a name carried by more than one MUST be kept as the
+text written. A typed number MUST still mention its member. With JavaScript the
+composer MUST offer current members by their label and insert the name of the one
+chosen. An edit box MUST show a stored mention as the name again. A mention MUST
+be shown as the member's person label, so an erased member reads as a former
+member.
 A number that does not belong to a current member of this community MUST be shown
 as the plain text written and MUST NOT resolve to anyone.
 
 #### Scenario: Choosing a member while writing
-- **WHEN** a member types `@` in the composer and chooses Lena
-- **THEN** Lena's membership number is inserted, and the post shows "@Lena" once saved
+- **WHEN** a member types `@` in the composer and chooses Lena Vogt
+- **THEN** "@Lena Vogt" is inserted, the post is saved with her number, and it shows "@Lena Vogt"
 
 #### Scenario: Without JavaScript
-- **WHEN** a member without JavaScript writes `@M-0142` for a current member
+- **WHEN** a member without JavaScript writes `@Lena Vogt`, or `@M-0142` for a current member
 - **THEN** the saved post shows that member's label as the mention
+
+#### Scenario: A shared name
+- **WHEN** a post mentions a name two current members carry
+- **THEN** it is saved as written and mentions nobody
 
 #### Scenario: An erased member
 - **WHEN** a mentioned member is later erased
@@ -293,6 +302,31 @@ as the plain text written and MUST NOT resolve to anyone.
 #### Scenario: Mention text is not markup
 - **WHEN** a mention is followed by text containing HTML
 - **THEN** the HTML renders as words, as for any post
+
+### Requirement: A member may edit or delete their own messages
+
+The author of a message MUST be able to change its text and to delete it; nobody
+else MUST be able to do either, a steward included. Only a message MAY be edited
+or deleted — not a proposal version, a meeting summary, or the reason given with
+a vote. An edited message MUST say that it was edited, and when. A deleted
+message MUST keep its place in the thread, with its replies under it, and MUST
+show every reader but its author that a message was deleted, without its text.
+Its author MUST still see the text and MUST be able to restore it. A deleted
+message MUST NOT be replied to, and MUST NOT be read by a thread summary.
+
+#### Scenario: A message is edited
+- **WHEN** a member changes a message they wrote
+- **THEN** the thread shows the new text marked as edited, with when
+- **AND** a member the edit newly mentions is told; one already mentioned is not told again
+
+#### Scenario: Somebody else's message
+- **WHEN** a member tries to edit or delete a message somebody else wrote
+- **THEN** it is refused
+
+#### Scenario: A message is deleted
+- **WHEN** a member deletes a message they wrote that has replies
+- **THEN** other members see "Message has been deleted." in its place, and the replies stay under it
+- **AND** the author sees their text struck through, and can restore it
 
 ### Requirement: A discussion names the version it is currently asking about
 

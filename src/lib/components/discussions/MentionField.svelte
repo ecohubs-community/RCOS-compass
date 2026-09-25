@@ -4,16 +4,21 @@
 	/**
 	 * A post's text box that can mention a member. `openspec/changes/notifications-page`.
 	 *
-	 * Without JavaScript it is the textarea it replaces: a member types `@M-0142`,
-	 * the number the members page shows. With it, typing `@` offers the community's
-	 * members by name and inserts the number — the number, because a name is not
-	 * unique, changes, and is blanked by erasure, while the number stays right
-	 * through all three.
+	 * A member writes a name — `@Lena Vogt` — with or without JavaScript. The
+	 * server keeps it as her number when the text is saved (`$lib/shared/mentions`),
+	 * because a number stays right through a rename, a shared name and an erasure;
+	 * nobody has to type one. With JavaScript, typing `@` offers the community's
+	 * members and inserts the chosen name.
 	 *
-	 * A listbox under the field rather than Bits UI's combobox: that one owns its
+	 * A listbox beside the field rather than Bits UI's combobox: that one owns its
 	 * own single-line input, and the thing being completed here is a word in the
 	 * middle of a paragraph. The field keeps focus throughout and points at the
 	 * highlighted option with `aria-activedescendant`.
+	 *
+	 * The list is placed against the window, above the field — below it only when
+	 * there is no room above. Placed inside the field's own box it was clipped by
+	 * the composer, which scrolls, and opening it scrolled the composer instead of
+	 * showing the names.
 	 */
 	type Member = { token: string; label: string };
 	type Props = {
@@ -43,6 +48,24 @@
 	let query = $state<string | null>(null);
 	let active = $state(0);
 	let start = 0;
+	/** Where the list sits, in window coordinates. */
+	let place = $state({
+		left: 0,
+		width: 0,
+		top: null as number | null,
+		bottom: null as number | null
+	});
+
+	const ROOM = 240;
+	function position() {
+		if (!field) return;
+		const box = field.getBoundingClientRect();
+		const width = Math.min(box.width, 384);
+		place =
+			box.top > ROOM
+				? { left: box.left, width, top: null, bottom: window.innerHeight - box.top + 4 }
+				: { left: box.left, width, top: box.bottom + 4, bottom: null };
+	}
 
 	const matches = $derived.by(() => {
 		if (query === null) return [];
@@ -57,6 +80,19 @@
 	});
 	const listId = $derived(`${id}-mentions`);
 	const open = $derived(query !== null && matches.length > 0);
+
+	// Follow the field while the list is open: the thread pane and the page both
+	// scroll, and a list left where the field used to be points at nothing.
+	$effect(() => {
+		if (!open) return;
+		position();
+		window.addEventListener('scroll', position, true);
+		window.addEventListener('resize', position);
+		return () => {
+			window.removeEventListener('scroll', position, true);
+			window.removeEventListener('resize', position);
+		};
+	});
 
 	function track() {
 		if (!field) return;
@@ -77,8 +113,9 @@
 	function choose(member: Member) {
 		if (!field) return;
 		const end = field.selectionStart;
-		field.value = `${field.value.slice(0, start)}${member.token} ${field.value.slice(end)}`;
-		const caret = start + member.token.length + 1;
+		const written = `@${member.label}`;
+		field.value = `${field.value.slice(0, start)}${written} ${field.value.slice(end)}`;
+		const caret = start + written.length + 1;
 		field.setSelectionRange(caret, caret);
 		field.focus();
 		query = null;
@@ -124,7 +161,10 @@
 			id={listId}
 			role="listbox"
 			aria-label={m.mention_list_label()}
-			class="border-border bg-surface absolute top-full left-0 z-20 mt-1 w-full max-w-sm rounded-(--radius-card) border p-1 shadow-lg"
+			class="border-border bg-surface fixed z-50 rounded-(--radius-card) border p-1 shadow-lg"
+			style="left: {place.left}px; width: {place.width}px; {place.top !== null
+				? `top: ${place.top}px`
+				: `bottom: ${place.bottom}px`}"
 		>
 			{#each matches as member, i (member.token)}
 				<li

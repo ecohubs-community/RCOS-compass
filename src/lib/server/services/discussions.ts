@@ -22,6 +22,7 @@ import { lint } from '../linter/index.js';
 import { adoptedElsewhere } from './definitions.js';
 import { activeStandardView } from './completeness.js';
 import { mentionedSeqs } from '../markdown.js';
+import { namesToMentions, type MentionMember } from '../../shared/mentions.js';
 import { discussionParticipants, mentionedMembers, notify, notifyReply } from './notifications.js';
 import { indexDiscussion } from './search.js';
 import { registerTenantService } from './registry.js';
@@ -418,8 +419,11 @@ export function listPostsWithAuthors(
 			displayName: row.displayName,
 			seq: row.seq
 		});
+		// A deleted message's words go to nobody but the person who wrote them.
+		const hidden = row.post.deletedAt !== null && row.post.authorId !== ctx.user.id;
 		return {
 			...row.post,
+			body: hidden ? '' : row.post.body,
 			author: { label, initials: initialsOf(label) },
 			subjectVersion: row.post.subjectPostId
 				? (versionOf.get(row.post.subjectPostId) ?? null)
@@ -471,16 +475,25 @@ export function mentionDirectory(
 		}
 	}
 
-	const members = db
-		.select(person)
+	return { labels, members: mentionableMembers(db, ctx.community.id) };
+}
+
+/** Current members, as a composer offers them and as a typed name resolves. */
+function mentionableMembers(db: Db, communityId: string): MentionMember[] {
+	return db
+		.select({
+			seq: membership.seq,
+			endedAt: membership.endedAt,
+			displayName: membership.displayName,
+			name: user.name,
+			erasedAt: user.erasedAt
+		})
 		.from(membership)
 		.innerJoin(user, eq(user.id, membership.userId))
-		.where(and(eq(membership.communityId, ctx.community.id), isNull(membership.endedAt)))
+		.where(and(eq(membership.communityId, communityId), isNull(membership.endedAt)))
 		.orderBy(asc(membership.seq))
 		.all()
 		.map((row) => ({ token: `@${membershipLabel(row.seq)}`, label: personLabel(row) }));
-
-	return { labels, members };
 }
 
 export function listPosts(ctx: Ctx, discussionId: string, options: { db?: Db } = {}): Post[] {
@@ -547,6 +560,7 @@ export function addMessage(
 		if (parent.kind !== 'message' && parent.kind !== 'response') {
 			error(400, 'Only a message or the reason given with a vote can be replied to.');
 		}
+		if (parent.deletedAt) error(409, 'That message was deleted.');
 		replyToPostId = parent.replyToPostId ?? parent.id;
 	}
 
@@ -566,6 +580,112 @@ export function addMessage(
 		tellThread(tx as unknown as Db, ctx, found, written);
 		return written;
 	});
+}
+
+/**
+ * The author's own message, ready to be changed — or a refusal.
+ *
+ * Only a `message`: a proposal version is revised into a new version, and the
+ * reason given with a vote is part of that answer, changed by answering again.
+ * Only the author: nobody else may put words in somebody's mouth, a steward
+ * included — taking a name out of a post is a redaction, which says it
+ * happened.
+ */
+function ownMessage(ctx: Ctx, db: Db, discussionId: string, postId: string): Post {
+	requirePermission(ctx, 'discussion.comment');
+	requireWritableCommunity(ctx);
+	const found = getDiscussion(ctx, discussionId, { db });
+	requireWritable(found);
+	const row = db
+		.select()
+		.from(post)
+		.where(and(eq(post.id, postId), eq(post.discussionId, found.id)))
+		.get();
+	if (!row) error(404, 'Not found');
+	if (row.kind !== 'message') error(400, 'Only a message can be changed.');
+	if (row.authorId !== ctx.user.id) error(403, 'Only the person who wrote a message can change it.');
+	return row;
+}
+
+/**
+ * Change what a message says. It is marked edited, with when.
+ *
+ * No earlier versions are kept. A copy of every edit would be a second place a
+ * person's name lives, which a redaction would then have to find too; "edited"
+ * with its time tells a reader the words moved without keeping them. Somebody
+ * newly mentioned by the edit hears about it; somebody already mentioned does
+ * not hear twice.
+ */
+export function editMessage(
+	ctx: Ctx,
+	input: { discussionId: string; postId: string; body: string },
+	options: { db?: Db } = {}
+): Post {
+	const db = options.db ?? getDb();
+	const row = ownMessage(ctx, db, input.discussionId, input.postId);
+	if (row.deletedAt) error(409, 'Restore the message before editing it.');
+
+	const body = namesToMentions(input.body.trim(), mentionableMembers(db, ctx.community.id));
+	if (!body) error(400, 'Write something first — or delete the message.');
+	if (body === row.body) return row;
+
+	return db.transaction((tx) => {
+		const inTx = tx as unknown as Db;
+		tx.update(post)
+			.set({ body, editedAt: new Date(ctx.now()) })
+			.where(eq(post.id, row.id))
+			.run();
+
+		const before = new Set(mentionedSeqs(row.body));
+		const added = mentionedSeqs(body).filter((seq) => !before.has(seq));
+		if (added.length > 0) {
+			const found = getDiscussion(ctx, input.discussionId, { db: inTx });
+			notify(inTx, ctx, {
+				kind: 'discussion.mention',
+				subjectType: 'discussion',
+				subjectId: found.id,
+				summary: `You were mentioned in ${found.title}`,
+				params: { title: found.title, actor: ctx.membership.id },
+				recipients: mentionedMembers(inTx, ctx, added)
+			});
+		}
+		return inTx.select().from(post).where(eq(post.id, row.id)).get()!;
+	});
+}
+
+/**
+ * Take a message back.
+ *
+ * The row stays: replies to it keep their place, and everybody else sees that
+ * a message was here and was deleted — a conversation with holes that nobody
+ * mentions reads as though the replies answered nothing. Its text is never sent
+ * to anybody but its author again, who can restore it.
+ */
+export function deleteMessage(
+	ctx: Ctx,
+	input: { discussionId: string; postId: string },
+	options: { db?: Db } = {}
+): Post {
+	const db = options.db ?? getDb();
+	const row = ownMessage(ctx, db, input.discussionId, input.postId);
+	if (row.deletedAt) return row;
+	db.update(post)
+		.set({ deletedAt: new Date(ctx.now()) })
+		.where(eq(post.id, row.id))
+		.run();
+	return db.select().from(post).where(eq(post.id, row.id)).get()!;
+}
+
+/** Undo a delete, for the author. The message comes back as it was. */
+export function restoreMessage(
+	ctx: Ctx,
+	input: { discussionId: string; postId: string },
+	options: { db?: Db } = {}
+): Post {
+	const db = options.db ?? getDb();
+	const row = ownMessage(ctx, db, input.discussionId, input.postId);
+	db.update(post).set({ deletedAt: null }).where(eq(post.id, row.id)).run();
+	return db.select().from(post).where(eq(post.id, row.id)).get()!;
 }
 
 /**
@@ -892,7 +1012,8 @@ function writePost(
 			id,
 			discussionId: values.discussionId,
 			authorId: ctx.user.id,
-			body: values.body,
+			// "@Lena Vogt" as typed, kept as her number. `$lib/shared/mentions`.
+			body: namesToMentions(values.body, mentionableMembers(db, ctx.community.id)),
 			kind: values.kind,
 			proposalVersion: values.proposalVersion,
 			revisionNote: values.revisionNote ?? null,

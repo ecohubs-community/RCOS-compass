@@ -1,7 +1,7 @@
 <script lang="ts">
-	import Markdown from '$lib/components/ui/Markdown.svelte';
 	import { useTime } from '$lib/time/use-time';
 	import type { PageData } from '../$types';
+	import MessageBody from './MessageBody.svelte';
 
 	/**
 	 * The replies under one message or one reason, and the way to add another.
@@ -39,8 +39,13 @@
 						<span class="text-fg-muted text-meta"
 							>{clock.moment(reply.createdAt, 'dateTimeShort')}</span
 						>
+						{#if reply.editedAt && !reply.deleted}
+							<span class="text-fg-muted text-meta"
+								>· edited {clock.moment(reply.editedAt, 'dateTimeShort')}</span
+							>
+						{/if}
 					</p>
-					<Markdown blocks={reply.body} class="mt-0.5" />
+					<MessageBody entry={reply} />
 				</div>
 			</li>
 		{/each}

@@ -315,6 +315,7 @@ test.describe('a reply answers something in place', () => {
 			conversation.locator(':scope > ol > li').filter({ hasText: 'A named settler.' })
 		).toHaveCount(1);
 		await expect(page.getByText('Replying to')).toHaveCount(0);
+		await expect(page.getByLabel('Reply to the thread')).toHaveValue('');
 
 		// A member objects; the steward answers from the objection itself.
 		const theirs = await browser.newContext();
@@ -341,6 +342,55 @@ test.describe('a reply answers something in place', () => {
 		await expect(
 			rail(page).locator('article').filter({ hasText: 'Nothing about money.' })
 		).toContainText('open · 1 reply');
+	});
+});
+
+test.describe('a member’s own messages', () => {
+	test('can be edited, and deleted so others see only that it was', async ({ page, browser }) => {
+		const fixture = await seedWithProposal(page);
+		const thread = page.url().split('?')[0]!;
+		const conversation = page.getByRole('region', { name: 'The discussion' });
+
+		await page.getByLabel('Reply to the thread').fill('Leave whenever you like.');
+		await page.getByRole('button', { name: 'Send' }).click();
+		const mine = conversation.locator(':scope > ol > li').filter({ hasText: 'Leave whenever' });
+		await expect(mine).toBeVisible();
+		// Sent, so the box is empty again.
+		await expect(page.getByLabel('Reply to the thread')).toHaveValue('');
+
+		// Edited in place, and marked as edited.
+		await mine.getByRole('link', { name: 'Edit' }).click();
+		await expect(page.getByLabel('Edit your message')).toHaveValue('Leave whenever you like.');
+		await page
+			.getByLabel('Edit your message')
+			.fill('Leave whenever you like, with a week’s notice.');
+		await page.getByRole('button', { name: 'Save' }).click();
+		await expect(mine).toContainText('with a week’s notice');
+		await expect(mine).toContainText('edited');
+
+		// Deleted: the author still sees the words, struck through, and can undo.
+		await mine.getByRole('button', { name: 'Delete' }).click();
+		await expect(mine).toContainText('You deleted this');
+		await expect(mine.getByRole('button', { name: 'Restore' })).toBeVisible();
+
+		// Everybody else sees that it was there, and never its words.
+		const theirs = await browser.newContext();
+		const them = await theirs.newPage();
+		await signIn(them, fixture.member.email, fixture.member.password);
+		await visit(them, thread);
+		const seen = them
+			.getByRole('region', { name: 'The discussion' })
+			.locator(':scope > ol > li')
+			.filter({ hasText: 'Message has been deleted.' });
+		await expect(seen).toBeVisible();
+		await expect(seen).not.toContainText('notice');
+		// Nor may they change somebody else's message.
+		await expect(seen.getByRole('link', { name: 'Edit' })).toHaveCount(0);
+		await theirs.close();
+
+		await mine.getByRole('button', { name: 'Restore' }).click();
+		await expect(mine).not.toContainText('You deleted this');
+		await expect(mine.getByRole('link', { name: 'Edit' })).toBeVisible();
 	});
 });
 

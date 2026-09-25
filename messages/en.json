@@ -466,7 +466,7 @@
 	"notifications_bell_none": "Notifications, none unread",
 	"nav_notifications": "Notifications",
 	"notifications_none": "Nothing yet.",
-	"mention_hint": "Mention a member with @ and their number, like @M-0142.",
+	"mention_hint": "Mention someone with @ and their name.",
 	"mention_list_label": "Members to mention",
 	"mail_consent_opened_subject": "A consent round is open in {community}",
 	"mail_consent_opened_body": "A proposal in {community} is waiting for your response.",

@@ -20,6 +20,10 @@ import { communityStandard } from '../../src/lib/server/db/schema/tenancy.js';
 import { createDefinition } from '../../src/lib/server/services/definitions.js';
 import {
 	addMessage,
+	deleteMessage,
+	editMessage,
+	listPostsWithAuthors,
+	restoreMessage,
 	addProposal,
 	getDiscussion,
 	latestProposal,
@@ -923,6 +927,151 @@ describe('a message or an answer can be replied to in place', () => {
 		);
 		expect(refusal?.status).toBe(409);
 		expect(listPosts(ctx, opened.id, { db })).toHaveLength(1);
+	});
+});
+
+describe('a member can edit and delete their own messages', () => {
+	it('keeps a typed name as the member number, so the mention survives a rename', () => {
+		const opened = open();
+		const said = addMessage(
+			ctx,
+			{ discussionId: opened.id, body: 'Over to you @Lena Vogt.' },
+			{ db }
+		);
+
+		expect(said.body).toBe(`Over to you @M-${String(memberCtx.membership.seq).padStart(4, '0')}.`);
+		const told = db
+			.select()
+			.from(notification)
+			.where(eq(notification.kind, 'discussion.mention'))
+			.all();
+		expect(told.map((row) => row.recipientMembershipId)).toEqual([memberCtx.membership.id]);
+	});
+
+	it('edits a message and marks it edited, telling only somebody newly mentioned', () => {
+		const opened = open();
+		const said = addMessage(ctx, { discussionId: opened.id, body: 'Who settles?' }, { db });
+		const later = { ...ctx, now: () => NOW + 60_000 };
+
+		const edited = editMessage(
+			later,
+			{ discussionId: opened.id, postId: said.id, body: 'Who settles, @Lena Vogt?' },
+			{ db }
+		);
+
+		expect(edited.body).toMatch(/^Who settles, @M-\d{4}\?$/);
+		expect(edited.editedAt?.getTime()).toBe(NOW + 60_000);
+		const told = () =>
+			db.select().from(notification).where(eq(notification.kind, 'discussion.mention')).all();
+		expect(told().map((row) => row.recipientMembershipId)).toEqual([memberCtx.membership.id]);
+
+		// Saying it again mentions nobody new, so nobody is told twice.
+		editMessage(
+			later,
+			{ discussionId: opened.id, postId: said.id, body: 'Who settles, @Lena Vogt? Anyone?' },
+			{ db }
+		);
+		expect(told()).toHaveLength(1);
+	});
+
+	it('refuses to edit somebody else’s message', () => {
+		const opened = open();
+		const said = addMessage(memberCtx, { discussionId: opened.id, body: 'Mine.' }, { db });
+
+		const refusal = catchRefusal(() =>
+			editMessage(ctx, { discussionId: opened.id, postId: said.id, body: 'Yours now.' }, { db })
+		);
+		expect(refusal?.status).toBe(403);
+		expect(listPosts(ctx, opened.id, { db })[0]!.body).toBe('Mine.');
+	});
+
+	it('refuses to edit the reason given with a vote, which is changed by answering again', () => {
+		const opened = open();
+		const v1 = addProposal(ctx, { discussionId: opened.id, body: 'Members may leave.' }, { db });
+		getVotingProvider().respond(
+			memberCtx,
+			{ proposalPostId: v1.id, value: 'objection', reason: 'Nothing about money.' },
+			{ db }
+		);
+		const reason = listPosts(ctx, opened.id, { db }).find((row) => row.kind === 'response')!;
+
+		const refusal = catchRefusal(() =>
+			editMessage(
+				memberCtx,
+				{ discussionId: opened.id, postId: reason.id, body: 'Fine by me.' },
+				{ db }
+			)
+		);
+		expect(refusal?.status).toBe(400);
+	});
+
+	it('refuses an empty edit, and any edit in a suspended community', () => {
+		const opened = open();
+		const said = addMessage(memberCtx, { discussionId: opened.id, body: 'Mine.' }, { db });
+		expect(
+			catchRefusal(() =>
+				editMessage(memberCtx, { discussionId: opened.id, postId: said.id, body: '  ' }, { db })
+			)?.status
+		).toBe(400);
+
+		const suspended: Ctx = {
+			...memberCtx,
+			community: { ...memberCtx.community, status: 'suspended', suspendedReason: 'Non-payment.' }
+		};
+		expect(
+			catchRefusal(() =>
+				editMessage(suspended, { discussionId: opened.id, postId: said.id, body: 'x' }, { db })
+			)?.status
+		).toBe(409);
+	});
+
+	it('deletes a message so nobody else reads it, and its author can restore it', () => {
+		const opened = open();
+		const said = addMessage(memberCtx, { discussionId: opened.id, body: 'Regrettable.' }, { db });
+		addMessage(
+			ctx,
+			{ discussionId: opened.id, body: 'I disagree.', replyToPostId: said.id },
+			{ db }
+		);
+
+		deleteMessage(memberCtx, { discussionId: opened.id, postId: said.id }, { db });
+
+		// Everybody else: the message was here, and its words are gone.
+		const theirs = listPostsWithAuthors(ctx, opened.id, { db }).find((row) => row.id === said.id)!;
+		expect(theirs.deletedAt).not.toBeNull();
+		expect(theirs.body).toBe('');
+		// The reply keeps its place under it.
+		expect(
+			listPostsWithAuthors(ctx, opened.id, { db }).find((row) => row.body === 'I disagree.')!
+				.replyToPostId
+		).toBe(said.id);
+		// The author still has the words, and can bring them back.
+		const mine = listPostsWithAuthors(memberCtx, opened.id, { db }).find(
+			(row) => row.id === said.id
+		)!;
+		expect(mine.body).toBe('Regrettable.');
+
+		restoreMessage(memberCtx, { discussionId: opened.id, postId: said.id }, { db });
+		expect(
+			listPostsWithAuthors(ctx, opened.id, { db }).find((row) => row.id === said.id)!.body
+		).toBe('Regrettable.');
+	});
+
+	it('refuses to delete somebody else’s message, and to reply to a deleted one', () => {
+		const opened = open();
+		const said = addMessage(memberCtx, { discussionId: opened.id, body: 'Mine.' }, { db });
+
+		expect(
+			catchRefusal(() => deleteMessage(ctx, { discussionId: opened.id, postId: said.id }, { db }))
+				?.status
+		).toBe(403);
+
+		deleteMessage(memberCtx, { discussionId: opened.id, postId: said.id }, { db });
+		expect(
+			catchRefusal(() =>
+				addMessage(ctx, { discussionId: opened.id, body: 'Hm.', replyToPostId: said.id }, { db })
+			)?.status
+		).toBe(409);
 	});
 });
 

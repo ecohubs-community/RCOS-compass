@@ -302,7 +302,7 @@
 	"notifications_bell_none": "Benachrichtigungen, keine ungelesen",
 	"nav_notifications": "Benachrichtigungen",
 	"notifications_none": "Noch nichts.",
-	"mention_hint": "Erwähne ein Mitglied mit @ und seiner Nummer, z. B. @M-0142.",
+	"mention_hint": "Erwähne jemanden mit @ und seinem Namen.",
 	"mention_list_label": "Mitglieder zum Erwähnen",
 	"mail_consent_opened_subject": "Eine Zustimmungsrunde ist offen in {community}",
 	"mail_consent_opened_body": "Ein Vorschlag in {community} wartet auf deine Antwort.",

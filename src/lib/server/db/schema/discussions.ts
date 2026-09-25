@@ -133,7 +133,14 @@ export const post = sqliteTable(
 		 */
 		frozenDecisionId: text('frozen_decision_id'),
 		createdAt: integer('created_at', { mode: 'timestamp_ms' }).notNull(),
-		editedAt: integer('edited_at', { mode: 'timestamp_ms' })
+		/** When its author last changed a message. Shown as "edited". */
+		editedAt: integer('edited_at', { mode: 'timestamp_ms' }),
+		/**
+		 * When its author deleted a message. The row stays, so the replies under
+		 * it keep their place and the author can restore it; the text is never
+		 * sent to anybody else once this is set.
+		 */
+		deletedAt: integer('deleted_at', { mode: 'timestamp_ms' })
 	},
 	(table) => [
 		index('post_discussion_idx').on(table.discussionId, table.createdAt),

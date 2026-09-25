@@ -165,7 +165,7 @@ test.describe('the bell', () => {
 });
 
 test.describe('mentions', () => {
-	test('@ offers members by name, inserts their number, and tells them', async ({
+	test('@ offers members by name, keeps the name in the box, and tells them', async ({
 		page,
 		browser
 	}) => {
@@ -181,10 +181,13 @@ test.describe('mentions', () => {
 		const option = page.getByRole('option', { name: /Lena Vogt/ });
 		await expect(option).toBeVisible();
 		await reply.press('Enter');
-		await expect(reply).toHaveValue(/^Over to you @M-\d{4} $/);
+		// A name in the box — nobody types a member number.
+		await expect(reply).toHaveValue('Over to you @Lena Vogt ');
 		await page.getByRole('button', { name: 'Send' }).click();
+		// Sent, so the box is empty again.
+		await expect(reply).toHaveValue('');
 
-		// The post keeps the number and shows the name.
+		// Kept as her number, shown as her name.
 		await expect(page.locator('[data-mention]').filter({ hasText: '@Lena Vogt' })).toBeVisible();
 
 		const context = await browser.newContext();

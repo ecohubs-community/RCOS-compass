@@ -5,6 +5,7 @@
 	import IconArrowBackUp from '~icons/tabler/arrow-back-up';
 	import type { PageData } from '../$types';
 	import MeetingNote from './MeetingNote.svelte';
+	import MessageBody from './MessageBody.svelte';
 	import Replies from './Replies.svelte';
 
 	/**
@@ -64,9 +65,13 @@
 			<p class="flex flex-wrap items-baseline gap-x-2">
 				<span class="text-fg font-medium">{entry.author.label}</span>
 				<span class="text-fg-muted text-meta">{time(entry.createdAt)}</span>
+				{#if entry.editedAt && !entry.deleted}
+					<span class="text-fg-muted text-meta">· edited {time(entry.editedAt)}</span>
+				{/if}
 			</p>
-			<Markdown blocks={entry.body} class="mt-1" />
-			<Replies {replies} {replyHref} />
+			<MessageBody {entry} {replyHref} />
+			<!-- The link to reply is on the message itself, above its replies. -->
+			<Replies {replies} replyHref={null} />
 		</div>
 	</div>
 {:else if entry.kind === 'offline_summary'}

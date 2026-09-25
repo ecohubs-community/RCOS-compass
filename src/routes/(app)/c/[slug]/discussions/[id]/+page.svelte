@@ -8,6 +8,7 @@
 	import Markdown from '$lib/components/ui/Markdown.svelte';
 	import MentionField from '$lib/components/discussions/MentionField.svelte';
 	import ProposalCard from './_components/ProposalCard.svelte';
+	import { setThreadContext } from './_components/thread-context';
 	import { ANSWER, ANSWERS, answerOf, type Answer } from './_components/answers';
 	import ThreadEntry from './_components/ThreadEntry.svelte';
 	import { setMentionLabels } from '$lib/components/ui/mentions';
@@ -22,6 +23,17 @@
 	import IconSnowflake from '~icons/tabler/snowflake';
 
 	let { data, form } = $props();
+	setThreadContext({
+		get members() {
+			return data.mentions.members;
+		},
+		get version() {
+			return data.proposal?.version ?? null;
+		},
+		get editing() {
+			return data.editing;
+		}
+	});
 	setMentionLabels(() => data.mentions.labels);
 	const slug = $derived(data.community.slug);
 	const errorFor = (step: string) => (form?.step === step ? form.error : undefined);
@@ -430,7 +442,21 @@
 					</div>
 
 					{#if mode === 'reply' && data.can.comment}
-						<form method="POST" action="?/comment" class="mt-3 flex flex-col gap-2" use:enhance>
+						<!--
+							Emptied once the message is in. The action ends in a redirect to
+							the new post, and the form's own reset only runs on a plain
+							success — so the text sat in the box after it had been sent.
+						-->
+						<form
+							method="POST"
+							action="?/comment"
+							class="mt-3 flex flex-col gap-2"
+							use:enhance={() =>
+								async ({ formElement, result, update }) => {
+									if (result.type === 'redirect') formElement.reset();
+									await update();
+								}}
+						>
 							{#if data.proposal}<input type="hidden" name="v" value={data.proposal.version} />{/if}
 							{#if data.replyingTo}
 								<!--

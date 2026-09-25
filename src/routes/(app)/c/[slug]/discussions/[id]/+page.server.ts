@@ -11,6 +11,9 @@ import { freeze } from '$lib/server/services/decisions';
 import {
 	addMessage,
 	addProposal,
+	deleteMessage,
+	editMessage,
+	restoreMessage,
 	getDiscussion,
 	listPostsWithAuthors,
 	currentProposal,
@@ -30,6 +33,7 @@ import { listResponses, roundFor } from '$lib/server/voting/consent-round';
 import type { Actions, PageServerLoad, RequestEvent } from './$types';
 import { run } from '$lib/server/http/form-action';
 import { localMidnight } from '$lib/time/format';
+import { mentionsToNames } from '$lib/shared/mentions';
 
 /**
  * One thread, one version on the table, and the freeze. UI spec §5.1, §4.6.
@@ -115,6 +119,12 @@ export const load: PageServerLoad = ({ locals, params, url }) => {
 				}
 			: null;
 
+	const mentions = mentionDirectory(
+		ctx,
+		posts.map((entry) => entry.body),
+		{ db }
+	);
+
 	return {
 		/** Two panes that scroll on their own, so the shell stops scrolling as one. */
 		fullHeight: true,
@@ -134,10 +144,15 @@ export const load: PageServerLoad = ({ locals, params, url }) => {
 		 * same reason as the mode: a member with no JavaScript can still reply to
 		 * somebody. Only a post the thread has, and only one that takes replies.
 		 */
+		/** The reader's own message being edited in place, from `?edit=`. */
+		editing: url.searchParams.get('edit'),
 		replyingTo: (() => {
 			const asked = url.searchParams.get('reply');
 			const found = posts.find(
-				(entry) => entry.id === asked && (entry.kind === 'message' || entry.kind === 'response')
+				(entry) =>
+					entry.id === asked &&
+					entry.deletedAt === null &&
+					(entry.kind === 'message' || entry.kind === 'response')
 			);
 			return found
 				? {
@@ -158,11 +173,7 @@ export const load: PageServerLoad = ({ locals, params, url }) => {
 			decidedTitle: inForce?.title ?? null
 		},
 		/** Names for `@M-0142` in the thread, and who the composer can offer. */
-		mentions: mentionDirectory(
-			ctx,
-			posts.map((entry) => entry.body),
-			{ db }
-		),
+		mentions,
 		posts: posts.map((entry) => ({
 			id: entry.id,
 			kind: entry.kind,
@@ -172,6 +183,18 @@ export const load: PageServerLoad = ({ locals, params, url }) => {
 			subjectPostId: entry.subjectPostId,
 			replyToPostId: entry.replyToPostId,
 			subjectVersion: entry.subjectVersion,
+			/** The reader's own post: they may edit or delete it if it is a message. */
+			mine: entry.authorId === ctx.user.id,
+			deleted: entry.deletedAt !== null,
+			editedAt: entry.editedAt?.getTime() ?? null,
+			/**
+			 * The reader's own message as they would edit it — mentions as names,
+			 * not numbers. Only their own: nobody edits anybody else's words.
+			 */
+			editable:
+				entry.kind === 'message' && entry.authorId === ctx.user.id
+					? mentionsToNames(entry.body, mentions.members)
+					: null,
 			objectionState: entry.objectionState,
 			author: entry.author,
 			body: parseMarkdown(entry.body),
@@ -204,7 +227,8 @@ export const load: PageServerLoad = ({ locals, params, url }) => {
 			version: selected.proposalVersion,
 			author: selected.author,
 			createdAt: selected.createdAt.getTime(),
-			raw: selected.body,
+			/** The text as the revise box starts from it — mentions as names. */
+			raw: mentionsToNames(selected.body, mentions.members),
 			body: parseMarkdown(selected.body),
 			/**
 			 * Whether this version is the one being asked about — which is what
@@ -347,11 +371,45 @@ export const actions: Actions = {
 		// ends the reply (the `?reply=` goes) and brings a reply filed inside a
 		// collapsed card into view.
 		const { id } = outcome.result as { id: string };
-		const version = Number(form.get('v') ?? '');
-		redirect(
-			303,
-			`/c/${event.params.slug}/discussions/${event.params.id}${version ? `?v=${version}` : ''}#post-${id}`
+		redirect(303, backTo(event, form, id));
+	},
+
+	/**
+	 * Change, delete or restore one's own message. Each ends on the message, on
+	 * the version the author was reading, and out of the editor.
+	 */
+	edit: async (event) => {
+		const form = await event.request.formData();
+		const postId = String(form.get('postId') ?? '');
+		const outcome = await run('edit', () =>
+			editMessage(
+				event.locals.ctx!,
+				{ discussionId: event.params.id, postId, body: String(form.get('body') ?? '') },
+				{ db: getDb() }
+			)
 		);
+		if ('status' in outcome) return outcome;
+		redirect(303, backTo(event, form, postId));
+	},
+
+	delete: async (event) => {
+		const form = await event.request.formData();
+		const postId = String(form.get('postId') ?? '');
+		const outcome = await run('delete', () =>
+			deleteMessage(event.locals.ctx!, { discussionId: event.params.id, postId }, { db: getDb() })
+		);
+		if ('status' in outcome) return outcome;
+		redirect(303, backTo(event, form, postId));
+	},
+
+	restore: async (event) => {
+		const form = await event.request.formData();
+		const postId = String(form.get('postId') ?? '');
+		const outcome = await run('restore', () =>
+			restoreMessage(event.locals.ctx!, { discussionId: event.params.id, postId }, { db: getDb() })
+		);
+		if ('status' in outcome) return outcome;
+		redirect(303, backTo(event, form, postId));
 	},
 
 	propose: async (event) => {
@@ -422,10 +480,11 @@ export const actions: Actions = {
 		const form = await event.request.formData();
 		const kind = String(form.get('kind') ?? 'summary');
 
-		const posts = listPostsWithAuthors(ctx, event.params.id, { db }).map((entry) => ({
-			kind: entry.kind,
-			body: entry.body
-		}));
+		// A deleted message is not part of what the thread says any more — not
+		// even the author's own, which only they can still see.
+		const posts = listPostsWithAuthors(ctx, event.params.id, { db })
+			.filter((entry) => entry.deletedAt === null)
+			.map((entry) => ({ kind: entry.kind, body: entry.body }));
 		if (posts.length === 0) {
 			return fail(409, { step: 'suggest', error: 'There is nothing here to read yet.' });
 		}
@@ -606,3 +665,9 @@ export const actions: Actions = {
 		redirect(303, `/c/${event.params.slug}/d/${recorded.ref}`);
 	}
 };
+
+/** This thread, on the version the form was sent from, at one post. */
+function backTo(event: RequestEvent, form: FormData, postId: string): string {
+	const version = Number(form.get('v') ?? '');
+	return `/c/${event.params.slug}/discussions/${event.params.id}${version ? `?v=${version}` : ''}#post-${postId}`;
+}
