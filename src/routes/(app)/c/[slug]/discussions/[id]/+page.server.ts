@@ -22,7 +22,7 @@ import { listObjections, resolveObjection } from '$lib/server/services/objection
 import { isArtifactComplete, DECISION_MATRIX } from '$lib/server/services/completeness';
 import { membershipLabel } from '$lib/server/services/person';
 import { parseMarkdown } from '$lib/server/markdown';
-import { isCurrentShape } from '$lib/shared/linter';
+import { allFindings, isCurrentShape } from '$lib/shared/linter';
 import { getVotingProvider } from '$lib/server/voting';
 import { aiAvailability } from '$lib/server/ai/run';
 import { draftProposalFromThread, summariseThread } from '$lib/server/ai/tasks/summarise-thread';
@@ -151,11 +151,27 @@ export const load: PageServerLoad = ({ locals, params, url }) => {
 			proposalVersion: entry.proposalVersion,
 			revisionNote: entry.revisionNote,
 			responseValue: entry.responseValue,
+			subjectPostId: entry.subjectPostId,
 			subjectVersion: entry.subjectVersion,
 			objectionState: entry.objectionState,
 			author: entry.author,
 			body: parseMarkdown(entry.body),
 			createdAt: entry.createdAt.getTime(),
+			/**
+			 * What the linter said about a version when it was written, in one
+			 * line: the thread's card says whether there is anything to look at,
+			 * and the panel beside it has the detail.
+			 */
+			lint:
+				entry.kind === 'proposal' && isCurrentShape(entry.linterResult)
+					? {
+							clean: entry.linterResult.clean,
+							findings: allFindings(entry.linterResult).filter(
+								(finding) => finding.severity !== 'ok'
+							).length,
+							ranAt: entry.linterResult.ranAt
+						}
+					: null,
 			...frozenState(entry.frozenDecisionId)
 		})),
 		versions: proposals.map((entry) => ({
@@ -233,6 +249,39 @@ export const load: PageServerLoad = ({ locals, params, url }) => {
 			mine: roundResponses.find((entry) => entry.membershipId === ctx.membership.id) ?? null
 		},
 		previousTally,
+		/**
+		 * Every version's round, for the thread.
+		 *
+		 * The rail shows one version; the thread shows the whole argument, and
+		 * each version that was answered gets a block there holding its answers
+		 * and the reasons given with them — a conversation of its own, placed
+		 * where the round opened. Read per version because a thread has a handful
+		 * of them, and each block must carry the tally of *its* version.
+		 */
+		rounds: proposals.flatMap((entry) => {
+			const found = entry.id === selected?.id ? round : roundFor(db, entry.id);
+			if (!found) return [];
+			const responses =
+				entry.id === selected?.id ? roundResponses : listResponses(ctx, found.id, { db });
+			if (responses.length === 0) return [];
+			return [
+				{
+					proposalPostId: entry.id,
+					version: entry.proposalVersion,
+					isCurrent: entry.id === current?.id,
+					status: found.status,
+					openedAt: found.openedAt.getTime(),
+					tally: getVotingProvider().tally(ctx, found.id, { db }),
+					responses: responses.map((response) => ({
+						value: response.value,
+						who: response.who,
+						initials: response.initials,
+						reasonPostId: response.reasonPostId,
+						respondedAt: response.respondedAt
+					}))
+				}
+			];
+		}),
 		/**
 		 * Whether the two thread suggestions can be offered.
 		 *
@@ -313,13 +362,13 @@ export const actions: Actions = {
 		);
 		if ('status' in outcome) return outcome;
 
-		// Same reason as `propose`: a meeting produces a version, and the rail
-		// should be showing it.
-		const { proposal } = outcome.result as { proposal: { proposalVersion: number | null } };
-		redirect(
-			303,
-			`/c/${event.params.slug}/discussions/${event.params.id}?v=${proposal.proposalVersion}`
-		);
+		// Same reason as `propose`: a meeting that produced a version should have
+		// the rail showing it. One that produced none leaves the rail where it was.
+		const { proposal } = outcome.result as {
+			proposal: { proposalVersion: number | null } | null;
+		};
+		const thread = `/c/${event.params.slug}/discussions/${event.params.id}`;
+		redirect(303, proposal ? `${thread}?v=${proposal.proposalVersion}` : thread);
 	},
 
 	/**

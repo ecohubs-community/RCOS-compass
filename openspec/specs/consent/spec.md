@@ -217,11 +217,12 @@ the earlier reason readable rather than removing its post.
 - **WHEN** a response with a reason arrives for a proposal in a community the member does not belong to
 - **THEN** it is refused, and no post is written to that community's thread
 
-### Requirement: The votes on a version are readable together, where the first was cast
+### Requirement: The votes on a version are readable together, with the version they answer
 
 The responses to one proposal version MUST be presentable as a single block in
-the discussion thread, positioned at the moment the first response to that
-version was recorded.
+the discussion thread, together with that version's text, positioned where the
+version was written. Reasons given with those responses MUST appear in that
+block rather than as separate posts in the conversation.
 
 Collapsed, the block MUST state the counts and the denominator. Expanded, it MUST
 list every response with its value, the responder, their reason if they gave one,
@@ -229,8 +230,8 @@ and when it was cast. Any count shown elsewhere on the screen MUST lead to this
 block rather than to an individual post.
 
 #### Scenario: The block is placed
-- **WHEN** the first response to v3 is recorded
-- **THEN** the block for v3's responses appears in the thread at that point
+- **WHEN** responses to v3 are recorded
+- **THEN** they appear in the thread in v3's block, where v3 was written
 - **AND** later responses to v3 join it rather than creating a second block
 
 #### Scenario: The block is expanded

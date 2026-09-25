@@ -210,10 +210,18 @@
 	hundreds of pixels below the shell in the *document's* coordinates, and the
 	document grew to hold them — which is the strip of empty background you could
 	scroll to under a discussion. One containing block here, and the shell's own
-	`overflow-hidden` contains them.
+	overflow contains them.
+
+	`overflow-clip`, not `overflow-hidden`, here and on every pane below it. A
+	hidden box is still a scroll container — script and fragment navigation can
+	scroll it, the reader just cannot scroll it back. Opening the discussion
+	composer at `#composer` on a short window did exactly that: the browser
+	scrolled the shell to bring the form into view, and the sidebar and panes
+	rode up over a strip of empty background with nothing to scroll them down
+	again. A clipped box clips the same and cannot be scrolled at all.
 -->
 <div
-	class="relative flex min-h-screen flex-col lg:h-screen lg:min-h-0 lg:flex-row lg:overflow-hidden"
+	class="relative flex min-h-screen flex-col lg:h-screen lg:min-h-0 lg:flex-row lg:overflow-clip"
 >
 	<!--
 		Below 1024px the sidebar becomes a horizontal strip rather than disappearing
@@ -328,7 +336,7 @@
 	</aside>
 
 	<div
-		class="flex min-w-0 flex-1 flex-col {fullHeight ? 'lg:overflow-hidden' : 'lg:overflow-y-auto'}"
+		class="flex min-w-0 flex-1 flex-col {fullHeight ? 'lg:overflow-clip' : 'lg:overflow-y-auto'}"
 	>
 		<TopBar
 			community={data.community.name}

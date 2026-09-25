@@ -58,10 +58,18 @@ A discussion MUST be able to be marked as decided offline, carrying a summary an
 the proposal that came out of the meeting, and MUST then reach the same freeze
 with the same required fields as any other path.
 
+A meeting's summary MUST be recordable without a proposal. A summary with no
+proposal MUST NOT mark the discussion decided offline.
+
 #### Scenario: A thread is taken offline and returns
 - **WHEN** a member marks a discussion decided offline and enters a summary and a proposal
 - **THEN** the thread records who wrote the summary and when
 - **AND** the discussion can be frozen
+
+#### Scenario: A meeting produces no proposal
+- **WHEN** a member writes up a meeting and leaves the proposal empty
+- **THEN** the summary is recorded in the thread and no proposal version is written
+- **AND** the discussion stays open rather than being marked decided offline
 
 #### Scenario: The record says how it was reached
 - **WHEN** a decision is frozen from an offline path

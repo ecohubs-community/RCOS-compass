@@ -743,26 +743,31 @@ function writeProposal(
 }
 
 /**
- * Record that the room decided it.
+ * Record what happened in a meeting, and what came out of it if anything did.
  *
  * The summary says what happened; the proposal is what came out of it, and it is
  * an ordinary proposal — so the freeze that follows asks for exactly the same
  * things it asks for online.
+ *
+ * The proposal is optional. Plenty of meetings talk a question through without
+ * reaching a text, and refusing their write-up until somebody invents one would
+ * either lose the record of the meeting or put words on the table nobody agreed
+ * to. Only a meeting that produced a proposal marks the thread decided offline:
+ * a summary alone is part of the conversation, not the end of it.
  */
 export function takeOffline(
 	ctx: Ctx,
-	input: { discussionId: string; summary: string; proposal: string },
+	input: { discussionId: string; summary: string; proposal?: string },
 	options: { db?: Db } = {}
-): { summary: Post; proposal: Post } {
+): { summary: Post; proposal: Post | null } {
 	requirePermission(ctx, 'discussion.comment');
 	requireWritableCommunity(ctx);
 	const found = getDiscussion(ctx, input.discussionId, options);
 	requireWritable(found);
 
 	const summary = input.summary.trim();
-	const proposalText = input.proposal.trim();
+	const proposalText = input.proposal?.trim() ?? '';
 	if (!summary) error(400, 'Say what happened in the meeting.');
-	if (!proposalText) error(400, 'Record the proposal the meeting produced.');
 
 	const db = options.db ?? getDb();
 
@@ -776,14 +781,23 @@ export function takeOffline(
 			proposalVersion: null
 		});
 
+		if (!proposalText) return { summary: summaryPost, proposal: null };
+
 		const proposalPost = writeProposal(ctx, withTx.db, found, { body: proposalText });
+
+		// The summary names the version the room produced, so the thread can show
+		// the meeting, its proposal and the answers to it as one thing.
+		tx.update(post)
+			.set({ subjectPostId: proposalPost.id })
+			.where(eq(post.id, summaryPost.id))
+			.run();
 
 		tx.update(discussion)
 			.set({ status: 'decided_offline', origin: 'offline' })
 			.where(eq(discussion.id, input.discussionId))
 			.run();
 
-		return { summary: summaryPost, proposal: proposalPost };
+		return { summary: { ...summaryPost, subjectPostId: proposalPost.id }, proposal: proposalPost };
 	});
 }
 
@@ -804,8 +818,7 @@ export function writeThreadPost(
 	ctx: Ctx,
 	db: Db,
 	values: { discussionId: string; body: string; subjectPostId: string } & (
-		| { kind: 'response'; responseValue: 'consent' | 'objection' | 'abstain' }
-		| { kind: 'event' }
+		{ kind: 'response'; responseValue: 'consent' | 'objection' | 'abstain' } | { kind: 'event' }
 	)
 ): Post {
 	return writePost(

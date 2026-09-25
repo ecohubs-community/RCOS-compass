@@ -70,7 +70,8 @@ export const discussion = sqliteTable(
  *
  * - `message` — a reply, written in the composer.
  * - `proposal` — a version of the text a decision would adopt.
- * - `offline_summary` — what happened in a meeting.
+ * - `offline_summary` — what happened in a meeting. `subjectPostId` is the
+ *   proposal the meeting produced, when it produced one.
  * - `response` — the reason somebody gave with their answer to a round.
  *   `responseValue` is the answer and `subjectPostId` the version it answered.
  * - `event` — the thread recording an act on it (the question moved to
@@ -96,7 +97,8 @@ export const post = sqliteTable(
 		 */
 		responseValue: text('response_value', { enum: ['consent', 'objection', 'abstain'] }),
 		/**
-		 * The proposal version a `response` or `event` is about. No foreign key,
+		 * The proposal version a `response` or `event` is about, or the one an
+		 * `offline_summary` produced. No foreign key,
 		 * for the same reason `frozen_decision_id` has none: a post pointing at a
 		 * post in its own thread, which the discussion's cascade already removes.
 		 */

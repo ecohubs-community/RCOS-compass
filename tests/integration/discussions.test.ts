@@ -843,12 +843,15 @@ describe('deciding in a room is a first-class path', () => {
 		expect(summary.kind).toBe('offline_summary');
 		expect(summary.authorId).toBe(ctx.user.id);
 		expect(summary.createdAt.getTime()).toBe(NOW);
+		// The summary names what it produced, so the thread can show them as one.
+		expect(summary.subjectPostId).toBe(proposal!.id);
+		expect(listPosts(ctx, opened.id, { db })[0]!.subjectPostId).toBe(proposal!.id);
 
 		// What came out of the room is an ordinary proposal, so the freeze that
 		// follows asks for exactly what it asks for online.
-		expect(proposal.kind).toBe('proposal');
-		expect(proposal.proposalVersion).toBe(1);
-		expect(proposalToFreeze(ctx, opened.id, { db }).id).toBe(proposal.id);
+		expect(proposal!.kind).toBe('proposal');
+		expect(proposal!.proposalVersion).toBe(1);
+		expect(proposalToFreeze(ctx, opened.id, { db }).id).toBe(proposal!.id);
 	});
 
 	it('marks the thread so the decision can record how it was reached', () => {
@@ -873,20 +876,35 @@ describe('deciding in a room is a first-class path', () => {
 			{ discussionId: opened.id, summary: 'Then we met.', proposal: 'v2 from the room' },
 			{ db }
 		);
-		expect(proposal.proposalVersion).toBe(2);
+		expect(proposal!.proposalVersion).toBe(2);
 	});
 
-	it('insists on both the summary and the proposal', () => {
+	it('insists on the summary', () => {
 		const opened = open();
 		expect(() =>
 			takeOffline(ctx, { discussionId: opened.id, summary: '  ', proposal: 'x' }, { db })
 		).toThrow(expect.objectContaining({ status: 400 }));
-		expect(() =>
-			takeOffline(ctx, { discussionId: opened.id, summary: 'x', proposal: '  ' }, { db })
-		).toThrow(expect.objectContaining({ status: 400 }));
 
 		// Neither half was written: the pair is one act.
 		expect(listPosts(ctx, opened.id, { db })).toHaveLength(0);
+	});
+
+	it('records a meeting that produced no proposal, and leaves the thread open', () => {
+		const opened = open();
+		const { summary, proposal } = takeOffline(
+			ctx,
+			{ discussionId: opened.id, summary: 'We talked it through; no text yet.', proposal: '  ' },
+			{ db }
+		);
+
+		expect(summary.kind).toBe('offline_summary');
+		expect(summary.subjectPostId).toBeNull();
+		expect(proposal).toBeNull();
+		expect(listPosts(ctx, opened.id, { db }).map((row) => row.kind)).toEqual(['offline_summary']);
+		// Nothing was decided in the room, so the thread is not marked as if it had been.
+		const after = getDiscussion(ctx, opened.id, { db });
+		expect(after.status).toBe('open');
+		expect(after.origin).not.toBe('offline');
 	});
 });
 

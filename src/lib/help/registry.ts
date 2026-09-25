@@ -37,6 +37,11 @@ export const HELP: Record<string, HelpEntry> = {
 		what: 'A suggested change to a definition, living inside a discussion.',
 		why: 'Separating the suggestion from the rule is what lets a group argue about wording without anything changing yet.'
 	},
+	consent: {
+		title: 'Consent',
+		what: 'Consent means “I can live with it”, not “I like it best”. Abstaining is recorded and blocks nothing; an objection says why it cannot be lived with.',
+		why: 'A group rarely has one favourite, but it can usually find something nobody has a reasoned objection to — and the reasons are what improve the next version.'
+	},
 	decision: {
 		title: 'Decision',
 		what: 'The permanent record of the act that adopted a version: who, by what mechanism, at what threshold, when, and why.',

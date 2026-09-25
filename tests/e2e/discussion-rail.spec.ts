@@ -108,20 +108,24 @@ test.describe('the votes on a version, read together', () => {
 			.fill('It names who settles.');
 		await rail(page).getByRole('button', { name: 'Consent' }).click();
 
-		// The reason is a thing somebody said, so it reads in the conversation —
-		// as the answer it came with, not as one more reply.
-		await expect(
-			page
-				.getByRole('region', { name: 'The discussion' })
-				.locator(':scope > ol > li')
-				.filter({ hasText: 'consented to v1' })
-		).toContainText('It names who settles.');
-
-		// Collapsed, the block summarises; expanded, it lists who said what.
-		const block = page.locator('details').filter({ hasText: 'answered v1' });
-		await expect(block).toContainText('1 of 2 answered v1');
-		await block.locator('summary').click();
+		// The reason is a thing somebody said, so it reads in the thread — inside
+		// the card of the version it answered, not as one more reply.
+		const conversation = page.getByRole('region', { name: 'The discussion' });
+		const block = conversation.locator('#votes-v1');
+		await expect(block).toContainText('v1 Proposal');
+		await expect(block).toContainText('1 of 2 answered');
+		// The version on the table opens with its answers showing, reasons and all.
+		await expect(block.getByText('It names who settles.')).toBeVisible();
 		await expect(block).toContainText('Consent');
+		await expect(
+			conversation.locator(':scope > ol > li').filter({ hasText: 'It names who settles.' })
+		).toHaveCount(1);
+
+		// Collapsed, the card still states the counts and the denominator.
+		await block.locator('summary').click();
+		await expect(block.getByText('It names who settles.')).toBeHidden();
+		await expect(block.locator('summary')).toContainText('1 of 2 answered');
+		await expect(block.locator('summary')).toContainText('1 consent');
 	});
 
 	test('opens and reads with JavaScript disabled', async ({ browser }) => {
@@ -145,13 +149,17 @@ test.describe('the votes on a version, read together', () => {
 		await page.getByRole('link', { name: 'Revise the proposal' }).click();
 		await page.getByLabel('The text a decision would adopt').fill('It does.');
 		await page.getByRole('button', { name: /^Save as v/ }).click();
-		await page.getByRole('button', { name: 'Consent' }).click();
+		await rail(page).getByRole('button', { name: 'Consent', exact: true }).click();
 
-		const block = page.locator('details').filter({ hasText: 'answered v1' });
-		await expect(block).toBeVisible();
-		// A `<details>` opens in the browser, not in the framework.
+		const block = page.locator('#votes-v1');
+		const answered = block.getByRole('list', { name: 'Who answered' });
+		// A `<details>` opens and closes in the browser, not in the framework. The
+		// version on the table starts open.
+		await expect(answered).toBeVisible();
 		await block.locator('summary').click();
-		await expect(block).toContainText('Consent');
+		await expect(answered).toBeHidden();
+		await block.locator('summary').click();
+		await expect(answered).toContainText('Consent');
 
 		await context.close();
 	});
@@ -162,10 +170,17 @@ test.describe('freezing the version a community actually agreed on', () => {
 		const fixture = await seedWithProposal(page);
 
 		await rail(page).getByRole('button', { name: 'Consent' }).click();
+		// The answer lands before the next act: the block of answers opens above
+		// the composer when it does, and a click mid-update is a click lost.
+		await expect(rail(page)).toContainText('1 of 2');
 		await revise(page, 'A version that draws objections.', 'tightened the window');
+		// v2 has landed before anything else is clicked. Without this the click on
+		// v1 raced the save's own redirect, which then arrived and put v2 back.
+		await expect(rail(page).getByRole('heading', { name: 'Responses to v2' })).toBeVisible();
 
 		// The steward goes back to the version the community agreed to.
 		await versions(page).getByRole('link', { name: 'v1' }).click();
+		await expect(rail(page).getByRole('heading', { name: 'Responses to v1' })).toBeVisible();
 		await page.getByRole('button', { name: 'Freeze v1' }).click();
 
 		const form = page.getByRole('region', { name: 'Freeze v1 into a decision' });
@@ -244,17 +259,60 @@ test.describe('each kind of post reads as what it is', () => {
 
 		// The reply is a person talking, and says nothing about a vote.
 		await expect(entry('Could it say who settles?')).not.toContainText(/objected|consented/);
-		// The proposal and its revision are events with their version on them.
-		await expect(entry('proposed v1')).toContainText('A member may leave at any time.');
-		await expect(entry('revised the proposal to v2')).toContainText('a window');
-		await expect(
-			entry('revised the proposal to v2').getByRole('link', { name: 'see the change' })
-		).toBeVisible();
-		// The objection says it is one, to which version, and that it is still open.
-		await expect(entry('objected to v1')).toContainText('Nothing about money.');
-		await expect(entry('objected to v1')).toContainText('open');
+		// Each version is a card of its own, with its text and what changed.
+		await expect(conversation.locator('#votes-v1')).toContainText(
+			'A member may leave at any time.'
+		);
+		const v2 = conversation.locator('#votes-v2');
+		await expect(v2.locator('summary')).toContainText('v2 Proposal');
+		await expect(v2).toContainText('a window');
+		// Collapsed, so read from the markup rather than the accessibility tree.
+		await expect(v2.locator('a', { hasText: 'see the change' })).toHaveCount(1);
+		// The version on the table is the one that says so.
+		await expect(conversation.locator('#votes-v1 > summary')).toContainText('on the table');
+		await expect(v2.locator('summary')).not.toContainText('on the table');
+		// The objection sits with the answers to v1, says it is one, and says it
+		// is still open — in the block's summary too, so collapsing never hides it.
+		const v1Answers = conversation.locator('#votes-v1');
+		await expect(v1Answers).toContainText('Nothing about money.');
+		await expect(v1Answers).toContainText('Objection');
+		await expect(v1Answers.locator('summary')).toContainText('1 open objection');
+		await expect(entry('Nothing about money.')).toHaveCount(1);
 		// And moving the question is recorded as something that happened to it.
 		await expect(entry('Put v1 back on the table, from v2.')).not.toContainText('objected');
+	});
+});
+
+test.describe('a meeting, written up', () => {
+	test('reads as a meeting, with the proposal and its answers when it produced one', async ({
+		page
+	}) => {
+		await seedWithProposal(page);
+		const conversation = page.getByRole('region', { name: 'The discussion' });
+		const meeting = async (summary: string, proposal?: string) => {
+			await page.getByRole('link', { name: 'Write up a meeting' }).click();
+			await expect(page.getByLabel('What happened')).toBeVisible({ timeout: 15_000 });
+			await page.getByLabel('What happened').fill(summary);
+			if (proposal) await page.getByLabel('The proposal it produced').fill(proposal);
+			await page.getByRole('button', { name: 'Record the meeting' }).click();
+		};
+
+		// A meeting that reached no text is still recorded, and says so.
+		await meeting('We talked it through; nobody was ready to write it down.');
+		const alone = conversation.locator(':scope > ol > li').filter({ hasText: 'nobody was ready' });
+		await expect(alone).toContainText('No proposal came out of this meeting.');
+		await expect(alone).toContainText('written up by');
+		await expect(conversation.locator('#votes-v2')).toHaveCount(0);
+
+		// One that produced a version is one card: the meeting, then the text.
+		await meeting('We agreed on six weeks in the room.', 'A share is paid out within six weeks.');
+		const v2 = conversation.locator('#votes-v2');
+		await expect(v2.locator('summary')).toContainText('from a meeting');
+		await expect(v2).toContainText('We agreed on six weeks in the room.');
+		await expect(v2).toContainText('A share is paid out within six weeks.');
+		await expect(
+			conversation.locator(':scope > ol > li').filter({ hasText: 'We agreed on six weeks' })
+		).toHaveCount(1);
 	});
 });
 

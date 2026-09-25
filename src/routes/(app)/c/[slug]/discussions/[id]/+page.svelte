@@ -6,13 +6,14 @@
 	import LinterNotRun from '$lib/components/ui/LinterNotRun.svelte';
 	import Markdown from '$lib/components/ui/Markdown.svelte';
 	import MentionField from '$lib/components/discussions/MentionField.svelte';
+	import ProposalCard from './_components/ProposalCard.svelte';
+	import { ANSWER, ANSWERS, answerOf, type Answer } from './_components/answers';
 	import ThreadEntry from './_components/ThreadEntry.svelte';
 	import { setMentionLabels } from '$lib/components/ui/mentions';
 	import TextField from '$lib/components/ui/TextField.svelte';
 	import { links } from '$lib/links';
 	import { diffWords } from '$lib/shared/diff';
 	import IconArrowBackUp from '~icons/tabler/arrow-back-up';
-	import IconChecklist from '~icons/tabler/checklist';
 	import IconFilePlus from '~icons/tabler/file-plus';
 	import IconGavel from '~icons/tabler/gavel';
 	import IconNotes from '~icons/tabler/notes';
@@ -48,42 +49,68 @@
 	$effect(() => {
 		if (data.freezeOpen) freezeOpen = true;
 	});
+	/** Brought into view when it opens: it sits at the end of the thread. */
+	let freezeForm = $state<HTMLElement>();
+	$effect(() => {
+		if (freezeOpen) freezeForm?.scrollIntoView({ block: 'start' });
+	});
 
 	/**
-	 * The thread in order, with the block of votes on the selected version
-	 * placed where its round opened (the first response to it) rather than
-	 * trailing at the end. Before anything written at or after that moment, so
-	 * the reason given with the first response follows the block it belongs to
-	 * whether or not the two landed in the same millisecond.
+	 * The thread in order, with each proposal version drawn as one card.
+	 *
+	 * A version, the reasons given with answers to it and — when it came out of
+	 * a room — the meeting that produced it are one thing to a reader, so they
+	 * are one item here: the reasons and the meeting summary leave the main
+	 * conversation and go into the card, which sits where the version was
+	 * written. A reason whose version is unknown stays in the thread as it is.
 	 */
-	type Item = { kind: 'post'; entry: (typeof data.posts)[number] } | { kind: 'votes' };
+	type Post = (typeof data.posts)[number];
+	type Item =
+		| { kind: 'post'; entry: Post }
+		| {
+				kind: 'proposal';
+				proposal: Post;
+				round: (typeof data.rounds)[number] | undefined;
+				answers: Post[];
+				meeting: Post | null;
+		  };
 	const thread = $derived.by((): Item[] => {
-		const items: Item[] = data.posts.map((entry) => ({ kind: 'post', entry }));
-		if (!data.round || data.round.responses.length === 0) return items;
-		const openedAt = data.round.openedAt;
-		const at = data.posts.findIndex((entry) => entry.createdAt >= openedAt);
-		items.splice(at === -1 ? items.length : at, 0, { kind: 'votes' });
-		return items;
+		const versions = new Set(
+			data.posts.filter((entry) => entry.kind === 'proposal').map((entry) => entry.id)
+		);
+		const belongs = (entry: Post) =>
+			(entry.kind === 'response' || entry.kind === 'offline_summary') &&
+			entry.subjectPostId !== null &&
+			versions.has(entry.subjectPostId);
+		return data.posts
+			.filter((entry) => !belongs(entry))
+			.map((entry): Item => {
+				if (entry.kind !== 'proposal') return { kind: 'post', entry };
+				const about = data.posts.filter(
+					(other) => belongs(other) && other.subjectPostId === entry.id
+				);
+				return {
+					kind: 'proposal',
+					proposal: entry,
+					round: data.rounds.find((round) => round.proposalPostId === entry.id),
+					answers: about.filter((other) => other.kind === 'response'),
+					meeting: about.find((other) => other.kind === 'offline_summary') ?? null
+				};
+			});
 	});
-	const VALUE_LABEL: Record<string, string> = {
-		consent: 'Consent',
-		abstain: 'Abstain',
-		objection: 'Object'
-	};
 	const clock = useTime();
 	const time = (ms: number) => clock.moment(ms, 'dateTimeShort');
 	const day = (ms: number) => clock.dateShort(ms);
 
-	/**
-	 * Up to three avatars and then a count.
-	 *
-	 * Names would set the row's width by whose are long, so a row of three
-	 * supports and a row of nineteen would lay out differently. Initials are
-	 * fixed-width, and the full list is one click away in the vote block.
-	 */
-	const SHOWN = 3;
-	const avatarsFor = (value: string) =>
-		(data.round?.responses ?? []).filter((entry) => entry.value === value);
+	/** The version on the rail's tally, drawn as one bar. */
+	const railCount = (value: Answer) =>
+		!data.round
+			? 0
+			: value === 'consent'
+				? data.round.tally.consent
+				: value === 'abstain'
+					? data.round.tally.abstain
+					: data.round.tally.objection;
 </script>
 
 <svelte:head><title>{data.thread.title} · {data.community.name}</title></svelte:head>
@@ -96,7 +123,7 @@
 	here that *does* navigate goes through `links`.
 -->
 
-<div class="flex min-h-0 flex-1 flex-col lg:overflow-hidden">
+<div class="flex min-h-0 flex-1 flex-col lg:overflow-clip">
 	<!-- The thread's own header, above both panes. -->
 	<header class="border-border flex-none border-b px-6 py-4">
 		<p class="text-fg-muted text-meta">
@@ -125,9 +152,9 @@
 		{/if}
 	</header>
 
-	<div class="flex min-h-0 flex-1 flex-col lg:flex-row lg:overflow-hidden">
+	<div class="flex min-h-0 flex-1 flex-col lg:flex-row lg:overflow-clip">
 		<!-- ── The conversation ─────────────────────────────────────────── -->
-		<div class="border-border flex min-h-0 flex-1 flex-col lg:overflow-hidden lg:border-r">
+		<div class="border-border flex min-h-0 flex-1 flex-col lg:min-w-0 lg:overflow-clip lg:border-r">
 			<!--
 				`tabindex` because the pane scrolls: a region with its own scrollbar
 				and no focusable content is one a keyboard user cannot move through
@@ -146,61 +173,190 @@
 				class="min-h-0 flex-1 px-6 py-5 lg:overflow-y-auto"
 			>
 				<ol class="flex flex-col gap-5">
-					{#each thread as item (item.kind === 'votes' ? 'votes' : item.entry.id)}
-						{#if item.kind === 'post'}
-							<li><ThreadEntry entry={item.entry} /></li>
-						{:else if data.round}
-							<!--
-								Every vote on this version, in one place, at the moment its round
-								opened — which is the first response to it. A count in the rail
-								can stand for one response or nineteen, so it cannot point at a
-								single post; it points here.
-							-->
-							<li class="flex gap-3">
-								<span
-									class="text-info-fg flex w-7 flex-none justify-center pt-3.5"
-									aria-hidden="true"
-								>
-									<IconChecklist class="h-4 w-4" />
-								</span>
-								<details
-									id="votes-v{data.proposal?.version}"
-									class="border-border bg-surface min-w-0 flex-1 rounded-(--radius-card) border"
-								>
-									<summary class="cursor-pointer px-4 py-3">
-										<span class="text-fg font-medium"
-											>{data.round.tally.responded} of {data.round.tally.eligible} answered v{data
-												.proposal?.version}</span
-										>
-										<span class="text-fg-secondary text-meta" data-tabular>
-											· {data.round.tally.consent} consent · {data.round.tally.abstain} abstain ·
-											{data.round.tally.objection} object
-										</span>
-									</summary>
-									<ul class="border-border flex flex-col gap-2 border-t px-4 py-3">
-										{#each data.round.responses as response (response.who + response.respondedAt)}
-											<li class="flex flex-wrap items-baseline gap-x-2">
-												<span class="text-fg-secondary text-meta w-16 flex-none"
-													>{VALUE_LABEL[response.value]}</span
-												>
-												<span class="text-fg font-medium">{response.who}</span>
-												<span class="text-fg-muted text-meta">{time(response.respondedAt)}</span>
-												{#if response.reason}
-													<span class="text-fg-secondary w-full pl-16">{response.reason}</span>
-												{/if}
+					{#each thread as item (item.kind === 'proposal' ? item.proposal.id : item.entry.id)}
+						<li>
+							{#if item.kind === 'post'}
+								<ThreadEntry entry={item.entry} />
+							{:else}
+								<!--
+									A version and everything that answered it. A count in the panel
+									can stand for one response or nineteen, so it cannot point at a
+									single post; "Who & why" points here.
+								-->
+								<ProposalCard
+									proposal={item.proposal}
+									round={item.round}
+									answers={item.answers}
+									meeting={item.meeting}
+									isCurrent={item.proposal.id === data.thread.currentProposalPostId}
+									open={item.proposal.id === data.thread.currentProposalPostId ||
+										item.proposal.proposalVersion === data.proposal?.version}
+								/>
+							{/if}
+						</li>
+					{/each}
+				</ol>
+
+				{#if freezeOpen && data.proposal}
+					<!--
+						Rendered in the page rather than in a dialog element, so it works with
+						no JavaScript and the server can open it with ?freeze=1.
+					-->
+					<section
+						class="border-border bg-surface mx-6 mb-6 rounded-(--radius-card) border p-4"
+						aria-labelledby="freeze-heading"
+					>
+						<h2 id="freeze-heading" class="text-section font-medium">
+							Freeze v{data.proposal.version} into a decision
+						</h2>
+						<p class="text-fg-muted text-meta mt-1">
+							{data.thread.clauseKey ?? 'No clause'} · v{data.proposal.version} of {data.versions
+								.length}, as written on {day(data.proposal.createdAt)}
+						</p>
+
+						{#if data.laterVersion}
+							<p
+								class="border-attention/40 bg-attention-subtle text-fg mt-3 rounded-(--radius-control) border px-3 py-2"
+							>
+								This adopts v{data.proposal.version}. v{data.laterVersion} is the later version, and will
+								stay freezable afterwards.
+							</p>
+						{/if}
+
+						{#if data.wouldBeProvisional}
+							<p
+								class="border-attention/40 bg-attention-subtle text-fg mt-3 rounded-(--radius-control) border px-3 py-2"
+							>
+								Your Decision Matrix isn't adopted yet. This will be recorded as
+								<strong>Provisional</strong> and listed for ratification later.
+							</p>
+						{/if}
+
+						<form method="POST" action="?/freeze" class="mt-4 flex flex-col gap-3" use:enhance>
+							<input type="hidden" name="idempotencyKey" value={data.idempotencyKey} />
+							<!-- The version the steward read, carried to the record. -->
+							<input type="hidden" name="proposalPostId" value={data.proposal.id} />
+							<TextField id="title" name="title" label="Title" value={data.thread.title} required />
+
+							<fieldset class="flex flex-wrap gap-3">
+								<legend class="text-fg mb-1 font-medium">Decision type</legend>
+								{#each ['constitutional', 'strategic', 'operational'] as type (type)}
+									<label class="flex items-center gap-2">
+										<input type="radio" name="type" value={type} checked={type === 'operational'} />
+										<span>{type}</span>
+									</label>
+								{/each}
+							</fieldset>
+
+							<div class="grid gap-3 sm:grid-cols-2">
+								<TextField
+									id="mechanism"
+									name="mechanism"
+									label="Mechanism"
+									value={data.round ? data.round.tally.mechanism : ''}
+									required
+								/>
+								<TextField id="threshold" name="threshold" label="Threshold" />
+								<TextField
+									id="tallyPresent"
+									name="tallyPresent"
+									label="Who was present"
+									inputmode="numeric"
+									value={data.round ? String(data.round.tally.responded) : ''}
+								/>
+								<TextField
+									id="tallyFor"
+									name="tallyFor"
+									label="In favour"
+									inputmode="numeric"
+									value={data.round ? String(data.round.tally.consent) : ''}
+								/>
+							</div>
+
+							{#if data.round && data.round.responses.length > 0}
+								<!--
+									Who was present, pre-filled from the people who answered this
+									version — and every one of them still editable, because the room is
+									not always the round. Consent to be named is per person: no
+									community-level setting may publish somebody who did not agree
+									(`docs/03` §10).
+								-->
+								<fieldset class="border-border rounded-(--radius-control) border p-3">
+									<legend class="text-fg px-1 font-medium">Who was present</legend>
+									<ul class="flex flex-col gap-2">
+										{#each data.round.responses as person (person.who + person.respondedAt)}
+											<li class="flex flex-wrap items-center gap-3">
+												<label class="flex items-center gap-2">
+													<input
+														type="checkbox"
+														name="attendee"
+														value={person.membershipId}
+														checked
+													/>
+													<span>{person.who}</span>
+												</label>
+												<label class="text-fg-secondary text-meta flex items-center gap-2">
+													<input
+														type="checkbox"
+														name="attendeePublish"
+														value={person.membershipId}
+													/>
+													may be named outside the community
+												</label>
 											</li>
 										{/each}
 									</ul>
-								</details>
-							</li>
-						{/if}
-					{/each}
-				</ol>
+								</fieldset>
+							{/if}
+
+							<div class="grid gap-3 sm:grid-cols-2">
+								<TextField
+									id="reviewDueAt"
+									name="reviewDueAt"
+									label="Review date"
+									type="date"
+									hint={`Optional — when this should be looked at again. A day in ${data.communityTimeZone} time.`}
+								/>
+							</div>
+
+							<label for="rationale" class="text-fg font-medium">
+								Rationale — why this, and what it replaces
+							</label>
+							<textarea
+								id="rationale"
+								name="rationale"
+								rows="3"
+								class="border-border bg-raised text-fg rounded-(--radius-control) border p-2"
+							></textarea>
+
+							<div class="flex items-center gap-3">
+								<Button type="submit" variant="primary" icon={IconGavel}>Record decision</Button>
+								<button
+									type="button"
+									class="text-fg-secondary hover:text-fg cursor-pointer underline underline-offset-2"
+									onclick={() => (freezeOpen = false)}>Cancel</button
+								>
+							</div>
+							{#if errorFor('freeze')}<p role="alert" class="text-danger">
+									{errorFor('freeze')}
+								</p>{/if}
+						</form>
+					</section>
+				{/if}
 			</div>
 
 			<!-- ── The composer ──────────────────────────────────────────── -->
 			{#if data.can.comment || data.can.propose}
-				<div id="composer" class="border-border bg-surface flex-none border-t px-6 py-4">
+				<!--
+					At most half the screen, scrolling inside itself past that. The
+					meeting form is two text areas and a button; on a short window it
+					was taller than the pane, and the thread above it had nowhere left
+					to be.
+				-->
+				<div
+					id="composer"
+					class="border-border bg-surface flex-none border-t px-6 py-4 lg:max-h-[50vh] lg:overflow-y-auto"
+				>
 					<div class="flex flex-wrap items-center gap-3">
 						<!--
 							Wraps rather than clips. `overflow-hidden` on a row of three
@@ -346,15 +502,24 @@
 								class="border-border bg-bg text-fg rounded-(--radius-control) border p-2"
 							></textarea>
 							<label for="offline-proposal" class="text-fg font-medium"
-								>The proposal it produced</label
+								>The proposal it produced <span class="text-fg-muted font-normal">— optional</span
+								></label
 							>
+							<!--
+								Not required: a meeting can talk a question through without
+								reaching a text, and its write-up still belongs in the thread.
+								Left empty, nothing goes on the table.
+							-->
 							<textarea
 								id="offline-proposal"
 								name="proposal"
 								rows="3"
-								required
+								aria-describedby="offline-proposal-hint"
 								class="border-border bg-bg text-fg rounded-(--radius-control) border p-2"
 							></textarea>
+							<p id="offline-proposal-hint" class="text-fg-muted text-meta -mt-2">
+								Leave it empty if the meeting reached no text — the summary is still recorded.
+							</p>
 							<Button type="submit" icon={IconNotes} class="self-start">Record the meeting</Button>
 							{#if errorFor('offline')}<p role="alert" class="text-danger">
 									{errorFor('offline')}
@@ -367,7 +532,7 @@
 
 		<!-- ── On the table ─────────────────────────────────────────────── -->
 		<aside
-			class="border-border bg-surface flex min-h-0 w-full flex-none flex-col border-t lg:w-[430px] lg:overflow-hidden lg:border-t-0"
+			class="border-border bg-surface flex min-h-0 w-full flex-none flex-col border-t lg:w-[430px] lg:overflow-clip lg:border-t-0"
 			aria-labelledby="on-the-table"
 		>
 			<div class="border-border flex-none border-b px-4 py-3">
@@ -595,42 +760,51 @@
 							<span class="flex-1"></span>
 							{#if data.round}
 								<span class="text-fg-secondary text-meta" data-tabular>
-									{data.round.tally.responded} of {data.round.tally.eligible} · {data.round.tally
-										.eligible - data.round.tally.responded} not yet
+									{data.round.tally.responded} of {data.round.tally.eligible}
 								</span>
 							{:else}
 								<span class="text-fg-muted text-meta">nobody yet</span>
 							{/if}
 						</div>
 
-						<ul class="flex flex-col gap-2 px-3 py-3">
-							{#each ['consent', 'abstain', 'objection'] as value (value)}
-								{@const people = avatarsFor(value)}
-								<li class="flex items-center gap-2">
-									<span class="text-fg-secondary w-16 flex-none">{VALUE_LABEL[value]}</span>
-									<span class="text-fg w-5 flex-none text-right" data-tabular>{people.length}</span>
-									<span class="flex flex-1 items-center gap-1">
-										{#each people.slice(0, SHOWN) as person (person.who + person.respondedAt)}
-											<span
-												title={person.who}
-												class="bg-raised text-fg-secondary text-meta flex h-6 w-6 flex-none items-center justify-center rounded-full"
-												>{person.initials}</span
-											>
-										{/each}
-										{#if people.length > SHOWN}
-											<span class="text-fg-muted text-meta">+{people.length - SHOWN}</span>
+						{#if data.round}
+							<!--
+								The tally in one bar and one line of words, and a single way to
+								the names and reasons: the card for this version in the thread.
+							-->
+							<div class="flex flex-col gap-2 px-3 py-3">
+								<span
+									class="bg-border flex h-1.5 gap-px overflow-hidden rounded-full"
+									aria-hidden="true"
+								>
+									{#each ANSWERS as value (value)}
+										{#if railCount(value) > 0}
+											<span class={ANSWER[value].bar} style="flex-grow: {railCount(value)}"></span>
 										{/if}
-										{#if people.length > 0}
-											<a
-												href="#votes-v{data.proposal.version}"
-												class="text-fg-secondary hover:text-fg text-meta ml-1 underline underline-offset-2"
-												>see all</a
-											>
-										{/if}
-									</span>
-								</li>
-							{/each}
-						</ul>
+									{/each}
+									{#if data.round.tally.eligible - data.round.tally.responded > 0}
+										<span
+											style="flex-grow: {data.round.tally.eligible - data.round.tally.responded}"
+										></span>
+									{/if}
+								</span>
+								<p class="text-meta flex flex-wrap items-center gap-x-3" data-tabular>
+									{#each ANSWERS as value (value)}
+										<span class="text-fg-secondary flex items-center gap-1.5"
+											><span class="h-1.5 w-1.5 rounded-full {ANSWER[value].dot}" aria-hidden="true"
+											></span>{railCount(value)}
+											{value === 'objection' ? 'object' : value}</span
+										>
+									{/each}
+									<span class="flex-1"></span>
+									<a
+										href="#votes-v{data.proposal.version}"
+										class="text-accent-fg hover:text-fg underline underline-offset-2"
+										>Who &amp; why</a
+									>
+								</p>
+							</div>
+						{/if}
 
 						{#if data.can.respond && data.proposal.isCurrent && data.proposal.state === 'open' && (!data.round || data.round.status === 'open')}
 							<form
@@ -655,7 +829,7 @@
 									-->
 									<p class="text-fg-secondary text-meta">
 										You answered <span class="text-fg"
-											>{(VALUE_LABEL[mine.value] ?? mine.value).toLowerCase()}</span
+											>{answerOf(mine.value).label.toLowerCase()}</span
 										>
 										{time(mine.respondedAt)}. Answering again replaces it.
 									</p>
@@ -669,18 +843,18 @@
 								/>
 								<p class="text-fg-muted text-meta">A reason posts into the thread.</p>
 								<div class="flex gap-2">
-									{#each ['consent', 'abstain', 'objection'] as value (value)}
+									{#each ANSWERS as value (value)}
 										{@const chosen = data.round?.mine?.value === value}
 										<button
 											type="submit"
 											name="value"
 											{value}
 											aria-pressed={chosen ? 'true' : undefined}
-											class="flex-1 cursor-pointer rounded-(--radius-control) border px-2 py-1.5 {chosen
-												? 'border-accent bg-accent-subtle text-fg'
-												: 'border-border text-fg hover:bg-raised'}"
+											class="min-h-11 flex-1 cursor-pointer rounded-(--radius-control) border px-2 py-1.5 {chosen
+												? ANSWER[value].chosen
+												: 'border-border-strong text-fg hover:bg-raised'}"
 										>
-											{VALUE_LABEL[value]}{#if chosen}<span class="sr-only">
+											{ANSWER[value].short}{#if chosen}<span class="sr-only">
 													— your current answer</span
 												>{/if}
 										</button>
@@ -785,138 +959,3 @@
 		</aside>
 	</div>
 </div>
-
-{#if freezeOpen && data.proposal}
-	<!--
-		Rendered in the page rather than in a dialog element, so it works with
-		no JavaScript and the server can open it with ?freeze=1.
-	-->
-	<section
-		class="border-border bg-surface mx-6 mb-6 rounded-(--radius-card) border p-4"
-		aria-labelledby="freeze-heading"
-	>
-		<h2 id="freeze-heading" class="text-section font-medium">
-			Freeze v{data.proposal.version} into a decision
-		</h2>
-		<p class="text-fg-muted text-meta mt-1">
-			{data.thread.clauseKey ?? 'No clause'} · v{data.proposal.version} of {data.versions.length},
-			as written on {day(data.proposal.createdAt)}
-		</p>
-
-		{#if data.laterVersion}
-			<p
-				class="border-attention/40 bg-attention-subtle text-fg mt-3 rounded-(--radius-control) border px-3 py-2"
-			>
-				This adopts v{data.proposal.version}. v{data.laterVersion} is the later version, and will stay
-				freezable afterwards.
-			</p>
-		{/if}
-
-		{#if data.wouldBeProvisional}
-			<p
-				class="border-attention/40 bg-attention-subtle text-fg mt-3 rounded-(--radius-control) border px-3 py-2"
-			>
-				Your Decision Matrix isn't adopted yet. This will be recorded as
-				<strong>Provisional</strong> and listed for ratification later.
-			</p>
-		{/if}
-
-		<form method="POST" action="?/freeze" class="mt-4 flex flex-col gap-3" use:enhance>
-			<input type="hidden" name="idempotencyKey" value={data.idempotencyKey} />
-			<!-- The version the steward read, carried to the record. -->
-			<input type="hidden" name="proposalPostId" value={data.proposal.id} />
-			<TextField id="title" name="title" label="Title" value={data.thread.title} required />
-
-			<fieldset class="flex flex-wrap gap-3">
-				<legend class="text-fg mb-1 font-medium">Decision type</legend>
-				{#each ['constitutional', 'strategic', 'operational'] as type (type)}
-					<label class="flex items-center gap-2">
-						<input type="radio" name="type" value={type} checked={type === 'operational'} />
-						<span>{type}</span>
-					</label>
-				{/each}
-			</fieldset>
-
-			<div class="grid gap-3 sm:grid-cols-2">
-				<TextField
-					id="mechanism"
-					name="mechanism"
-					label="Mechanism"
-					value={data.round ? data.round.tally.mechanism : ''}
-					required
-				/>
-				<TextField id="threshold" name="threshold" label="Threshold" />
-				<TextField
-					id="tallyPresent"
-					name="tallyPresent"
-					label="Who was present"
-					inputmode="numeric"
-					value={data.round ? String(data.round.tally.responded) : ''}
-				/>
-				<TextField
-					id="tallyFor"
-					name="tallyFor"
-					label="In favour"
-					inputmode="numeric"
-					value={data.round ? String(data.round.tally.consent) : ''}
-				/>
-			</div>
-
-			{#if data.round && data.round.responses.length > 0}
-				<!--
-					Who was present, pre-filled from the people who answered this
-					version — and every one of them still editable, because the room is
-					not always the round. Consent to be named is per person: no
-					community-level setting may publish somebody who did not agree
-					(`docs/03` §10).
-				-->
-				<fieldset class="border-border rounded-(--radius-control) border p-3">
-					<legend class="text-fg px-1 font-medium">Who was present</legend>
-					<ul class="flex flex-col gap-2">
-						{#each data.round.responses as person (person.who + person.respondedAt)}
-							<li class="flex flex-wrap items-center gap-3">
-								<label class="flex items-center gap-2">
-									<input type="checkbox" name="attendee" value={person.membershipId} checked />
-									<span>{person.who}</span>
-								</label>
-								<label class="text-fg-secondary text-meta flex items-center gap-2">
-									<input type="checkbox" name="attendeePublish" value={person.membershipId} />
-									may be named outside the community
-								</label>
-							</li>
-						{/each}
-					</ul>
-				</fieldset>
-			{/if}
-
-			<div class="grid gap-3 sm:grid-cols-2">
-				<TextField
-					id="reviewDueAt"
-					name="reviewDueAt"
-					label="Review date"
-					type="date"
-					hint={`Optional — when this should be looked at again. A day in ${data.communityTimeZone} time.`}
-				/>
-			</div>
-
-			<label for="rationale" class="text-fg font-medium">
-				Rationale — why this, and what it replaces
-			</label>
-			<textarea
-				id="rationale"
-				name="rationale"
-				rows="3"
-				class="border-border bg-raised text-fg rounded-(--radius-control) border p-2"></textarea>
-
-			<div class="flex items-center gap-3">
-				<Button type="submit" variant="primary" icon={IconGavel}>Record decision</Button>
-				<button
-					type="button"
-					class="text-fg-secondary hover:text-fg cursor-pointer underline underline-offset-2"
-					onclick={() => (freezeOpen = false)}>Cancel</button
-				>
-			</div>
-			{#if errorFor('freeze')}<p role="alert" class="text-danger">{errorFor('freeze')}</p>{/if}
-		</form>
-	</section>
-{/if}

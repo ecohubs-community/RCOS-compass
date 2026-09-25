@@ -509,6 +509,11 @@ export type LabelledResponse = {
 	who: string;
 	initials: string;
 	reason: string | null;
+	/**
+	 * The thread post carrying the reason, so the thread can tell the reason
+	 * behind somebody's answer now from one they gave before changing it.
+	 */
+	reasonPostId: string | null;
 	respondedAt: number;
 };
 
@@ -535,6 +540,7 @@ export function listResponses(
 			membershipId: consentResponse.membershipId,
 			respondedAt: consentResponse.respondedAt,
 			reason: post.body,
+			reasonPostId: consentResponse.reasonPostId,
 			name: user.name,
 			erasedAt: user.erasedAt,
 			displayName: membership.displayName,
@@ -560,6 +566,7 @@ export function listResponses(
 				who,
 				initials: initialsOf(who),
 				reason: row.reason,
+				reasonPostId: row.reasonPostId,
 				respondedAt: row.respondedAt.getTime()
 			};
 		});
