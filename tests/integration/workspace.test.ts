@@ -1,5 +1,9 @@
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { dirname, join } from 'node:path';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { Ctx } from '../../src/lib/server/auth/guard.js';
+import { resetConfigForTests } from '../../src/lib/server/config.js';
 import { setDbForTests, type Db } from '../../src/lib/server/db/index.js';
 import { activeStandardView } from '../../src/lib/server/services/completeness.js';
 import { workspaceView } from '../../src/lib/server/services/workspace.js';
@@ -154,5 +158,40 @@ describe('the workspace view', () => {
 
 		expect(view(doc.id, { page: 4 }).identifiedOnPage).toBe(2);
 		expect(view(doc.id, { page: 7 }).identifiedOnPage).toBe(1);
+	});
+});
+
+describe('whether the file is stored', () => {
+	let uploadDir: string;
+
+	beforeEach(() => {
+		uploadDir = mkdtempSync(join(tmpdir(), 'compass-workspace-'));
+		vi.stubEnv('UPLOAD_DIR', uploadDir);
+		resetConfigForTests();
+	});
+
+	afterEach(() => {
+		vi.unstubAllEnvs();
+		resetConfigForTests();
+		rmSync(uploadDir, { recursive: true, force: true });
+	});
+
+	it('says the file is there when it is in the upload folder', () => {
+		const { doc } = bylaws();
+		const path = join(uploadDir, doc.storageKey);
+		mkdirSync(dirname(path), { recursive: true });
+		writeFileSync(path, '%PDF-1.7');
+
+		expect(view(doc.id).document.stored).toBe(true);
+	});
+
+	it('says the file is missing, and still shows the text read from it, when it has gone', () => {
+		const { doc } = bylaws();
+
+		const shown = view(doc.id, { page: 4 });
+		expect(shown.document.stored).toBe(false);
+		expect(shown.paper.passages.length).toBeGreaterThan(0);
+		// Present or absent is all it says: never where the file was kept.
+		expect(JSON.stringify(shown)).not.toContain(doc.storageKey);
 	});
 });

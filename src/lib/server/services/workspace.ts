@@ -5,6 +5,7 @@ import { user } from '../db/schema/auth.js';
 import { evidence, type Document } from '../db/schema/documents.js';
 import { membership } from '../db/schema/tenancy.js';
 import { buildPaper, paragraphNumbers, type Paper } from '../documents/paper.js';
+import { isStored } from '../documents/storage.js';
 import { activeStandardView } from './completeness.js';
 import { getDocument, listPassages, mappingInputFor } from './documents.js';
 import { languageCoverage, reconfirmCandidates } from './evidence.js';
@@ -98,6 +99,8 @@ export type WorkspaceView = {
 		paged: boolean;
 		scanStatus: ScanStatus;
 		scanDetail: string | null;
+		/** False when the row has outlived its file: nothing can be shown or downloaded but the text. */
+		stored: boolean;
 	};
 	state: MappingState;
 	counts: Omit<DocumentCounts, 'documentId'>;
@@ -359,7 +362,8 @@ export function workspaceView(
 			pagesExtracted: found.pagesExtracted,
 			paged,
 			scanStatus: found.scanStatus,
-			scanDetail: found.scanDetail
+			scanDetail: found.scanDetail,
+			stored: isStored(found.storageKey)
 		},
 		state: mappingStateOf(input).state,
 		counts,

@@ -64,6 +64,7 @@
 	const wantsOriginal = $derived(
 		mounted &&
 			doc.paged &&
+			doc.stored &&
 			doc.status === 'extracted' &&
 			data.view !== 'text' &&
 			!originalFailed &&
@@ -149,6 +150,14 @@
 
 <svelte:head><title>{doc.filename} · {data.community.name}</title></svelte:head>
 
+{#snippet missing()}
+	<!-- The row has outlived its file: said as that, never as the file's fault. -->
+	<p role="status" class="text-fg-secondary border-border border-b px-4 py-2">
+		{m.workspace_file_missing()}
+		{#if data.can.upload}{m.workspace_file_missing_upload()}{/if}
+	</p>
+{/snippet}
+
 {#snippet scan()}
 	<ScanBlock
 		live={data.scan.live}
@@ -171,12 +180,14 @@
 		<h1 class="text-title min-w-0 font-medium break-all">{doc.filename}</h1>
 		<MappingStateChip state={data.state} />
 		<span class="flex-1"></span>
-		<a
-			href={links.documentFile(slug, doc.id)}
-			class="text-fg-secondary hover:text-fg text-meta inline-flex min-h-8 items-center gap-1.5"
-		>
-			<IconDownload class="h-3.5 w-3.5" aria-hidden="true" />{m.workspace_download()}
-		</a>
+		{#if doc.stored}
+			<a
+				href={links.documentFile(slug, doc.id)}
+				class="text-fg-secondary hover:text-fg text-meta inline-flex min-h-8 items-center gap-1.5"
+			>
+				<IconDownload class="h-3.5 w-3.5" aria-hidden="true" />{m.workspace_download()}
+			</a>
+		{/if}
 		{#if data.can.upload}
 			<details class="relative">
 				<summary
@@ -241,7 +252,9 @@
 				class="border-border bg-surface flex w-[45%] min-w-0 flex-none flex-col border-r"
 				aria-label={m.workspace_document_label()}
 			>
-				{#if originalFailed}
+				{#if !doc.stored}
+					{@render missing()}
+				{:else if originalFailed}
 					<p role="status" class="text-fg-secondary border-border border-b px-4 py-2">
 						{m.original_failed()}
 						<a
@@ -411,7 +424,9 @@
 
 		<!-- One passage at a time below 1024px. -->
 		<div class="lg:hidden">
-			{#if originalFailed && data.view === 'original'}
+			{#if !doc.stored}
+				{@render missing()}
+			{:else if originalFailed && data.view === 'original'}
 				<p role="status" class="text-fg-secondary border-border border-b px-4 py-2">
 					{m.original_failed()}
 					<a
@@ -466,7 +481,7 @@
 					{scan}
 					{excerpt}
 					onexcerpt={takeExcerpt}
-					originalHref={doc.paged
+					originalHref={doc.paged && doc.stored
 						? (passageId, page) =>
 								`?${new URLSearchParams({ view: 'original', page: String(page), passage: passageId })}`
 						: null}

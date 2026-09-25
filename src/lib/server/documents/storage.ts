@@ -1,5 +1,5 @@
 import { createHash } from 'node:crypto';
-import { createWriteStream } from 'node:fs';
+import { accessSync, constants, createWriteStream } from 'node:fs';
 import { mkdir, rename, rm } from 'node:fs/promises';
 import { dirname, join, resolve } from 'node:path';
 import { pipeline } from 'node:stream/promises';
@@ -191,6 +191,21 @@ export async function receiveUpload(
 			await rename(temporary, destination);
 		}
 	};
+}
+
+/**
+ * Whether a stored file is still where its row says it is. A row outliving its
+ * file is an operations failure — a lost volume, half a restore — and the
+ * screens say so rather than blaming the file. Synchronous because it is one
+ * `access` call inside a load that is already synchronous.
+ */
+export function isStored(storageKey: string): boolean {
+	try {
+		accessSync(absolutePathOf(storageKey), constants.R_OK);
+		return true;
+	} catch {
+		return false;
+	}
 }
 
 /** Remove a stored file. Deleting a document has to delete the document. */
