@@ -82,7 +82,13 @@ export default defineConfig({
 		}
 	],
 	webServer: {
-		command: 'node build/index.js',
+		/**
+		 * From an empty database and upload folder, every run: what an earlier run
+		 * left in the job queue decided whether the document specs passed.
+		 * `scripts/e2e-server.mjs`. A server reused outside CI keeps its database;
+		 * stop it for a clean run.
+		 */
+		command: 'node scripts/e2e-server.mjs',
 		port: PORT,
 		reuseExistingServer: !process.env.CI,
 		env: {
@@ -94,6 +100,9 @@ export default defineConfig({
 			PUBLIC_APP_URL: `http://localhost:${PORT}`,
 			BETTER_AUTH_SECRET: 'e2e-secret-that-is-long-enough-to-pass',
 			DATABASE_URL: 'file:./data/e2e.db',
+			// Its own, so a run never writes into the development server's uploads,
+			// and the reset above can empty it without touching them.
+			UPLOAD_DIR: './data/e2e-uploads',
 			AI_PROVIDER: 'null',
 			ALLOW_TEST_ROUTES: '1',
 			// The production default, so the suite runs against the body ceiling a
