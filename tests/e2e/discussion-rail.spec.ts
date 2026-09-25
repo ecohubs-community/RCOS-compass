@@ -111,21 +111,27 @@ test.describe('the votes on a version, read together', () => {
 		// The reason is a thing somebody said, so it reads in the thread — inside
 		// the card of the version it answered, not as one more reply.
 		const conversation = page.getByRole('region', { name: 'The discussion' });
-		const block = conversation.locator('#votes-v1');
-		await expect(block).toContainText('v1 Proposal');
-		await expect(block).toContainText('1 of 2 answered');
-		// The version on the table opens with its answers showing, reasons and all.
-		await expect(block.getByText('It names who settles.')).toBeVisible();
-		await expect(block).toContainText('Consent');
+		const card = conversation.locator('#votes-v1');
+		await expect(card.locator('header')).toContainText('v1 Proposal');
+		// The text is never behind a click.
+		await expect(card.getByText('A member may leave at any time.')).toBeVisible();
+
+		// Responses, closed: the counts and the denominator in two lines.
+		const vote = card.locator('#vote-v1');
+		await expect(vote.locator('summary')).toContainText('1 of 2 answered');
+		await expect(vote.locator('summary')).toContainText('1 consent');
+		await vote.locator('summary').click();
+		await expect(vote.getByText('consent means', { exact: false })).toBeVisible();
+
+		// Who & why, closed: the names. Open: the reasons, with their times.
+		const why = card.locator('#why-v1');
+		await expect(why.locator('summary')).toContainText('Consent');
+		await expect(why.getByText('It names who settles.')).toBeHidden();
+		await why.locator('summary').click();
+		await expect(why.getByText('It names who settles.')).toBeVisible();
 		await expect(
 			conversation.locator(':scope > ol > li').filter({ hasText: 'It names who settles.' })
 		).toHaveCount(1);
-
-		// Collapsed, the card still states the counts and the denominator.
-		await block.locator('summary').click();
-		await expect(block.getByText('It names who settles.')).toBeHidden();
-		await expect(block.locator('summary')).toContainText('1 of 2 answered');
-		await expect(block.locator('summary')).toContainText('1 consent');
 	});
 
 	test('opens and reads with JavaScript disabled', async ({ browser }) => {
@@ -151,15 +157,15 @@ test.describe('the votes on a version, read together', () => {
 		await page.getByRole('button', { name: /^Save as v/ }).click();
 		await rail(page).getByRole('button', { name: 'Consent', exact: true }).click();
 
-		const block = page.locator('#votes-v1');
-		const answered = block.getByRole('list', { name: 'Who answered' });
-		// A `<details>` opens and closes in the browser, not in the framework. The
-		// version on the table starts open.
-		await expect(answered).toBeVisible();
-		await block.locator('summary').click();
-		await expect(answered).toBeHidden();
-		await block.locator('summary').click();
-		await expect(answered).toContainText('Consent');
+		// A `<details>` opens and closes in the browser, not in the framework.
+		const why = page.locator('#why-v1');
+		const rows = why.locator('ol');
+		await expect(why.locator('summary')).toContainText('Consent');
+		await expect(rows).toBeHidden();
+		await why.locator('summary').click();
+		await expect(rows).toContainText('no reason given');
+		await why.locator('summary').click();
+		await expect(rows).toBeHidden();
 
 		await context.close();
 	});
@@ -264,22 +270,77 @@ test.describe('each kind of post reads as what it is', () => {
 			'A member may leave at any time.'
 		);
 		const v2 = conversation.locator('#votes-v2');
-		await expect(v2.locator('summary')).toContainText('v2 Proposal');
+		await expect(v2.locator('header')).toContainText('v2 Proposal');
 		await expect(v2).toContainText('a window');
 		// Collapsed, so read from the markup rather than the accessibility tree.
 		await expect(v2.locator('a', { hasText: 'see the change' })).toHaveCount(1);
 		// The version on the table is the one that says so.
-		await expect(conversation.locator('#votes-v1 > summary')).toContainText('on the table');
-		await expect(v2.locator('summary')).not.toContainText('on the table');
+		await expect(conversation.locator('#votes-v1 > header')).toContainText('on the table');
+		await expect(v2.locator('header')).not.toContainText('on the table');
 		// The objection sits with the answers to v1, says it is one, and says it
-		// is still open — in the block's summary too, so collapsing never hides it.
+		// is still open — in the card's header too, so no closed section hides it.
 		const v1Answers = conversation.locator('#votes-v1');
 		await expect(v1Answers).toContainText('Nothing about money.');
 		await expect(v1Answers).toContainText('Objection');
-		await expect(v1Answers.locator('summary')).toContainText('1 open objection');
+		await expect(v1Answers.locator('header')).toContainText('1 open objection');
 		await expect(entry('Nothing about money.')).toHaveCount(1);
 		// And moving the question is recorded as something that happened to it.
 		await expect(entry('Put v1 back on the table, from v2.')).not.toContainText('objected');
+	});
+});
+
+test.describe('a reply answers something in place', () => {
+	test('to a message, filed under it, and to an objection from the panel', async ({
+		page,
+		browser
+	}) => {
+		const fixture = await seedWithProposal(page);
+		const thread = page.url().split('?')[0]!;
+		const conversation = page.getByRole('region', { name: 'The discussion' });
+
+		await page.getByLabel('Reply to the thread').fill('Who settles?');
+		await page.getByRole('button', { name: 'Send' }).click();
+		const asked = conversation.locator(':scope > ol > li').filter({ hasText: 'Who settles?' });
+		await expect(asked).toBeVisible();
+
+		// "Reply" names who the box now answers, before anything is sent.
+		await asked.getByRole('link', { name: 'Reply' }).click();
+		await expect(page.getByText('Replying to')).toBeVisible();
+		await page.getByLabel(/^Reply to /).fill('A named settler.');
+		await page.getByRole('button', { name: 'Send' }).click();
+
+		// Under the message it answers, not as one more post in the list.
+		await expect(asked).toContainText('A named settler.');
+		await expect(
+			conversation.locator(':scope > ol > li').filter({ hasText: 'A named settler.' })
+		).toHaveCount(1);
+		await expect(page.getByText('Replying to')).toHaveCount(0);
+
+		// A member objects; the steward answers from the objection itself.
+		const theirs = await browser.newContext();
+		const them = await theirs.newPage();
+		await signIn(them, fixture.member.email, fixture.member.password);
+		await visit(them, thread);
+		await rail(them)
+			.getByPlaceholder('Add a reason — optional on all three…')
+			.fill('Nothing about money.');
+		await rail(them).getByRole('button', { name: 'Object' }).click();
+		await expect(rail(them)).toContainText('1 of 2');
+		await theirs.close();
+
+		await visit(page, thread);
+		const objection = rail(page).locator('article').filter({ hasText: 'Nothing about money.' });
+		await expect(objection).toContainText('open · 0 replies');
+		await objection.getByRole('link', { name: 'Reply' }).click();
+		await page.getByLabel(/^Reply to /).fill('Would six weeks do?');
+		await page.getByRole('button', { name: 'Send' }).click();
+
+		// Filed under the objection, in the card's Who & why — opened to show it.
+		const why = conversation.locator('#why-v1');
+		await expect(why.getByText('Would six weeks do?')).toBeVisible();
+		await expect(
+			rail(page).locator('article').filter({ hasText: 'Nothing about money.' })
+		).toContainText('open · 1 reply');
 	});
 });
 
@@ -307,7 +368,7 @@ test.describe('a meeting, written up', () => {
 		// One that produced a version is one card: the meeting, then the text.
 		await meeting('We agreed on six weeks in the room.', 'A share is paid out within six weeks.');
 		const v2 = conversation.locator('#votes-v2');
-		await expect(v2.locator('summary')).toContainText('from a meeting');
+		await expect(v2.locator('header')).toContainText('from a meeting');
 		await expect(v2).toContainText('We agreed on six weeks in the room.');
 		await expect(v2).toContainText('A share is paid out within six weeks.');
 		await expect(

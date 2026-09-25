@@ -103,6 +103,14 @@ export const post = sqliteTable(
 		 * post in its own thread, which the discussion's cascade already removes.
 		 */
 		subjectPostId: text('subject_post_id'),
+		/**
+		 * The post this one answers, when it was written as a reply to a message
+		 * or to the reason given with an answer. Always the top of the exchange:
+		 * a reply to a reply is filed under the post that started it, so a thread
+		 * is one level deep and stays readable on a phone. No foreign key, for the
+		 * same reason as `subject_post_id`.
+		 */
+		replyToPostId: text('reply_to_post_id'),
 		/** 1, 2, 3 … across the proposals of one discussion. Null for a message. */
 		proposalVersion: integer('proposal_version'),
 		/**

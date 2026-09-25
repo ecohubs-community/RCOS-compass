@@ -8,16 +8,20 @@
 	import type { PageData } from '../$types';
 	import { ANSWERS, answerOf, ROUND_STATE } from './answers';
 	import MeetingNote from './MeetingNote.svelte';
+	import Replies from './Replies.svelte';
 
 	/**
 	 * One version of the proposal, and everything that answered it.
 	 *
-	 * The version used to be a line in the thread ("Marco proposed v1") and its
-	 * answers a separate block below it, so a reader had to put the two together
-	 * themselves. Here they are one card: the text, what the linter said about
-	 * it, who answered and how, and why — with the meeting that produced it on
-	 * top when it came out of a room. Collapsed, it is one line that still says
-	 * where the version stands.
+	 * An overview first, detail on request. Always showing: what the version is
+	 * and where it stands, the meeting it came out of if it did, and the text
+	 * with its linter line — the thing being decided is never behind a click.
+	 * Then two sections that open on their own:
+	 *
+	 * - **Responses** — closed, two lines: the counts in words and one bar. Open,
+	 *   the bars per answer, and the closed summary goes.
+	 * - **Who & why** — closed, the names as chips. Open, every answer with its
+	 *   time, the reasons, and the replies to them.
 	 *
 	 * The card of the version on the table has a blue edge and says so in words.
 	 */
@@ -32,9 +36,12 @@
 		/** The meeting summary this version came out of, if it did. */
 		meeting: Post | null;
 		isCurrent: boolean;
-		open: boolean;
+		/** Replies filed under one of this version's reasons. */
+		repliesTo: (postId: string) => Post[];
+		/** Where "Reply" goes for one reason, or null when this member may not reply. */
+		replyHref: (postId: string) => string | null;
 	}
-	let { proposal, round, answers, meeting, isCurrent, open }: Props = $props();
+	let { proposal, round, answers, meeting, isCurrent, repliesTo, replyHref }: Props = $props();
 
 	const clock = useTime();
 	const time = (ms: number) => clock.moment(ms, 'dateTimeShort');
@@ -111,22 +118,15 @@
 	panel — bare queries, as on the page itself.
 -->
 
-<details
+<article
 	id="votes-v{version}"
-	{open}
-	class="group bg-surface rounded-(--radius-card) border {isCurrent
+	class="bg-surface scroll-mt-4 rounded-(--radius-card) border {isCurrent
 		? 'border-info/60 border-l-3'
 		: 'border-border'}"
 >
-	<!-- One line when there is room, wrapping on a phone. -->
-	<summary
-		class="flex min-h-11 cursor-pointer list-none flex-wrap items-center gap-x-2.5 gap-y-1 px-4 py-2.5 [&::-webkit-details-marker]:hidden"
-	>
-		<IconChevronRight
-			class="text-fg-muted h-4 w-4 flex-none transition-transform group-open:rotate-90"
-			aria-hidden="true"
-		/>
-		<span class="text-fg font-medium" data-tabular>v{version} Proposal</span>
+	<!-- What this is, and where it stands. -->
+	<header class="flex flex-wrap items-center gap-x-2.5 gap-y-1 px-4 pt-3.5">
+		<h3 class="text-fg font-medium" data-tabular>v{version} Proposal</h3>
 		{#if isCurrent}
 			<span class="text-info-fg text-meta">on the table</span>
 		{/if}
@@ -134,19 +134,6 @@
 			<span class="text-fg-muted text-meta">from a meeting</span>
 		{/if}
 		<span class="flex-1"></span>
-		{#if tally}
-			<!-- The counts in words, so a collapsed card still says them. -->
-			<span class="text-fg-secondary text-meta flex flex-wrap items-center gap-x-2.5" data-tabular>
-				<span>{tally.responded} of {tally.eligible} answered</span>
-				{#each ANSWERS as value (value)}
-					<span class="flex items-center gap-1"
-						><span class="h-1.5 w-1.5 rounded-full {answerOf(value).dot}" aria-hidden="true"
-						></span>{count(value)}
-						{value === 'objection' ? 'object' : value}</span
-					>
-				{/each}
-			</span>
-		{/if}
 		<span class="text-meta rounded-(--radius-control) border px-1.5 {state.class}"
 			>{state.label}</span
 		>
@@ -155,16 +142,16 @@
 				>{openObjections} open {openObjections === 1 ? 'objection' : 'objections'}</span
 			>
 		{/if}
-	</summary>
+	</header>
 
 	{#if meeting}
-		<div class="border-border border-t px-4 py-4">
+		<div class="px-4 pt-3">
 			<MeetingNote entry={meeting} produced={true} />
 		</div>
 	{/if}
 
-	<!-- The text, as the version was written. -->
-	<div class="border-border border-t px-4 py-4">
+	<!-- The text, as the version was written. Never behind a click. -->
+	<div class="px-4 pt-3 pb-3.5">
 		<p class="text-meta flex flex-wrap gap-x-2.5 gap-y-0.5">
 			<span class="tracking-wide uppercase {isCurrent ? 'text-info-fg' : 'text-fg-muted'}"
 				>{isCurrent ? 'Proposal on the table' : 'Proposal'} · v{version}</span
@@ -210,104 +197,148 @@
 		</div>
 	</div>
 
-	<!-- Who answered, and how. -->
-	<div class="border-border border-t px-4 py-4">
-		<p class="flex flex-wrap items-center gap-x-2.5 gap-y-1">
-			<span class="text-fg font-medium">Responses</span>
-			<span class="text-fg-muted text-meta"
-				>consent means “I can live with it”, not “I like it best”</span
+	{#if tally && round}
+		<!-- ── Responses: two lines closed, the bars open. ─────────────── -->
+		<details id="vote-v{version}" class="group/vote border-border border-t">
+			<summary
+				class="flex min-h-11 cursor-pointer list-none flex-col gap-2 px-4 py-3 [&::-webkit-details-marker]:hidden"
 			>
-			<HelpTip id="consent" />
-			<span class="flex-1"></span>
-			{#if tally}
-				<span class="text-fg-secondary text-meta" data-tabular
-					>{tally.responded} of {tally.eligible} responded</span
-				>
-			{/if}
-		</p>
-
-		{#if tally && round}
-			<ul class="mt-3 flex flex-col gap-2.5">
-				{#each ANSWERS as value (value)}
-					<li class="text-meta flex items-center gap-3">
-						<span class="text-fg-secondary w-16 flex-none">{answerOf(value).short}</span>
-						<span class="bg-border h-1.5 flex-1 overflow-hidden rounded-full" aria-hidden="true">
-							<span
-								class="block h-full rounded-full {answerOf(value).bar}"
-								style="width: {tally.eligible ? (count(value) / tally.eligible) * 100 : 0}%"
-							></span>
-						</span>
-						<span class="text-fg w-6 flex-none text-right" data-tabular>{count(value)}</span>
-					</li>
-				{/each}
-				<li class="text-meta flex items-center gap-3">
-					<span class="text-fg-muted w-16 flex-none">Not yet</span>
-					<span class="bg-border h-1.5 flex-1 overflow-hidden rounded-full" aria-hidden="true">
-						<span
-							class="bg-border-strong block h-full rounded-full"
-							style="width: {tally.eligible ? (notYet / tally.eligible) * 100 : 0}%"
-						></span>
+				<span class="flex flex-wrap items-center gap-x-2.5 gap-y-1">
+					<IconChevronRight
+						class="text-fg-muted h-4 w-4 flex-none transition-transform group-open/vote:rotate-90"
+						aria-hidden="true"
+					/>
+					<span class="text-fg font-medium">Responses</span>
+					<!-- The counts in words, so the closed section still says them. -->
+					<span
+						class="text-fg-secondary text-meta flex flex-wrap items-center gap-x-2.5 group-open/vote:hidden"
+						data-tabular
+					>
+						<span>{tally.responded} of {tally.eligible} answered</span>
+						{#each ANSWERS as value (value)}
+							<span class="flex items-center gap-1"
+								><span class="h-1.5 w-1.5 rounded-full {answerOf(value).dot}" aria-hidden="true"
+								></span>{count(value)}
+								{value === 'objection' ? 'object' : value}</span
+							>
+						{/each}
 					</span>
-					<span class="text-fg-secondary w-6 flex-none text-right" data-tabular>{notYet}</span>
-				</li>
-			</ul>
-
-			<ul class="mt-3 flex flex-wrap gap-1.5" aria-label="Who answered">
-				{#each ANSWERS as value (value)}
-					{@const people = who(value)}
-					{#each people.slice(0, SHOWN) as person (person.who + person.respondedAt)}
-						<li
-							class="text-fg-secondary text-meta flex items-center gap-1.5 rounded-(--radius-control) border px-2 py-0.5 {answerOf(
-								value
-							).chip}"
-						>
-							<span class="h-1.5 w-1.5 rounded-full {answerOf(value).dot}" aria-hidden="true"
-							></span>
-							{person.who}<span class="sr-only"> — {answerOf(value).label}</span>
+					<span class="flex-1"></span>
+					<span class="text-fg-secondary text-meta hidden group-open/vote:inline" data-tabular
+						>{tally.responded} of {tally.eligible} responded</span
+					>
+				</span>
+				<span
+					class="bg-border ml-6.5 flex h-1.5 gap-px overflow-hidden rounded-full group-open/vote:hidden"
+					aria-hidden="true"
+				>
+					{#each ANSWERS as value (value)}
+						{#if count(value) > 0}
+							<span class={answerOf(value).bar} style="flex-grow: {count(value)}"></span>
+						{/if}
+					{/each}
+					{#if notYet > 0}<span class="bg-border-strong" style="flex-grow: {notYet}"></span>{/if}
+				</span>
+			</summary>
+			<div class="px-4 pb-4">
+				<p class="text-fg-muted text-meta flex flex-wrap items-center gap-2">
+					consent means “I can live with it”, not “I like it best”
+					<HelpTip id="consent" />
+				</p>
+				<ul class="mt-3 flex flex-col gap-2.5">
+					{#each ANSWERS as value (value)}
+						<li class="text-meta flex items-center gap-3">
+							<span class="text-fg-secondary w-16 flex-none">{answerOf(value).short}</span>
+							<span class="bg-border h-1.5 flex-1 overflow-hidden rounded-full" aria-hidden="true">
+								<span
+									class="block h-full rounded-full {answerOf(value).bar}"
+									style="width: {tally.eligible ? (count(value) / tally.eligible) * 100 : 0}%"
+								></span>
+							</span>
+							<span class="text-fg w-6 flex-none text-right" data-tabular>{count(value)}</span>
 						</li>
 					{/each}
-					{#if people.length > SHOWN}
-						<li
-							class="text-fg-secondary text-meta flex items-center gap-1.5 rounded-(--radius-control) border px-2 py-0.5 {answerOf(
-								value
-							).chip}"
-						>
-							<span class="h-1.5 w-1.5 rounded-full {answerOf(value).dot}" aria-hidden="true"
+					<li class="text-meta flex items-center gap-3">
+						<span class="text-fg-muted w-16 flex-none">Not yet</span>
+						<span class="bg-border h-1.5 flex-1 overflow-hidden rounded-full" aria-hidden="true">
+							<span
+								class="bg-border-strong block h-full rounded-full"
+								style="width: {tally.eligible ? (notYet / tally.eligible) * 100 : 0}%"
 							></span>
-							+{people.length - SHOWN}<span class="sr-only"> more — {answerOf(value).label}</span>
-						</li>
-					{/if}
-				{/each}
-				{#if notYet > 0}
-					<li
-						class="border-border text-fg-muted text-meta flex items-center gap-1.5 rounded-(--radius-control) border px-2 py-0.5"
-					>
-						<span class="bg-border-strong h-1.5 w-1.5 rounded-full" aria-hidden="true"></span>
-						{notYet} not yet
+						</span>
+						<span class="text-fg-secondary w-6 flex-none text-right" data-tabular>{notYet}</span>
 					</li>
-				{/if}
-			</ul>
-		{:else}
-			<p class="text-fg-muted text-meta mt-2">Nobody has answered v{version} yet.</p>
-		{/if}
-	</div>
+				</ul>
+			</div>
+		</details>
 
-	{#if rows.length > 0}
-		<!--
-			Who & why — every answer with its time, and the reason where one was
-			given, as a conversation of its own. A reason somebody later replaced
-			stays: it is a thing they said, and people answered it. It says it was
-			changed, so the card never reads as two votes from one person.
-		-->
-		<div class="border-border border-t px-4 py-4">
-			<p class="text-fg-muted text-meta tracking-wide uppercase">Who &amp; why</p>
-			<ol class="mt-3 flex flex-col gap-4">
+		<!-- ── Who & why: the names closed, the whole exchange open. ────── -->
+		<details id="why-v{version}" class="group/why border-border border-t">
+			<summary
+				class="flex min-h-11 cursor-pointer list-none flex-col gap-2 px-4 py-3 [&::-webkit-details-marker]:hidden"
+			>
+				<span class="flex items-center gap-2.5">
+					<IconChevronRight
+						class="text-fg-muted h-4 w-4 flex-none transition-transform group-open/why:rotate-90"
+						aria-hidden="true"
+					/>
+					<span class="text-fg font-medium">Who &amp; why</span>
+					{#if answers.length > 0}
+						<span class="text-fg-muted text-meta"
+							>{answers.length} {answers.length === 1 ? 'reason' : 'reasons'} given</span
+						>
+					{/if}
+				</span>
+				<span class="ml-6.5 flex flex-wrap gap-1.5">
+					{#each ANSWERS as value (value)}
+						{@const people = who(value)}
+						{#each people.slice(0, SHOWN) as person (person.who + person.respondedAt)}
+							<span
+								class="text-fg-secondary text-meta flex items-center gap-1.5 rounded-(--radius-control) border px-2 py-0.5 {answerOf(
+									value
+								).chip}"
+							>
+								<span class="h-1.5 w-1.5 rounded-full {answerOf(value).dot}" aria-hidden="true"
+								></span>
+								{person.who}<span class="sr-only"> — {answerOf(value).label}</span>
+							</span>
+						{/each}
+						{#if people.length > SHOWN}
+							<span
+								class="text-fg-secondary text-meta flex items-center gap-1.5 rounded-(--radius-control) border px-2 py-0.5 {answerOf(
+									value
+								).chip}"
+							>
+								<span class="h-1.5 w-1.5 rounded-full {answerOf(value).dot}" aria-hidden="true"
+								></span>
+								+{people.length - SHOWN}<span class="sr-only"> more — {answerOf(value).label}</span>
+							</span>
+						{/if}
+					{/each}
+					{#if notYet > 0}
+						<span
+							class="border-border text-fg-muted text-meta flex items-center gap-1.5 rounded-(--radius-control) border px-2 py-0.5"
+						>
+							<span class="bg-border-strong h-1.5 w-1.5 rounded-full" aria-hidden="true"></span>
+							{notYet} not yet
+						</span>
+					{/if}
+				</span>
+			</summary>
+
+			<!--
+				Every answer with its time, and the reason where one was given. A
+				reason somebody later replaced stays: it is a thing they said, and
+				people answered it. It says it was changed, so the card never reads as
+				two votes from one person.
+			-->
+			<ol class="flex flex-col gap-4 px-4 pt-1 pb-4">
 				{#each rows as row (row.kind === 'said' ? row.post.id : `${row.response.who}-${row.at}`)}
 					{#if row.kind === 'said'}
 						{@const post = row.post}
 						{@const look = answerOf(post.responseValue)}
 						{@const stands = current.has(post.id)}
-						<li class="flex gap-2.5">
+						<li id="post-{post.id}" class="flex scroll-mt-4 gap-2.5">
 							<span
 								class="bg-raised text-fg-secondary text-meta flex h-6 w-6 flex-none items-center justify-center rounded-full font-medium"
 								aria-hidden="true">{post.author.initials}</span
@@ -338,6 +369,7 @@
 									{/if}
 								</p>
 								<Markdown blocks={post.body} class="mt-1 {stands ? 'text-fg' : 'text-fg-muted'}" />
+								<Replies replies={repliesTo(post.id)} replyHref={replyHref(post.id)} />
 							</div>
 						</li>
 					{:else}
@@ -359,6 +391,10 @@
 					{/if}
 				{/each}
 			</ol>
-		</div>
+		</details>
+	{:else}
+		<p class="border-border text-fg-muted text-meta border-t px-4 py-3">
+			Nobody has answered v{version} yet.
+		</p>
 	{/if}
-</details>
+</article>

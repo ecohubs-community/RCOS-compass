@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { useTime } from '$lib/time/use-time';
 	import { enhance } from '$app/forms';
+	import { afterNavigate } from '$app/navigation';
 	import Button from '$lib/components/ui/Button.svelte';
 	import LinterPanel from '$lib/components/ui/LinterPanel.svelte';
 	import LinterNotRun from '$lib/components/ui/LinterNotRun.svelte';
@@ -74,6 +75,44 @@
 				answers: Post[];
 				meeting: Post | null;
 		  };
+	/**
+	 * Replies, filed under the message or reason they answer rather than in the
+	 * main conversation, where they would lose what they were answering.
+	 */
+	const replies = $derived(
+		Map.groupBy(
+			data.posts.filter((entry) => entry.replyToPostId !== null),
+			(entry) => entry.replyToPostId!
+		)
+	);
+	const repliesTo = (postId: string) => replies.get(postId) ?? [];
+	/** "Reply" is a link, so it works before JavaScript: the post goes in the URL. */
+	const replyHref = (postId: string) =>
+		data.can.comment
+			? `?${data.proposal ? `v=${data.proposal.version}&` : ''}reply=${postId}#composer`
+			: null;
+
+	/**
+	 * Bring a linked post into view, opening whatever collapsed section it is in.
+	 *
+	 * A link to a reason (`#post-…`) or to a card's "Who & why" (`#why-v3`) lands
+	 * inside a `<details>` that starts closed, and a browser will not scroll to
+	 * something with no box. So the sections around the target open first. Runs
+	 * after every navigation — including the one a reply ends with — and on a
+	 * plain hash change.
+	 */
+	const reveal = () => {
+		const id = decodeURIComponent(location.hash.slice(1));
+		const target = id ? document.getElementById(id) : null;
+		if (!target) return;
+		if (target instanceof HTMLDetailsElement) target.open = true;
+		for (let at = target.parentElement; at; at = at.parentElement) {
+			if (at instanceof HTMLDetailsElement) at.open = true;
+		}
+		target.scrollIntoView({ block: 'start' });
+	};
+	afterNavigate(reveal);
+
 	const thread = $derived.by((): Item[] => {
 		const versions = new Set(
 			data.posts.filter((entry) => entry.kind === 'proposal').map((entry) => entry.id)
@@ -83,7 +122,7 @@
 			entry.subjectPostId !== null &&
 			versions.has(entry.subjectPostId);
 		return data.posts
-			.filter((entry) => !belongs(entry))
+			.filter((entry) => !belongs(entry) && entry.replyToPostId === null)
 			.map((entry): Item => {
 				if (entry.kind !== 'proposal') return { kind: 'post', entry };
 				const about = data.posts.filter(
@@ -176,7 +215,11 @@
 					{#each thread as item (item.kind === 'proposal' ? item.proposal.id : item.entry.id)}
 						<li>
 							{#if item.kind === 'post'}
-								<ThreadEntry entry={item.entry} />
+								<ThreadEntry
+									entry={item.entry}
+									replies={repliesTo(item.entry.id)}
+									replyHref={item.entry.kind === 'message' ? replyHref(item.entry.id) : null}
+								/>
 							{:else}
 								<!--
 									A version and everything that answered it. A count in the panel
@@ -189,8 +232,8 @@
 									answers={item.answers}
 									meeting={item.meeting}
 									isCurrent={item.proposal.id === data.thread.currentProposalPostId}
-									open={item.proposal.id === data.thread.currentProposalPostId ||
-										item.proposal.proposalVersion === data.proposal?.version}
+									{repliesTo}
+									{replyHref}
 								/>
 							{/if}
 						</li>
@@ -388,13 +431,41 @@
 
 					{#if mode === 'reply' && data.can.comment}
 						<form method="POST" action="?/comment" class="mt-3 flex flex-col gap-2" use:enhance>
-							<label for="body" class="sr-only">Reply to the thread</label>
+							{#if data.proposal}<input type="hidden" name="v" value={data.proposal.version} />{/if}
+							{#if data.replyingTo}
+								<!--
+									Who this answers, said before Send rather than discovered
+									after. Cancel is a link back to the plain reply box.
+								-->
+								<input type="hidden" name="replyTo" value={data.replyingTo.id} />
+								<p
+									class="border-border bg-bg text-meta flex flex-wrap items-baseline gap-x-2 rounded-(--radius-control) border-l-2 px-3 py-2"
+								>
+									<span class="text-fg-secondary"
+										>Replying to <span class="text-fg">{data.replyingTo.author}</span></span
+									>
+									<span class="text-fg-muted min-w-0 flex-1 truncate"
+										>“{data.replyingTo.excerpt}”</span
+									>
+									<a
+										href="?{data.proposal ? `v=${data.proposal.version}` : ''}#composer"
+										class="text-fg-secondary hover:text-fg underline underline-offset-2">Cancel</a
+									>
+								</p>
+							{/if}
+							<label for="body" class="sr-only"
+								>{data.replyingTo
+									? `Reply to ${data.replyingTo.author}`
+									: 'Reply to the thread'}</label
+							>
 							<MentionField
 								id="body"
 								name="body"
 								rows={3}
 								required
-								placeholder="Reply to the thread…"
+								placeholder={data.replyingTo
+									? `Reply to ${data.replyingTo.author}…`
+									: 'Reply to the thread…'}
 								value={form?.suggestionKind === 'summary' ? (form?.suggestion ?? '') : ''}
 								class="border-border bg-bg text-fg rounded-(--radius-control) border p-2"
 								members={data.mentions.members}
@@ -798,7 +869,8 @@
 									{/each}
 									<span class="flex-1"></span>
 									<a
-										href="#votes-v{data.proposal.version}"
+										href="#why-v{data.proposal.version}"
+										onclick={() => requestAnimationFrame(reveal)}
 										class="text-accent-fg hover:text-fg underline underline-offset-2"
 										>Who &amp; why</a
 									>
@@ -896,26 +968,67 @@
 					</section>
 
 					{#if data.proposal.objections.some((objection) => objection.state === 'open')}
-						<section class="border-border rounded-(--radius-card) border px-3 py-3">
-							<h3 class="text-fg font-medium">Open objections</h3>
-							<ul class="mt-2 flex flex-col gap-2">
-								{#each data.proposal.objections.filter((o) => o.state === 'open') as objection (objection.id)}
-									<li class="flex flex-wrap items-baseline gap-2">
-										<span class="text-fg min-w-0 flex-1">{objection.reason}</span>
+						<!--
+							Each open objection as the thing it is: a person, what they said,
+							and what can be done about it — answer them, revise the text, or
+							(for a steward) record it as addressed. Tinted, because an open
+							objection is the one thing on this panel nobody should miss.
+						-->
+						<section class="flex flex-col gap-3" aria-labelledby="open-objections">
+							<h3 id="open-objections" class="text-fg font-medium">Open objections</h3>
+							{#each data.proposal.objections.filter((o) => o.state === 'open') as objection (objection.id)}
+								{@const said = data.posts.find((entry) => entry.id === objection.postId)}
+								{@const answered = objection.postId ? repliesTo(objection.postId).length : 0}
+								<article
+									class="border-danger/40 bg-danger/5 rounded-(--radius-card) border px-3 py-3"
+								>
+									<p class="flex flex-wrap items-center gap-x-2 gap-y-1">
+										{#if said}
+											<span
+												class="bg-danger-subtle text-fg text-meta flex h-6 w-6 flex-none items-center justify-center rounded-full font-medium"
+												aria-hidden="true">{said.author.initials}</span
+											>
+											<span class="text-fg font-medium">{said.author.label} objects</span>
+										{:else}
+											<span class="text-fg font-medium">An objection</span>
+										{/if}
+										<span class="text-fg-muted text-meta">{day(objection.raisedAt)}</span>
+										<span class="flex-1"></span>
+										<span
+											class="border-danger/40 text-fg-secondary text-meta rounded-(--radius-control) border px-1.5"
+											>open · {answered} {answered === 1 ? 'reply' : 'replies'}</span
+										>
+									</p>
+									<p class="text-fg mt-2">“{objection.reason}”</p>
+									<div class="mt-3 flex flex-wrap items-center gap-2">
+										{#if objection.postId && replyHref(objection.postId)}
+											<a
+												href={replyHref(objection.postId)}
+												class="border-border-strong text-fg hover:bg-raised text-meta inline-flex min-h-9 items-center rounded-(--radius-control) border px-3"
+												>Reply</a
+											>
+										{/if}
+										{#if data.can.propose}
+											<a
+												href={modeHref('revise')}
+												class="border-border-strong text-fg hover:bg-raised text-meta inline-flex min-h-9 items-center rounded-(--radius-control) border px-3"
+												>Revise to address it</a
+											>
+										{/if}
 										{#if data.can.freeze}
 											<form method="POST" action="?/resolveObjection" use:enhance>
 												<input type="hidden" name="objectionId" value={objection.id} />
 												<input type="hidden" name="state" value="addressed" />
 												<button
 													type="submit"
-													class="text-fg-secondary hover:text-fg cursor-pointer underline underline-offset-2"
+													class="text-fg-secondary hover:text-fg text-meta inline-flex min-h-9 cursor-pointer items-center px-2"
 													>Mark addressed</button
 												>
 											</form>
 										{/if}
-									</li>
-								{/each}
-							</ul>
+									</div>
+								</article>
+							{/each}
 						</section>
 					{/if}
 

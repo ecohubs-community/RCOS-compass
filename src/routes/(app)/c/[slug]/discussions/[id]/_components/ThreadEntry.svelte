@@ -5,6 +5,7 @@
 	import IconArrowBackUp from '~icons/tabler/arrow-back-up';
 	import type { PageData } from '../$types';
 	import MeetingNote from './MeetingNote.svelte';
+	import Replies from './Replies.svelte';
 
 	/**
 	 * One thing said in a thread, drawn as what it is (design 06).
@@ -19,8 +20,12 @@
 	 */
 	interface Props {
 		entry: PageData['posts'][number];
+		/** Replies filed under this post, when it is a message. */
+		replies?: PageData['posts'][number][];
+		/** Where "Reply" goes, or null when this member may not reply. */
+		replyHref?: string | null;
 	}
-	let { entry }: Props = $props();
+	let { entry, replies = [], replyHref = null }: Props = $props();
 
 	const clock = useTime();
 	const time = (ms: number) => clock.moment(ms, 'dateTimeShort');
@@ -50,7 +55,7 @@
 </script>
 
 {#if entry.kind === 'message'}
-	<div class="flex gap-3">
+	<div id="post-{entry.id}" class="flex scroll-mt-4 gap-3">
 		<span
 			class="bg-raised text-fg-secondary text-meta flex h-7 w-7 flex-none items-center justify-center rounded-full font-medium"
 			aria-hidden="true">{entry.author.initials}</span
@@ -61,6 +66,7 @@
 				<span class="text-fg-muted text-meta">{time(entry.createdAt)}</span>
 			</p>
 			<Markdown blocks={entry.body} class="mt-1" />
+			<Replies {replies} {replyHref} />
 		</div>
 	</div>
 {:else if entry.kind === 'offline_summary'}

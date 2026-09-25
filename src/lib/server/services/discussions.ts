@@ -510,9 +510,18 @@ function requireWritable(found: Discussion): void {
 	if (found.status === 'abandoned') error(409, 'This discussion was abandoned.');
 }
 
+/**
+ * A message in the thread, or a reply to one.
+ *
+ * A reply answers a message or the reason somebody gave with their vote —
+ * the two things in a thread that are a person saying something. A proposal
+ * is answered by voting on it or revising it, and a meeting by what happens
+ * next, so neither takes a reply. A reply to a reply is filed under the post
+ * that started the exchange: one level, readable on a phone.
+ */
 export function addMessage(
 	ctx: Ctx,
-	input: { discussionId: string; body: string },
+	input: { discussionId: string; body: string; replyToPostId?: string | null },
 	options: { db?: Db } = {}
 ): Post {
 	requirePermission(ctx, 'discussion.comment');
@@ -524,12 +533,35 @@ export function addMessage(
 	if (!body) error(400, 'Write something first.');
 
 	const db = options.db ?? getDb();
+
+	let replyToPostId: string | null = null;
+	if (input.replyToPostId) {
+		// Same thread only, and the same 404 whether it is in another thread or
+		// does not exist: a reply must not confirm what it cannot see.
+		const parent = db
+			.select()
+			.from(post)
+			.where(and(eq(post.id, input.replyToPostId), eq(post.discussionId, found.id)))
+			.get();
+		if (!parent) error(404, 'Not found');
+		if (parent.kind !== 'message' && parent.kind !== 'response') {
+			error(400, 'Only a message or the reason given with a vote can be replied to.');
+		}
+		replyToPostId = parent.replyToPostId ?? parent.id;
+	}
+
 	// The reply and who it tells, or neither.
 	return db.transaction((tx) => {
 		const written = writePost(
 			ctx,
 			{ db: tx as unknown as Db },
-			{ discussionId: input.discussionId, body, kind: 'message', proposalVersion: null }
+			{
+				discussionId: input.discussionId,
+				body,
+				kind: 'message',
+				proposalVersion: null,
+				replyToPostId
+			}
 		);
 		tellThread(tx as unknown as Db, ctx, found, written);
 		return written;
@@ -848,6 +880,7 @@ function writePost(
 		linterResult?: unknown;
 		responseValue?: Post['responseValue'];
 		subjectPostId?: string | null;
+		replyToPostId?: string | null;
 	}
 ): Post {
 	const db = options.db ?? getDb();
@@ -866,6 +899,7 @@ function writePost(
 			linterResult: values.linterResult ?? null,
 			responseValue: values.responseValue ?? null,
 			subjectPostId: values.subjectPostId ?? null,
+			replyToPostId: values.replyToPostId ?? null,
 			frozenDecisionId: null,
 			createdAt: new Date(now),
 			editedAt: null

@@ -129,6 +129,24 @@ export const load: PageServerLoad = ({ locals, params, url }) => {
 		 */
 		mode:
 			(['revise', 'meeting'] as const).find((m) => m === url.searchParams.get('mode')) ?? 'reply',
+		/**
+		 * The post the reply box is answering, from `?reply=` — in the URL for the
+		 * same reason as the mode: a member with no JavaScript can still reply to
+		 * somebody. Only a post the thread has, and only one that takes replies.
+		 */
+		replyingTo: (() => {
+			const asked = url.searchParams.get('reply');
+			const found = posts.find(
+				(entry) => entry.id === asked && (entry.kind === 'message' || entry.kind === 'response')
+			);
+			return found
+				? {
+						id: found.id,
+						author: found.author.label,
+						excerpt: found.body.length > 90 ? `${found.body.slice(0, 90).trimEnd()}…` : found.body
+					}
+				: null;
+		})(),
 		thread: {
 			id: thread.id,
 			title: thread.title,
@@ -152,6 +170,7 @@ export const load: PageServerLoad = ({ locals, params, url }) => {
 			revisionNote: entry.revisionNote,
 			responseValue: entry.responseValue,
 			subjectPostId: entry.subjectPostId,
+			replyToPostId: entry.replyToPostId,
 			subjectVersion: entry.subjectVersion,
 			objectionState: entry.objectionState,
 			author: entry.author,
@@ -206,7 +225,10 @@ export const load: PageServerLoad = ({ locals, params, url }) => {
 			objections: listObjections(ctx, selected.id, { db }).map((objection) => ({
 				id: objection.id,
 				reason: objection.reason,
-				state: objection.state
+				state: objection.state,
+				raisedAt: objection.raisedAt.getTime(),
+				/** The thread post that said it, so the panel can reply to it. */
+				postId: objection.postId
 			}))
 		},
 		/**
@@ -308,12 +330,27 @@ export const load: PageServerLoad = ({ locals, params, url }) => {
 export const actions: Actions = {
 	comment: async (event) => {
 		const form = await event.request.formData();
-		return run('comment', () =>
+		const outcome = await run('comment', () =>
 			addMessage(
 				event.locals.ctx!,
-				{ discussionId: event.params.id, body: String(form.get('body') ?? '') },
+				{
+					discussionId: event.params.id,
+					body: String(form.get('body') ?? ''),
+					replyToPostId: String(form.get('replyTo') ?? '') || null
+				},
 				{ db: getDb() }
 			)
+		);
+		if ('status' in outcome) return outcome;
+
+		// To the post just written, on the version the writer was reading: that
+		// ends the reply (the `?reply=` goes) and brings a reply filed inside a
+		// collapsed card into view.
+		const { id } = outcome.result as { id: string };
+		const version = Number(form.get('v') ?? '');
+		redirect(
+			303,
+			`/c/${event.params.slug}/discussions/${event.params.id}${version ? `?v=${version}` : ''}#post-${id}`
 		);
 	},
 

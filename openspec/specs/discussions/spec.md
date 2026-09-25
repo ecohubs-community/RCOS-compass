@@ -235,6 +235,36 @@ empty field.
 - **WHEN** a member who may comment but not propose opens the composer
 - **THEN** revising is not offered, and submitting a revision is refused
 
+### Requirement: A message or the reason given with a vote can be replied to in place
+
+A member who may comment MUST be able to reply to a message or to the reason
+somebody gave with their vote, and the reply MUST be shown under the post it
+answers rather than as a separate post in the conversation. A reply to a reply
+MUST be filed under the post that started the exchange. A proposal and a
+meeting summary MUST NOT take replies. Replying MUST work without JavaScript.
+
+#### Scenario: A message is replied to
+- **WHEN** a member replies to a message
+- **THEN** the reply is recorded as a message that names the message it answers
+- **AND** the thread shows it under that message
+
+#### Scenario: An objection is answered
+- **WHEN** a member replies to the reason somebody gave with an objection
+- **THEN** the reply is shown under that reason, with the answers to that version
+- **AND** the open objection says how many replies it has
+
+#### Scenario: A reply is replied to
+- **WHEN** a member replies to a reply
+- **THEN** it is filed under the post that started the exchange, one level deep
+
+#### Scenario: A proposal is not a thing to reply to
+- **WHEN** a reply names a proposal version
+- **THEN** it is refused, because a version is answered by voting on it or revising it
+
+#### Scenario: A reply names a post in another thread
+- **WHEN** a reply names a post that is not in this discussion
+- **THEN** it is refused as not found, and nothing is written
+
 ### Requirement: A post can mention a member
 
 A member MUST be able to mention another current member of the community in a

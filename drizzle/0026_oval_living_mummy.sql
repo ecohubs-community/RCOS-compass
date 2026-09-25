@@ -1,0 +1,1 @@
+ALTER TABLE `post` ADD `reply_to_post_id` text;

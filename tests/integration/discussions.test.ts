@@ -827,6 +827,105 @@ describe('a proposal is a first-class object, not a post that looks different', 
 	});
 });
 
+describe('a message or an answer can be replied to in place', () => {
+	it('files a reply under the message it answers', () => {
+		const opened = open();
+		const asked = addMessage(ctx, { discussionId: opened.id, body: 'Who settles?' }, { db });
+		const reply = addMessage(
+			memberCtx,
+			{ discussionId: opened.id, body: 'A named settler.', replyToPostId: asked.id },
+			{ db }
+		);
+
+		expect(reply.kind).toBe('message');
+		expect(reply.replyToPostId).toBe(asked.id);
+		expect(reply.authorId).toBe(memberCtx.user.id);
+	});
+
+	it('files a reply to a reply under the post that started it, one level deep', () => {
+		const opened = open();
+		const asked = addMessage(ctx, { discussionId: opened.id, body: 'Who settles?' }, { db });
+		const first = addMessage(
+			memberCtx,
+			{ discussionId: opened.id, body: 'A named settler.', replyToPostId: asked.id },
+			{ db }
+		);
+		const second = addMessage(
+			ctx,
+			{ discussionId: opened.id, body: 'Named by whom?', replyToPostId: first.id },
+			{ db }
+		);
+
+		expect(second.replyToPostId).toBe(asked.id);
+	});
+
+	it('answers the reason somebody gave with their vote', () => {
+		const opened = open();
+		const v1 = addProposal(ctx, { discussionId: opened.id, body: 'Members may leave.' }, { db });
+		getVotingProvider().respond(
+			memberCtx,
+			{ proposalPostId: v1.id, value: 'objection', reason: 'Nothing about money.' },
+			{ db }
+		);
+		const reason = listPosts(ctx, opened.id, { db }).find((row) => row.kind === 'response')!;
+
+		const reply = addMessage(
+			ctx,
+			{ discussionId: opened.id, body: 'Would six weeks do?', replyToPostId: reason.id },
+			{ db }
+		);
+		expect(reply.replyToPostId).toBe(reason.id);
+	});
+
+	it('refuses to reply to a proposal, which is answered by voting or revising', () => {
+		const opened = open();
+		const v1 = addProposal(ctx, { discussionId: opened.id, body: 'Members may leave.' }, { db });
+		const refusal = catchRefusal(() =>
+			addMessage(ctx, { discussionId: opened.id, body: 'Hm.', replyToPostId: v1.id }, { db })
+		);
+
+		expect(refusal?.status).toBe(400);
+		expect(listPosts(ctx, opened.id, { db }).filter((row) => row.kind === 'message')).toHaveLength(
+			0
+		);
+	});
+
+	it('answers a post in another thread as if it did not exist', () => {
+		const here = open('Exit');
+		const there = open('Guests');
+		const elsewhere = addMessage(ctx, { discussionId: there.id, body: 'Guests?' }, { db });
+
+		const refusal = catchRefusal(() =>
+			addMessage(
+				ctx,
+				{ discussionId: here.id, body: 'Reply.', replyToPostId: elsewhere.id },
+				{ db }
+			)
+		);
+		expect(refusal?.status).toBe(404);
+		expect(listPosts(ctx, here.id, { db })).toHaveLength(0);
+	});
+
+	it('is refused in a suspended community, like any other write', () => {
+		const opened = open();
+		const asked = addMessage(ctx, { discussionId: opened.id, body: 'Who settles?' }, { db });
+		const suspended: Ctx = {
+			...memberCtx,
+			community: { ...memberCtx.community, status: 'suspended', suspendedReason: 'Non-payment.' }
+		};
+
+		const refusal = catchRefusal(() =>
+			addMessage(
+				suspended,
+				{ discussionId: opened.id, body: 'Reply.', replyToPostId: asked.id },
+				{ db }
+			)
+		);
+		expect(refusal?.status).toBe(409);
+		expect(listPosts(ctx, opened.id, { db })).toHaveLength(1);
+	});
+});
+
 describe('deciding in a room is a first-class path', () => {
 	it('records the summary, who wrote it, and the proposal it produced', () => {
 		const opened = open();
