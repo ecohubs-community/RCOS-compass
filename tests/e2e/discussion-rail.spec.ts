@@ -231,6 +231,12 @@ test.describe('each kind of post reads as what it is', () => {
 		page,
 		browser
 	}) => {
+		// Slow by weight, not by a stall: a proposal seeded through the screens, a
+		// second member in a second browser context, and five navigations — 10–16 s
+		// alone. Traced under a full run's load (2026-09-25), no step of the app
+		// hung; the time went to the seed request, the browser and context
+		// fixtures and hydration, all starved together, and ran past 30 s.
+		test.slow();
 		// Every one of these used to render as a name, a time and a paragraph —
 		// an objection and "I agree" looked like two more replies, and a steward
 		// moving the question looked like somebody's opinion about it.
@@ -261,6 +267,9 @@ test.describe('each kind of post reads as what it is', () => {
 		await expect(rail(page).getByRole('heading', { name: 'Responses to v2' })).toBeVisible();
 		await visit(page, `${thread}?v=1`);
 		await rail(page).getByRole('button', { name: 'Put v1 back on the table' }).click();
+		// The move has landed when the button to make it is gone. The heading
+		// alone proved nothing: `?v=1` shows "Responses to v1" before the move too.
+		await expect(rail(page).getByRole('button', { name: 'Put v1 back on the table' })).toBeHidden();
 		await expect(rail(page).getByRole('heading', { name: 'Responses to v1' })).toBeVisible();
 
 		// The reply is a person talking, and says nothing about a vote.
@@ -294,6 +303,8 @@ test.describe('a reply answers something in place', () => {
 		page,
 		browser
 	}) => {
+		// Slow by weight, like the one above, and traced the same way.
+		test.slow();
 		const fixture = await seedWithProposal(page);
 		const thread = page.url().split('?')[0]!;
 		const conversation = page.getByRole('region', { name: 'The discussion' });
@@ -333,6 +344,10 @@ test.describe('a reply answers something in place', () => {
 		const objection = rail(page).locator('article').filter({ hasText: 'Nothing about money.' });
 		await expect(objection).toContainText('open · 0 replies');
 		await objection.getByRole('link', { name: 'Reply' }).click();
+		// "Reply" is a navigation to `?replyTo=`. Until it lands, the one box is
+		// still "Reply to the thread" — which `/^Reply to /` matches too — and the
+		// answer is posted to the thread instead of under the objection.
+		await expect(page.getByText('Replying to')).toBeVisible();
 		await page.getByLabel(/^Reply to /).fill('Would six weeks do?');
 		await page.getByRole('button', { name: 'Send' }).click();
 
