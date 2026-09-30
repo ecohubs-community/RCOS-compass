@@ -603,7 +603,8 @@ function ownMessage(ctx: Ctx, db: Db, discussionId: string, postId: string): Pos
 		.get();
 	if (!row) error(404, 'Not found');
 	if (row.kind !== 'message') error(400, 'Only a message can be changed.');
-	if (row.authorId !== ctx.user.id) error(403, 'Only the person who wrote a message can change it.');
+	if (row.authorId !== ctx.user.id)
+		error(403, 'Only the person who wrote a message can change it.');
 	return row;
 }
 
