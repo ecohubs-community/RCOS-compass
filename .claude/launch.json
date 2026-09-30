@@ -1,0 +1,18 @@
+{
+	"version": "0.0.1",
+	"configurations": [
+		{
+			"name": "dev",
+			"runtimeExecutable": "env",
+			"runtimeArgs": [
+				"CONTACT_EMAIL=pilot@example.org",
+				"pnpm",
+				"dev",
+				"--port",
+				"5199",
+				"--strictPort"
+			],
+			"port": 5199
+		}
+	]
+}

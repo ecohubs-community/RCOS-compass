@@ -9,7 +9,7 @@
 	},
 	"packageManager": "pnpm@10.33.0",
 	"scripts": {
-		"dev": "vite dev",
+		"dev": "vite dev --port 53081",
 		"build": "vite build",
 		"preview": "node --env-file-if-exists=.env build/index.js",
 		"i18n:compile": "paraglide-js compile --project ./project.inlang --outdir ./src/lib/paraglide",
