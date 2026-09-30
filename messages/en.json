@@ -947,5 +947,16 @@
 	"landing_account_signed_in_as": "Signed in as",
 	"landing_account_communities": "Your communities",
 	"landing_account_none": "You are not a member of any community yet. Ask a steward to invite you — the link in their email brings you straight in.",
-	"landing_account_suspended": "Suspended · read only"
+	"landing_account_suspended": "Suspended · read only",
+	"clause_refs_label": "RCOS",
+	"clause_refs_related": "related",
+	"requirement_heading": "The requirement",
+	"requirement_why": "Why it matters",
+	"requirement_what": "What to define here",
+	"requirement_not_here": "What NOT to define here",
+	"requirement_not_here_intro": "The standard puts these in other sections:",
+	"requirement_owned_none": "This section answers no clause of its own. It completes its template; the clauses below are ones it relies on.",
+	"requirement_close": "Close",
+	"requirement_opened": "opened",
+	"requirement_sheet_title": "The RCOS requirement"
 }

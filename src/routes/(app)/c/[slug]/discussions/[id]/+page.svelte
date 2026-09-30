@@ -14,6 +14,7 @@
 	import { setMentionLabels } from '$lib/components/ui/mentions';
 	import TextField from '$lib/components/ui/TextField.svelte';
 	import { links } from '$lib/links';
+	import RequirementRefs from '$lib/components/RequirementRefs.svelte';
 	import { diffWords } from '$lib/shared/diff';
 	import IconArrowBackUp from '~icons/tabler/arrow-back-up';
 	import IconFilePlus from '~icons/tabler/file-plus';
@@ -181,11 +182,19 @@
 			<a href={links.discussions(slug)} class="hover:text-fg underline underline-offset-2"
 				>Discussions</a
 			>
-			{#if data.thread.clauseKey}
-				<span aria-hidden="true"> · </span><span data-tabular>{data.thread.clauseKey}</span>
+			{#if data.requirement}
+				<span aria-hidden="true" class="px-1">·</span>{data.requirement.title}
 			{/if}
 		</p>
 		<h1 class="text-page mt-1 font-medium">{data.thread.title}</h1>
+		{#if data.requirement}
+			<!-- The RCOS text this answers; each reference opens it in a sheet. -->
+			<RequirementRefs
+				requirement={data.requirement}
+				hrefFor={(ref) => links.clause(slug, ref)}
+				class="text-meta mt-1"
+			/>
+		{/if}
 		{#if data.thread.decidedRef}
 			<p class="text-fg-secondary text-meta mt-2">
 				<!--
@@ -265,8 +274,14 @@
 							Freeze v{data.proposal.version} into a decision
 						</h2>
 						<p class="text-fg-muted text-meta mt-1">
-							{data.thread.clauseKey ?? 'No clause'} · v{data.proposal.version} of {data.versions
-								.length}, as written on {day(data.proposal.createdAt)}
+							{data.requirement
+								? `${data.requirement.title} · ${data.requirement.clauses
+										.filter((clause) => clause.owned)
+										.map((clause) => `§${clause.ref}`)
+										.join(' ')}`.trim()
+								: 'No clause'} · v{data.proposal.version} of {data.versions.length}, as written on {day(
+								data.proposal.createdAt
+							)}
 						</p>
 
 						{#if data.laterVersion}

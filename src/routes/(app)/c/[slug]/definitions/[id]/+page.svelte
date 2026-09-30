@@ -9,6 +9,8 @@
 	import Markdown from '$lib/components/ui/Markdown.svelte';
 	import StatusChip from '$lib/components/ui/StatusChip.svelte';
 	import { links } from '$lib/links';
+	import CitedClauses from '$lib/components/ui/CitedClauses.svelte';
+	import Requirement from '$lib/components/Requirement.svelte';
 	import IconSparkles from '~icons/tabler/sparkles';
 
 	let { data, form } = $props();
@@ -62,8 +64,8 @@
 		{/if}
 	</div>
 	{#if data.requirement}
-		<p class="text-fg-muted text-meta mt-1" data-tabular>
-			{data.requirement.refs.join(' · ')}
+		<p class="text-meta mt-1">
+			<CitedClauses cites={data.requirement.clauses} hrefFor={(ref) => links.clause(slug, ref)} />
 		</p>
 	{/if}
 
@@ -98,27 +100,7 @@
 					? ''
 					: 'hidden'} lg:block"
 			>
-				<h2 class="text-title font-medium">The requirement</h2>
-				{#each data.requirement.text as clause (clause.ref)}
-					<blockquote
-						class="border-border text-fg-secondary mt-3 border-l-2 pl-3 font-mono text-[12px]"
-					>
-						<span data-tabular>{clause.ref}</span> — {clause.body}
-					</blockquote>
-				{/each}
-
-				{#if data.requirement.whyItMatters}
-					<details class="mt-4">
-						<summary class="cursor-pointer font-medium">Why it matters</summary>
-						<p class="text-fg-secondary mt-2">{data.requirement.whyItMatters}</p>
-					</details>
-				{/if}
-				{#if data.requirement.whatToDefine}
-					<details class="mt-2">
-						<summary class="cursor-pointer font-medium">What to define here</summary>
-						<p class="text-fg-secondary mt-2">{data.requirement.whatToDefine}</p>
-					</details>
-				{/if}
+				<Requirement requirement={data.requirement} />
 			</section>
 		{/if}
 

@@ -182,7 +182,7 @@ describe('each input moves the order on its own', () => {
 
 		expect(after.question).toBe(before.question);
 		expect(after.effort).toBe(before.effort);
-		expect(after.clauseKey).toBe(before.clauseKey);
+		expect(after.start).toEqual(before.start);
 		expect(after.contributions.risk.points).toBeGreaterThan(before.contributions.risk.points);
 	});
 
@@ -277,7 +277,9 @@ describe('what they already have', () => {
 		const items = path(ana, { db });
 		const index = items.findIndex(
 			(item, at) =>
-				at + 1 < items.length && item.score === items[at + 1]!.score && item.clauseKey !== null
+				at + 1 < items.length &&
+				item.score === items[at + 1]!.score &&
+				item.start.clauseKey !== null
 		);
 		expect(index).toBeGreaterThanOrEqual(0);
 		return { index, item: items[index]! };
@@ -336,7 +338,7 @@ describe('what they already have', () => {
 	it('drops a section the community already has language for', () => {
 		const { index, item: target } = movableTarget();
 
-		confirmEvidence(target.clauseKey!);
+		confirmEvidence(target.start.clauseKey!);
 		const after = positionOf(path(ana, { db }), target.sectionKey);
 
 		// Not staring at a blank page, so it waits. Still on the list — evidence is
@@ -395,7 +397,7 @@ describe('what they already have', () => {
 				passageId,
 				quote: 'Maybe about this.',
 				communityStandardId: standardRowId,
-				clauseKey: target.clauseKey!,
+				clauseKey: target.start.clauseKey!,
 				state: 'suggested',
 				confidence: 70,
 				suggestedBy: 'ai',

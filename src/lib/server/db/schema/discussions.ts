@@ -18,6 +18,20 @@ export const discussion = sqliteTable(
 		/** One or the other: a clause with no definition yet, or an existing one. */
 		definitionId: text('definition_id').references(() => definition.id, { onDelete: 'cascade' }),
 		clauseKey: text('clause_key'),
+		/**
+		 * The section this thread answers — the Path item it was started from.
+		 *
+		 * A Path item is a section, and a section can own several clauses or
+		 * none at all. The thread used to name only a clause and find its section
+		 * through `clause.owner`, which left the 28 sections owning no countable
+		 * clause with nothing to file against, and let a thread filed under a
+		 * clause a section only *references* freeze into the clause's owner.
+		 *
+		 * Null for a thread about a clause typed by hand, a definition or nothing;
+		 * `sectionOf()` then falls back to the clause's owner, which is what every
+		 * thread opened before this column existed relies on.
+		 */
+		sectionKey: text('section_key'),
 		title: text('title').notNull(),
 		status: text('status', {
 			enum: ['open', 'in_vote', 'decided_offline', 'frozen', 'abandoned']
@@ -52,7 +66,8 @@ export const discussion = sqliteTable(
 	},
 	(table) => [
 		index('discussion_community_idx').on(table.communityId, table.lastActivityAt),
-		index('discussion_definition_idx').on(table.definitionId)
+		index('discussion_definition_idx').on(table.definitionId),
+		index('discussion_section_idx').on(table.communityId, table.sectionKey)
 	]
 );
 

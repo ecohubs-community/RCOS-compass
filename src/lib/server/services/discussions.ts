@@ -20,7 +20,8 @@ import { membership } from '../db/schema/tenancy.js';
 import { initialsOf, membershipLabel, personLabel } from './person.js';
 import { lint } from '../linter/index.js';
 import { adoptedElsewhere } from './definitions.js';
-import { activeStandardView } from './completeness.js';
+import { activeStandardView, sectionOf } from './completeness.js';
+import { requirementFor, type Requirement } from './requirement.js';
 import { mentionedSeqs } from '../markdown.js';
 import { namesToMentions, type MentionMember } from '../../shared/mentions.js';
 import { discussionParticipants, mentionedMembers, notify, notifyReply } from './notifications.js';
@@ -76,6 +77,12 @@ export type OpenDiscussion = {
 	 */
 	about:
 		| { kind: 'clause'; clauseKey: string }
+		/**
+		 * A Path item. The clause is the one the start form prefilled and the
+		 * member may have changed; the section is kept only while it still agrees
+		 * with that clause (see below).
+		 */
+		| { kind: 'section'; sectionKey: string; clauseKey?: string | null }
 		| { kind: 'definition'; definitionId: string }
 		| { kind: 'open_question' };
 	/** `offline` marks a thread opened to record a decision already taken. */
@@ -106,19 +113,37 @@ export function openDiscussion(
 	 * people to start the discussion that already existed.
 	 */
 	let clauseKey: string | null = null;
-	if (input.about.kind === 'clause') {
+	let sectionKey: string | null = null;
+	if (input.about.kind === 'clause' || input.about.kind === 'section') {
 		const standard = activeStandardView(db, ctx);
 		if (!standard) error(409, 'This community has not adopted a standard yet.');
 
-		const typed = input.about.clauseKey;
+		const typed = input.about.clauseKey?.trim() || null;
 		// Refused now, plainly, rather than at the freeze — where it surfaces as
 		// "that clause is not part of the standard" on a thread somebody has
 		// already spent a week on.
-		const clause = standard.view.clause(typed) ?? standard.view.clauseByRef(typed);
-		if (!clause) {
+		const clause = typed
+			? (standard.view.clause(typed) ?? standard.view.clauseByRef(typed))
+			: undefined;
+		if (typed && !clause) {
 			error(400, `There is no clause ${typed} in the standard this community adopted.`);
 		}
-		clauseKey = clause.key;
+		clauseKey = clause?.key ?? null;
+
+		if (input.about.kind === 'section') {
+			const section = standard.view.section(input.about.sectionKey);
+			if (!section || section.disposition !== 'authored') {
+				error(400, 'That is not a section this community writes.');
+			}
+			/**
+			 * The section is what the freeze will adopt for, so it is kept only
+			 * while the clause agrees with it. A member who replaces the prefilled
+			 * clause with one another section owns has said what the thread is
+			 * about; storing the Path item's section as well would freeze it into
+			 * the wrong definition.
+			 */
+			if (!clause || clause.owner === section.key) sectionKey = section.key;
+		}
 	}
 
 	if (input.about.kind === 'definition') {
@@ -142,6 +167,7 @@ export function openDiscussion(
 		communityId: ctx.community.id,
 		definitionId: input.about.kind === 'definition' ? input.about.definitionId : null,
 		clauseKey,
+		sectionKey,
 		title,
 		status: 'open' as const,
 		origin: input.origin ?? ('clause' as const),
@@ -159,6 +185,36 @@ export function openDiscussion(
 		indexDiscussion(tx as unknown as Db, ctx.community.id, row.id);
 	});
 	return db.select().from(discussion).where(eq(discussion.id, row.id)).get()!;
+}
+
+/**
+ * The RCOS text a thread answers — the header's references and the sheet they
+ * open. Null for a thread about nothing in the standard, or a local definition.
+ *
+ * A thread on a definition answers that definition's section; any other thread
+ * answers `sectionOf` it, the rule the Path and the freeze use too, so the text
+ * shown here is the text a freeze of this thread would adopt against.
+ */
+export function threadRequirement(
+	ctx: Ctx,
+	thread: Discussion,
+	options: { db?: Db } = {}
+): Requirement | null {
+	requirePermission(ctx, 'discussion.read');
+	const db = options.db ?? getDb();
+	const standard = activeStandardView(db, ctx);
+	if (!standard) return null;
+
+	const sectionKey = thread.definitionId
+		? (db
+				.select({ sectionKey: definition.sectionKey })
+				.from(definition)
+				.where(
+					and(eq(definition.id, thread.definitionId), eq(definition.communityId, ctx.community.id))
+				)
+				.get()?.sectionKey ?? null)
+		: sectionOf(standard.view, thread);
+	return sectionKey ? requirementFor(standard.view, sectionKey, ctx.community.locale) : null;
 }
 
 /** Newest activity first — the dashboard's "stalled 12 days" reads this order. */
@@ -198,6 +254,7 @@ export type DiscussionSummary = {
 	status: Discussion['status'];
 	origin: Discussion['origin'];
 	clauseKey: string | null;
+	sectionKey: string | null;
 	openedAt: number;
 	lastActivityAt: number;
 	/** Everyone who has posted, first to speak first. */
@@ -334,6 +391,7 @@ export function listDiscussionSummaries(ctx: Ctx, options: { db?: Db } = {}): Di
 		status: thread.status,
 		origin: thread.origin,
 		clauseKey: thread.clauseKey,
+		sectionKey: thread.sectionKey,
 		openedAt: thread.openedAt.getTime(),
 		lastActivityAt: thread.lastActivityAt.getTime(),
 		people: [...(people.get(thread.id)?.values() ?? [])],

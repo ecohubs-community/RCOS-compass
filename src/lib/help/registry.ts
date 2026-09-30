@@ -37,6 +37,11 @@ export const HELP: Record<string, HelpEntry> = {
 		what: 'A suggested change to a definition, living inside a discussion.',
 		why: 'Separating the suggestion from the rule is what lets a group argue about wording without anything changing yet.'
 	},
+	requirement: {
+		title: 'The requirement',
+		what: 'The RCOS text this section answers, quoted exactly: each clause with its number and whether it is a MUST, MAY or for information.',
+		why: 'A question is only a plain-language way in. What gets decided has to satisfy these words, so they are one click away wherever the question is.'
+	},
 	consent: {
 		title: 'Consent',
 		what: 'Consent means “I can live with it”, not “I like it best”. Abstaining is recorded and blocks nothing; an objection says why it cannot be lived with.',

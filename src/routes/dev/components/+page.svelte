@@ -11,6 +11,8 @@
 	import TextField from '$lib/components/ui/TextField.svelte';
 	import Markdown from '$lib/components/ui/Markdown.svelte';
 	import InlineText from '$lib/components/ui/InlineText.svelte';
+	import ClauseRef from '$lib/components/ui/ClauseRef.svelte';
+	import CitedClauses from '$lib/components/ui/CitedClauses.svelte';
 	import LinterPanel from '$lib/components/ui/LinterPanel.svelte';
 	import LinterNotRun from '$lib/components/ui/LinterNotRun.svelte';
 	import { HELP, type HelpId } from '$lib/help/registry';
@@ -352,6 +354,31 @@
 			{#if data.inline?.type === 'paragraph'}
 				<InlineText nodes={data.inline.children} />
 			{/if}
+		</p>
+	</section>
+
+	<section class="mt-10" aria-labelledby="clause-refs">
+		<h2 id="clause-refs" class="text-section font-medium">Clause references</h2>
+		<p class="text-fg-muted text-meta mt-1">
+			The only way a clause number is printed. Owned clauses first; the ones a section only relies
+			on after the word "related".
+		</p>
+		<p class="text-meta mt-4 flex flex-wrap items-center gap-3">
+			<ClauseRef ref="3.6.2" />
+			<ClauseRef ref="3.6.2" href="#clause-refs" />
+			<ClauseRef ref="3.6.2" related />
+			<ClauseRef ref="3.6.2" href="#clause-refs" selected />
+		</p>
+		<p class="text-meta mt-2">
+			<CitedClauses
+				cites={[
+					{ ref: '3.6.1', owned: true },
+					{ ref: '3.6.2', owned: true },
+					{ ref: '3.6.4', owned: true },
+					{ ref: '3.6.5', owned: false }
+				]}
+				hrefFor={() => '#clause-refs'}
+			/>
 		</p>
 	</section>
 

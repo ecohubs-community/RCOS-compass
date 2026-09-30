@@ -59,6 +59,23 @@ export function standardViewFor(
 	return { row, view: getStandard(row.standardId, row.version) };
 }
 
+/**
+ * The section a thread answers: the one it names, else its clause's owner.
+ *
+ * The one rule the Path, the freeze and the discussion page all use to get from
+ * a thread to a section, so they cannot disagree about which item a thread
+ * belongs to. A thread opened before `section_key` existed names only a clause,
+ * and the fallback is exactly how it was resolved then.
+ */
+export function sectionOf(
+	view: StandardView,
+	thread: { sectionKey: string | null; clauseKey: string | null }
+): string | null {
+	if (thread.sectionKey) return thread.sectionKey;
+	if (!thread.clauseKey) return null;
+	return (view.clause(thread.clauseKey) ?? view.clauseByRef(thread.clauseKey))?.owner ?? null;
+}
+
 /** Section keys this community has an adopted definition for. */
 export function answeredSections(db: Db, communityStandardId: string): Set<string> {
 	return new Set(

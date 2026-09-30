@@ -15,6 +15,7 @@ import {
 } from '../db/schema/path.js';
 import type { StandardView } from '../standard/index.js';
 import { raisedSections } from './risk-profile.js';
+import { sectionOf } from './completeness.js';
 
 /**
  * The ordering, as four numbers a community can see and argue with.
@@ -84,6 +85,7 @@ export type OrderingInputs = {
 	maxClauses: number;
 	answered: ReadonlySet<string>;
 	raised: ReadonlyMap<string, number>;
+	/** Sections with an open thread, through `sectionOf` — as the Path matches them. */
 	openThreads: ReadonlySet<string>;
 	confirmedEvidence: ReadonlySet<string>;
 	/** Answered sections whose own dependencies name this one. */
@@ -134,11 +136,11 @@ export function gatherInputs(
 
 	const openThreads = new Set(
 		db
-			.select({ clauseKey: discussion.clauseKey })
+			.select({ sectionKey: discussion.sectionKey, clauseKey: discussion.clauseKey })
 			.from(discussion)
 			.where(and(eq(discussion.communityId, communityId), eq(discussion.status, 'open')))
 			.all()
-			.map((row) => row.clauseKey)
+			.map((row) => sectionOf(view, row))
 			.filter((key): key is string => key !== null)
 	);
 
@@ -250,7 +252,7 @@ export function score(facts: SectionFacts, inputs: OrderingInputs, view: Standar
 	 * committed to a rule that refers to a rule they have not written.
 	 */
 	const hasEvidence = facts.ownedClauses.some((key) => inputs.confirmedEvidence.has(key));
-	const hasThread = facts.ownedClauses.some((key) => inputs.openThreads.has(key));
+	const hasThread = inputs.openThreads.has(facts.sectionKey);
 	const leaners = inputs.referencedByAnswered.get(facts.sectionKey) ?? [];
 
 	const attentionValue = Math.max(

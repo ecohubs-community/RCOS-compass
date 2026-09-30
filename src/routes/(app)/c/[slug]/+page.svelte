@@ -3,6 +3,7 @@
 	import { links } from '$lib/links';
 	import StatusChip from '$lib/components/ui/StatusChip.svelte';
 	import HelpTip from '$lib/components/ui/HelpTip.svelte';
+	import CitedClauses from '$lib/components/ui/CitedClauses.svelte';
 	import * as m from '$lib/paraglide/messages';
 
 	let { data } = $props();
@@ -55,6 +56,11 @@
 						<div class="min-w-0 flex-1">
 							<h3 class="text-fg font-medium">{item.question}</h3>
 							<p class="text-fg-muted text-meta mt-1">{item.reason}</p>
+							<CitedClauses
+								cites={item.cites}
+								hrefFor={(ref) => links.clause(slug, ref)}
+								class="text-meta mt-1"
+							/>
 						</div>
 						<div class="flex flex-none items-center gap-2">
 							{#if item.layer !== null}
@@ -76,9 +82,7 @@
 							<a
 								href={item.discussionId
 									? links.discussion(slug, item.discussionId)
-									: item.clauseKey
-										? links.startDiscussion(slug, item.clauseKey, item.question)
-										: links.discussions(slug)}
+									: links.startDiscussion(slug, item.start, item.question)}
 								class="border-border hover:border-border-strong text-fg rounded-(--radius-control) border px-2.5 py-1"
 							>
 								{item.discussionId ? 'Open discussion' : 'Start discussion'}

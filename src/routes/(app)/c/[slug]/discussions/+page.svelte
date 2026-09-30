@@ -135,6 +135,10 @@
 				value={data.clauseKey}
 				class="w-44"
 			/>
+			{#if data.sectionKey}
+				<!-- The Path item this was started from; see `openDiscussion`. -->
+				<input type="hidden" name="sectionKey" value={data.sectionKey} />
+			{/if}
 			<Button type="submit" variant="primary" icon={IconPlus}>{m.discussions_start()}</Button>
 		</form>
 		{#if form?.error}

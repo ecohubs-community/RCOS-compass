@@ -37,12 +37,16 @@ test.describe('the core loop, on a fresh community', () => {
 		const firstQuestion = await next.getByRole('heading').first().innerText();
 		expect(firstQuestion).not.toMatch(/^\d+(\.\d+)+$/);
 
-		// "Start discussion" starts one, with the clause already chosen. It used to
-		// land on the standard browser, which has no form on it — the first step of
-		// the loop, pointed at a reference page.
-		await next.getByRole('link', { name: 'Start discussion' }).first().click();
-		await expect(page).toHaveURL(/\/discussions\?clause=/);
-		await expect(page.getByLabel('Clause (optional)')).not.toHaveValue('');
+		// "Start discussion" starts one, filed against the section the question is
+		// — and its first clause, shown as the reference members read, when it
+		// owns one. It used to land on the standard browser, which has no form on
+		// it — the first step of the loop, pointed at a reference page.
+		const topItem = next.getByRole('listitem').first();
+		const topQuestion = await topItem.getByRole('heading').innerText();
+		await topItem.getByRole('link', { name: 'Start discussion' }).click();
+		await expect(page).toHaveURL(/\/discussions\?section=/);
+		await expect(page.getByLabel('Start a discussion')).toHaveValue(topQuestion);
+		await expect(page.getByLabel('Clause (optional)')).toHaveValue(/^\d+(\.\d+)+$/);
 
 		// --- discuss it --------------------------------------------------------
 		await page.goto(`/c/${slug}/standard`);

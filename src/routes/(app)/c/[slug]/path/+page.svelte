@@ -7,6 +7,7 @@
 	import IconGripVertical from '~icons/tabler/grip-vertical';
 	import IconPlus from '~icons/tabler/plus';
 	import { links } from '$lib/links';
+	import CitedClauses from '$lib/components/ui/CitedClauses.svelte';
 
 	let { data, form } = $props();
 	const slug = $derived(data.community.slug);
@@ -162,7 +163,7 @@
 				ondrop={(event) =>
 					data.can.reorder &&
 					onDrop(event, index, document.getElementById('place') as HTMLFormElement)}
-				class="border-border bg-surface flex items-start gap-3 rounded-(--radius-card) border p-3"
+				class="border-border bg-surface flex flex-wrap items-start gap-3 rounded-(--radius-card) border p-3"
 				class:border-accent={item.override !== null}
 			>
 				{#if data.can.reorder}
@@ -179,7 +180,7 @@
 				{/if}
 				<span class="text-fg-muted text-meta pt-0.5" data-tabular>{index + 1}</span>
 
-				<div class="min-w-0 flex-1">
+				<div class="min-w-48 flex-1">
 					<p class="text-fg">{item.question}</p>
 					<p class="text-fg-muted text-meta mt-1 flex flex-wrap items-center gap-x-2 gap-y-1">
 						{#if item.layer !== null}
@@ -190,6 +191,12 @@
 						{/if}
 						<span>{item.reason} · {item.effort}</span>
 					</p>
+					<!-- The RCOS text this answers, so the question can be checked against it. -->
+					<CitedClauses
+						cites={item.cites}
+						hrefFor={(ref) => links.clause(slug, ref)}
+						class="text-meta mt-1"
+					/>
 
 					{#if item.override}
 						<p class="text-fg-secondary text-meta mt-1">
@@ -211,7 +218,7 @@
 					{/if}
 				</div>
 
-				<div class="flex flex-none items-center gap-1">
+				<div class="ml-auto flex flex-none items-center gap-1">
 					{#if data.can.reorder}
 						<form method="POST" action="?/place" use:enhance>
 							<input type="hidden" name="sectionKey" value={item.sectionKey} />
@@ -269,9 +276,7 @@
 					<a
 						href={item.discussionId
 							? links.discussion(slug, item.discussionId)
-							: item.clauseKey
-								? links.startDiscussion(slug, item.clauseKey, item.question)
-								: links.discussions(slug)}
+							: links.startDiscussion(slug, item.start, item.question)}
 						title={item.discussionId ? m.path_open_discussion() : m.path_start_discussion()}
 						class={item.discussionId
 							? 'border-border hover:border-border-strong text-fg inline-flex h-8 items-center gap-1.5 rounded-(--radius-control) border px-2.5 whitespace-nowrap'

@@ -105,7 +105,10 @@
 									value came from, so it cannot see that.
 								-->
 								<a
-									href={links.startDiscussion(slug, clause.key)}
+									href={links.startDiscussion(slug, {
+										sectionKey: clause.sectionKey,
+										clauseKey: clause.key
+									})}
 									class="text-fg underline underline-offset-2">Start the discussion</a
 								>
 								<!-- eslint-enable svelte/no-navigation-without-resolve -->

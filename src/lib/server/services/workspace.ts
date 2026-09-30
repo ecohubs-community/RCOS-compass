@@ -20,6 +20,7 @@ import {
 	type ScanStatus
 } from './mapping-state.js';
 import { personLabel } from './person.js';
+import { standardName } from './requirement.js';
 import type { Normativity } from '../standard/types.js';
 
 /**
@@ -174,8 +175,6 @@ const NO_COUNTS: Omit<DocumentCounts, 'documentId'> = {
 	confirmedClaims: 0
 };
 
-const STANDARD_NAMES: Record<string, string> = { 'rcos-core': 'RCOS-Core' };
-
 export function workspaceView(
 	ctx: Ctx,
 	documentId: string,
@@ -282,7 +281,7 @@ export function workspaceView(
 
 	const requirements: Record<string, Requirement> = {};
 	if (standard) {
-		const name = `${STANDARD_NAMES[standard.view.meta.standard] ?? standard.view.meta.standard} v${standard.view.meta.version}`;
+		const name = standardName(standard.view);
 		for (const card of cards) {
 			const clause = standard.view.clause(card.clauseKey);
 			if (!clause || requirements[clause.key]) continue;

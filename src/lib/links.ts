@@ -11,6 +11,9 @@ import { resolve } from '$app/paths';
 export const links = {
 	dashboard: (slug: string) => resolve('/(app)/c/[slug]', { slug }),
 	standard: (slug: string) => resolve('/(app)/c/[slug]/standard', { slug }),
+	/** One clause in the standard browser — the anchor it already renders. */
+	clause: (slug: string, ref: string) =>
+		`${resolve('/(app)/c/[slug]/standard', { slug })}#clause-${ref}`,
 	discussions: (slug: string) => resolve('/(app)/c/[slug]/discussions', { slug }),
 	/**
 	 * The same page with the clause already in the box — and, when the link comes
@@ -22,9 +25,17 @@ export const links = {
 	 * clicked. It is a default rather than a decision — the field is still a
 	 * field, and it arrives editable.
 	 */
-	startDiscussion: (slug: string, clauseKey: string, title?: string) => {
-		const url = `${resolve('/(app)/c/[slug]/discussions', { slug })}?clause=${encodeURIComponent(clauseKey)}`;
-		return title ? `${url}&title=${encodeURIComponent(title)}` : url;
+	startDiscussion: (
+		slug: string,
+		start: { sectionKey: string; clauseKey: string | null },
+		title?: string
+	) => {
+		// The section always: it is what the thread answers, and 28 sections own
+		// no clause to name instead. The clause when there is one, prefilled.
+		const query = new URLSearchParams({ section: start.sectionKey });
+		if (start.clauseKey) query.set('clause', start.clauseKey);
+		if (title) query.set('title', title);
+		return `${resolve('/(app)/c/[slug]/discussions', { slug })}?${query}`;
 	},
 	discussion: (slug: string, id: string) =>
 		resolve('/(app)/c/[slug]/discussions/[id]', { slug, id }),

@@ -1,7 +1,7 @@
 import { fail, redirect } from '@sveltejs/kit';
 import { getDb } from '$lib/server/db';
 import { listDiscussionSummaries, openDiscussion } from '$lib/server/services/discussions';
-import { activeStandardView } from '$lib/server/services/completeness';
+import { activeStandardView, sectionOf } from '$lib/server/services/completeness';
 import { ctxCan } from '$lib/server/auth/guard';
 import type { Actions, PageServerLoad } from './$types';
 
@@ -43,6 +43,13 @@ export const load: PageServerLoad = ({ locals, url }) => {
 	const now = ctx.now();
 	const all = listDiscussionSummaries(ctx, { db }).map((thread) => {
 		const clause = thread.clauseKey ? standard?.view.clause(thread.clauseKey) : undefined;
+		// A thread started on a section that owns no clause still has a layer.
+		const section = standard ? sectionOf(standard.view, thread) : null;
+		const layer =
+			clause?.layer ??
+			(section && standard
+				? (standard.view.artifact(standard.view.section(section)?.artifact ?? '')?.layer ?? null)
+				: null);
 		return {
 			id: thread.id,
 			title: thread.title,
@@ -55,8 +62,8 @@ export const load: PageServerLoad = ({ locals, url }) => {
 			people: thread.people,
 			last: thread.last,
 			/** `L1 · Membership`, the way every other screen says it. */
-			layer: clause?.layer ?? null,
-			layerName: clause ? (layerNames.get(clause.layer) ?? null) : null,
+			layer,
+			layerName: layer === null ? null : (layerNames.get(layer) ?? null),
 			clauseRef: clause?.ref ?? null,
 			quietDays: Math.floor((now - thread.lastActivityAt) / 86_400_000)
 		};
@@ -96,7 +103,13 @@ export const load: PageServerLoad = ({ locals, url }) => {
 		// already chosen, so neither the clause nor the title should have to be
 		// typed again. Both are suggestions in editable fields — the thread is the
 		// community's, not the Path's.
-		clauseKey: url.searchParams.get('clause') ?? '',
+		// Shown as the reference members read in the standard browser, not the
+		// stable key; the service accepts either.
+		clauseKey: (() => {
+			const typed = url.searchParams.get('clause') ?? '';
+			return (typed && standard?.view.clause(typed)?.ref) || typed;
+		})(),
+		sectionKey: url.searchParams.get('section') ?? '',
 		title: url.searchParams.get('title') ?? ''
 	};
 };
@@ -106,6 +119,7 @@ export const actions: Actions = {
 		const form = await event.request.formData();
 		const title = String(form.get('title') ?? '').trim();
 		const clauseKey = String(form.get('clauseKey') ?? '').trim();
+		const sectionKey = String(form.get('sectionKey') ?? '').trim();
 		const origin = form.get('origin') === 'offline' ? ('offline' as const) : ('clause' as const);
 
 		if (!title) return fail(400, { error: 'Give the discussion a title.' });
@@ -119,7 +133,14 @@ export const actions: Actions = {
 					// The field says optional, so an empty one opens a thread about an
 					// open question rather than one about a clause called "unassigned"
 					// — which no standard contains, and which no freeze could resolve.
-					about: clauseKey ? { kind: 'clause', clauseKey } : { kind: 'open_question' },
+					// Started from a Path item: the section it answers, with whatever
+					// is in the clause box now — the service keeps the section only
+					// while that clause still belongs to it.
+					about: sectionKey
+						? { kind: 'section', sectionKey, clauseKey: clauseKey || null }
+						: clauseKey
+							? { kind: 'clause', clauseKey }
+							: { kind: 'open_question' },
 					origin
 				},
 				{ db: getDb() }

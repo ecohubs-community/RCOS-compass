@@ -42,8 +42,11 @@ export const load: PageServerLoad = ({ locals, url }) => {
 			])
 	);
 
+	// Every clause a section owns, MAY and INFORMATIVE included: each ref is the
+	// anchor a clause link lands on (`links.clause`), and a Path item citing
+	// §2.1.5 has to find it here.
 	const refsBySection = new Map<string, string[]>();
-	for (const clause of standard.view.countableClauses()) {
+	for (const clause of standard.view.clauses) {
 		if (!clause.owner) continue;
 		refsBySection.set(clause.owner, [...(refsBySection.get(clause.owner) ?? []), clause.ref]);
 	}

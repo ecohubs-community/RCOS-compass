@@ -3,7 +3,6 @@
 ## Purpose
 Defines how standard content is loaded and validated as data: a clause is identified by standard, version and reference; every MUST clause has one owning section or an explicit disposition; every section says whether a community writes it; completeness and readiness count only what a community is actually asked to answer; and the loader serves many standards, versions and locales from a vendored copy pinned to its published source.
 ## Requirements
-
 ### Requirement: A clause is identified by standard, version and reference
 
 A clause reference MUST be the triple `(standard_id, version, ref)`. A bare
@@ -157,3 +156,19 @@ rather than rendering empty.
 - **WHEN** a locale lacks a translation for one clause
 - **THEN** the default-locale text is returned for that clause
 - **AND** the result records that it is a fallback
+
+### Requirement: Every authored section carries a plain-language question
+
+The content check MUST fail when an authored section of a vendored standard has
+no annotation, or an annotation with an empty question. An annotation for a
+section that is not authored MUST still be accepted, since the Path never shows
+it.
+
+#### Scenario: An authored section loses its annotation
+- **WHEN** `exit-protocol.voluntary-exit` is removed from `annotations.yaml`
+- **THEN** `pnpm check:standard` fails, naming that section
+
+#### Scenario: Every authored section is annotated
+- **WHEN** `pnpm check:standard` runs against the vendored RCOS-Core 0.1
+- **THEN** it passes
+

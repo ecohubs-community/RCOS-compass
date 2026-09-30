@@ -25,9 +25,15 @@
 # else, so the order of the Path is exactly what it was. Sharpening effort and
 # dependencies for these layers is its own piece of work, with its own argument.
 #
-# Annotations are optional: a section without one still loads and is still
-# answerable. It simply appears in the Path with its template title instead of a
-# question.
+# Every authored section must have one — `pnpm check:standard` fails otherwise.
+# The loader still falls back to the template title, so a section without one
+# would load; the check is what keeps a heading off the Path.
+#
+# A question must cover what the clauses its section owns require, and must not
+# ask about what another section owns. The Path cites those clauses beside it,
+# so a question that drifts from them is visible to anyone reading the item —
+# that is how "what happens to their things?" was caught on Voluntary Exit,
+# where the things are Asset, Role, and Responsibility Separation's (§3.6.5).
 
 sections:
   # ---- Layer 0 · Identity & Scope -----------------------------------------
@@ -38,7 +44,7 @@ sections:
     dependsOn: []
 
   purpose-charter.secondary-purposes:
-    question: What else do we do, that matters but is not the reason we exist?
+    question: What else do we pursue that matters — without competing with why we exist?
     effort: one_meeting
     dependsOn: [purpose-charter.primary-purpose]
 
@@ -93,7 +99,7 @@ sections:
     dependsOn: [invariants-register.active-invariants]
 
   identity-constraints-register.active-identity-constraints:
-    question: What do we require of people who live or take part here?
+    question: What non-negotiables shape how people take part, behave and govern here?
     effort: a_series
     dependsOn: [purpose-charter.primary-purpose, invariants-register.active-invariants]
 
@@ -103,7 +109,7 @@ sections:
     dependsOn: [identity-constraints-register.active-identity-constraints]
 
   identity-constraints-register.conditions-for-change:
-    question: How do these requirements change, and who decides?
+    question: How are our non-negotiables changed and ratified — and can every member always read the current version?
     effort: one_conversation
     dependsOn: [identity-constraints-register.active-identity-constraints]
 
@@ -115,7 +121,7 @@ sections:
   # ---- Layer 1 · Membership ------------------------------------------------
 
   membership-state-registry.defined-membership-states:
-    question: What kinds of member are there here, and what can each of them do?
+    question: What kinds of member are there — at least applicant, trial, full and former — and what may and must each of them do?
     effort: one_meeting
     dependsOn: [purpose-charter.primary-purpose]
 
@@ -125,7 +131,7 @@ sections:
     dependsOn: [membership-state-registry.defined-membership-states]
 
   onboarding-protocol.admission-criteria:
-    question: Who can join, and who decides?
+    question: Who can join, on which written criteria — so nobody becomes a member just by being around?
     effort: a_series
     dependsOn: [membership-state-registry.defined-membership-states]
 
@@ -140,12 +146,12 @@ sections:
     dependsOn: [membership-state-registry.defined-membership-states]
 
   onboarding-protocol.trial-and-evaluation:
-    question: How long is someone new on trial, and who says when it ends?
+    question: How long is someone new on trial, what are they judged on, who decides — and what happens if it does not work out?
     effort: one_meeting
     dependsOn: [onboarding-protocol.initial-membership-state]
 
   onboarding-protocol.completion-record:
-    question: How do we record that someone has finished joining?
+    question: How do we record that someone has finished joining — and can every member read the rules they agreed to?
     effort: one_conversation
     dependsOn: [onboarding-protocol.onboarding-steps]
 
@@ -160,7 +166,7 @@ sections:
     dependsOn: [membership-state-registry.defined-membership-states]
 
   membership-agreement.member-rights:
-    question: What can every member count on, that nobody can quietly take away?
+    question: What can each kind of member count on, in proportion to what we ask of them?
     effort: one_meeting
     dependsOn: [membership-state-registry.defined-membership-states]
 
@@ -170,7 +176,7 @@ sections:
     dependsOn: [membership-agreement.member-rights]
 
   membership-agreement.participation-and-contribution-expectations:
-    question: What counts as contributing here, and how much is enough?
+    question: What counts as taking part, how much is enough, may someone send a stand-in — and what happens when someone stops?
     effort: a_series
     dependsOn: [membership-agreement.member-obligations]
 
@@ -190,7 +196,7 @@ sections:
     dependsOn: [membership-agreement.member-rights]
 
   exit-protocol.voluntary-exit:
-    question: Can someone leave at any time — and what happens to their things?
+    question: How can someone leave whenever they choose — without being punished for it, or losing more than their membership?
     effort: one_meeting
     dependsOn: [membership-state-registry.defined-membership-states]
 
@@ -200,12 +206,12 @@ sections:
     dependsOn: [exit-protocol.voluntary-exit, membership-agreement.due-process-reference]
 
   exit-protocol.suspension:
-    question: Can someone be paused rather than removed — for how long, and reviewed by whom?
+    question: Can someone be paused rather than removed — for how long, reviewed by whom, and never as a punishment in disguise?
     effort: one_meeting
     dependsOn: [exit-protocol.forced-exit]
 
   exit-protocol.asset-role-and-responsibility-separation:
-    question: When someone leaves, who takes over their roles and how is money settled?
+    question: When someone leaves, what happens to their roles, tasks, access and anything they hold for us — agreed before anyone leaves?
     effort: one_meeting
     dependsOn: [exit-protocol.voluntary-exit]
 
@@ -217,7 +223,7 @@ sections:
   # ---- Layer 2 · Governance ------------------------------------------------
 
   authority-registry.registered-authorities:
-    question: Who is allowed to decide what — and where does each person's authority stop?
+    question: Who may decide what, where does it stop, for how long — and who may act in an emergency?
     effort: one_meeting
     dependsOn: []
 
@@ -227,7 +233,7 @@ sections:
     dependsOn: []
 
   decision-matrix.voting-principles:
-    question: For each kind of decision, who gets a say and what counts as agreement?
+    question: For each kind of decision, who gets a say, what counts as agreement, who can block it, and how long does it stay open?
     effort: one_meeting
     dependsOn: []
 
@@ -267,7 +273,7 @@ sections:
     dependsOn: []
 
   governance-protocol.safeguards-and-failure-modes:
-    question: What stops decision-making quietly collecting in the same few hands?
+    question: What stops power collecting in a few hands, lets anyone challenge a decision safely, and forces a review when governance keeps failing?
     effort: one_meeting
     dependsOn: []
 
@@ -285,7 +291,7 @@ sections:
     dependsOn: []
 
   internal-economy-protocol.contribution-recognition-mechanism:
-    question: How does a contribution actually get recognised, and by whom?
+    question: How does a contribution get recognised, who can contest it, and what does recognition unlock — never extra say?
     effort: one_meeting
     dependsOn: []
 
@@ -295,7 +301,7 @@ sections:
     dependsOn: []
 
   internal-economy-protocol.accumulation-constraints:
-    question: What stops one person accumulating enough to steer everything?
+    question: What stops one person accumulating enough to steer everything — and how would we notice?
     effort: one_meeting
     dependsOn: []
 
@@ -320,7 +326,7 @@ sections:
     dependsOn: []
 
   treasury-ruleset.spending-authority:
-    question: Who can spend how much without asking anyone, and who approves the rest?
+    question: Who can spend how much without asking, who approves the rest, and how is every spend recorded?
     effort: one_meeting
     dependsOn: []
 
@@ -363,7 +369,7 @@ sections:
     dependsOn: []
 
   accountability-protocol.sanction-and-repair-options:
-    question: What can actually happen as a consequence — and what does repair look like?
+    question: What consequences can follow, how are they kept proportionate and open to appeal — and how does repair come before punishment?
     effort: one_meeting
     dependsOn: []
 
@@ -378,7 +384,7 @@ sections:
     dependsOn: []
 
   conflict-resolution-ladder.conflict-classification:
-    question: What kinds of conflict do we have names for, so nobody has to invent one mid-argument?
+    question: What kinds of conflict do we have names for, so nobody invents one mid-argument — and which are safety-critical?
     effort: one_meeting
     dependsOn: []
 
@@ -403,7 +409,7 @@ sections:
     dependsOn: []
 
   conflict-resolution-ladder.safeguards:
-    question: What changes when the two people in a conflict do not have equal power?
+    question: What changes when the people in a conflict do not have equal power — or when someone is not safe?
     effort: one_meeting
     dependsOn: []
 
@@ -441,7 +447,7 @@ sections:
     dependsOn: []
 
   operations-manual.workload-boundaries:
-    question: How much can we ask of one person before it is too much, and who gets to say so?
+    question: How much time, meeting and care can we ask of one person — and what happens when someone is overloaded?
     effort: one_meeting
     dependsOn: []
 
@@ -456,7 +462,7 @@ sections:
     dependsOn: []
 
   operations-manual.documentation-locations-and-update-procedures:
-    question: Where do we write things down, and how does anyone know they are reading the current version?
+    question: What do we write down, where, and who may read it — and can every decision be traced to who made it and how?
     effort: one_meeting
     dependsOn: []
 
@@ -494,7 +500,7 @@ sections:
     dependsOn: []
 
   change-protocol.how-proposals-are-classified:
-    question: How do we tell a small adjustment from a change to who we are?
+    question: How do we tell a small adjustment from a change to who we are — and a permanent change from an experiment?
     effort: one_meeting
     dependsOn: []
 
@@ -514,7 +520,7 @@ sections:
     dependsOn: []
 
   change-protocol.transition-and-migration:
-    question: When a rule changes, what happens to the situations already running under the old one?
+    question: What extra care does a change that is hard to undo need — and what happens to what is already running under the old rule?
     effort: one_meeting
     dependsOn: []
 

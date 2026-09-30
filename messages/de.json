@@ -384,5 +384,16 @@
 	"discussions_last_opened": "Eröffnet {when}",
 	"discussions_last_replied": "{who} hat {when} geantwortet",
 	"discussions_last_proposed": "{who} hat {when} v{version} vorgeschlagen",
-	"discussions_last_meeting": "{who} hat {when} ein Treffen protokolliert"
+	"discussions_last_meeting": "{who} hat {when} ein Treffen protokolliert",
+	"clause_refs_label": "RCOS",
+	"clause_refs_related": "verwandt",
+	"requirement_heading": "Die Anforderung",
+	"requirement_why": "Warum es wichtig ist",
+	"requirement_what": "Was hier festzulegen ist",
+	"requirement_not_here": "Was hier NICHT festzulegen ist",
+	"requirement_not_here_intro": "Der Standard ordnet das anderen Abschnitten zu:",
+	"requirement_owned_none": "Dieser Abschnitt beantwortet keine eigene Klausel. Er vervollständigt seine Vorlage; die Klauseln unten sind solche, auf die er sich stützt.",
+	"requirement_close": "Schließen",
+	"requirement_opened": "geöffnet",
+	"requirement_sheet_title": "Die RCOS-Anforderung"
 }

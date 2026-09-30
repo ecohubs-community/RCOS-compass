@@ -334,6 +334,26 @@ describe('the vendored copy is pinned to its source', () => {
 		}
 	});
 
+	it('fails when an authored section has no question, and names it', () => {
+		// annotations.yaml is Compass's own file, outside the manifest, so this
+		// trips the annotation rule and nothing else.
+		const file = join(standardRoot, 'rcos-core', '0.1', 'annotations.yaml');
+		const original = readFileSync(file, 'utf8');
+		const parsed = yaml.load(original) as { sections: Record<string, unknown> };
+		delete parsed.sections['exit-protocol.voluntary-exit'];
+		writeFileSync(file, yaml.dump(parsed, { lineWidth: 100, noRefs: true, sortKeys: false }));
+		try {
+			run();
+			expect.unreachable('the annotation check should have failed');
+		} catch (error) {
+			const output = String((error as { stdout?: string; stderr?: string }).stderr ?? '');
+			expect(output).toContain('exit-protocol.voluntary-exit: authored, but has no annotation');
+			expect(output).not.toContain('does not match the published hash');
+		} finally {
+			writeFileSync(file, original);
+		}
+	});
+
 	it('fails when a vendored file is edited by hand', () => {
 		const file = join(standardRoot, 'rcos-core', '0.1', 'meta.yaml');
 		const original = readFileSync(file, 'utf8');
