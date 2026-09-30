@@ -16,6 +16,7 @@ import { fail } from '@sveltejs/kit';
 import { aiAvailability } from '$lib/server/ai/run';
 import { lintWithAssist } from '$lib/server/services/linting';
 import type { Actions, PageServerLoad } from './$types';
+import { requirementFor } from '$lib/server/services/requirement';
 
 /**
  * The definition detail — the hero screen. UI spec §4.3.
@@ -49,11 +50,6 @@ export const load: PageServerLoad = ({ locals, params }) => {
 			? standard.view.localise(section.i18n, ctx.community.locale as 'en').value
 			: null;
 
-	const clauses =
-		section && standard
-			? standard.view.countableClauses().filter((clause) => clause.owner === section.key)
-			: [];
-
 	return {
 		definition: {
 			id: found.id,
@@ -65,17 +61,8 @@ export const load: PageServerLoad = ({ locals, params }) => {
 			attachedTo: found.attachRcosArtifactKey
 		},
 		/** The left column: null for a local definition, by design. */
-		requirement: section &&
-			standard && {
-				artifact: section.artifact,
-				refs: clauses.map((clause) => clause.ref),
-				text: clauses.map((clause) => ({
-					ref: clause.ref,
-					body: standard.view.clauseText(clause, ctx.community.locale as 'en').value
-				})),
-				whyItMatters: localised?.whyItMatters ?? null,
-				whatToDefine: localised?.whatToDefine ?? null
-			},
+		requirement:
+			section && standard ? requirementFor(standard.view, section.key, ctx.community.locale) : null,
 		version: version && {
 			n: version.n,
 			body: parseMarkdown(version.body),

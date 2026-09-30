@@ -1,10 +1,10 @@
-import { and, eq, isNotNull, lt } from 'drizzle-orm';
+import { and, desc, eq, isNotNull, lt } from 'drizzle-orm';
 import { requirePermission, type Ctx } from '../auth/guard.js';
 import { getDb, type Db } from '../db/index.js';
 import { definition } from '../db/schema/definitions.js';
 import { discussion } from '../db/schema/discussions.js';
 import type { Effort } from '../standard/types.js';
-import { activeStandardView, answeredSections } from './completeness.js';
+import { activeStandardView, answeredSections, sectionOf } from './completeness.js';
 import {
 	activeWeights,
 	applyOverrides,
@@ -16,6 +16,7 @@ import {
 	type Weights
 } from './ordering.js';
 import { getRiskProfile } from './risk-profile.js';
+import { citedClauses, questionFor, type CitedClause } from './requirement.js';
 
 /**
  * What a community still has to decide, in an order that is not arbitrary.
@@ -53,9 +54,20 @@ export type PathItem = {
 	score: number;
 	/** Set when the community moved this one by hand. Both positions, always. */
 	override: Override | null;
-	/** The clause a new discussion about this should be filed against. */
-	clauseKey: string | null;
-	/** An open discussion already exists for it. */
+	/**
+	 * Every clause the section cites: those it owns first, then those it only
+	 * references, each in the standard's order. What a reader checks the
+	 * question against — a Path item that named one clause of three is how a
+	 * question drifted from its clauses without anyone seeing it.
+	 */
+	cites: CitedClause[];
+	/**
+	 * What "Start discussion" files the thread against: always the section, and
+	 * its first countable clause when it owns one. 28 sections own none, and
+	 * used to offer nothing to start.
+	 */
+	start: { sectionKey: string; clauseKey: string | null };
+	/** An open discussion already answers this section. */
 	discussionId: string | null;
 };
 
@@ -86,15 +98,23 @@ export function path(
 	if (!standard) return [];
 
 	const answered = answeredSections(db, standard.row.id);
-	const openThreads = new Map(
-		db
-			.select()
-			.from(discussion)
-			.where(and(eq(discussion.communityId, ctx.community.id), eq(discussion.status, 'open')))
-			.all()
-			.filter((thread) => thread.clauseKey !== null)
-			.map((thread) => [thread.clauseKey!, thread.id])
-	);
+	/**
+	 * Open threads by the section they answer, through `sectionOf` — the same
+	 * rule the freeze uses. Keyed by clause, a thread on a clause two sections
+	 * cite (voluntary exit owns §3.6.4, forced exit references it) could be
+	 * offered as either's, and a thread for a section owning no clause could
+	 * never be found at all. The newest activity wins when there are two.
+	 */
+	const openBySection = new Map<string, string>();
+	for (const thread of db
+		.select()
+		.from(discussion)
+		.where(and(eq(discussion.communityId, ctx.community.id), eq(discussion.status, 'open')))
+		.orderBy(desc(discussion.lastActivityAt))
+		.all()) {
+		const sectionKey = sectionOf(standard.view, thread);
+		if (sectionKey && !openBySection.has(sectionKey)) openBySection.set(sectionKey, thread.id);
+	}
 
 	/**
 	 * Every clause a section owns, not only its first.
@@ -140,15 +160,12 @@ export function path(
 				sectionKey: section.key,
 				artifactKey: section.artifact,
 				layer: artifact?.layer ?? null,
-				question:
-					annotation?.question ??
-					standard.view.localise(section.i18n, ctx.community.locale as 'en').value.title,
+				question: questionFor(standard.view, section.key, ctx.community.locale),
 				effort: annotation?.effort ?? ('one_meeting' as Effort),
 				reason: reasonFrom(scored.contributions),
-				// What a "Start discussion" link should file the thread against.
-				clauseKey: ownedClauses[0] ?? null,
-				discussionId:
-					ownedClauses.map((key) => openThreads.get(key)).find((id) => id !== undefined) ?? null,
+				cites: citedClauses(standard.view, section.key),
+				start: { sectionKey: section.key, clauseKey: ownedClauses[0] ?? null },
+				discussionId: openBySection.get(section.key) ?? null,
 				contributions: scored.contributions,
 				score: scored.score
 			};

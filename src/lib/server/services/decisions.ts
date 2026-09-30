@@ -22,7 +22,12 @@ import { discussion, post } from '../db/schema/discussions.js';
 import { isCurrentShape } from '../../shared/linter.js';
 import { countUnresolved } from './objections.js';
 import { proposalToFreeze } from './discussions.js';
-import { activeStandardView, DECISION_MATRIX, isArtifactComplete } from './completeness.js';
+import {
+	activeStandardView,
+	DECISION_MATRIX,
+	isArtifactComplete,
+	sectionOf
+} from './completeness.js';
 import { enqueue } from '../jobs/queue.js';
 import { activeMemberships, notify } from './notifications.js';
 import { getSearchIndex } from '../search/index.js';
@@ -481,10 +486,12 @@ type FreezeTarget = {
 /**
  * What this freeze adopts.
  *
- * A thread opened on a definition adopts that definition. A thread opened on a
- * *clause* adopts the definition of the section that owns it — creating it if
- * this is the first time anyone answered that section, which is the whole "see
- * the gap → decide it" loop.
+ * A thread opened on a definition adopts that definition. Otherwise it adopts
+ * the definition of the section it answers — the one it names, or the owner of
+ * its clause — creating it if this is the first time anyone answered that
+ * section, which is the whole "see the gap → decide it" loop. A section that
+ * owns no countable clause adopts with no clauses: it completes its artifact
+ * and moves no readiness number.
  */
 function resolveDefinition(
 	tx: Db,
@@ -504,14 +511,25 @@ function resolveDefinition(
 		};
 	}
 
-	if (!thread.clauseKey) error(409, 'This discussion is not about anything that can be decided.');
+	if (!thread.clauseKey && !thread.sectionKey) {
+		error(409, 'This discussion is not about anything that can be decided.');
+	}
 
-	const clause =
-		standard.view.clause(thread.clauseKey) ?? standard.view.clauseByRef(thread.clauseKey);
-	if (!clause) error(409, 'That clause is not part of the standard this community adopted.');
-	if (!clause.owner) {
+	const clause = thread.clauseKey
+		? (standard.view.clause(thread.clauseKey) ?? standard.view.clauseByRef(thread.clauseKey))
+		: undefined;
+	if (thread.clauseKey && !clause) {
+		error(409, 'That clause is not part of the standard this community adopted.');
+	}
+	// The section the thread names, else the clause's owner — `sectionOf`, the
+	// rule the Path uses to decide which item this thread belongs to.
+	const sectionKey = sectionOf(standard.view, thread);
+	if (!sectionKey) {
 		error(409, 'That clause is not answered by a section, so there is nothing to define.');
 	}
+	const section = standard.view.section(sectionKey);
+	if (!section) error(409, 'That section is not part of the standard this community adopted.');
+	const layer = clause?.layer ?? standard.view.artifact(section.artifact)?.layer ?? null;
 
 	const existing = tx
 		.select()
@@ -519,7 +537,7 @@ function resolveDefinition(
 		.where(
 			and(
 				eq(definition.communityStandardId, standard.row.id),
-				eq(definition.sectionKey, clause.owner)
+				eq(definition.sectionKey, sectionKey)
 			)
 		)
 		.get();
@@ -527,8 +545,8 @@ function resolveDefinition(
 	if (existing) {
 		return {
 			definitionRow: existing,
-			layer: existing.layer ?? clause.layer,
-			clauses: clausesOwnedBy(standard.view, clause.owner)
+			layer: existing.layer ?? layer,
+			clauses: clausesOwnedBy(standard.view, sectionKey)
 		};
 	}
 
@@ -539,9 +557,9 @@ function resolveDefinition(
 			communityId: ctx.community.id,
 			scope: 'standard',
 			communityStandardId: standard.row.id,
-			sectionKey: clause.owner,
+			sectionKey,
 			title: null,
-			layer: clause.layer,
+			layer,
 			purpose: null,
 			attachKind: null,
 			attachRcosArtifactKey: null,
@@ -569,8 +587,8 @@ function resolveDefinition(
 
 	return {
 		definitionRow: tx.select().from(definition).where(eq(definition.id, id)).get()!,
-		layer: clause.layer,
-		clauses: clausesOwnedBy(standard.view, clause.owner)
+		layer,
+		clauses: clausesOwnedBy(standard.view, sectionKey)
 	};
 }
 

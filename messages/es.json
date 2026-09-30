@@ -384,5 +384,16 @@
 	"discussions_last_opened": "Abierto {when}",
 	"discussions_last_replied": "{who} respondió {when}",
 	"discussions_last_proposed": "{who} propuso v{version} {when}",
-	"discussions_last_meeting": "{who} redactó una reunión {when}"
+	"discussions_last_meeting": "{who} redactó una reunión {when}",
+	"clause_refs_label": "RCOS",
+	"clause_refs_related": "relacionado",
+	"requirement_heading": "El requisito",
+	"requirement_why": "Por qué importa",
+	"requirement_what": "Qué definir aquí",
+	"requirement_not_here": "Qué NO definir aquí",
+	"requirement_not_here_intro": "El estándar asigna esto a otras secciones:",
+	"requirement_owned_none": "Esta sección no responde a ninguna cláusula propia. Completa su plantilla; las cláusulas de abajo son las que utiliza.",
+	"requirement_close": "Cerrar",
+	"requirement_opened": "abierta",
+	"requirement_sheet_title": "El requisito de RCOS"
 }

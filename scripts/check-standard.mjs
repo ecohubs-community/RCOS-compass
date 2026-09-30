@@ -171,11 +171,21 @@ for (const { id, version } of manifest.standards ?? []) {
 
 	// --- 3. Compass's annotations -------------------------------------------
 	//
-	// Optional, but a broken one is worse than none: a Path item pointing at a
-	// section that does not exist, or an ordering edge into nothing.
+	// Every authored section needs a question: without one the Path shows a
+	// template heading ("Entry Format") where a community has to recognise its
+	// own situation. And a broken annotation is worse than none — a Path item
+	// pointing at a section that does not exist, or an ordering edge into
+	// nothing.
 	const annotationsFile = join(STANDARD_DIR, id, version, 'annotations.yaml');
-	if (existsSync(annotationsFile)) {
-		const annotations = (yaml.load(readFileSync(annotationsFile, 'utf8')) ?? {}).sections ?? {};
+	const annotations = existsSync(annotationsFile)
+		? ((yaml.load(readFileSync(annotationsFile, 'utf8')) ?? {}).sections ?? {})
+		: {};
+	for (const section of sections.filter((s) => s.disposition === 'authored')) {
+		if (!annotations[section.key]) {
+			note(`${id}@${version} ${section.key}: authored, but has no annotation with a question.`);
+		}
+	}
+	{
 		const efforts = new Set(['one_conversation', 'one_meeting', 'a_series']);
 		for (const [key, annotation] of Object.entries(annotations)) {
 			if (!sectionKeys.has(key)) {

@@ -19,7 +19,8 @@ import {
 	currentProposal,
 	mentionDirectory,
 	setCurrentProposal,
-	takeOffline
+	takeOffline,
+	threadRequirement
 } from '$lib/server/services/discussions';
 import { listObjections, resolveObjection } from '$lib/server/services/objections';
 import { isArtifactComplete, DECISION_MATRIX } from '$lib/server/services/completeness';
@@ -167,11 +168,16 @@ export const load: PageServerLoad = ({ locals, params, url }) => {
 			title: thread.title,
 			status: thread.status,
 			origin: thread.origin,
-			clauseKey: thread.clauseKey,
 			currentProposalPostId: thread.currentProposalPostId,
 			decidedRef: inForce?.ref ?? null,
 			decidedTitle: inForce?.title ?? null
 		},
+		/**
+		 * The RCOS text this thread answers: the header's references, and the
+		 * sheet each opens. Loaded with the page — a few clauses — so the sheet
+		 * opens without a round trip.
+		 */
+		requirement: threadRequirement(ctx, thread, { db }),
 		/** Names for `@M-0142` in the thread, and who the composer can offer. */
 		mentions,
 		posts: posts.map((entry) => ({
