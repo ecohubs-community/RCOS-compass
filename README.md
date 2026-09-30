@@ -119,6 +119,7 @@ variable, rather than start wrong (`src/lib/server/config.ts`).
 | `UPLOAD_DIR` | `/absolute/path/data/uploads`, beside the database |
 | `SMTP_URL`, `MAIL_FROM` | not checked at boot, but verification links are the only way in; without mail nobody can sign up |
 | `ADMIN_EMAILS` | platform admins; empty means no admin console |
+| `CONTACT_EMAIL` | the address the landing page's "Request pilot access" and Contact links write to; empty hides them |
 
 Everything else (AI provider, upload and rate limits, log level) has a default;
 `.env.example` lists and explains every variable.

@@ -43,6 +43,21 @@ test.describe('sign-in', () => {
 	});
 });
 
+test.describe('an account without an invitation', () => {
+	test('cannot be made through the library’s public sign-up', async ({ request }) => {
+		// Invitation-only: the invitation page is the one place an account is
+		// made. tests/integration/closed-sign-up.test.ts has the magic-link half.
+		const response = await request.post('/api/auth/sign-up/email', {
+			data: {
+				email: `stranger-${Date.now()}@example.org`,
+				password: 'a-long-enough-password',
+				name: 'Stranger'
+			}
+		});
+		expect(response.status()).toBe(404);
+	});
+});
+
 test.describe('the two-factor challenge', () => {
 	test('sends you back to the start when no sign-in is in flight', async ({ page }) => {
 		await page.goto('/sign-in/two-factor');

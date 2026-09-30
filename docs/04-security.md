@@ -137,6 +137,12 @@ The single highest-severity risk. Defence in depth:
   different email address fails. The invited role is validated against the two
   real roles — an invitation naming `owner` is rejected, because owner is a flag
   and moving it is a separate, deliberate act.
+- **No account without an invitation.** The invitation page is the only place
+  an account is made, through the library's server API. better-auth's public
+  `/api/auth/sign-up/*` answers 404 at the route (turning sign-up off in the
+  library would also refuse the server call the invitation page makes), and the
+  magic-link plugin runs with `disableSignUp`, so a link sent to an unknown
+  address signs nobody in. `tests/integration/closed-sign-up.test.ts`.
 - TOTP two-factor is available to all users and **required for platform admins**
   (§6). Post-MVP: required-2FA policy per community.
 - CSRF: SvelteKit's origin check on form actions stays on; any `+server.ts` that

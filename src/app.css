@@ -41,6 +41,100 @@
 }
 
 /*
+ * The public site's three families (the landing page, and nothing inside the
+ * app): Hanken Grotesk for text, Newsreader for headings, JetBrains Mono for
+ * references. Served from our own origin for the same reason as Inter, and the
+ * same way — variable web builds from Google Fonts' css2 delivery, subset to
+ * Latin and Latin Extended. Newsreader is fetched without its optical-size axis:
+ * 58 kB instead of 132 kB for the Latin face, and the headings do not miss it.
+ * All three are SIL Open Font License 1.1 — see static/fonts/README.md.
+ */
+@font-face {
+	font-family: 'Hanken Grotesk';
+	font-style: normal;
+	font-weight: 400 700;
+	font-display: swap;
+	src: url('/fonts/hanken-grotesk-v12-latin.woff2') format('woff2');
+	unicode-range:
+		U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329,
+		U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+	font-family: 'Hanken Grotesk';
+	font-style: normal;
+	font-weight: 400 700;
+	font-display: swap;
+	src: url('/fonts/hanken-grotesk-v12-latin-ext.woff2') format('woff2');
+	unicode-range:
+		U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329,
+		U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F,
+		U+A720-A7FF;
+}
+@font-face {
+	font-family: 'Newsreader';
+	font-style: normal;
+	font-weight: 400 500;
+	font-display: swap;
+	src: url('/fonts/newsreader-v26-latin.woff2') format('woff2');
+	unicode-range:
+		U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329,
+		U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+	font-family: 'Newsreader';
+	font-style: normal;
+	font-weight: 400 500;
+	font-display: swap;
+	src: url('/fonts/newsreader-v26-latin-ext.woff2') format('woff2');
+	unicode-range:
+		U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329,
+		U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F,
+		U+A720-A7FF;
+}
+@font-face {
+	font-family: 'Newsreader';
+	font-style: italic;
+	font-weight: 400;
+	font-display: swap;
+	src: url('/fonts/newsreader-v26-italic-latin.woff2') format('woff2');
+	unicode-range:
+		U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329,
+		U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+	font-family: 'Newsreader';
+	font-style: italic;
+	font-weight: 400;
+	font-display: swap;
+	src: url('/fonts/newsreader-v26-italic-latin-ext.woff2') format('woff2');
+	unicode-range:
+		U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329,
+		U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F,
+		U+A720-A7FF;
+}
+@font-face {
+	font-family: 'JetBrains Mono';
+	font-style: normal;
+	font-weight: 400 500;
+	font-display: swap;
+	src: url('/fonts/jetbrains-mono-v24-latin.woff2') format('woff2');
+	unicode-range:
+		U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329,
+		U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+	font-family: 'JetBrains Mono';
+	font-style: normal;
+	font-weight: 400 500;
+	font-display: swap;
+	src: url('/fonts/jetbrains-mono-v24-latin-ext.woff2') format('woff2');
+	unicode-range:
+		U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329,
+		U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F,
+		U+A720-A7FF;
+}
+
+/*
  * Design tokens — the single place a colour, radius or type size is defined.
  * docs/02-component-guidelines.md §5. No component may reference a hex value.
  *
@@ -132,6 +226,81 @@
 	--text-section: 19px;
 	--text-page: 24px;
 
+	/*
+	 * The public site — the landing page at `/` for somebody signed out. Light,
+	 * warm paper rather than the app's dark shell, from
+	 * `design_files/platform/RCOS Compass Landing Page.html`. Prefixed `site-`
+	 * so nothing inside the app reaches for them by accident.
+	 *
+	 * Contrast, measured the same way as above (on site-bg / site-card):
+	 *   ink 13.9 / 15.1 · ink-2 7.2 / 7.7 · green 4.7 / 5.1
+	 *   muted 4.7 / 5.1   ← lifted from the design's #767D77 (3.8, below AA);
+	 *                       never on line-soft (4.3)
+	 *   green-deep on green-tint 6.8 (the design put green on it: 4.5, borderline)
+	 *   amber on amber-tint 5.5   ← lifted from #A8630A (4.0)
+	 *   red on red-tint 5.3       ← lifted from #B84A3A (4.1)
+	 * The bar and dot colours (`-bar`) carry no text and have no floor.
+	 */
+	--color-site-bg: #f5f1e8;
+	--color-site-card: #fcfaf5;
+	--color-site-ink: #1d2520;
+	--color-site-ink-2: #4a524c;
+	--color-site-muted: #666d67;
+	--color-site-line: #e3ddd0;
+	--color-site-line-soft: #ede7da;
+	--color-site-line-strong: #cfc7b5;
+	--color-site-green: #0f7a5a;
+	--color-site-green-deep: #0a5c44;
+	--color-site-green-tint: #e4efe7;
+	--color-site-green-wash: #eff6f1;
+	--color-site-green-line: #c6decf;
+	--color-site-amber: #8a5007;
+	--color-site-amber-ink: #6e4308;
+	--color-site-amber-bar: #d99a3a;
+	--color-site-amber-tint: #f7eacf;
+	--color-site-red: #a03c2e;
+	--color-site-red-ink: #6e2e22;
+	--color-site-red-bar: #c9685a;
+	--color-site-red-tint: #f6e1dc;
+	--color-site-red-wash: #fbefec;
+	--color-site-red-line: #efcfc7;
+	--color-site-blue: #3a74b0;
+	--color-site-blue-tint: #e3ecf6;
+	/* Initials in the story's conversations: tint behind, ink on it (≥ 5:1). */
+	--color-site-rose-tint: #ebd8dc;
+	--color-site-rose-ink: #7a3e4d;
+	--color-site-sky-tint: #dce6f0;
+	--color-site-sky-ink: #34566f;
+	--color-site-sand-tint: #e6d9c3;
+	--color-site-sand-ink: #6b4f24;
+
+	/*
+	 * The dark green bands (the product tour, "New to RCOS?", the dark feature
+	 * card). On forest: fg 14.0, muted 8.7, soft 6.9, sage 5.8, mint 8.5.
+	 */
+	--color-forest: #16281f;
+	--color-forest-raised: #1e3a2e;
+	--color-forest-fg: #f2f4ef;
+	--color-forest-muted: #b6c6bc;
+	--color-forest-soft: #9fb1a6;
+	--color-forest-sage: #8fa497;
+	--color-forest-pale: #cfe9dc;
+	--color-forest-sand: #e7c58a;
+	--color-mint: #6fd3a6;
+	--color-mint-ink: #10261b;
+
+	/*
+	 * Two the tour's miniature of the app needs that the app itself does not:
+	 * amber text on the dark shell (10.0 on surface), and a filled amber button
+	 * that carries white (5.7 — the design's #B4650A was 4.4).
+	 */
+	--color-attention-fg: #e3bd7c;
+	--color-attention-solid: #9a5508;
+
+	--font-grotesk: 'Hanken Grotesk', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+	--font-display: Newsreader, Georgia, 'Times New Roman', serif;
+	--font-code: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+
 	/* Inter is served from static/fonts (see the @font-face rules above), so the
 	   fallbacks only cover the moments before it loads. */
 	--font-sans: Inter, ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
@@ -164,6 +333,20 @@
 		body {
 			-webkit-font-smoothing: antialiased;
 		}
+	}
+
+	/*
+	 * The landing page is light and has a sticky header. The document itself has
+	 * to know both: its background shows past the ends of the page when a
+	 * trackpad overscrolls, and `scroll-padding` is what keeps an anchor jump or
+	 * a keyboard focus from landing underneath the header (WCAG 2.4.11). Keyed on
+	 * the page's own attribute, so no other screen is touched.
+	 */
+	html:has([data-site]) {
+		background-color: var(--color-site-bg);
+		color-scheme: light;
+		scroll-behavior: smooth;
+		scroll-padding-top: 5.5rem;
 	}
 
 	/*

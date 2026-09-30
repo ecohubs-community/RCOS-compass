@@ -104,6 +104,8 @@ export default defineConfig({
 			// and the reset above can empty it without touching them.
 			UPLOAD_DIR: './data/e2e-uploads',
 			AI_PROVIDER: 'null',
+			// So the landing page's "Request pilot access" links exist to be tested.
+			CONTACT_EMAIL: 'pilot@example.org',
 			ALLOW_TEST_ROUTES: '1',
 			// The production default, so the suite runs against the body ceiling a
 			// deployment actually has — the 5 MB upload spec exists to meet it.

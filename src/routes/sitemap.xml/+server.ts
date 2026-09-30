@@ -5,7 +5,8 @@ import { community } from '$lib/server/db/schema/tenancy';
 import type { RequestHandler } from './$types';
 
 /**
- * The index of published communities, which is what `robots.txt` points at.
+ * The index of published communities, which is what `robots.txt` points at —
+ * led by `/sitemap-pages.xml`, the instance's own front page and legal pages.
  *
  * A sitemap index rather than a page list: each community has its own sitemap
  * under `/p/<slug>/sitemap.xml`, and this names them. Without it the `Sitemap:`
@@ -23,10 +24,11 @@ export const GET: RequestHandler = () => {
 		.where(and(eq(community.publicIndexEnabled, true), eq(community.status, 'active')))
 		.all();
 
-	const entries = published
-		.map(
-			(row) => `  <sitemap><loc>${escapeXml(`${base}/p/${row.slug}/sitemap.xml`)}</loc></sitemap>`
-		)
+	const entries = [
+		`${base}/sitemap-pages.xml`,
+		...published.map((row) => `${base}/p/${row.slug}/sitemap.xml`)
+	]
+		.map((loc) => `  <sitemap><loc>${escapeXml(loc)}</loc></sitemap>`)
 		.join('\n');
 
 	return new Response(

@@ -70,6 +70,15 @@ describe('parseConfig', () => {
 			expect(() => parseConfig({ ...validEnv(), AI_PROVIDER: 'mystery' })).toThrow(ConfigError);
 		});
 
+		it('rejects a contact address that is not an email address', () => {
+			try {
+				parseConfig({ ...validEnv(), CONTACT_EMAIL: 'hello at example dot org' });
+				expect.unreachable('should have thrown');
+			} catch (error) {
+				expect((error as ConfigError).message).toContain('CONTACT_EMAIL');
+			}
+		});
+
 		it('rejects a non-URL app URL', () => {
 			expect(() => parseConfig({ ...validEnv(), PUBLIC_APP_URL: 'localhost' })).toThrow(
 				ConfigError
@@ -82,6 +91,15 @@ describe('parseConfig', () => {
 			const config = parseConfig({ ...validEnv(), AI_PROVIDER: 'null' });
 			expect(config.AI_API_KEY).toBe('');
 			expect(config.aiEnabled).toBe(false);
+		});
+
+		it('starts without a contact address, which hides the request-access links', () => {
+			expect(parseConfig(validEnv()).CONTACT_EMAIL).toBe('');
+		});
+
+		it('keeps a contact address, trimmed', () => {
+			const config = parseConfig({ ...validEnv(), CONTACT_EMAIL: ' pilot@example.org ' });
+			expect(config.CONTACT_EMAIL).toBe('pilot@example.org');
 		});
 	});
 });

@@ -1,21 +1,17 @@
 {
-	"total": 241,
+	"total": 223,
 	"files": [
 		{
 			"path": "src/routes/(app)/c/[slug]/discussions/[id]/+page.svelte",
-			"count": 30
+			"count": 37
 		},
 		{
 			"path": "src/routes/(app)/c/[slug]/definitions/[id]/+page.svelte",
-			"count": 16
+			"count": 15
 		},
 		{
 			"path": "src/routes/(app)/c/[slug]/decisions/+page.svelte",
 			"count": 14
-		},
-		{
-			"path": "src/routes/(app)/c/[slug]/documents/[id]/+page.svelte",
-			"count": 13
 		},
 		{
 			"path": "src/routes/(app)/c/[slug]/settings/mirror/+page.svelte",
@@ -43,15 +39,11 @@
 		},
 		{
 			"path": "src/routes/(app)/c/[slug]/settings/path/+page.svelte",
+			"count": 10
+		},
+		{
+			"path": "src/routes/(app)/c/[slug]/discussions/[id]/_components/MessageBody.svelte",
 			"count": 9
-		},
-		{
-			"path": "src/routes/(account)/account/two-factor/+page.svelte",
-			"count": 8
-		},
-		{
-			"path": "src/routes/(app)/c/[slug]/path/+page.svelte",
-			"count": 8
 		},
 		{
 			"path": "src/routes/(app)/c/[slug]/settings/interview/+page.svelte",
@@ -59,6 +51,10 @@
 		},
 		{
 			"path": "src/routes/(app)/c/[slug]/audit/+page.svelte",
+			"count": 7
+		},
+		{
+			"path": "src/routes/(app)/c/[slug]/path/+page.svelte",
 			"count": 7
 		},
 		{
@@ -70,19 +66,7 @@
 			"count": 7
 		},
 		{
-			"path": "src/routes/(account)/sign-in/two-factor/+page.svelte",
-			"count": 6
-		},
-		{
-			"path": "src/routes/(app)/c/[slug]/documents/+page.svelte",
-			"count": 6
-		},
-		{
 			"path": "src/lib/components/GlossaryPanel.svelte",
-			"count": 5
-		},
-		{
-			"path": "src/routes/(app)/c/[slug]/+layout.svelte",
 			"count": 5
 		},
 		{
@@ -90,7 +74,7 @@
 			"count": 5
 		},
 		{
-			"path": "src/routes/(app)/c/[slug]/discussions/+page.svelte",
+			"path": "src/routes/(app)/c/[slug]/discussions/[id]/_components/ProposalCard.svelte",
 			"count": 4
 		},
 		{
@@ -98,11 +82,11 @@
 			"count": 3
 		},
 		{
-			"path": "src/lib/components/GlossaryEntry.svelte",
-			"count": 2
+			"path": "src/routes/(app)/c/[slug]/+layout.svelte",
+			"count": 3
 		},
 		{
-			"path": "src/routes/(account)/sign-in/+page.svelte",
+			"path": "src/lib/components/GlossaryEntry.svelte",
 			"count": 2
 		},
 		{
@@ -110,15 +94,31 @@
 			"count": 2
 		},
 		{
+			"path": "src/routes/(app)/c/[slug]/settings/about/+page.svelte",
+			"count": 2
+		},
+		{
 			"path": "src/routes/+error.svelte",
 			"count": 2
 		},
 		{
-			"path": "src/routes/+page.svelte",
-			"count": 2
+			"path": "src/lib/components/account/TwoFactorPanel.svelte",
+			"count": 1
 		},
 		{
 			"path": "src/routes/(account)/+layout.svelte",
+			"count": 1
+		},
+		{
+			"path": "src/routes/(account)/sign-in/two-factor/+page.svelte",
+			"count": 1
+		},
+		{
+			"path": "src/routes/(app)/c/[slug]/discussions/[id]/_components/MeetingNote.svelte",
+			"count": 1
+		},
+		{
+			"path": "src/routes/(app)/c/[slug]/discussions/[id]/_components/Replies.svelte",
 			"count": 1
 		},
 		{

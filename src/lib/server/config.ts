@@ -68,6 +68,21 @@ const ConfigSchema = v.object({
 	AI_USER_MONTHLY_TOKENS: intFromEnv(300_000, 0),
 	AI_USER_DAILY_TASKS: intFromEnv(25, 0),
 
+	/**
+	 * Where somebody who wants a community writes to. The landing page's
+	 * "Request pilot access" buttons and its Contact link are `mailto:` this
+	 * address, because communities are set up by hand during the pilot and there
+	 * is no sign-up form (`docs/10-legal-and-operations.md`). Unset, those
+	 * buttons are not shown at all rather than pointing nowhere.
+	 */
+	CONTACT_EMAIL: v.optional(
+		v.union(
+			[v.literal(''), v.pipe(v.string(), v.trim(), v.email('must be an email address'))],
+			'must be an email address'
+		),
+		''
+	),
+
 	SMTP_URL: optionalString,
 	MAIL_FROM: v.optional(v.string(), 'RCOS Compass <no-reply@example.org>'),
 
