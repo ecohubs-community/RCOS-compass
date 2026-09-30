@@ -19,6 +19,19 @@ test.describe('accessibility', () => {
 		expect(results.violations).toEqual([]);
 	});
 
+	test('the front page, signed in with the account menu open, has no violations', async ({
+		page
+	}) => {
+		const fixture = await seed(page);
+		await signIn(page, fixture.email, fixture.password);
+		await visit(page, '/');
+		await page.getByRole('button', { name: /your account/i }).click();
+		await expect(page.getByRole('menu')).toBeVisible();
+
+		const results = await scan(page).analyze();
+		expect(results.violations).toEqual([]);
+	});
+
 	test('the error page has no violations', async ({ page }) => {
 		await page.goto('/__test/boom');
 		const results = await scan(page).analyze();

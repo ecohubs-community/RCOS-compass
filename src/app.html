@@ -3,7 +3,12 @@
 <html lang="%lang%">
 	<head>
 		<meta charset="utf-8" />
-		<link rel="icon" href="%sveltekit.assets%/favicon.svg" />
+		<!-- The compass mark (design_files/logos). The SVG follows the browser's
+		     light or dark theme; the .ico is for the browsers that ignore SVG. -->
+		<link rel="icon" href="%sveltekit.assets%/favicon.ico" sizes="48x48" />
+		<link rel="icon" href="%sveltekit.assets%/favicon.svg" type="image/svg+xml" />
+		<link rel="apple-touch-icon" href="%sveltekit.assets%/apple-touch-icon.png" />
+		<link rel="manifest" href="%sveltekit.assets%/manifest.webmanifest" />
 		<meta name="viewport" content="width=device-width, initial-scale=1" />
 		%sveltekit.head%
 	</head>

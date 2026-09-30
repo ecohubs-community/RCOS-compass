@@ -61,7 +61,16 @@ test.describe('what the world can read', () => {
 		// PUBLIC_APP_URL knows nothing about.
 		const sitemap = await visitor.goto(new URL(advertised!).pathname);
 		expect(sitemap?.status()).toBe(200);
-		expect(await sitemap!.text()).toContain('<sitemapindex');
+		const index = await sitemap!.text();
+		expect(index).toContain('<sitemapindex');
+
+		// The instance's own pages come first, so the landing page is found from
+		// robots.txt and not only the communities that publish.
+		const pages = index.match(/<loc>([^<]*\/sitemap-pages\.xml)<\/loc>/)?.[1];
+		expect(pages, 'the index lists the site pages').toBeTruthy();
+		const listed = await visitor.goto(new URL(pages!).pathname);
+		expect(listed?.status()).toBe(200);
+		expect(await listed!.text()).toMatch(/<loc>[^<]*\/<\/loc>/);
 
 		await anonymous.close();
 	});

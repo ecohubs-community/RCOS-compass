@@ -91,7 +91,14 @@ export function createAuth(db: Db = getDb()) {
 
 		plugins: [
 			// A link is friendlier than a password for a group that signs in rarely.
+			//
+			// `disableSignUp`: a link sent to an address with no account signs
+			// nobody in. The library's default makes a verified account on the
+			// spot, which from the public `/api/auth/sign-in/magic-link` endpoint
+			// is an open sign-up in an instance that is invitation-only
+			// (`tests/integration/closed-sign-up.test.ts`).
 			magicLink({
+				disableSignUp: true,
 				sendMagicLink: async ({ email, url }) => {
 					await send(magicLinkMessage(email, url), 'magic-link');
 				}

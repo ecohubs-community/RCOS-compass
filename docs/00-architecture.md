@@ -369,6 +369,7 @@ UPLOAD_PER_COMMUNITY_DAY=60
 STORAGE_MB=2048
 SMTP_URL=                      # smtps://user:pass@host:465; empty refuses every send
 MAIL_FROM="RCOS Compass <no-reply@example.org>"
+CONTACT_EMAIL=                 # the landing page's "Request pilot access"; empty hides it
 UPLOAD_DIR=./data/uploads
 MAX_UPLOAD_MB=25
 LOG_LEVEL=info

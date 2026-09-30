@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="-218 -218 436 436">
+	<style>
+		.ring { stroke: #1d2520; }
+		.north { fill: #10b981; }
+		.south { fill: #1d2520; }
+		.pin { fill: #fcfaf5; }
+		@media (prefers-color-scheme: dark) {
+			.ring { stroke: #f5f1e8; }
+			.north { fill: #6fd3a6; }
+			.south { fill: #f5f1e8; }
+			.pin { fill: #16281f; }
+		}
+	</style>
+	<circle class="ring" r="170.4" fill="none" stroke-width="27.7" />
+	<polygon class="north" points="0,-128.8 41,0 -41,0" />
+	<polygon class="south" points="-41,0 41,0 0,129.2" />
+	<circle class="pin" r="16.3" />
+</svg>
