@@ -47,8 +47,8 @@ Two rules governed every decision:
 |---|---|
 | Clauses in Layers 0–6 | 213 |
 | Containing a normative `MUST` | 185 |
-| **Answerable by a community** (`defined_by_section`) | **173** |
-| Satisfied by the platform | 8 |
+| **Answerable by a community** (`defined_by_section`) | **171** |
+| Satisfied by the platform | 10 |
 | Not a definition at all | 4 |
 | Clauses needing arbitration | 57 (19 cross-artifact, 38 same-artifact) |
 | Template artifacts | 22, of which 21 mandatory |
@@ -202,6 +202,8 @@ standard actually contains — the latter, since a module or v0.2 may introduce 
 
 | Clause | What it says | Disposition | Why |
 |---|---|---|---|
+| `2.5.2` | Layer 0 artifacts MUST be: - Publicly accessible to all members - Versioned - Adopted thr… | `satisfied_by_platform` | As 4.7.2. Re-vendored 2026-10-01: it had been owned by Conditions for Change, the only section citing it, so freezing that section marked all of Layer 0 accessible and versioned. |
+| `3.8.2` | Layer 1 artifacts MUST be: - Explicit and unambiguous - Versioned - Accessible to all m… | `satisfied_by_platform` | As 4.7.2. Re-vendored 2026-10-01; had been owned by Completion Record, for the same reason as 2.5.2. |
 | `4.7.2` | Layer 2 artifacts MUST be: - Explicit and unambiguous - Versioned - Accessible to all m… | `satisfied_by_platform` | Every definition is versioned, member-visible by default, and adopted only through a recorded decision. "Explicit and unambiguo… |
 | `5.5.2` | Layer 3 artifacts MUST be: - Explicit and unambiguous - Versioned - Accessible to all m… | `satisfied_by_platform` | As 4.7.2. Bounded exceptions to member visibility exist only as recorded, expiring Transparency Exceptions. |
 | `6.5.2` | Layer 4 artifacts MUST be: - Explicit and unambiguous - Versioned - Accessible to all m… | `satisfied_by_platform` | As 4.7.2, with privacy boundaries expressed as Transparency Exceptions rather than as silent permissions. |

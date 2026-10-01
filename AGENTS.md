@@ -223,7 +223,7 @@ Noncommercial. Consume the generated data, not the source.
   accessibility answer it) and `not_a_definition` (rules about the standard) are
   shown but never counted — there are 12 such MUST clauses in core 0.1, and
   counting them would make 100% unreachable.
-- **Never hard-code a clause count.** 213 clauses, 185 MUST, 173 answerable, 118
+- **Never hard-code a clause count.** 213 clauses, 185 MUST, 171 answerable, 118
   sections — all computed by the content pipeline at build time.
 - **Modules are separate standards.** Readiness and compliance run once *per*
   adopted standard; module progress is never added to the core number

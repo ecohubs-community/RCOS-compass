@@ -250,7 +250,7 @@ fails until the matrix is updated.
    structural defence in `04-security.md` §5.
 
    Written so that **the model obeys the document**: the stub returns a pairing
-   for all 173 countable clauses at confidence 100. A test in which the model
+   for all 171 countable clauses at confidence 100. A test in which the model
    behaves proves nothing about what happens when it does not. What survives is
    suggestions — every row `suggested`, every `confirmed_by` null, no definition,
    no decision, readiness unmoved, compliance still false.

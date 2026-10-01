@@ -122,7 +122,7 @@ sections:
       - Who keeps an eye on it, and how often is that looked at again?
 
   identity-constraints-register.conditions-for-change:
-    question: How are our non-negotiables changed and ratified — and can every member always read the current version?
+    question: How are our non-negotiables added, changed or removed — and who has to agree?
     effort: one_conversation
     dependsOn: [identity-constraints-register.active-identity-constraints]
 
@@ -168,7 +168,7 @@ sections:
     dependsOn: [onboarding-protocol.initial-membership-state]
 
   onboarding-protocol.completion-record:
-    question: How do we record that someone has finished joining — and can every member read the rules they agreed to?
+    question: How do we record that someone has finished joining, and what does the record keep?
     effort: one_conversation
     dependsOn: [onboarding-protocol.onboarding-steps]
 

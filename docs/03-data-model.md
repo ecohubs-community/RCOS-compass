@@ -442,7 +442,7 @@ and that lives in *their* Membership Charter, not in ours. So:
 `suggested → confirmed | dismissed`. Confirmed evidence goes **stale** when its
 document is replaced or re-extracted and the passage's `text_hash` no longer
 matches — it is not silently re-pointed. Stale evidence surfaces in *Needs
-attention* and does not count toward "you already have language for N of 173".
+attention* and does not count toward "you already have language for N of 171".
 After a replacement, restore or re-read, stale evidence whose quote still hashes
 to a current passage of the same document is offered for **re-confirmation** —
 one click, never automatic. `reason` is the model's one-sentence account of what

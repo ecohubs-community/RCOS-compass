@@ -62,7 +62,7 @@ From RCOS-Core v0.1, Layers 0–6:
 |---|---|
 | Numbered clauses (Layers 0–6) | 213 |
 | Clauses containing a normative `MUST` | 185 |
-| …of which a community actually answers | 173 |
+| …of which a community actually answers | 171 |
 | Template artifacts | 22 |
 | Template sections — the definition atom | 118 (~93 clause-bearing) |
 | Layers | 7 (0–6) |
@@ -565,7 +565,7 @@ with the community's own words.
 
 This is the single biggest adoption unlock in the product. A forming community
 starting at zero will bounce. An existing community that uploads its bylaws and
-sees *"you already have language for 38 of 173 requirements"* stays.
+sees *"you already have language for 38 of 171 requirements"* stays.
 
 **As built (`document-mapping-workspace`).**
 
