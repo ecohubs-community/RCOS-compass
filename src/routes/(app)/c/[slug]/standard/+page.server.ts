@@ -1,6 +1,7 @@
 import { getDb } from '$lib/server/db';
 import { activeStandardView, answeredSections } from '$lib/server/services/completeness';
 import { definitionsBySection } from '$lib/server/services/definitions';
+import { layerChecks } from '$lib/server/services/layer-checks';
 import type { PageServerLoad } from './$types';
 
 /**
@@ -15,7 +16,7 @@ export const load: PageServerLoad = ({ locals, url }) => {
 	const ctx = locals.ctx!;
 	const db = getDb();
 	const standard = activeStandardView(db, ctx);
-	if (!standard) return { artifacts: [], counts: null, filters: { gapsOnly: false } };
+	if (!standard) return { artifacts: [], layers: [], counts: null, filters: { gapsOnly: false } };
 
 	const answered = answeredSections(db, standard.row.id);
 	const byId = definitionsBySection(ctx, { db });
@@ -90,6 +91,12 @@ export const load: PageServerLoad = ({ locals, url }) => {
 
 	return {
 		artifacts,
+		/**
+		 * The artifact rules no community writes an answer to (x.y.1–x.y.3), shown
+		 * per layer. Not filtered by "only unanswered": a layer whose sections are
+		 * all adopted is exactly where these still have something to say.
+		 */
+		layers: layerChecks(ctx, { db }),
 		counts: {
 			clauses: standard.view.counts().clauses,
 			mandatoryArtifacts: standard.view.counts().mandatoryArtifacts,
