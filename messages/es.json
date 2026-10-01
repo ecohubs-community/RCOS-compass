@@ -395,5 +395,11 @@
 	"requirement_owned_none": "Esta sección no responde a ninguna cláusula propia. Completa su plantilla; las cláusulas de abajo son las que utiliza.",
 	"requirement_close": "Cerrar",
 	"requirement_opened": "abierta",
-	"requirement_sheet_title": "El requisito de RCOS"
+	"requirement_sheet_title": "El requisito de RCOS",
+	"guide_heading": "Qué cubrir",
+	"guide_prompts_intro": "Una propuesta para esta pregunta debería responder:",
+	"guide_examples": "Ejemplos — no recomendaciones",
+	"guide_examples_note": "Cómo podrían responder otras comunidades. La vuestra decide por sí misma.",
+	"guide_source_compass": "Ejemplo escrito para Compass",
+	"guide_source_template": "De la plantilla de RCOS"
 }

@@ -354,6 +354,27 @@ describe('the vendored copy is pinned to its source', () => {
 		}
 	});
 
+	it('fails when an annotation has an empty prompt, and names it', () => {
+		const file = join(standardRoot, 'rcos-core', '0.1', 'annotations.yaml');
+		const original = readFileSync(file, 'utf8');
+		const parsed = yaml.load(original) as {
+			sections: Record<string, { prompts?: string[] }>;
+		};
+		parsed.sections['exit-protocol.voluntary-exit']!.prompts = ['How?', ' '];
+		writeFileSync(file, yaml.dump(parsed, { lineWidth: 100, noRefs: true, sortKeys: false }));
+		try {
+			run();
+			expect.unreachable('the annotation check should have failed');
+		} catch (error) {
+			const output = String((error as { stdout?: string; stderr?: string }).stderr ?? '');
+			expect(output).toContain(
+				'annotation "exit-protocol.voluntary-exit": prompts must be a list of non-empty text'
+			);
+		} finally {
+			writeFileSync(file, original);
+		}
+	});
+
 	it('fails when a vendored file is edited by hand', () => {
 		const file = join(standardRoot, 'rcos-core', '0.1', 'meta.yaml');
 		const original = readFileSync(file, 'utf8');

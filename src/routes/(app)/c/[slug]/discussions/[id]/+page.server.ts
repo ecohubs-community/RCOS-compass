@@ -20,6 +20,7 @@ import {
 	mentionDirectory,
 	setCurrentProposal,
 	takeOffline,
+	threadGuide,
 	threadRequirement
 } from '$lib/server/services/discussions';
 import { listObjections, resolveObjection } from '$lib/server/services/objections';
@@ -178,6 +179,8 @@ export const load: PageServerLoad = ({ locals, params, url }) => {
 		 * opens without a round trip.
 		 */
 		requirement: threadRequirement(ctx, thread, { db }),
+		/** What a proposal here should cover, and example answers. Compass's, not RCOS's. */
+		guide: threadGuide(ctx, thread, { db }),
 		/** Names for `@M-0142` in the thread, and who the composer can offer. */
 		mentions,
 		posts: posts.map((entry) => ({

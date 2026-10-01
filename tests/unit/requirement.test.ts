@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { getStandard } from '../../src/lib/server/standard/index.js';
 import {
 	compareRefs,
+	guideFor,
 	requirementFor,
 	standardName
 } from '../../src/lib/server/services/requirement.js';
@@ -93,5 +94,53 @@ describe('clause references', () => {
 
 	it('name the standard as members read it', () => {
 		expect(standardName(view)).toBe('RCOS-Core v0.1');
+	});
+});
+
+describe('guideFor', () => {
+	it('gives the sub-questions, the Compass example, then the template hints', () => {
+		const guide = guideFor(view, 'exit-protocol.voluntary-exit', 'en')!;
+		expect(guide.prompts).toEqual(view.annotation('exit-protocol.voluntary-exit')!.prompts);
+		expect(guide.prompts.length).toBeGreaterThan(0);
+		expect(guide.examples[0]).toEqual({
+			text: expect.stringMatching(/^Any member can leave the community at any time/),
+			source: 'compass'
+		});
+		expect(guide.examples.slice(1)).toEqual([
+			{
+				text: 'Time-to-revocation of access (e.g. within 24 hours of confirmation).',
+				source: 'template'
+			},
+			{ text: 'Resulting state transition (e.g. to Exited Member).', source: 'template' }
+		]);
+	});
+
+	it('leaves out template fragments that are table cells', () => {
+		const guide = guideFor(view, 'authority-registry.registered-authorities', 'en')!;
+		// "e.g. Full Members (collective)", "e.g. Membership Admin", "e.g. Finance Steward"
+		expect(guide.examples.filter((e) => e.source === 'template')).toEqual([]);
+		expect(guide.prompts.at(-1)).toMatch(/temporary or emergency authority/);
+	});
+
+	it('shows the template hints in the community’s language', () => {
+		const guide = guideFor(view, 'exit-protocol.voluntary-exit', 'de')!;
+		expect(guide.examples.filter((e) => e.source === 'template')[0]!.text).toBe(
+			'Frist bis zum Entzug des Zugangs (z. B. innerhalb von 24 Stunden nach Bestätigung).'
+		);
+	});
+
+	it('is nothing for a section with no prompts, examples or hints', () => {
+		expect(guideFor(view, 'purpose-charter.non-goals-and-exclusions', 'en')).toBeNull();
+		expect(guideFor(view, 'nothing.like-this', 'en')).toBeNull();
+	});
+
+	it('never asks a sibling section’s question', () => {
+		// Categories (5.2.1) and units (5.2.4) are their own Path items.
+		const prompts = guideFor(
+			view,
+			'internal-economy-protocol.contribution-recognition-mechanism',
+			'en'
+		)!.prompts.join(' ');
+		expect(prompts).not.toMatch(/which kinds of work|points|credits|tokens/i);
 	});
 });

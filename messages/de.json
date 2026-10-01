@@ -395,5 +395,11 @@
 	"requirement_owned_none": "Dieser Abschnitt beantwortet keine eigene Klausel. Er vervollständigt seine Vorlage; die Klauseln unten sind solche, auf die er sich stützt.",
 	"requirement_close": "Schließen",
 	"requirement_opened": "geöffnet",
-	"requirement_sheet_title": "Die RCOS-Anforderung"
+	"requirement_sheet_title": "Die RCOS-Anforderung",
+	"guide_heading": "Was zu klären ist",
+	"guide_prompts_intro": "Ein Vorschlag zu dieser Frage sollte beantworten:",
+	"guide_examples": "Beispiele — keine Empfehlungen",
+	"guide_examples_note": "So könnten andere Gemeinschaften antworten. Eure entscheidet selbst.",
+	"guide_source_compass": "Beispiel, geschrieben für Compass",
+	"guide_source_template": "Aus der RCOS-Vorlage"
 }

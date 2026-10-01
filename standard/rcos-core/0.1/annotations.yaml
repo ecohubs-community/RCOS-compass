@@ -44,7 +44,7 @@ sections:
     dependsOn: []
 
   purpose-charter.secondary-purposes:
-    question: What else do we pursue that matters — without competing with why we exist?
+    question: What secondary purposes do we pursue — without competing with why we exist?
     effort: one_meeting
     dependsOn: [purpose-charter.primary-purpose]
 
@@ -99,14 +99,27 @@ sections:
     dependsOn: [invariants-register.active-invariants]
 
   identity-constraints-register.active-identity-constraints:
-    question: What non-negotiables shape how people take part, behave and govern here?
+    question: Which non-negotiable rules follow from who we are as a community — about behaviour, joining, culture or land?
     effort: a_series
     dependsOn: [purpose-charter.primary-purpose, invariants-register.active-invariants]
+    prompts:
+      - Which rules hold for everyone taking part, whatever a majority wants on a given day?
+      - "For each one: who does it apply to?"
+      - What does it mean for them in practice — what may they not do, or what must be true before they can join?
+      - Why is it needed — what would go wrong here without it?
+    examples:
+      - Only people aged 18 or over can become members.
+      - No belief system, religion or political view may be required to join or take part.
+      - Nothing the community does may cause lasting harm to the land it stewards; every land and building decision says how it was checked.
 
   identity-constraints-register.enforcement-and-testability:
     question: How would anyone check whether a constraint is being met — and what happens if it is not?
     effort: one_meeting
     dependsOn: [identity-constraints-register.active-identity-constraints]
+    prompts:
+      - "For each rule: how would anyone notice that it is not being kept?"
+      - Which written process handles a breach, so it is not left to whoever objects loudest?
+      - Who keeps an eye on it, and how often is that looked at again?
 
   identity-constraints-register.conditions-for-change:
     question: How are our non-negotiables changed and ratified — and can every member always read the current version?
@@ -121,7 +134,7 @@ sections:
   # ---- Layer 1 · Membership ------------------------------------------------
 
   membership-state-registry.defined-membership-states:
-    question: What kinds of member are there — at least applicant, trial, full and former — and what may and must each of them do?
+    question: Which membership states do we have — at least applicant, trial, full and exited — and what are their rights, obligations and limitations?
     effort: one_meeting
     dependsOn: [purpose-charter.primary-purpose]
 
@@ -131,9 +144,13 @@ sections:
     dependsOn: [membership-state-registry.defined-membership-states]
 
   onboarding-protocol.admission-criteria:
-    question: Who can join, on which written criteria — so nobody becomes a member just by being around?
+    question: Who can join, on which written criteria, and who decides — so nobody becomes a member just by being around?
     effort: a_series
     dependsOn: [membership-state-registry.defined-membership-states]
+    prompts:
+      - Which criteria must an applicant meet, written so anyone could check them?
+      - Who decides an application? (Name the body the Decision Matrix gives admissions to, rather than a second rule.)
+      - How do we make sure nobody becomes a member informally, or after the fact?
 
   onboarding-protocol.onboarding-steps:
     question: What actually happens between "I'd like to join" and "I'm in"?
@@ -166,7 +183,7 @@ sections:
     dependsOn: [membership-state-registry.defined-membership-states]
 
   membership-agreement.member-rights:
-    question: What can each kind of member count on, in proportion to what we ask of them?
+    question: "What are each member's rights, in proportion to what we ask of them?"
     effort: one_meeting
     dependsOn: [membership-state-registry.defined-membership-states]
 
@@ -176,7 +193,7 @@ sections:
     dependsOn: [membership-agreement.member-rights]
 
   membership-agreement.participation-and-contribution-expectations:
-    question: What counts as taking part, how much is enough, may someone send a stand-in — and what happens when someone stops?
+    question: What counts as participation, how much is enough, may someone send a stand-in — and what happens when someone stops?
     effort: a_series
     dependsOn: [membership-agreement.member-obligations]
 
@@ -199,6 +216,12 @@ sections:
     question: How can someone leave whenever they choose — without being punished for it, or losing more than their membership?
     effort: one_meeting
     dependsOn: [membership-state-registry.defined-membership-states]
+    prompts:
+      - How does someone tell us they are leaving — and do they owe anyone a reason or a vote?
+      - When does their access end, and where is the exit recorded?
+      - Which rights end with membership, and which do they keep because they never depended on it?
+    examples:
+      - Any member can leave the community at any time by informing the community in writing. They do not need permission or a vote to leave. The community records the exit date and follows the agreed process for returning personal belongings, settling outstanding payments, and ending membership-related responsibilities. Leaving means giving up rights that exist only because of membership, such as access to shared facilities or participation in governance. It does not remove any rights the person has independently of membership, such as ownership of their personal belongings or money the community owes them.
 
   exit-protocol.forced-exit:
     question: What has to be true before the community can ask someone to leave?
@@ -223,9 +246,15 @@ sections:
   # ---- Layer 2 · Governance ------------------------------------------------
 
   authority-registry.registered-authorities:
-    question: Who may decide what, where does it stop, for how long — and who may act in an emergency?
+    question: Which roles, circles or bodies hold authority here — and what are the scope, limits and term of each?
     effort: one_meeting
     dependsOn: []
+    prompts:
+      - Which roles, circles or bodies may decide anything? (The full members together are one of them.)
+      - "For each: what may it decide, and where does that stop?"
+      - "For each: for how long does it hold that authority, and how is it renewed or ended?"
+      - Where does each get its authority from — never seniority, ownership, charisma or being a founder?
+      - Which temporary or emergency authority do we allow, how is it time-bounded, and how is it reviewed afterwards?
 
   decision-matrix.decision-type-definitions:
     question: What kinds of decision do we make, and how do we tell a big one from a small one?
@@ -276,6 +305,13 @@ sections:
     question: What stops power collecting in a few hands, lets anyone challenge a decision safely, and forces a review when governance keeps failing?
     effort: one_meeting
     dependsOn: []
+    prompts:
+      - What stops decision power concentrating in one person or a small group?
+      - What stops an informal veto — someone blocking a decision outside the agreed process?
+      - What stops a subgroup capturing decisions, for example by turning up only when it suits them?
+      - What stops founders or long-standing role holders becoming entrenched?
+      - How can anyone challenge a decision without fear of retaliation?
+      - Which pattern of failures forces a formal review — and who starts it?
 
 
   # ---- Layer 3 · Resources & Economy ---------------------------------------
@@ -291,9 +327,14 @@ sections:
     dependsOn: []
 
   internal-economy-protocol.contribution-recognition-mechanism:
-    question: How does a contribution get recognised, who can contest it, and what does recognition unlock — never extra say?
+    question: How do we keep track of and recognise contributions — and what, if anything, does recognition unlock?
     effort: one_meeting
     dependsOn: []
+    prompts:
+      - How is a contribution recorded or acknowledged, and by whom?
+      - Who may confirm a record? (Contesting one is its own question.)
+      - Does recognition give any benefits, responsibilities or access to shared resources?
+      - How do we make sure recognition never gives extra say in decisions beyond what the Decision Matrix grants?
 
   internal-economy-protocol.internal-units:
     question: If we use our own credits or hours, who issues them and what can they be used for?
@@ -372,6 +413,11 @@ sections:
     question: What consequences can follow, how are they kept proportionate and open to appeal — and how does repair come before punishment?
     effort: one_meeting
     dependsOn: []
+    prompts:
+      - Which consequences can follow a breach — and which repair steps come before any punishment?
+      - "For each consequence: what has to be shown first, and what evidence is enough?"
+      - "For each consequence: who may apply it, how long does it last, and how is it appealed?"
+      - How do we make sure nobody is punished informally — by exclusion, silence or social pressure?
 
   accountability-protocol.conditions-for-restoring-rights:
     question: How does someone get their standing back once a sanction has run its course?
@@ -387,6 +433,12 @@ sections:
     question: What kinds of conflict do we have names for, so nobody invents one mid-argument — and which are safety-critical?
     effort: one_meeting
     dependsOn: []
+    prompts:
+      - Which kinds of conflict do we name — at least interpersonal, role-based, structural and ethical?
+      - Which situations are safety-critical, and what changes for them?
+      - "For each kind: how do we recognise it, how quickly must we respond, and which path does it take?"
+      - "For each kind: what gets written down? (Who may read it is its own question.)"
+      - What happens when a conflict is put in the wrong kind, or nobody classifies it?
 
   conflict-resolution-ladder.resolution-ladder-steps:
     question: What are the steps from a quiet word to a formal process, and in what order?
@@ -412,6 +464,10 @@ sections:
     question: What changes when the people in a conflict do not have equal power — or when someone is not safe?
     effort: one_meeting
     dependsOn: []
+    prompts:
+      - What extra protection applies when the people in a conflict do not have equal power — for example independent facilitation, or a separate way to raise it?
+      - When someone is not safe, what may we do at once, before the process ends — and who decides?
+      - How do we make sure safety comes before participation rights, roles and convenience?
 
 
   # ---- Layer 5 · Operations ------------------------------------------------

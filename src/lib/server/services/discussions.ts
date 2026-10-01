@@ -21,7 +21,7 @@ import { initialsOf, membershipLabel, personLabel } from './person.js';
 import { lint } from '../linter/index.js';
 import { adoptedElsewhere } from './definitions.js';
 import { activeStandardView, sectionOf } from './completeness.js';
-import { requirementFor, type Requirement } from './requirement.js';
+import { guideFor, requirementFor, type Guide, type Requirement } from './requirement.js';
 import { mentionedSeqs } from '../markdown.js';
 import { namesToMentions, type MentionMember } from '../../shared/mentions.js';
 import { discussionParticipants, mentionedMembers, notify, notifyReply } from './notifications.js';
@@ -201,10 +201,23 @@ export function threadRequirement(
 	options: { db?: Db } = {}
 ): Requirement | null {
 	requirePermission(ctx, 'discussion.read');
-	const db = options.db ?? getDb();
+	const found = threadSection(ctx, thread, options.db ?? getDb());
+	return found ? requirementFor(found.view, found.sectionKey, ctx.community.locale) : null;
+}
+
+/**
+ * What a proposal in this thread should cover, and example answers — for the
+ * same section `threadRequirement` quotes. Null when there is none.
+ */
+export function threadGuide(ctx: Ctx, thread: Discussion, options: { db?: Db } = {}): Guide | null {
+	requirePermission(ctx, 'discussion.read');
+	const found = threadSection(ctx, thread, options.db ?? getDb());
+	return found ? guideFor(found.view, found.sectionKey, ctx.community.locale) : null;
+}
+
+function threadSection(ctx: Ctx, thread: Discussion, db: Db) {
 	const standard = activeStandardView(db, ctx);
 	if (!standard) return null;
-
 	const sectionKey = thread.definitionId
 		? (db
 				.select({ sectionKey: definition.sectionKey })
@@ -214,7 +227,7 @@ export function threadRequirement(
 				)
 				.get()?.sectionKey ?? null)
 		: sectionOf(standard.view, thread);
-	return sectionKey ? requirementFor(standard.view, sectionKey, ctx.community.locale) : null;
+	return sectionKey ? { view: standard.view, sectionKey } : null;
 }
 
 /** Newest activity first — the dashboard's "stalled 12 days" reads this order. */

@@ -129,6 +129,13 @@ export type Annotation = {
 	question: string;
 	effort: Effort;
 	dependsOn: string[];
+	/**
+	 * Sub-questions a proposal should answer. Prompting only: they never become
+	 * Path items of their own, so a section stays one decision.
+	 */
+	prompts?: string[];
+	/** Full-sentence example answers written for Compass — never recommendations. */
+	examples?: string[];
 };
 
 export type Standard = {
