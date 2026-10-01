@@ -1,6 +1,7 @@
 <script lang="ts">
 	import StatusChip from '$lib/components/ui/StatusChip.svelte';
 	import { links } from '$lib/links';
+	import LayerChecks from '$lib/components/LayerChecks.svelte';
 
 	let { data } = $props();
 	const slug = $derived(data.community.slug);
@@ -26,7 +27,23 @@
 		<noscript><button type="submit" class="mt-2 underline">Apply</button></noscript>
 	</form>
 
-	{#each data.artifacts as artifact (artifact.key)}
+	{#each data.layers as block (block.layer)}
+		<LayerChecks {block} {slug} />
+		{#each data.artifacts.filter((artifact) => artifact.layer === block.layer) as artifact (artifact.key)}
+			{@render artifactSection(artifact)}
+		{/each}
+	{/each}
+	{#each data.artifacts.filter((artifact) => !data.layers.some((block) => block.layer === artifact.layer)) as artifact (artifact.key)}
+		{@render artifactSection(artifact)}
+	{/each}
+	{#if data.layers.length === 0 && data.artifacts.length === 0}
+		<p class="text-fg-secondary mt-8">
+			Nothing to show. This community has not adopted a standard yet.
+		</p>
+	{/if}
+</main>
+
+{#snippet artifactSection(artifact: (typeof data.artifacts)[number])}
 		<section class="mt-8" aria-labelledby={artifact.key}>
 			<div class="flex flex-wrap items-baseline gap-x-3 gap-y-1">
 				<h2 id={artifact.key} class="text-section font-medium">{artifact.title}</h2>
@@ -103,10 +120,4 @@
 				{/each}
 			</ul>
 		</section>
-	{:else}
-		<p class="text-fg-secondary mt-8">
-			Nothing to show. Either this community has answered everything, or it has not adopted a
-			standard yet.
-		</p>
-	{/each}
-</main>
+{/snippet}
