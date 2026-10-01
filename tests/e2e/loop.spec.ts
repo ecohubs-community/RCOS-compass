@@ -114,7 +114,7 @@ test.describe('the core loop, on a fresh community', () => {
 			page.getByText('A member may leave at any time by telling a steward', { exact: false })
 		).toBeVisible();
 
-		// Readiness moved. It is a proportion of 173 countable clauses, so one
+		// Readiness moved. It is a proportion of 171 countable clauses, so one
 		// answered section is a small number — but it is not zero, and the bar and
 		// the artifact count agree with each other.
 		await page.goto(`/c/${slug}`);

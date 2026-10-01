@@ -121,8 +121,9 @@ describe('what a Path item cites', () => {
 		const all = path(ctx, { db });
 		expect(all).toHaveLength(view.meta.counts?.authoredSections ?? 94);
 		for (const entry of all) expect(entry.start.sectionKey).toBe(entry.sectionKey);
-		// The 28 that used to fall through to a blank form.
-		expect(all.filter((entry) => entry.start.clauseKey === null)).toHaveLength(28);
+		// The 28 that used to fall through to a blank form, and the two whose only
+		// clause (2.5.2, 3.8.2) became the platform's when it was re-vendored.
+		expect(all.filter((entry) => entry.start.clauseKey === null)).toHaveLength(30);
 		expect(item(VOLUNTARY)!.start).toEqual({ sectionKey: VOLUNTARY, clauseKey: keyOf('3.6.1') });
 	});
 });

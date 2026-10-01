@@ -109,7 +109,7 @@ describe('the countable set', () => {
 		const counts = view.counts();
 		expect(counts.clauses).toBe(213);
 		expect(counts.must).toBe(185);
-		expect(counts.countable).toBe(173);
+		expect(counts.countable).toBe(171);
 		expect(counts.mandatoryArtifacts).toBe(21);
 	});
 
