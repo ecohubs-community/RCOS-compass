@@ -8,6 +8,7 @@ import { communityStandard } from '../db/schema/tenancy.js';
 import { getStandard } from '../standard/index.js';
 import { answeredSections } from './completeness.js';
 import { communityLocale } from './community-locale.js';
+import { restrictedInClosedLayers } from './layer-checks.js';
 
 /**
  * What a community says about itself outwardly. UI spec §1.4, RCOS §10.1.1.
@@ -39,6 +40,12 @@ export type OutwardClaim = {
 	missing: { artifactKey: string; title: string }[];
 	/** Adopted before the community had agreed how it decides. RCOS §10.3.4. */
 	provisionalDefinitions: number;
+	/**
+	 * Layer 0–2 rules hidden from members, where the standard allows no
+	 * exception (§2.5.3, §3.8.3, §4.7.3). Counted, never named: the claim is
+	 * public, and a restricted rule's title is the restricted thing's first line.
+	 */
+	restrictedDefinitions: number;
 	/** When the community last ran a self-audit, and null when it never has. */
 	lastAuditAt: number | null;
 };
@@ -87,12 +94,15 @@ export function outwardClaim(reader: Reader, options: { db?: Db } = {}): Outward
 		)
 		.all().length;
 
+	const restrictedDefinitions = restrictedInClosedLayers(db, communityId, core.id, view).length;
+
 	return {
 		standardId: core.standardId,
 		version: core.version,
-		compliant: missing.length === 0 && provisionalDefinitions === 0,
+		compliant: missing.length === 0 && provisionalDefinitions === 0 && restrictedDefinitions === 0,
 		missing,
 		provisionalDefinitions,
+		restrictedDefinitions,
 		lastAuditAt: lastAudit(db, communityId)
 	};
 }

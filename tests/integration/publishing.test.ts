@@ -327,7 +327,7 @@ describe('the outward claim carries no number', () => {
 		// `answered`, which is a percentage one division away — so it deliberately
 		// does not appear here, and this asserts that nothing like it crept back.
 		const numbers = JSON.stringify(claim).match(/"(\w+)":\s*\d+/g) ?? [];
-		const allowed = ['provisionalDefinitions', 'lastAuditAt'];
+		const allowed = ['provisionalDefinitions', 'restrictedDefinitions', 'lastAuditAt'];
 		for (const field of numbers) {
 			const name = field.slice(1, field.indexOf('"', 1));
 			expect(allowed, `${name} is a number on the outward claim`).toContain(name);

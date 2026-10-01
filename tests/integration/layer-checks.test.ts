@@ -8,6 +8,9 @@ import { communityStandard } from '../../src/lib/server/db/schema/tenancy.js';
 import { transparencyException } from '../../src/lib/server/db/schema/visibility.js';
 import { layerChecks, type LayerCheck } from '../../src/lib/server/services/layer-checks.js';
 import { compliance } from '../../src/lib/server/services/readiness.js';
+import { outwardClaim } from '../../src/lib/server/services/claim.js';
+import { runSelfAudit } from '../../src/lib/server/services/self-audit.js';
+import { getStandard } from '../../src/lib/server/standard/index.js';
 import { createTestDb } from '../support/db.js';
 import { catchRefusal } from '../support/errors.js';
 import { makeCommunity, makeMembership, makeUser } from '../support/factories.js';
@@ -282,12 +285,67 @@ describe('what the checks count', () => {
 		expect(catchRefusal(() => layerChecks(observer, { db }))?.status).toBe(403);
 	});
 
-	it('does not change compliance', () => {
-		const id = adopt('purpose-charter.primary-purpose');
+	it('leaves compliance alone for what only informs', () => {
+		const id = adopt('membership-agreement.member-rights');
 		const before = compliance({ ...ctx }, { db });
+		db.update(definitionVersion)
+			.set({ linterResult: { clean: false } })
+			.where(eq(definitionVersion.definitionId, id))
+			.run();
+		expect(check(1, 'explicit')!.needsReading).toBe(1);
+		expect(compliance({ ...ctx }, { db })).toEqual(before);
+	});
+});
+
+describe('a rule members cannot read, where the standard allows no exception', () => {
+	/** Every authored section adopted, from a decision, readable: compliant. */
+	function adoptEverything(on = { ctx, standardId }) {
+		const ids = new Map<string, string>();
+		for (const section of getStandard('rcos-core', '0.1').authoredSections())
+			ids.set(section.key, adopt(section.key, { on }));
+		return ids;
+	}
+	const restrict = (id: string) =>
 		db.update(definition).set({ visibility: 'restricted' }).where(eq(definition.id, id)).run();
-		const after = compliance({ ...ctx }, { db });
-		expect(check(0, 'accessible')!.result).toBe('not_met');
-		expect(after).toEqual(before);
+
+	it('costs compliance in every place compliance is computed', () => {
+		const ids = adoptEverything();
+		expect(compliance({ ...ctx }, { db })!.compliant).toBe(true);
+		expect(outwardClaim(ctx, { db })!.compliant).toBe(true);
+
+		restrict(ids.get('purpose-charter.primary-purpose')!);
+
+		const inward = compliance({ ...ctx }, { db })!;
+		expect(inward).toMatchObject({ compliant: false, restrictedDefinitions: 1 });
+		const outward = outwardClaim(ctx, { db })!;
+		expect(outward).toMatchObject({ compliant: false, restrictedDefinitions: 1, missing: [] });
+		// Counted, never named.
+		expect(JSON.stringify(outward)).not.toContain('Primary Purpose');
+		const audit = runSelfAudit({ ...ctx }, { db });
+		expect(audit.compliant).toBe(false);
+		expect(audit.snapshot.restricted).toEqual([
+			expect.objectContaining({ sectionKey: 'purpose-charter.primary-purpose', layer: 0 })
+		]);
+	});
+
+	it('does not cost it in Layer 3 under a live transparency exception', () => {
+		const ids = adoptEverything();
+		const id = ids.get('treasury-ruleset.transparency-and-reporting')!;
+		restrict(id);
+		exception(id, NOW + 30 * DAY);
+		expect(compliance({ ...ctx }, { db })).toMatchObject({
+			compliant: true,
+			restrictedDefinitions: 0
+		});
+		expect(runSelfAudit({ ...ctx }, { db }).compliant).toBe(true);
+	});
+
+	it('only counts this community', () => {
+		adoptEverything();
+		const other = seedCommunity('rio-claro');
+		const theirs = adopt('purpose-charter.primary-purpose', { on: other });
+		restrict(theirs);
+		expect(compliance({ ...ctx }, { db })!.compliant).toBe(true);
+		expect(compliance({ ...other.ctx }, { db })!.restrictedDefinitions).toBe(1);
 	});
 });

@@ -9,6 +9,7 @@ import { selfAudit, type SelfAudit } from '../db/schema/self-audit.js';
 import { transparencyException } from '../db/schema/visibility.js';
 import { activeStandardView, answeredSections } from './completeness.js';
 import { readiness } from './readiness.js';
+import { restrictedInClosedLayers } from './layer-checks.js';
 
 /**
  * "We checked ourselves on this date, and here is what we found."
@@ -35,6 +36,12 @@ export type AuditSnapshot = {
 	uncoveredClauses: { key: string; ref: string }[];
 	/** Adopted before the community had a Decision Matrix, with what it was adopted under. */
 	provisional: { definitionId: string; sectionKey: string | null; adoptedAt: number | null }[];
+	/**
+	 * Layer 0–2 rules members cannot read, where the standard allows no
+	 * exception. Absent from snapshots taken before this was a condition, which
+	 * read as none.
+	 */
+	restricted?: { definitionId: string; sectionKey: string; layer: number }[];
 	/** Past its review date, still adopted, still counting. */
 	pastReview: { definitionId: string; sectionKey: string | null; reviewDueAt: number }[];
 	/** Frozen anyway, which the register shows and an auditor asks about. */
@@ -154,6 +161,8 @@ export function runSelfAudit(ctx: Ctx, options: { db?: Db } = {}): SelfAudit {
 			expiresAt: row.expiresAt.getTime()
 		}));
 
+	const restricted = restrictedInClosedLayers(db, ctx.community.id, standard.row.id, standard.view);
+
 	const numbers = readiness(ctx, { db });
 
 	const snapshot: AuditSnapshot = {
@@ -162,6 +171,7 @@ export function runSelfAudit(ctx: Ctx, options: { db?: Db } = {}): SelfAudit {
 		incompleteArtifacts,
 		uncoveredClauses,
 		provisional,
+		restricted,
 		pastReview,
 		decisionsOverObjections,
 		exceptions,
@@ -181,7 +191,8 @@ export function runSelfAudit(ctx: Ctx, options: { db?: Db } = {}): SelfAudit {
 			communityId: ctx.community.id,
 			runBy: ctx.user.id,
 			runAt: new Date(now),
-			compliant: incompleteArtifacts.length === 0 && provisional.length === 0,
+			compliant:
+				incompleteArtifacts.length === 0 && provisional.length === 0 && restricted.length === 0,
 			snapshot
 		})
 		.run();

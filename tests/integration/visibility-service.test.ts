@@ -218,17 +218,23 @@ describe('who can see a restricted thing', () => {
 });
 
 describe('restriction is not a way to look more compliant', () => {
-	it('leaves readiness and the claim exactly where they were', () => {
+	it('leaves readiness where it was, and can only make the claim worse', () => {
 		const id = adopt();
-		const before = { readiness: readiness(ana, { db }), compliance: compliance(ana, { db }) };
+		const before = { readiness: readiness(ana, { db }), compliance: compliance(ana, { db })! };
 
 		restrict(ana, { type: 'definition', id }, restriction, { db });
 
 		// A restricted definition still answers its clause. If hiding something
-		// changed the number, restriction would be a lever on the compliance claim
-		// rather than a privacy measure.
+		// improved the number, restriction would be a lever on the compliance
+		// claim rather than a privacy measure.
 		expect(readiness(ana, { db })).toEqual(before.readiness);
-		expect(compliance(ana, { db })).toEqual(before.compliance);
+		const after = compliance(ana, { db })!;
+		expect(after.incompleteArtifacts).toEqual(before.compliance.incompleteArtifacts);
+		expect(after.provisionalDefinitions).toBe(before.compliance.provisionalDefinitions);
+		expect(after.compliant && !before.compliance.compliant).toBe(false);
+		// In Layers 0–2 it is a rule members must be able to read (§2.5.3,
+		// §3.8.3, §4.7.3), so there it is counted against the claim.
+		expect(after.restrictedDefinitions).toBe(COUNTABLE.layer <= 2 ? 1 : 0);
 	});
 
 	it('counts the same for a member who cannot see it', () => {

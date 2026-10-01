@@ -21,9 +21,11 @@ import { compareRefs } from './requirement.js';
  * and nobody ticks a box: a box next to a fact the application can compute is
  * a second source of truth that can disagree with the first.
  *
- * It informs; it does not decide. Compliance already fails on an incomplete
- * mandatory artifact and on a provisional definition (`readiness.ts`), and the
- * other properties are shown, not enforced.
+ * Mostly it informs. Compliance fails on an incomplete mandatory artifact, on a
+ * provisional definition, and — decided 2026-10-01 — on a restricted
+ * definition in a layer that allows no exception (`restrictedInClosedLayers`,
+ * read by `compliance()`, the outward claim and the self-audit). The other
+ * properties are shown, not enforced.
  */
 
 export type Property =
@@ -109,6 +111,58 @@ function artifactClauses(view: StandardView, layer: number) {
 	return view.clauses
 		.filter((clause) => clause.layer === layer && clause.specSection?.title === 'Artifacts')
 		.sort((a, b) => compareRefs(a.ref, b.ref));
+}
+
+/** The layers whose artifact rule allows no exception to member access (0–2 in core 0.1). */
+export function closedLayers(view: StandardView): Set<number> {
+	return new Set(
+		view.meta.layers
+			.map(({ n }) => n)
+			.filter((layer) =>
+				artifactClauses(view, layer).some(
+					(clause) => ARTIFACT_RULES[clause.key]?.exceptions === false
+				)
+			)
+	);
+}
+
+/**
+ * Adopted definitions members cannot read, in a layer that allows no exception.
+ *
+ * The one check that decides compliance (§2.5.3, §3.8.3, §4.7.3: a Layer 0–2
+ * artifact that is missing, ambiguous or violated costs it). One function,
+ * because `compliance()`, the outward claim and the self-audit each compute
+ * compliance, and three copies of this condition could disagree about it.
+ * No permission check: each caller has already passed its own.
+ */
+export function restrictedInClosedLayers(
+	db: Db,
+	communityId: string,
+	communityStandardId: string,
+	view: StandardView
+): { definitionId: string; sectionKey: string; layer: number }[] {
+	const closed = closedLayers(view);
+	if (closed.size === 0) return [];
+	return db
+		.select({ id: definition.id, sectionKey: definition.sectionKey })
+		.from(definition)
+		.where(
+			and(
+				eq(definition.communityId, communityId),
+				eq(definition.communityStandardId, communityStandardId),
+				eq(definition.scope, 'standard'),
+				eq(definition.visibility, 'restricted'),
+				isNotNull(definition.adoptedVersionId)
+			)
+		)
+		.all()
+		.flatMap((row) => {
+			const section = row.sectionKey ? view.section(row.sectionKey) : undefined;
+			const layer = section ? view.artifact(section.artifact)?.layer : undefined;
+			return layer !== undefined && layer !== null && closed.has(layer)
+				? [{ definitionId: row.id, sectionKey: row.sectionKey!, layer }]
+				: [];
+		});
 }
 
 export function layerChecks(ctx: Ctx, options: { db?: Db } = {}): LayerChecks[] {

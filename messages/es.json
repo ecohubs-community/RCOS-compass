@@ -418,7 +418,7 @@
 	"layer_explicit_count": "{count} para leer con atención: avisos del linter abiertos o nunca revisados.",
 	"layer_explicit_none": "El linter no tiene nada abierto. Si el texto es claro lo siguen juzgando las personas.",
 	"layer_checks_show": "Mostrar {count}",
-	"layer_checks_compliance_note": "El cumplimiento solo depende de dos: todos los artefactos obligatorios completos y nada provisional. El resto se muestra, no se impone.",
+	"layer_checks_compliance_note": "El cumplimiento depende de tres: todos los artefactos obligatorios completos, nada provisional y nada restringido en las capas 0–2. El resto se muestra, no se impone.",
 	"layer_reason_incomplete": "{answered} de {authored} secciones adoptadas",
 	"layer_reason_version_missing": "Marcado como adoptado, pero falta su versión adoptada",
 	"layer_reason_restricted_no_exceptions": "Restringido — esta capa no admite excepciones",
@@ -429,5 +429,8 @@
 	"layer_reason_linter_findings": "Avisos del linter abiertos",
 	"layer_reason_never_linted": "Nunca revisado",
 	"layer_reason_no_review_date": "Sin fecha de revisión",
-	"layer_reason_review_overdue": "La revisión vencía el {date}"
+	"layer_reason_review_overdue": "La revisión vencía el {date}",
+	"public_restricted_one": "1 norma que todos los miembros deben poder leer está restringida.",
+	"public_restricted_many": "{count} normas que todos los miembros deben poder leer están restringidas.",
+	"audit_restricted_heading": "Ocultas a los miembros donde el estándar no admite excepciones"
 }

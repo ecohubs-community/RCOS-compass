@@ -1,4 +1,5 @@
 <script lang="ts">
+	import * as m from '$lib/paraglide/messages';
 	import { useTime } from '$lib/time/use-time';
 	import { enhance } from '$app/forms';
 
@@ -70,6 +71,11 @@
 			{@render list(
 				'Adopted before you had a Decision Matrix',
 				latest.snapshot.provisional.map((p) => p.sectionKey ?? p.definitionId)
+			)}
+			{@render list(
+				m.audit_restricted_heading(),
+				// Absent from audits run before this was a condition: none, then.
+				(latest.snapshot.restricted ?? []).map((r) => r.sectionKey)
 			)}
 			{@render list(
 				'Past their review date',

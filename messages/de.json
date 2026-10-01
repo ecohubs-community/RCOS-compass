@@ -418,7 +418,7 @@
 	"layer_explicit_count": "{count} genau lesen: offene Linter-Hinweise oder nie geprüft.",
 	"layer_explicit_none": "Der Linter hat nichts Offenes. Ob der Text klar ist, beurteilen trotzdem Menschen.",
 	"layer_checks_show": "{count} anzeigen",
-	"layer_checks_compliance_note": "Die Konformität hängt nur von zweien davon ab: alle verpflichtenden Artefakte vollständig, nichts vorläufig. Der Rest wird gezeigt, nicht erzwungen.",
+	"layer_checks_compliance_note": "Die Konformität hängt von dreien davon ab: alle verpflichtenden Artefakte vollständig, nichts vorläufig und nichts in den Schichten 0–2 eingeschränkt. Der Rest wird gezeigt, nicht erzwungen.",
 	"layer_reason_incomplete": "{answered} von {authored} Abschnitten angenommen",
 	"layer_reason_version_missing": "Als angenommen markiert, aber die angenommene Version fehlt",
 	"layer_reason_restricted_no_exceptions": "Eingeschränkt — diese Schicht erlaubt keine Ausnahmen",
@@ -429,5 +429,8 @@
 	"layer_reason_linter_findings": "Offene Linter-Hinweise",
 	"layer_reason_never_linted": "Nie geprüft",
 	"layer_reason_no_review_date": "Kein Überprüfungsdatum",
-	"layer_reason_review_overdue": "Überprüfung war fällig am {date}"
+	"layer_reason_review_overdue": "Überprüfung war fällig am {date}",
+	"public_restricted_one": "1 Regel, die alle Mitglieder lesen können müssen, ist eingeschränkt.",
+	"public_restricted_many": "{count} Regeln, die alle Mitglieder lesen können müssen, sind eingeschränkt.",
+	"audit_restricted_heading": "Vor Mitgliedern verborgen, wo der Standard keine Ausnahme erlaubt"
 }
