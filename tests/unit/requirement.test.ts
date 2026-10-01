@@ -129,8 +129,17 @@ describe('guideFor', () => {
 		);
 	});
 
-	it('is nothing for a section with no prompts, examples or hints', () => {
-		expect(guideFor(view, 'purpose-charter.non-goals-and-exclusions', 'en')).toBeNull();
+	it('covers every section a community writes: sub-questions and at least one example', () => {
+		// The whole point of guidance is that no question is left as one line.
+		const thin = view
+			.authoredSections()
+			.map((section) => ({ key: section.key, guide: guideFor(view, section.key, 'en') }))
+			.filter(({ guide }) => !guide || guide.prompts.length < 2 || guide.examples.length === 0)
+			.map(({ key }) => key);
+		expect(thin).toEqual([]);
+	});
+
+	it('is nothing for a section the standard does not have', () => {
 		expect(guideFor(view, 'nothing.like-this', 'en')).toBeNull();
 	});
 

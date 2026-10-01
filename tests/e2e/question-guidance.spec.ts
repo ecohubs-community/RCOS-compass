@@ -10,7 +10,6 @@ import { seed, signIn, visit } from './support.js';
  */
 
 const VOLUNTARY = /How can someone leave whenever they choose/;
-const NON_GOALS = /What are we deliberately not/;
 
 async function startFromPath(page: Page, slug: string, question: RegExp) {
 	await visit(page, `/c/${slug}/path?all=1`);
@@ -43,10 +42,13 @@ test.describe('what to cover', () => {
 		await expect(guide.getByText(/within 24 hours of confirmation/)).toBeVisible();
 	});
 
-	test('is not offered for a question with nothing to add', async ({ page }) => {
+	test('is not offered for a thread about nothing in the standard', async ({ page }) => {
 		const { slug, email, password } = await seed(page);
 		await signIn(page, email, password);
-		await startFromPath(page, slug, NON_GOALS);
+		await visit(page, `/c/${slug}/discussions`);
+		await page.getByLabel('Start a discussion').fill('The dinner rota');
+		await page.getByRole('button', { name: 'Start', exact: true }).click();
+		await expect(page.getByRole('heading', { name: 'The dinner rota' })).toBeVisible();
 		await expect(page.getByText('What to cover', { exact: true })).toHaveCount(0);
 	});
 
