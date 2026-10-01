@@ -149,3 +149,52 @@ export function requirementFor(
 		}))
 	};
 }
+
+/**
+ * What a proposal for a section should cover, and what an answer can look like.
+ *
+ * Unlike the requirement above, this is Compass's guidance, not the standard's
+ * words — so every example says where it came from, and the page calls them
+ * examples rather than recommendations. Sub-questions never become Path items:
+ * a section stays one discussion and one definition, so nothing in the
+ * assembled artifact is decided twice.
+ */
+export type GuideExample = { text: string; source: 'compass' | 'template' };
+export type Guide = { prompts: string[]; examples: GuideExample[] };
+
+/**
+ * The template's own hints that read as an answer on their own.
+ *
+ * Its placeholders are form fields: "e.g. within 24 hours of confirmation." is
+ * a useful hint, "e.g. Finance Steward" is a table cell that means nothing out
+ * of its row. The template ends its sentences with a full stop and its cells
+ * without one, so: lines with "e.g.", ending in a full stop, without "...".
+ *
+ * Chosen by the English line and shown in the community's language: each
+ * translation marks an example its own way ("z. B.", "p. ej.", "por exemplo"),
+ * and the placeholder lists are line-for-line translations of each other.
+ */
+export function templateHints(english: readonly string[], shown: readonly string[]): string[] {
+	return english.flatMap((line, index) =>
+		/\be\.g\./.test(line) && !line.includes('...') && line.trim().endsWith('.')
+			? [shown[index] ?? line]
+			: []
+	);
+}
+
+export function guideFor(view: StandardView, sectionKey: string, locale: Locale): Guide | null {
+	const section = view.section(sectionKey);
+	if (!section) return null;
+	const annotation = view.annotation(sectionKey);
+	const english = view.localise(section.i18n, view.meta.defaultLocale).value.placeholders ?? [];
+	const shown = view.localise(section.i18n, locale).value.placeholders ?? [];
+
+	const guide: Guide = {
+		prompts: annotation?.prompts ?? [],
+		examples: [
+			...(annotation?.examples ?? []).map((text) => ({ text, source: 'compass' as const })),
+			...templateHints(english, shown).map((text) => ({ text, source: 'template' as const }))
+		]
+	};
+	return guide.prompts.length + guide.examples.length > 0 ? guide : null;
+}

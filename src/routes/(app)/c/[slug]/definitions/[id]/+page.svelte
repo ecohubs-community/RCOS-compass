@@ -11,6 +11,7 @@
 	import { links } from '$lib/links';
 	import CitedClauses from '$lib/components/ui/CitedClauses.svelte';
 	import Requirement from '$lib/components/Requirement.svelte';
+	import QuestionGuide from '$lib/components/QuestionGuide.svelte';
 	import IconSparkles from '~icons/tabler/sparkles';
 
 	let { data, form } = $props();
@@ -101,6 +102,12 @@
 					: 'hidden'} lg:block"
 			>
 				<Requirement requirement={data.requirement} />
+				{#if data.guide}
+					<h2 class="text-title mt-6 font-medium">{m.guide_heading()}</h2>
+					<div class="mt-2">
+						<QuestionGuide guide={data.guide} />
+					</div>
+				{/if}
 			</section>
 		{/if}
 

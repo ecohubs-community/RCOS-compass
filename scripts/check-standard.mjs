@@ -195,6 +195,18 @@ for (const { id, version } of manifest.standards ?? []) {
 			if (!annotation.question || annotation.question.trim().length === 0) {
 				note(`${id}@${version} annotation "${key}": has no question.`);
 			}
+			// Guidance is optional, but an empty prompt renders as an empty bullet a
+			// member is asked to answer.
+			for (const field of ['prompts', 'examples']) {
+				const value = annotation[field];
+				if (value === undefined) continue;
+				if (
+					!Array.isArray(value) ||
+					value.some((entry) => typeof entry !== 'string' || entry.trim().length === 0)
+				) {
+					note(`${id}@${version} annotation "${key}": ${field} must be a list of non-empty text.`);
+				}
+			}
 			if (!efforts.has(annotation.effort)) {
 				note(`${id}@${version} annotation "${key}": unknown effort "${annotation.effort}".`);
 			}

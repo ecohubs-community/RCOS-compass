@@ -15,6 +15,8 @@
 	import TextField from '$lib/components/ui/TextField.svelte';
 	import { links } from '$lib/links';
 	import RequirementRefs from '$lib/components/RequirementRefs.svelte';
+	import QuestionGuide from '$lib/components/QuestionGuide.svelte';
+	import * as m from '$lib/paraglide/messages';
 	import { diffWords } from '$lib/shared/diff';
 	import IconArrowBackUp from '~icons/tabler/arrow-back-up';
 	import IconFilePlus from '~icons/tabler/file-plus';
@@ -194,6 +196,20 @@
 				hrefFor={(ref) => links.clause(slug, ref)}
 				class="text-meta mt-1"
 			/>
+		{/if}
+		{#if data.guide}
+			<!--
+				Closed by default: the conversation keeps the screen, and the guidance
+				is one tap away. A <details>, so it opens with no JavaScript.
+			-->
+			<details class="mt-1 max-w-3xl">
+				<summary class="text-fg-secondary hover:text-fg min-h-11 cursor-pointer py-2 font-medium"
+					>{m.guide_heading()}</summary
+				>
+				<div class="max-h-[50dvh] overflow-y-auto pb-2">
+					<QuestionGuide guide={data.guide} />
+				</div>
+			</details>
 		{/if}
 		{#if data.thread.decidedRef}
 			<p class="text-fg-secondary text-meta mt-2">

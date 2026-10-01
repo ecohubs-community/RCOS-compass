@@ -16,7 +16,7 @@ import { fail } from '@sveltejs/kit';
 import { aiAvailability } from '$lib/server/ai/run';
 import { lintWithAssist } from '$lib/server/services/linting';
 import type { Actions, PageServerLoad } from './$types';
-import { requirementFor } from '$lib/server/services/requirement';
+import { guideFor, requirementFor } from '$lib/server/services/requirement';
 
 /**
  * The definition detail — the hero screen. UI spec §4.3.
@@ -63,6 +63,8 @@ export const load: PageServerLoad = ({ locals, params }) => {
 		/** The left column: null for a local definition, by design. */
 		requirement:
 			section && standard ? requirementFor(standard.view, section.key, ctx.community.locale) : null,
+		/** What a proposal should cover, and example answers. Compass's, not RCOS's. */
+		guide: section && standard ? guideFor(standard.view, section.key, ctx.community.locale) : null,
 		version: version && {
 			n: version.n,
 			body: parseMarkdown(version.body),
