@@ -47,8 +47,12 @@ work without JavaScript.
 - **WHEN** a member opens the "Voluntary Exit" discussion and opens "What to cover"
 - **THEN** the sub-questions and the examples are shown
 
-#### Scenario: A section with no guidance
-- **WHEN** a member opens a discussion for a section with no sub-questions and no examples
+#### Scenario: Every section a community writes has guidance
+- **WHEN** the vendored standard is loaded
+- **THEN** every authored section has at least two sub-questions and at least one example
+
+#### Scenario: A discussion about nothing in the standard
+- **WHEN** a member opens a discussion that names no clause, section or definition
 - **THEN** no "What to cover" control is shown
 
 #### Scenario: Without JavaScript
