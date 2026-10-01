@@ -44,6 +44,15 @@
 				</ul>
 			{/if}
 
+			{#if data.claim.restrictedDefinitions > 0}
+				<!-- Counted, never named: the claim is public, the rules are not. -->
+				<p class="text-fg-secondary mt-2">
+					{data.claim.restrictedDefinitions === 1
+						? m.public_restricted_one()
+						: m.public_restricted_many({ count: data.claim.restrictedDefinitions })}
+				</p>
+			{/if}
+
 			{#if data.claim.provisionalDefinitions > 0}
 				<p class="text-fg-secondary mt-2">
 					{data.claim.provisionalDefinitions}

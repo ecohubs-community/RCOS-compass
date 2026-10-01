@@ -5,6 +5,7 @@ import { clauseCoverage, definition } from '../db/schema/definitions.js';
 import { communityStandard } from '../db/schema/tenancy.js';
 import { getStandard, type StandardView } from '../standard/index.js';
 import { answeredSections, progressOf, type ArtifactProgress } from './completeness.js';
+import { restrictedInClosedLayers } from './layer-checks.js';
 
 /**
  * The two numbers, and their exact arithmetic. docs/03-data-model.md §7.
@@ -74,6 +75,8 @@ export type Compliance = {
 	incompleteArtifacts: ArtifactProgress[];
 	/** A definition adopted before the community had a Decision Matrix. */
 	provisionalDefinitions: number;
+	/** Adopted, restricted, in a layer that allows no exception to member access. */
+	restrictedDefinitions: number;
 };
 
 type ActiveStandard = { row: typeof communityStandard.$inferSelect; view: StandardView };
@@ -208,10 +211,11 @@ export function allReadiness(ctx: Ctx, options: { db?: Db } = {}): Readiness[] {
 /**
  * The outward claim, about core and nothing else.
  *
- * Two ways to be false, and both matter: a mandatory artifact is unfinished, or
- * something answering a MUST was adopted before the community had agreed how it
- * decides. The second is easy to forget and is exactly the case a sceptical
- * reader would ask about.
+ * Three ways to be false: a mandatory artifact is unfinished; something
+ * answering a MUST was adopted before the community had agreed how it decides;
+ * or a Layer 0–2 rule is hidden from members, where the standard allows no
+ * exception. The second and third are easy to forget and are exactly the cases
+ * a sceptical reader would ask about.
  */
 export function compliance(ctx: Ctx, options: { db?: Db } = {}): Compliance | null {
 	requirePermission(ctx, 'community.read');
@@ -240,11 +244,24 @@ export function compliance(ctx: Ctx, options: { db?: Db } = {}): Compliance | nu
 		)
 		.all().length;
 
+	// A rule members cannot read, where the standard allows no exception
+	// (§2.5.3, §3.8.3, §4.7.3). `layer-checks.ts` owns the condition.
+	const restrictedDefinitions = restrictedInClosedLayers(
+		db,
+		ctx.community.id,
+		core.row.id,
+		core.view
+	).length;
+
 	return {
 		standardId: core.row.standardId,
 		version: core.row.version,
-		compliant: incompleteArtifacts.length === 0 && provisionalDefinitions === 0,
+		compliant:
+			incompleteArtifacts.length === 0 &&
+			provisionalDefinitions === 0 &&
+			restrictedDefinitions === 0,
 		incompleteArtifacts,
-		provisionalDefinitions
+		provisionalDefinitions,
+		restrictedDefinitions
 	};
 }

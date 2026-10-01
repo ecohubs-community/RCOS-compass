@@ -981,7 +981,7 @@
 	"layer_explicit_count": "{count} to read closely: open linter findings, or never linted.",
 	"layer_explicit_none": "The linter has nothing open. Whether the text is clear is still for people to judge.",
 	"layer_checks_show": "Show {count}",
-	"layer_checks_compliance_note": "Compliance follows only two of these: every mandatory artifact complete, and nothing provisional. The rest are shown, not enforced.",
+	"layer_checks_compliance_note": "Compliance follows three of these: every mandatory artifact complete, nothing provisional, and nothing in Layers 0–2 restricted. The rest are shown, not enforced.",
 	"layer_reason_incomplete": "{answered} of {authored} sections adopted",
 	"layer_reason_version_missing": "Marked adopted, but its adopted version is missing",
 	"layer_reason_restricted_no_exceptions": "Restricted — this layer allows no exceptions",
@@ -992,5 +992,8 @@
 	"layer_reason_linter_findings": "Open linter findings",
 	"layer_reason_never_linted": "Never linted",
 	"layer_reason_no_review_date": "No review date",
-	"layer_reason_review_overdue": "Review was due {date}"
+	"layer_reason_review_overdue": "Review was due {date}",
+	"public_restricted_one": "1 rule that every member must be able to read is restricted.",
+	"public_restricted_many": "{count} rules that every member must be able to read are restricted.",
+	"audit_restricted_heading": "Hidden from members where the standard allows no exception"
 }

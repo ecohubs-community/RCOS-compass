@@ -40,7 +40,7 @@ export const HELP: Record<string, HelpEntry> = {
 	'layer-checks': {
 		title: 'Layer checks',
 		what: 'Whether this layer’s adopted artifacts are what the standard says every artifact must be — complete, versioned, readable by every member, adopted through a recorded decision, clear, kept up to date — worked out from what Compass records.',
-		why: 'Nobody writes an answer to these rules, so nothing else on the screen would show them. They inform; compliance follows only completeness and nothing being provisional.'
+		why: 'Nobody writes an answer to these rules, so nothing else on the screen would show them. Most inform. Compliance follows three: every mandatory artifact complete, nothing provisional, and nothing in Layers 0–2 hidden from members.'
 	},
 	requirement: {
 		title: 'The requirement',
