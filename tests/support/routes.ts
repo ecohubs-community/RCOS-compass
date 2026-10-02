@@ -59,6 +59,7 @@ export const ROUTES: RouteCoverage[] = [
 		coveredBy: 'every screen of the loop has no violations'
 	},
 	{ id: '(app)/c/[slug]/decisions', scan: 'a11y', path: (slug) => `/c/${slug}/decisions` },
+	{ id: '(app)/c/[slug]/definitions', scan: 'a11y', path: (slug) => `/c/${slug}/definitions` },
 	{
 		id: '(app)/c/[slug]/definitions/[id]',
 		scan: 'a11y',

@@ -54,8 +54,8 @@ cites the docs; it does not restate them. When the two disagree, the spec wins f
 behaviour and the doc gets corrected.
 
 What is in flight: `openspec list`. What shipped: `openspec/changes/archive/`.
-Next up is the provenance UI; modules and standard migration (P8) are post-MVP —
-deploy and test what is built first.
+The provenance UI has shipped; next is deploying and testing what is built.
+Modules and standard migration (P8) are post-MVP.
 
 ```bash
 pnpm dev          # dev server

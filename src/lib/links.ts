@@ -11,6 +11,7 @@ import { resolve } from '$app/paths';
 export const links = {
 	dashboard: (slug: string) => resolve('/(app)/c/[slug]', { slug }),
 	standard: (slug: string) => resolve('/(app)/c/[slug]/standard', { slug }),
+	definitions: (slug: string) => resolve('/(app)/c/[slug]/definitions', { slug }),
 	/** One clause in the standard browser — the anchor it already renders. */
 	clause: (slug: string, ref: string) =>
 		`${resolve('/(app)/c/[slug]/standard', { slug })}#clause-${ref}`,

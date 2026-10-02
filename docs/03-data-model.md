@@ -108,7 +108,11 @@ templates do not carry and we must author (UI spec §6.3).
 
 ```
 community          id | slug | name | locale | timezone | created_at | status active|suspended|deleted
-                   | interim_adoption_rule_id? | ordering_weights (json)
+                   | interim_quorum_num? | interim_quorum_den? | interim_min_days?
+                   -- the interim adoption rule (§8): a quorum as a fraction of the
+                   -- eligible and a minimum number of days. Informs the round view;
+                   -- never gates a response, a closing or a freeze.
+                   | ordering_weights (json)
                    | ai_enabled | git_mirror_enabled | public_index_enabled   -- flags, all default off
                    | ai_provider_override? | publish_names_policy
                    | max_members? | storage_mb? | ai_monthly_tokens?   -- null = instance default
@@ -179,8 +183,17 @@ discussion         id | community_id | definition_id? | clause_key? | title | st
                    -- snapshot. No FK, like frozen_decision_id: post.discussion_id already
                    -- cascades from here, so a constraint pointing back is a cycle.
                    | origin clause|ai_session|offline   -- hook for the post-MVP Ask AI flow
-post               id | discussion_id | author_id | body | created_at | kind message|proposal|offline_summary
+post               id | discussion_id | author_id | body | created_at
+                   | kind message|proposal|offline_summary|response|event|move_request
                    | proposal_version n? | edited_at?
+proposal_move_request id | community_id | discussion_id | requested_by? | reason
+                   | target_proposal_post_id | from_proposal_post_id? | post_id
+                   | state open|granted|declined|withdrawn|lapsed
+                   | answered_by? | answered_at? | answer_note?
+                   -- a member asking for an earlier version back; the post carries it in
+                   -- the thread. At most one open per member per discussion (partial
+                   -- unique). Settled in the transaction that moves the question:
+                   -- granted to whoever moved it there, lapsed if it moved elsewhere.
 objection          id | proposal_post_id | raised_by | reason | raised_at
                    | state open|withdrawn|addressed|overruled
                    | resolved_by? | resolved_at? | resolution_note?
@@ -260,8 +273,9 @@ visibility and transparency exceptions, search, export, the git mirror.
 |---|---|---|
 | `section_key` | required | null |
 | `title` | from the section | authored by the community |
-| `layer` | from the section | declared by the author (may be null → "unassigned") |
-| Attaches to | its artifact, via the section | exactly one of: an RCOS artifact, or a community artifact |
+| `layer` | from the section | declared by the author — required by the *New definition* form; null only for rows written before it |
+| Attaches to | its artifact, via the section | exactly one of: an RCOS artifact, or a community artifact (*Community Agreements* when none is chosen) |
+| Clauses it touches | — | optional, in `local_definition_touch(definition_id, clause_key)`; shown as "Touches §7.2.1 … and satisfies none of them", never counted |
 | Left column of the detail screen | the verbatim clause | the community's own `purpose` — *why we made this rule* (§3c) |
 | In the glossary and search | yes | **yes** — same index, same panel |
 | Enters `clause_coverage` | yes | **never** |
@@ -286,7 +300,10 @@ short community-authored `purpose` field, prompted at creation with the linter's
 own kill question (*"what breaks if we delete this?"*), plus the adopted
 definitions for the declared layer, so an author can see what they are writing
 next to. Same three columns, same widths, same provenance on the right; only the
-left column's source changes.
+left column's source changes. Beside the purpose it shows who asked for the rule
+(the creator, through `personLabel`), when v1 was adopted, the clauses it touches,
+and — when it is not world-visible — that it is kept out of the public index. On
+a phone it is the first of the three tabs.
 
 That `purpose` field is not decoration: it is the thing a member reads in three
 years when nobody remembers why the rule exists, and it is what the AI-assist
@@ -418,8 +435,14 @@ decision permalink. Governance tools that let dissent evaporate at the moment of
 recording are how communities end up arguing about what was agreed.
 
 A consent round is a time-boxed collection of responses against one proposal. It
-closes at `closes_at` or when everyone eligible has responded; the tally feeds the
-freeze form pre-filled, and the freeze is still a human act.
+opens on the first response, or when a steward sets its closing time, and closes
+**only** at `closes_at` — never because everyone has answered, so the last member
+to respond does not take everybody's right to change their mind with them. A
+steward may set or move `closes_at` while it is open (a thread post says so); a
+round with none runs until the text is replaced or frozen. The tally feeds the
+freeze form pre-filled, and the freeze is still a human act. Beside it the round
+view shows *what it takes to pass* — responded, open objections, days open —
+against the community's interim rule where one is recorded; it gates nothing.
 
 **Who is eligible is a snapshot, not a query.** The app cannot know a community's
 own eligibility rule — many communities give trial members voice but not a block,
