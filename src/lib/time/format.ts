@@ -132,10 +132,28 @@ export function formatRelative(ms: number, now: number, locale: string): string 
  * day whose offset changes between the guess and the answer (a DST change).
  */
 export function localMidnight(isoDate: string, timeZone: string): number | null {
-	const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(isoDate);
+	if (!/^\d{4}-\d{2}-\d{2}$/.test(isoDate)) return null;
+	return localDateTime(`${isoDate}T00:00`, timeZone);
+}
+
+/**
+ * The UTC instant of a wall-clock time in a zone — `2026-09-03T20:00` in
+ * `Europe/Berlin`, as a `datetime-local` field sends it. How a steward's
+ * "closes at 20:00" becomes the moment everybody else sees in their own zone.
+ * The same correction as `localMidnight`, which is this at 00:00.
+ */
+export function localDateTime(isoDateTime: string, timeZone: string): number | null {
+	const match = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})$/.exec(isoDateTime);
 	if (!match) return null;
-	const [year, month, day] = [Number(match[1]), Number(match[2]), Number(match[3])];
-	const target = Date.UTC(year, month - 1, day);
+	const [year, month, day, hour, minute] = [1, 2, 3, 4, 5].map((i) => Number(match[i])) as [
+		number,
+		number,
+		number,
+		number,
+		number
+	];
+	if (hour > 23 || minute > 59) return null;
+	const target = Date.UTC(year, month - 1, day, hour, minute);
 	if (new Date(target).getUTCDate() !== day) return null;
 
 	const parts = new Intl.DateTimeFormat('en-CA', {

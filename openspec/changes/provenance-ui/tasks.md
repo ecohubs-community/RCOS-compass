@@ -36,21 +36,21 @@
 
 ## 5. Consent round view
 
-- [ ] 5.1 `setRoundClosing(ctx, {discussionId, closesAt})` behind `consent.open`: opens the round on the current version through `createRound` if needed, refuses a past time, writes an `event` post (D7)
-- [ ] 5.2 Interim rule: service to read and record it behind `settings.manage`; a new `settings/adoption-rule` page linked from the settings layout
-- [ ] 5.3 `passChecklist(ctx, roundId)`: responded of eligible, open objections, days open, and each against the rule when one exists. It is computed from the same tally the rail shows
-- [ ] 5.4 Objections: the load adds `raisedBy` (tombstone-aware) and `raisedAt`; *Resolve* moves from `can.freeze` to `can.resolveObjection` (`objection.resolve`) and the action passes the note, which `resolveObjection` now requires for addressed and overruled; *Withdraw* for the objector (`state: 'withdrawn'`, already raiser-only); *Reply in thread* anchors to the reason post; *Amend* opens the new-version form prefilled with the objection referenced (D9)
-- [ ] 5.5 Rail: closing time through `useTime().deadline` (viewer's zone, named) and days left; the checklist; the same checklist on the freeze form, which stays available (D8)
-- [ ] 5.6 Tests: steward sets, changes, refused in the past, member refused; the round opens with eligibility when a time is set first; the reminder job picks a round with a closing time; resolution needs a note, a member resolving someone else's objection is refused, the objector withdraws; the checklist equals the tally after a changed response, with a rule and without; **a freeze succeeds with every line unmet**; e2e of the round view without JavaScript
+- [x] 5.1 `setClosing(ctx, {proposalPostId, closesAt})` on the `VotingProvider` (the seam forbids services importing the built-in provider) behind `consent.open`: opens the round on the current version through `createRound` if needed, refuses a past time and a round that is over, writes an `event` post (D7)
+- [x] 5.2 Interim rule: service to read and record it behind `settings.manage`; a new `settings/adoption-rule` page linked from the settings layout
+- [x] 5.3 `passChecklist({...tally, openedAt, now, rule})`, pure in `$lib/shared/pass-checklist.ts`: responded of eligible, open objections, days open, and each against the rule when one exists. The load computes it from the same tally the rail shows
+- [x] 5.4 Objections: the load adds `raisedBy` (tombstone-aware) and `raisedAt`; *Resolve* moves from `can.freeze` to `can.resolveObjection` (`objection.resolve`) and the action passes the note, which `resolveObjection` now requires for addressed and overruled; *Withdraw* for the objector (`state: 'withdrawn'`, already raiser-only); *Reply in thread* anchors to the reason post; *Amend* opens the new-version form prefilled with the objection referenced (D9)
+- [x] 5.5 Rail: closing time through `useTime().deadline` (viewer's zone, named) and days left; the checklist; the same checklist on the freeze form, which stays available (D8)
+- [x] 5.6 Tests: steward sets, changes, refused in the past, member refused; the round opens with eligibility when a time is set first; the reminder job picks a round with a closing time; resolution needs a note, a member resolving someone else's objection is refused, the objector withdraws; the checklist equals the tally after a changed response, with a rule and without; **a freeze succeeds with every line unmet**; e2e of the round view without JavaScript
 
 ## 6. Move requests
 
-- [ ] 6.1 `requestMove(ctx, {discussionId, targetProposalPostId, reason})` behind `proposal.request_move`: refuses the current version and a second open request; writes the post and the record in one transaction
-- [ ] 6.2 `answerMove(ctx, {requestId, grant, note?})` behind `proposal.set_current`: grant calls `setCurrentProposal` in the same transaction; decline needs a note. `withdrawMove` for the requester
-- [ ] 6.3 `setCurrentProposal` and posting a new version settle open requests: granted-by-event or lapsed (D10)
-- [ ] 6.4 Notifications: `activeStewards(db, communityId)` beside `activeMemberships`; a kind for stewards on a request and one for the requester on its outcome, each in `kinds.ts`, `text.ts`, the three locales' messages and `jobs/notification-mail.ts`
-- [ ] 6.5 Thread UI: the `move_request` post renders who asked for which version and why, its state, and the steward's *Put vN back* / *Decline* and the requester's *Withdraw*. The "ask" control sits beside each earlier version in the rail
-- [ ] 6.6 Tests: each refusal; grant moves the question and reopens the superseded round exactly as `setCurrentProposal` does; decline without a note refused; member grant refused; cross-tenant 404; settled by a direct move and lapsed by a new version; stewards notified except the requester, former stewards not, requester told the outcome; e2e ask → grant
+- [x] 6.1 `requestMove(ctx, {discussionId, targetProposalPostId, reason})` behind `proposal.request_move`: refuses the current version and a second open request; writes the post and the record in one transaction
+- [x] 6.2 `answerMove(ctx, {requestId, grant, note?})` behind `proposal.set_current`: grant calls `setCurrentProposal` in the same transaction; decline needs a note. `withdrawMove` for the requester
+- [x] 6.3 `setCurrentProposal` and posting a new version settle open requests: granted-by-event or lapsed (D10)
+- [x] 6.4 Notifications: `activeHolders(db, communityId, capability)` beside `activeMemberships`, asking the permission matrix for `proposal.set_current` rather than comparing roles; `proposal.move_requested` for stewards (mailed at once) and `proposal.move_answered` for the requester (digest), each in `kinds.ts`, `text.ts`, the digest, the three locales' messages, and the first in `jobs/notification-mail.ts`
+- [x] 6.5 Thread UI: the `move_request` post renders who asked for which version and why, its state, and the steward's *Put vN back* / *Decline* and the requester's *Withdraw*. The "ask" control sits beside each earlier version in the rail
+- [x] 6.6 Tests: each refusal; grant moves the question and reopens the superseded round exactly as `setCurrentProposal` does; decline without a note refused; member grant refused; cross-tenant 404; settled by a direct move and lapsed by a new version; stewards notified except the requester, former stewards not, requester told the outcome; e2e ask → grant
 
 ## 7. Definitions index and local definitions
 

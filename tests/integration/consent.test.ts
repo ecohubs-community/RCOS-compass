@@ -184,17 +184,25 @@ describe('an objection is a record with a reason and a lifecycle', () => {
 			)?.status
 		).toBe(403);
 		expect(() =>
-			resolveObjection(ctx, { objectionId: another.id, state: 'overruled' }, { db })
+			resolveObjection(
+				ctx,
+				{ objectionId: another.id, state: 'overruled', note: 'Proceeding; assets come next.' },
+				{ db }
+			)
 		).not.toThrow();
 	});
 
 	it('resolves once, and not again', () => {
 		const raised = raiseObjection(members[1]!, { proposalPostId: proposalId, reason: 'x' }, { db });
-		resolveObjection(ctx, { objectionId: raised.id, state: 'addressed' }, { db });
+		resolveObjection(ctx, { objectionId: raised.id, state: 'addressed', note: 'Done.' }, { db });
 
 		expect(
 			catchRefusal(() =>
-				resolveObjection(ctx, { objectionId: raised.id, state: 'overruled' }, { db })
+				resolveObjection(
+					ctx,
+					{ objectionId: raised.id, state: 'overruled', note: 'Again.' },
+					{ db }
+				)
 			)?.status
 		).toBe(409);
 	});
@@ -470,7 +478,11 @@ describe('a round informs a freeze and never performs one', () => {
 		);
 
 		const [raised] = listObjections(ctx, proposalId, { db });
-		resolveObjection(ctx, { objectionId: raised!.id, state: 'addressed' }, { db });
+		resolveObjection(
+			ctx,
+			{ objectionId: raised!.id, state: 'addressed', note: 'v2 covers assets.' },
+			{ db }
+		);
 
 		expect(provider().tally(ctx, round.id, { db }).unresolvedObjections).toBe(0);
 		// The objection itself is still there, still readable, still attributed.

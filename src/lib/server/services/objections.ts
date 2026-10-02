@@ -1,9 +1,12 @@
-import { and, count, eq } from 'drizzle-orm';
+import { and, count, eq, inArray } from 'drizzle-orm';
 import { error } from '@sveltejs/kit';
 import { requirePermission, requireWritableCommunity, type Ctx } from '../auth/guard.js';
 import { getDb, type Db } from '../db/index.js';
 import { newId } from '../db/id.js';
+import { user } from '../db/schema/auth.js';
 import { discussion, objection, post, type Objection } from '../db/schema/discussions.js';
+import { membership } from '../db/schema/tenancy.js';
+import { ERASED_WITHOUT_COMMUNITY, personLabel } from './person.js';
 import { registerTenantService } from './registry.js';
 
 /**
@@ -115,12 +118,23 @@ export function resolveObjection(
 
 	if (found.state !== 'open') error(409, 'That objection has already been resolved.');
 
+	/**
+	 * Addressing or overruling says *how*, every time. "Addressed" with nothing
+	 * after it is a steward's word against the objector's, and the register keeps
+	 * both forever; the note is what lets a reader judge it. Withdrawing needs
+	 * none — it is the objector's own mind.
+	 */
+	const note = input.note?.trim() || null;
+	if (input.state !== 'withdrawn' && !note) {
+		error(400, 'Say how it was addressed, or why the community is going ahead anyway.');
+	}
+
 	db.update(objection)
 		.set({
 			state: input.state,
 			resolvedBy: ctx.user.id,
 			resolvedAt: new Date(ctx.now()),
-			resolutionNote: input.note?.trim() || null
+			resolutionNote: note
 		})
 		.where(eq(objection.id, input.objectionId))
 		.run();
@@ -143,6 +157,59 @@ export function listObjections(
 		.where(eq(objection.proposalPostId, proposalPostId))
 		.orderBy(objection.raisedAt)
 		.all();
+}
+
+export type LabelledObjection = Objection & {
+	/** Who raised it, through `personLabel` — the erased placeholder if they were erased. */
+	raisedByLabel: string;
+	resolvedByLabel: string | null;
+	/** The reader raised it, so they may withdraw it. */
+	mine: boolean;
+};
+
+/**
+ * The objections on one version, with a name against each.
+ *
+ * Joined to this community's membership for the label, as every other surface
+ * does (`docs/03` §10): a former member's label is community-local.
+ */
+export function listLabelledObjections(
+	ctx: Ctx,
+	proposalPostId: string,
+	options: { db?: Db } = {}
+): LabelledObjection[] {
+	const db = options.db ?? getDb();
+	const rows = listObjections(ctx, proposalPostId, { db });
+	const people = new Set(rows.flatMap((row) => [row.raisedBy, row.resolvedBy].filter(Boolean)));
+	const labels = new Map(
+		people.size === 0
+			? []
+			: db
+					.select({
+						id: user.id,
+						name: user.name,
+						erasedAt: user.erasedAt,
+						displayName: membership.displayName,
+						seq: membership.seq
+					})
+					.from(user)
+					.leftJoin(
+						membership,
+						and(eq(membership.userId, user.id), eq(membership.communityId, ctx.community.id))
+					)
+					.where(inArray(user.id, [...people] as string[]))
+					.all()
+					.map((row) => [row.id, personLabel(row)])
+	);
+	// An account that is gone entirely reads as erased, never as a blank.
+	const label = (id: string | null) => (id && labels.get(id)) || ERASED_WITHOUT_COMMUNITY;
+
+	return rows.map((row) => ({
+		...row,
+		raisedByLabel: label(row.raisedBy),
+		resolvedByLabel: row.resolvedBy ? label(row.resolvedBy) : null,
+		mine: row.raisedBy === ctx.user.id
+	}));
 }
 
 /**

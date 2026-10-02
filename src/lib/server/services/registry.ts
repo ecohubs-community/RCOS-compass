@@ -32,6 +32,8 @@ export type TenantService = {
 		| 'proposal'
 		| 'objection'
 		| 'consentRound'
+		/** A request to put an earlier version back on the table. */
+		| 'moveRequest'
 		| 'document'
 		| 'passage'
 		| 'evidence'

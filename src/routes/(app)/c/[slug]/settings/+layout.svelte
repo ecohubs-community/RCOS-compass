@@ -4,6 +4,7 @@
 	import { links } from '$lib/links';
 	import IconAdjustments from '~icons/tabler/adjustments';
 	import IconClock from '~icons/tabler/clock';
+	import IconScale from '~icons/tabler/scale';
 	import IconArrowsSort from '~icons/tabler/arrows-sort';
 	import IconDownload from '~icons/tabler/download';
 	import IconEyeOff from '~icons/tabler/eye-off';
@@ -36,6 +37,7 @@
 	const panels = $derived([
 		{ href: links.interview(slug), label: m.nav_interview(), icon: IconAdjustments },
 		{ href: links.pathSettings(slug), label: m.nav_path_settings(), icon: IconArrowsSort },
+		{ href: links.adoptionRule(slug), label: m.nav_adoption_rule(), icon: IconScale },
 		{ href: links.language(slug), label: m.nav_language(), icon: IconLanguage },
 		{ href: links.aiSettings(slug), label: m.nav_ai_settings(), icon: IconSparkles },
 		{ href: links.transparency(slug), label: m.nav_transparency(), icon: IconEyeOff },

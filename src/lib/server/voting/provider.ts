@@ -83,4 +83,16 @@ export interface VotingProvider {
 		options?: { db?: Db }
 	): Round;
 	tally(ctx: Ctx, roundId: string, options?: { db?: Db }): Tally;
+	/**
+	 * Set or change when the round on the version being asked about closes,
+	 * opening it first if nobody has answered yet. Choosing a deadline is a
+	 * steward's act (`consent.open`), it is said in the thread, and it ends
+	 * nothing early: a round still closes only at its deadline.
+	 * `openspec/changes/provenance-ui` D7.
+	 */
+	setClosing(
+		ctx: Ctx,
+		input: { proposalPostId: string; closesAt: number },
+		options?: { db?: Db }
+	): Round;
 }

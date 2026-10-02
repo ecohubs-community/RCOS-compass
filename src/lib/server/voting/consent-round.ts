@@ -18,6 +18,7 @@ import { countUnresolved, raiseObjection } from '../services/objections.js';
 import { writeThreadPost } from '../services/discussions.js';
 import { notify } from '../services/notifications.js';
 import { registerTenantService } from '../services/registry.js';
+import { formatMoment } from '../../time/format.js';
 import { RESPONSE_VALUES } from './provider.js';
 import type { OpenRoundInput, ResponseValue, Round, Tally, VotingProvider } from './provider.js';
 
@@ -455,6 +456,87 @@ export const consentRoundProvider: VotingProvider = {
 		});
 	},
 
+	setClosing(
+		ctx: Ctx,
+		input: { proposalPostId: string; closesAt: number },
+		options: { db?: Db } = {}
+	): Round {
+		requirePermission(ctx, 'consent.open');
+		requireWritableCommunity(ctx);
+		const db = options.db ?? getDb();
+		const now = ctx.now();
+
+		if (!Number.isFinite(input.closesAt) || input.closesAt <= now) {
+			error(400, 'A round has to close in the future.');
+		}
+		const proposal = respondableProposal(db, ctx, input.proposalPostId);
+
+		return db.transaction((tx) => {
+			const inTx = tx as unknown as Db;
+			const existing = tx
+				.select()
+				.from(consentRound)
+				.where(eq(consentRound.proposalPostId, proposal.id))
+				.get();
+
+			/**
+			 * A round that is over stays over. Its deadline passed and `closeIfDue`
+			 * closed it — reopening it here would hand back a vote the community was
+			 * told had ended. Putting the version back on the table is the act that
+			 * asks again, and it already says what it does to the round.
+			 */
+			if (existing) {
+				closeIfDue(inTx, existing.id, now);
+				const fresh = tx.select().from(consentRound).where(eq(consentRound.id, existing.id)).get()!;
+				if (fresh.status !== 'open') error(409, 'That round has closed.');
+			}
+
+			const opened = !existing;
+			const roundId = existing
+				? existing.id
+				: createRound(inTx, ctx, {
+						proposalPostId: proposal.id,
+						discussionId: proposal.discussionId,
+						closesAt: input.closesAt,
+						openedBy: ctx.user.id
+					});
+			if (existing) {
+				tx.update(consentRound)
+					.set({ closesAt: new Date(input.closesAt) })
+					.where(eq(consentRound.id, roundId))
+					.run();
+			}
+
+			/**
+			 * Said in the thread, because it changes what the community was told:
+			 * how long it has to answer. Stored text, so it is written in the
+			 * community's zone with the zone named — every reader sees the same
+			 * sentence, and the rail beside it shows the moment in their own.
+			 */
+			const when = formatMoment(
+				input.closesAt,
+				{ timeZone: ctx.community.timezone, locale: ctx.community.locale },
+				'deadline'
+			);
+			const previous = existing?.closesAt ?? null;
+			writeThreadPost(ctx, inTx, {
+				discussionId: proposal.discussionId,
+				kind: 'event',
+				subjectPostId: proposal.id,
+				body: opened
+					? `Opened the round on v${proposal.proposalVersion}, closing ${when}.`
+					: previous
+						? `Moved the close of the round on v${proposal.proposalVersion} to ${when}.`
+						: `Set the round on v${proposal.proposalVersion} to close ${when}.`
+			});
+
+			return toRound(
+				tx.select().from(consentRound).where(eq(consentRound.id, roundId)).get()!,
+				countEligible(inTx, roundId)
+			);
+		});
+	},
+
 	tally(ctx: Ctx, roundId: string, options: { db?: Db } = {}): Tally {
 		requirePermission(ctx, 'discussion.read');
 		const db = options.db ?? getDb();
@@ -494,6 +576,15 @@ registerTenantService({
 	name: 'consent.tally',
 	subject: 'consentRound',
 	call: (ctx, subjectId) => consentRoundProvider.tally(ctx, subjectId)
+});
+registerTenantService({
+	name: 'consent.setClosing',
+	subject: 'proposal',
+	call: (ctx, subjectId) =>
+		consentRoundProvider.setClosing(ctx, {
+			proposalPostId: subjectId,
+			closesAt: ctx.now() + 86_400_000
+		})
 });
 registerTenantService({
 	name: 'consent.respond',

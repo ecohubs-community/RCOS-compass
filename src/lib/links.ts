@@ -61,6 +61,7 @@ export const links = {
 	pathSettings: (slug: string) => resolve('/(app)/c/[slug]/settings/path', { slug }),
 	transparency: (slug: string) => resolve('/(app)/c/[slug]/settings/transparency', { slug }),
 	publishing: (slug: string) => resolve('/(app)/c/[slug]/settings/publishing', { slug }),
+	adoptionRule: (slug: string) => resolve('/(app)/c/[slug]/settings/adoption-rule', { slug }),
 	audit: (slug: string) => resolve('/(app)/c/[slug]/audit', { slug }),
 	exportSettings: (slug: string) => resolve('/(app)/c/[slug]/settings/export', { slug }),
 	/** What the community recorded as something the standard should ask for. */

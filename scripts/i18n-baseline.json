@@ -1,9 +1,9 @@
 {
-	"total": 214,
+	"total": 211,
 	"files": [
 		{
 			"path": "src/routes/(app)/c/[slug]/discussions/[id]/+page.svelte",
-			"count": 37
+			"count": 34
 		},
 		{
 			"path": "src/routes/(app)/c/[slug]/decisions/+page.svelte",

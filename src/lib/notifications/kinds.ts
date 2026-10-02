@@ -25,6 +25,14 @@ export type NotificationParams = {
 	'discussion.quiet': { title: string };
 	'membership.role_changed': { role: 'steward' | 'member' };
 	'claim.withdrawn': Record<string, never>;
+	/** A member asked for an earlier version back. `actor` is their membership id. */
+	'proposal.move_requested': { title: string; actor: string; version: number };
+	/** What became of the reader's own request. */
+	'proposal.move_answered': {
+		title: string;
+		version: number;
+		outcome: 'granted' | 'declined' | 'lapsed';
+	};
 };
 
 export type NotificationKind = keyof NotificationParams;
@@ -45,7 +53,9 @@ export const NOTIFICATION_KINDS = [
 	'discussion.mention',
 	'discussion.quiet',
 	'membership.role_changed',
-	'claim.withdrawn'
+	'claim.withdrawn',
+	'proposal.move_requested',
+	'proposal.move_answered'
 ] as const satisfies readonly NotificationKind[];
 
 /**

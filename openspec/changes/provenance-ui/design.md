@@ -175,8 +175,14 @@ a deadline. `openRound` (a provider method no route calls) is not revived. The e
 reminds those who have not answered") starts working for real, because rounds
 now have closing times.
 
-Setting a time in the past is refused. Changing it is recorded as a thread post,
-the same way moving the question is — it changes what the community was told.
+Setting a time in the past is refused, and so is changing a round that is
+already over — putting the version back on the table is the act that asks again.
+Changing it is recorded as a thread post, the same way moving the question is —
+it changes what the community was told. It is `setClosing` on the
+`VotingProvider`, because the seam test forbids anything outside `voting/` from
+reaching the built-in provider, and a second provider has closing times too. The
+steward types a wall-clock time in their own zone (`localDateTime`), named beside
+the field.
 
 ### D8. "What it takes to pass" is facts against the community's own rule
 
@@ -240,8 +246,12 @@ requester may withdraw it. It **lapses** automatically when the question moves
 anyway — to the requested version (then it reads granted-by-event, attributed to
 whoever moved it) or to a newer version (lapsed). At most one open request per
 member per discussion; asking for the version that is already current is
-refused. Stewards are found by a new `activeStewards(db, communityId)` in
-`services/notifications.ts`, beside `activeMemberships` — no such helper exists.
+refused. Stewards are found by a new `activeHolders(db, communityId,
+'proposal.set_current')` in `services/notifications.ts`, beside
+`activeMemberships` — it asks the permission matrix rather than comparing roles,
+which the security lint refuses. Granting is `moveQuestion` (the body of
+`setCurrentProposal`, extracted so the grant and the move share one
+transaction), and the move itself settles every open request.
 
 *Alternatives considered:* a plain message with a convention — rejected, it has
 no state and nobody is told; a new notification only — rejected, the thread is

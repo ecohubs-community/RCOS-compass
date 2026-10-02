@@ -140,7 +140,7 @@ adopted Meeting Practice text, and anything in P8.
   time, checklist), `objections.ts` (note required for addressed/overruled),
   `discussions.ts` (move requests), `evidence.ts` (confirmed evidence for a
   definition's clauses — no such read exists today), `notifications.ts` (an
-  `activeStewards` helper — none exists). Publishing from the artifact page
+  `activeHolders` helper — none exists). Publishing from the artifact page
   calls the existing single-subject `publish()`; nothing new in `publishing.ts`.
 - **Routes**: new `definitions/+page` (the layout's breadcrumb already links
   there and 404s today), `artifacts/[key]/+page`, `settings/adoption-rule`;

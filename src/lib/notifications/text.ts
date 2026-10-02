@@ -72,6 +72,23 @@ export function notificationText(
 			return ROLE_SENTENCE[p<'membership.role_changed'>().role]();
 		case 'claim.withdrawn':
 			return m.notification_claim_withdrawn();
+		case 'proposal.move_requested': {
+			const asked = p<'proposal.move_requested'>();
+			return m.notification_move_requested({
+				actor: item.actor ?? '',
+				version: asked.version,
+				title: asked.title
+			});
+		}
+		case 'proposal.move_answered': {
+			const answered = p<'proposal.move_answered'>();
+			const words = { title: answered.title, version: answered.version };
+			return answered.outcome === 'granted'
+				? m.notification_move_granted(words)
+				: answered.outcome === 'declined'
+					? m.notification_move_declined(words)
+					: m.notification_move_lapsed(words);
+		}
 		default:
 			return item.summary ?? m.notification_gone();
 	}
