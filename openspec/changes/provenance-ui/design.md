@@ -55,11 +55,6 @@ forms; every new string goes through Paraglide.
 - Artifact versions. §1.2: "Nothing is authored at artifact level." The design's
   "v2 adopted / Publish v3" is read as *publication history*, which the change
   log already holds.
-- Making publishing write a decision record. The `publishing` and `decisions`
-  specs require it; `publishing.ts` writes `change_log` only (it imports
-  `decision` and never inserts one). That is a real gap, found while grounding
-  this change, and it gets its own change — fixing it here would couple a
-  governance-record change to a UI one.
 - Parsing thresholds out of an adopted Meeting Practice. The design's footnote
   "These thresholds come from your own Meeting Practice" is the aspiration; the
   interim rule setting is the MVP.
@@ -114,24 +109,43 @@ linking to the clause. For a local definition, related means the clauses it
 declares it touches (design 14: "Touches §7.2.1 … but satisfies neither") —
 which needs no new data only if a local definition records them; see D10.
 
-### D4. The artifact page shows counts, not a percentage
+### D4. Completeness is counts, with a percentage for members (decided 2026-10-01)
 
-Design 15 shows "62%". §1.2 and docs/03 §3b allow a percentage inward; AGENTS.md
-bans one only on public pages. But the Artifacts list deliberately refuses a
-per-artifact percentage — "a percentage per artifact would invite reading 80% as
-nearly compliant" (`artifacts/+page.svelte:12–15`), and `artifacts.spec.ts:31`
-pins that. The detail page follows the list: **"5 of 8 required sections
-answered"** plus a segmented bar with one segment per section, which shows the
-same thing without inviting the rounding. Changing the list's rule is a product
-call, listed as an open question.
+The artifact page and the Artifacts list show **"5 of 8 required sections
+answered · 62%"** and a segmented bar with one segment per section. The
+percentage is of *sections answered*, inward only: it is never worded as
+compliance (`artifacts.spec.ts` still pins that "% compliant" never appears),
+never placed on a public page or the outward claim, and the list's three states
+stay. Decided against the list's old comment, which refused a per-artifact
+percentage so nobody read 80% as nearly compliant; the wording and the binary
+compliance line beside it carry that instead.
 
-### D5. Publication history is a read of the change log
+### D5. Publishing an artifact is a decision; history is read from the register and the log
 
-Publishing already writes `visibility.published` / `visibility.withdrawn`
-entries. `publicationHistory(ctx, artifactKey)` reads them. *Publish* on the
-artifact page calls the existing single-subject `publish()` — the function the
-publishing settings' path ends in — so no new entry point exists to diverge,
-and it stays behind `artifact.publish`.
+The `publishing` spec ("Publishing to the world is a recorded decision";
+unpublishing too) and the `decisions` spec ("Publishing an artifact is itself a
+decision") already require it; `setPublished` writes only `change_log`
+(`visibility.published` / `visibility.withdrawn`). Decided 2026-10-01 to fix it
+in this change.
+
+- `allocateRef(tx, ctx, now)` in `decisions.ts`: the `max(seq) + 1` and
+  `formatRef` that the freeze repeats inline three times, extracted. Every
+  caller allocates inside its own transaction, so gaplessness holds as today.
+- When the subject is an **artifact**, `setPublished` writes, in the same
+  transaction as the visibility flip and the change-log entry, a decision:
+  title "Published <artifact>" / "Withdrew <artifact> from public view", type
+  `operational`, mechanism "steward act", the artifact's layer, `proposalText`
+  naming the artifact and its sections' adopted versions at that moment, no
+  tally, actor and time. Publishing a definition, decision or document does not
+  — the specs ask it of artifacts.
+- Idempotent: publishing an artifact that is already world-visible changes
+  nothing and writes no decision.
+- `publicationHistory(ctx, key)` lists those decisions (ref linking to the
+  register) beside the change-log entries from before this change, newest
+  first.
+- The page's *Publish* / *Withdraw* call the existing `publish()` /
+  `withdraw()`, so the settings page and the artifact page write the same
+  decision.
 
 ### D6. Blockers are derived, never authored
 
@@ -319,17 +333,11 @@ Rollback is dropping the new tables and columns; no existing row changes.
 
 ## Open Questions
 
-1. **Should the Artifacts list and detail show a percentage inward?** The design
-   does, the list's comment argues against it. This change keeps counts (D4).
-2. **Who may resolve an objection — stewards only, or also the proposal's
-   author?** The matrix says stewards; a community using consent may expect the
-   author to address concerns. This change keeps the matrix.
-3. **Should a declined move request be re-askable by the same member?** This
-   change allows a new request after a decline; it could instead require a new
-   version to have been posted in between.
-4. **Publishing as a decision** — confirm it gets its own change next (see
-   Non-Goals).
-5. **Carried over from `movable-current-proposal` 7.2**: should the register
+Decided 2026-10-01: a members-only percentage of sections (D4); stewards only
+resolve objections (the matrix); a declined move request may be asked again any
+time; publishing writes a decision, here (D5).
+
+1. **Carried over from `movable-current-proposal` 7.2**: should the register
    record that the question moved before a freeze? Recommendation there was no
    extra field; a granted move request now leaves a second, explicit trace in
    the thread, which strengthens that recommendation.

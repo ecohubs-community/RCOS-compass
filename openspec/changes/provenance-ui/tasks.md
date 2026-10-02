@@ -29,9 +29,10 @@
 ## 4. Artifact detail
 
 - [ ] 4.1 `artifactDetail(ctx, key)` in a new `artifacts.ts`: required sections in standard order with answering definition, status and provisional; local additions apart; counts from `progressOf` so they equal the list's (D4); blockers per D6, the restricted ones from `restrictedInClosedLayers`
-- [ ] 4.2 `publicationHistory(ctx, key)` from `change_log` (`visibility.published` / `visibility.withdrawn`); the page's *Publish* calls the existing `publish()` (D5)
-- [ ] 4.3 Route `/c/[slug]/artifacts/[key]`: sections table (cards below 768px), local additions block, segmented completeness with counts, blockers linking to their work, publication state and history, *Publish* for `artifact.publish`. The Artifacts list's "Open" links here
-- [ ] 4.4 Tests: service happy path; unknown key and another community's key both 404; a local addition does not change the count; the count equals `artifactProgress` for the same artifact; a restricted Layer 0 definition is a blocker and a restricted Layer 3 one under a live exception is not; a member's direct publish is refused; e2e asserts no `%` on the page (as `artifacts.spec.ts` does for the list) and that publish from the page writes a history entry
+- [ ] 4.2 `allocateRef(tx, ctx, now)` in `decisions.ts`, replacing the three inline allocations; `setPublished` writes a decision for an artifact subject in the same transaction, idempotently (D5); `publicationHistory(ctx, key)` from those decisions and earlier change-log entries; the page's *Publish* / *Withdraw* call `publish()` / `withdraw()`
+- [ ] 4.3 Route `/c/[slug]/artifacts/[key]`: sections table (cards below 768px), local additions block, segmented completeness with counts and percentage of sections (D4), blockers linking to their work, publication state and history, *Publish* for `artifact.publish`. The Artifacts list's "Open" links here
+- [ ] 4.3a Artifacts list: each row adds "n of m sections · p%" beside its state; the comment that refused a percentage is replaced with D4's reasoning
+- [ ] 4.4 Tests: service happy path; unknown key and another community's key both 404; a local addition does not change the count; the count equals `artifactProgress` for the same artifact; a restricted Layer 0 definition is a blocker and a restricted Layer 3 one under a live exception is not; a member's direct publish is refused; publishing writes a decision with the next gapless reference and withdrawing another, re-publishing a published artifact writes none, a failed publish allocates no reference; the existing freeze tests pass unchanged after `allocateRef`; the Artifacts list shows the percentage of sections; e2e asserts no "% compliant" on the page or the list, no `%` on the public artifact page, and that publish from the page adds a history entry linking to its decision
 
 ## 5. Consent round view
 
@@ -64,10 +65,3 @@
 - [ ] 8.2 `docs/08`: note the provenance UI under the phase that ships it
 - [ ] 8.3 Bump the version per AGENTS.md: a minor, `0.11.0 → 0.12.0`
 - [ ] 8.4 `openspec validate provenance-ui`, then archive on ship
-
-## 9. Open questions for a human
-
-- [ ] 9.1 Percentage on the artifact list and detail (design D4, open question 1)
-- [ ] 9.2 May a proposal's author resolve objections to it? (open question 2)
-- [ ] 9.3 May a declined move request be asked again without a new version in between? (open question 3)
-- [ ] 9.4 Confirm "publishing writes a decision" is its own next change (open question 4)
