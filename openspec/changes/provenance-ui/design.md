@@ -82,13 +82,13 @@ cheap; the migration is not.
 ### D2. Derived status is one pure function over facts the caller already has
 
 ```
-not_started ─► drafting ─► in_discussion ─► in_round ─► adopted
+not_started ─► drafting ─► in_discussion ─► in_vote  ─► adopted
                                                           │
                                    needs_review ◄─────────┘ (reviewDueAt passed)
 ```
 
 `definitionStatus({ adopted, draft, openDiscussions, openRound, reviewDueAt, now })`
-in `src/lib/definitions/status.ts` — pure, no DB, so it can be unit-tested
+in `src/lib/shared/definition-status.ts` — pure, no DB, so it can be unit-tested
 exhaustively and used by the header, the index and the Standard browser. An
 adopted definition with a new open discussion reads `adopted` with a secondary
 "in discussion" marker, never as "not adopted": the adopted version stays

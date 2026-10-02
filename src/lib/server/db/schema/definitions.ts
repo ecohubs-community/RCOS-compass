@@ -229,6 +229,25 @@ export const standardFeedback = sqliteTable(
 	(table) => [index('standard_feedback_community_idx').on(table.communityId)]
 );
 
+/**
+ * The clauses a local definition says it touches, without answering them.
+ *
+ * Shown as "Touches §7.2.1 … satisfies neither", and never counted: a local rule
+ * moves no number (docs/03 §3a). It exists so a local definition can name its
+ * neighbours in the standard, which is what "related definitions" reads for it.
+ */
+export const localDefinitionTouch = sqliteTable(
+	'local_definition_touch',
+	{
+		definitionId: text('definition_id')
+			.notNull()
+			.references(() => definition.id, { onDelete: 'cascade' }),
+		/** The clause's stable key; no foreign key, as the standard is not in the database. */
+		clauseKey: text('clause_key').notNull()
+	},
+	(table) => [uniqueIndex('local_definition_touch_idx').on(table.definitionId, table.clauseKey)]
+);
+
 export type Definition = typeof definition.$inferSelect;
 export type DefinitionVersion = typeof definitionVersion.$inferSelect;
 export type DefinitionDraft = typeof definitionDraft.$inferSelect;

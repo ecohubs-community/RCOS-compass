@@ -47,14 +47,15 @@ So:
 | Comment in discussions | ✓ | ✓ | |
 | Open a discussion, write a proposal | ✓ | ✓ | |
 | Draft / edit a definition draft | ✓ | ✓ | |
-| Create a **local** definition (§ UI spec 1.4b) | ✓ | ✓ | |
+| Create a **local** definition (§ UI spec 1.4b) | ✓ | ✓ | `definition.draft` — the same act as drafting one |
 | Create / rename a community artifact | ✓ | — | |
 | Record RCOS feedback ("the standard should require this") | ✓ | ✓ | |
 | Share RCOS feedback upstream | ✓ | — | |
 | Respond in a consent round | ✓ | ✓ | |
 | Raise an objection, withdraw their own | ✓ | ✓ | |
-| **Open a consent round** | ✓ | — | |
-| **Put an earlier proposal version back on the table** | ✓ | — | Closes the round that was running; a member writes the next version, a steward says which one is being asked about |
+| **Open a consent round**, set or change when it closes | ✓ | — | `consent.open` |
+| **Ask** for an earlier proposal version to be put back, withdraw the ask | ✓ | ✓ | `proposal.request_move` — asking moves nothing |
+| **Put an earlier proposal version back on the table**, or answer an ask | ✓ | — | Closes the round that was running; a member writes the next version, a steward says which one is being asked about |
 | **Freeze a decision** | ✓ | — | |
 | Resolve or overrule someone else's objection | ✓ | — | |
 | Ratify provisional definitions | ✓ | — | |
@@ -71,7 +72,7 @@ So:
 | Create a transparency exception | ✓ | — | |
 | Read restricted content | per exception | — | |
 | Invite / remove members, set roles | ✓ | — | |
-| Change community settings, AI config | ✓ | — | |
+| Change community settings, AI config, the interim adoption rule | ✓ | — | |
 | Export the full community | ✓ | — | |
 | Transfer ownership, delete the community | — | — | ✓ |
 
