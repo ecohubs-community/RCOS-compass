@@ -4,11 +4,14 @@ import { getDb, type Db } from '../db/index.js';
 import { decision } from '../db/schema/decisions.js';
 import { definition, definitionVersion, localDefinitionTouch } from '../db/schema/definitions.js';
 import { consentRound, discussion, post } from '../db/schema/discussions.js';
+import { user } from '../db/schema/auth.js';
+import { membership } from '../db/schema/tenancy.js';
 import { evidence } from '../db/schema/documents.js';
 import { definitionStatus, type DerivedStatus } from '../../shared/definition-status.js';
 import type { StandardView } from '../standard/index.js';
 import { activeStandardView, sectionOf } from './completeness.js';
 import { getDefinition } from './definitions.js';
+import { personLabel } from './person.js';
 import { compareRefs, questionFor } from './requirement.js';
 
 /**
@@ -30,6 +33,10 @@ export type DefinitionDiscussion = {
 	openedAt: number;
 	lastActivityAt: number;
 	messages: number;
+	/** The version on the table, when there is one. */
+	currentVersion: number | null;
+	/** A consent round is open on that version. */
+	openRound: boolean;
 };
 
 /**
@@ -81,6 +88,32 @@ export function discussionsForDefinition(
 			.map((row) => [row.discussionId, row.n])
 	);
 
+	const currentIds = threads
+		.map((thread) => thread.currentProposalPostId)
+		.filter((id): id is string => id !== null);
+	const versions = new Map(
+		currentIds.length === 0
+			? []
+			: db
+					.select({ id: post.id, n: post.proposalVersion })
+					.from(post)
+					.where(inArray(post.id, currentIds))
+					.all()
+					.map((row) => [row.id, row.n])
+	);
+	const rounds = new Set(
+		currentIds.length === 0
+			? []
+			: db
+					.select({ proposalPostId: consentRound.proposalPostId })
+					.from(consentRound)
+					.where(
+						and(inArray(consentRound.proposalPostId, currentIds), eq(consentRound.status, 'open'))
+					)
+					.all()
+					.map((row) => row.proposalPostId)
+	);
+
 	return threads
 		.map((thread) => ({
 			id: thread.id,
@@ -88,7 +121,11 @@ export function discussionsForDefinition(
 			status: thread.status,
 			openedAt: thread.openedAt.getTime(),
 			lastActivityAt: thread.lastActivityAt.getTime(),
-			messages: messages.get(thread.id) ?? 0
+			messages: messages.get(thread.id) ?? 0,
+			currentVersion: thread.currentProposalPostId
+				? (versions.get(thread.currentProposalPostId) ?? null)
+				: null,
+			openRound: thread.currentProposalPostId ? rounds.has(thread.currentProposalPostId) : false
 		}))
 		.sort((a, b) => b.lastActivityAt - a.lastActivityAt);
 }
@@ -388,4 +425,113 @@ function visibleDefinitionsBySection(
 		// `exception.read`, the capability `visibleTo` reads, not a role.
 		.filter((row) => row.visibility !== 'restricted' || ctxCan(ctx, 'exception.read'));
 	return new Map(rows.map((row) => [row.sectionKey!, row]));
+}
+
+/** What a local definition's page shows where a standard one shows the requirement. */
+export type LocalContext = {
+	purpose: string | null;
+	/** Who asked for it, named as every surface names people (docs/03 §10). */
+	askedBy: string | null;
+	/** When v1 was adopted; null while nothing is. */
+	writtenDown: number | null;
+	/** Clauses it says it touches, which it satisfies none of. */
+	touches: { ref: string; owned: false }[];
+	/** The community's adopted definitions in the same layer, for context (docs/03 §3a.1). */
+	sameLayer: { definitionId: string; title: string }[];
+	/** Not world-visible: kept out of the public index. */
+	internal: boolean;
+};
+
+/**
+ * "Why we made this rule" (docs/03 §3a.1, review log #88): a local definition
+ * answers no clause, so its left column says why it exists instead of being
+ * absent. Null for a standard definition.
+ */
+export function localDefinitionContext(
+	ctx: Ctx,
+	definitionId: string,
+	options: { db?: Db } = {}
+): LocalContext | null {
+	const db = options.db ?? getDb();
+	const found = getDefinition(ctx, definitionId, { db });
+	if (found.scope !== 'local') return null;
+	const standard = activeStandardView(db, ctx);
+
+	const asker = found.createdBy
+		? db
+				.select({
+					name: user.name,
+					erasedAt: user.erasedAt,
+					displayName: membership.displayName,
+					seq: membership.seq
+				})
+				.from(user)
+				.leftJoin(
+					membership,
+					and(eq(membership.userId, user.id), eq(membership.communityId, ctx.community.id))
+				)
+				.where(eq(user.id, found.createdBy))
+				.get()
+		: undefined;
+
+	const first = db
+		.select({ adoptedAt: definitionVersion.adoptedAt })
+		.from(definitionVersion)
+		.where(and(eq(definitionVersion.definitionId, found.id), eq(definitionVersion.n, 1)))
+		.get();
+
+	const touches = db
+		.select()
+		.from(localDefinitionTouch)
+		.where(eq(localDefinitionTouch.definitionId, found.id))
+		.all()
+		.map((row) => standard?.view.clause(row.clauseKey)?.ref)
+		.filter((ref): ref is string => ref !== undefined)
+		.sort(compareRefs)
+		.map((ref) => ({ ref, owned: false as const }));
+
+	const sameLayer =
+		standard && found.layer !== null
+			? db
+					.select()
+					.from(definition)
+					.where(
+						and(
+							eq(definition.communityId, ctx.community.id),
+							eq(definition.communityStandardId, standard.row.id),
+							isNotNull(definition.adoptedVersionId)
+						)
+					)
+					.all()
+					.filter(
+						(row) =>
+							row.sectionKey !== null &&
+							standard.view.artifact(standard.view.section(row.sectionKey)?.artifact ?? '')
+								?.layer === found.layer &&
+							(row.visibility !== 'restricted' || ctxCan(ctx, 'exception.read'))
+					)
+					.map((row) => ({
+						definitionId: row.id,
+						title: standard.view.localise(
+							standard.view.section(row.sectionKey!)!.i18n,
+							ctx.community.locale
+						).value.title
+					}))
+			: [];
+
+	return {
+		purpose: found.purpose,
+		askedBy: asker
+			? personLabel({
+					erasedAt: asker.erasedAt ?? null,
+					name: asker.name,
+					displayName: asker.displayName,
+					seq: asker.seq
+				})
+			: null,
+		writtenDown: first?.adoptedAt?.getTime() ?? null,
+		touches,
+		sameLayer,
+		internal: found.visibility !== 'world'
+	};
 }

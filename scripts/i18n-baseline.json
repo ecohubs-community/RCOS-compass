@@ -1,5 +1,5 @@
 {
-	"total": 220,
+	"total": 214,
 	"files": [
 		{
 			"path": "src/routes/(app)/c/[slug]/discussions/[id]/+page.svelte",
@@ -16,10 +16,6 @@
 		{
 			"path": "src/routes/(app)/c/[slug]/settings/publishing/+page.svelte",
 			"count": 13
-		},
-		{
-			"path": "src/routes/(app)/c/[slug]/definitions/[id]/+page.svelte",
-			"count": 12
 		},
 		{
 			"path": "src/routes/(app)/c/[slug]/+page.svelte",
@@ -64,6 +60,10 @@
 		{
 			"path": "src/routes/(app)/c/[slug]/settings/transparency/+page.svelte",
 			"count": 7
+		},
+		{
+			"path": "src/routes/(app)/c/[slug]/definitions/[id]/+page.svelte",
+			"count": 6
 		},
 		{
 			"path": "src/lib/components/GlossaryPanel.svelte",

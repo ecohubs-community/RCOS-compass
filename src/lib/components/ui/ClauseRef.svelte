@@ -54,7 +54,7 @@
 		{href}
 		{onclick}
 		data-tabular
-		class="{classes} hover:text-fg underline-offset-2 hover:underline"
+		class="{classes} hover:text-fg underline underline-offset-2"
 		aria-current={selected ? 'true' : undefined}>§{ref}</a
 	>
 	<!-- eslint-enable svelte/no-navigation-without-resolve -->
