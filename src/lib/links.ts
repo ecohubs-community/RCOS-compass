@@ -85,6 +85,9 @@ export const links = {
 	decisions: (slug: string) => resolve('/(app)/c/[slug]/decisions', { slug }),
 	/** The twenty-one things the standard asks for, and how far each one is. */
 	artifacts: (slug: string) => resolve('/(app)/c/[slug]/artifacts', { slug }),
+	/** One artifact: what it asks for, what answers it, and its publication. */
+	artifact: (slug: string, key: string) =>
+		resolve('/(app)/c/[slug]/artifacts/[key]', { slug, key }),
 	search: (slug: string) => resolve('/(app)/c/[slug]/search', { slug }),
 	glossary: (slug: string) => resolve('/(app)/c/[slug]/glossary', { slug }),
 	decision: (slug: string, ref: string) => resolve('/(app)/c/[slug]/d/[ref]', { slug, ref })

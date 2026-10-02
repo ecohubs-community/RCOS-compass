@@ -102,11 +102,8 @@
 							{live} of {artifact.definitions.length} public
 						</span>
 						{#if data.can.manage}
-							<form method="POST" action="?/publish" use:enhance>
-								<input type="hidden" name="type" value="definition" />
-								{#each artifact.definitions as definition (definition.id)}
-									<input type="hidden" name="id" value={definition.id} />
-								{/each}
+							<form method="POST" action="?/publishArtifact" use:enhance>
+								<input type="hidden" name="artifactKey" value={artifact.key} />
 								{#if live === artifact.definitions.length}
 									<input type="hidden" name="withdraw" value="1" />
 								{/if}

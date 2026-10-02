@@ -90,6 +90,26 @@ export function formatRef(year: string, seq: number): string {
 	return `DEC-${year}-${String(seq).padStart(3, '0')}`;
 }
 
+/**
+ * The next reference in this community's register, for a decision about to be
+ * written in the caller's transaction.
+ *
+ * Allocated inside that transaction, so a write that rolls back consumes no
+ * number and the next one takes it — the register stays gapless. SQLite
+ * serialises writers, which is what makes `max + 1` correct without a counter
+ * row; Postgres will need `SELECT … FOR UPDATE` (docs/00 §5). One function, for
+ * the freeze and for publishing, so there is one way a number is taken.
+ */
+export function allocateRef(tx: Db, ctx: Ctx, now: number): { seq: number; ref: string } {
+	const [highest] = tx
+		.select({ seq: sql<number>`coalesce(max(${decision.seq}), 0)` })
+		.from(decision)
+		.where(eq(decision.communityId, ctx.community.id))
+		.all();
+	const seq = (highest?.seq ?? 0) + 1;
+	return { seq, ref: formatRef(decisionYear(now, ctx.community.timezone), seq) };
+}
+
 export function getDecision(
 	reader: Reader,
 	decisionId: string,
@@ -213,16 +233,7 @@ export function freeze(ctx: Ctx, input: FreezeInput, options: { db?: Db } = {}):
 	return db.transaction((tx) => {
 		const target = resolveDefinition(tx as unknown as Db, ctx, thread, standard, now);
 
-		// Allocated inside the transaction, so a freeze that rolls back consumes
-		// no number and the next one takes it. SQLite serialises writers, which is
-		// what makes `max + 1` correct here without a counter row; Postgres will
-		// need `SELECT … FOR UPDATE` (docs/00 §5).
-		const [highest] = tx
-			.select({ seq: sql<number>`coalesce(max(${decision.seq}), 0)` })
-			.from(decision)
-			.where(eq(decision.communityId, ctx.community.id))
-			.all();
-		const seq = (highest?.seq ?? 0) + 1;
+		const { seq, ref } = allocateRef(tx as unknown as Db, ctx, now);
 
 		const decisionId = newId();
 		tx.insert(decision)
@@ -230,7 +241,7 @@ export function freeze(ctx: Ctx, input: FreezeInput, options: { db?: Db } = {}):
 				id: decisionId,
 				communityId: ctx.community.id,
 				seq,
-				ref: formatRef(decisionYear(now, ctx.community.timezone), seq),
+				ref,
 				title: input.title.trim(),
 				type: input.type,
 				layer: target.layer,
@@ -431,7 +442,7 @@ export function freeze(ctx: Ctx, input: FreezeInput, options: { db?: Db } = {}):
 				subjectId: decisionId,
 				summary: input.title.trim(),
 				payload: {
-					ref: formatRef(decisionYear(now, ctx.community.timezone), seq),
+					ref,
 					provisional,
 					unresolvedObjections,
 					source: thread.origin === 'offline' ? 'offline' : 'online'
@@ -458,7 +469,7 @@ export function freeze(ctx: Ctx, input: FreezeInput, options: { db?: Db } = {}):
 			summary: input.title.trim(),
 			params: {
 				title: input.title.trim(),
-				ref: formatRef(decisionYear(now, ctx.community.timezone), seq)
+				ref
 			},
 			recipients: activeMemberships(tx as unknown as Db, ctx.community.id)
 		});
