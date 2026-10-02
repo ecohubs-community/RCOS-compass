@@ -1,3 +1,4 @@
+import { sql } from 'drizzle-orm';
 import { index, integer, sqliteTable, text, uniqueIndex } from 'drizzle-orm/sqlite-core';
 import { user } from './auth.js';
 import { community, membership } from './tenancy.js';
@@ -101,7 +102,9 @@ export const post = sqliteTable(
 			.references(() => discussion.id, { onDelete: 'cascade' }),
 		authorId: text('author_id').references(() => user.id, { onDelete: 'set null' }),
 		body: text('body').notNull(),
-		kind: text('kind', { enum: ['message', 'proposal', 'offline_summary', 'response', 'event'] })
+		kind: text('kind', {
+			enum: ['message', 'proposal', 'offline_summary', 'response', 'event', 'move_request']
+		})
 			.notNull()
 			.default('message'),
 		/**
@@ -289,3 +292,52 @@ export type Post = typeof post.$inferSelect;
 export type Objection = typeof objection.$inferSelect;
 export type ConsentRound = typeof consentRound.$inferSelect;
 export type ConsentResponse = typeof consentResponse.$inferSelect;
+
+/**
+ * A member asking for the question to be moved back to an earlier version.
+ *
+ * The objection pattern: a post in the thread carries it, so the community reads
+ * it where it reads everything else, and this row carries its state, so it has
+ * an answer and nobody has to remember to give one. docs/03 §3,
+ * `openspec/changes/provenance-ui` D10.
+ *
+ * Settled in the same transaction as anything that moves the question: granted
+ * when it moves to the version asked for, lapsed when it moves elsewhere.
+ */
+export const proposalMoveRequest = sqliteTable(
+	'proposal_move_request',
+	{
+		id: text('id').primaryKey(),
+		communityId: text('community_id')
+			.notNull()
+			.references(() => community.id, { onDelete: 'cascade' }),
+		discussionId: text('discussion_id')
+			.notNull()
+			.references(() => discussion.id, { onDelete: 'cascade' }),
+		requestedBy: text('requested_by').references(() => user.id, { onDelete: 'set null' }),
+		/** The version asked for. No foreign key, as for `current_proposal_post_id`. */
+		targetProposalPostId: text('target_proposal_post_id').notNull(),
+		/** What was current when it was asked, so the post can say "instead of v4". */
+		fromProposalPostId: text('from_proposal_post_id'),
+		/** The thread post that carries it. */
+		postId: text('post_id').notNull(),
+		state: text('state', { enum: ['open', 'granted', 'declined', 'withdrawn', 'lapsed'] })
+			.notNull()
+			.default('open'),
+		reason: text('reason').notNull(),
+		requestedAt: integer('requested_at', { mode: 'timestamp_ms' }).notNull(),
+		answeredBy: text('answered_by').references(() => user.id, { onDelete: 'set null' }),
+		answeredAt: integer('answered_at', { mode: 'timestamp_ms' }),
+		answerNote: text('answer_note')
+	},
+	(table) => [
+		index('proposal_move_request_discussion_idx').on(table.discussionId, table.state),
+		/**
+		 * One open request per member per discussion. Partial, so the settled ones
+		 * stay beside it as history.
+		 */
+		uniqueIndex('proposal_move_request_open_idx')
+			.on(table.discussionId, table.requestedBy)
+			.where(sql`${table.state} = 'open'`)
+	]
+);

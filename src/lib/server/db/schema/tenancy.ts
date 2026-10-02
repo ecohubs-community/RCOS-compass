@@ -56,6 +56,16 @@ export const community = sqliteTable(
 		 */
 		claimCompliant: integer('claim_compliant', { mode: 'boolean' }),
 		/** Null means "the instance default"; unlimited during the testing phase. */
+		/**
+		 * The community's interim adoption rule (UI spec §4.9): a quorum as a
+		 * fraction of the eligible, and how many days a round should stay open.
+		 * Both optional, and neither enforced — the round view shows the facts
+		 * beside them, and "the app does not enforce anyone's threshold" (§5.1).
+		 * A fraction as two integers, so ¾ is never 0.7499999.
+		 */
+		interimQuorumNum: integer('interim_quorum_num'),
+		interimQuorumDen: integer('interim_quorum_den'),
+		interimMinDays: integer('interim_min_days'),
 		maxMembers: integer('max_members'),
 		storageMb: integer('storage_mb'),
 		aiMonthlyTokens: integer('ai_monthly_tokens'),

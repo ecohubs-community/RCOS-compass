@@ -432,5 +432,6 @@
 	"layer_reason_review_overdue": "La revisión vencía el {date}",
 	"public_restricted_one": "1 norma que todos los miembros deben poder leer está restringida.",
 	"public_restricted_many": "{count} normas que todos los miembros deben poder leer están restringidas.",
-	"audit_restricted_heading": "Ocultas a los miembros donde el estándar no admite excepciones"
+	"audit_restricted_heading": "Ocultas a los miembros donde el estándar no admite excepciones",
+	"definition_rediscussed": "· en discusión"
 }

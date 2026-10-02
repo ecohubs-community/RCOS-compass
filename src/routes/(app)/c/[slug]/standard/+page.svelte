@@ -1,5 +1,6 @@
 <script lang="ts">
 	import StatusChip from '$lib/components/ui/StatusChip.svelte';
+	import * as m from '$lib/paraglide/messages';
 	import { links } from '$lib/links';
 	import LayerChecks from '$lib/components/LayerChecks.svelte';
 
@@ -106,13 +107,10 @@
 									class="scroll-mt-20">{ref}</span
 								>{:else}no clause{/each}
 						</span>
-						<StatusChip
-							status={section.status === 'adopted'
-								? 'adopted'
-								: section.status === 'drafting'
-									? 'drafting'
-									: 'not_started'}
-						/>
+						<StatusChip status={section.status} />
+						{#if section.rediscussed}
+							<span class="text-fg-muted text-meta">{m.definition_rediscussed()}</span>
+						{/if}
 						{#if section.provisional}
 							<StatusChip modifier="provisional" />
 						{/if}

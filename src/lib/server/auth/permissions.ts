@@ -23,6 +23,7 @@ export const CAPABILITIES = [
 	'discussion.create',
 	'discussion.comment',
 	'proposal.create',
+	'proposal.request_move',
 	'definition.draft',
 	'objection.raise',
 	'consent.respond',
@@ -64,6 +65,9 @@ const MATRIX: Record<Capability, readonly Role[]> = {
 	'discussion.create': ['steward', 'member'],
 	'discussion.comment': ['steward', 'member'],
 	'proposal.create': ['steward', 'member'],
+	// Asking for the question to be moved back is proposing; answering the ask
+	// is `proposal.set_current`, which stays with a steward.
+	'proposal.request_move': ['steward', 'member'],
 	'definition.draft': ['steward', 'member'],
 	'objection.raise': ['steward', 'member'],
 	'consent.respond': ['steward', 'member'],

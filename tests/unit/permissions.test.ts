@@ -28,6 +28,7 @@ const EXPECTED: Record<Capability, { steward: boolean; member: boolean; ownerOnl
 	'discussion.create': { steward: true, member: true },
 	'discussion.comment': { steward: true, member: true },
 	'proposal.create': { steward: true, member: true },
+	'proposal.request_move': { steward: true, member: true },
 	'definition.draft': { steward: true, member: true },
 	'objection.raise': { steward: true, member: true },
 	'consent.respond': { steward: true, member: true },

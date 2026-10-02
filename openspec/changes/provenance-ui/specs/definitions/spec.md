@@ -5,7 +5,7 @@
 The system SHALL derive a definition's status from its facts — whether a version
 is adopted, whether a draft exists, whether a discussion on it is open, whether a
 consent round on it is open, and whether its review date has passed — as one of
-`not_started`, `drafting`, `in_discussion`, `in_round`, `adopted` or
+`not_started`, `drafting`, `in_discussion`, `in_vote`, `adopted` or
 `needs_review`. The definition page, the definitions index and the Standard
 browser MUST show the same status for the same definition. An adopted definition
 with an open discussion MUST remain `adopted`, marked as under discussion.
@@ -17,7 +17,7 @@ Provisional MUST remain a separate flag.
 
 #### Scenario: A round is open
 - **WHEN** a consent round on its current proposal is open
-- **THEN** its status is in a round
+- **THEN** its status is in vote
 
 #### Scenario: Adopted and being rediscussed
 - **WHEN** an adopted definition has an open discussion proposing a change

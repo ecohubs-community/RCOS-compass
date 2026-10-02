@@ -2,6 +2,7 @@ import { getDb } from '$lib/server/db';
 import { activeStandardView, answeredSections } from '$lib/server/services/completeness';
 import { definitionsBySection } from '$lib/server/services/definitions';
 import { layerChecks } from '$lib/server/services/layer-checks';
+import { statusesBySection } from '$lib/server/services/provenance';
 import type { PageServerLoad } from './$types';
 
 /**
@@ -21,6 +22,7 @@ export const load: PageServerLoad = ({ locals, url }) => {
 	const answered = answeredSections(db, standard.row.id);
 	const byId = definitionsBySection(ctx, { db });
 	const gapsOnly = url.searchParams.get('gaps') === '1';
+	const statuses = statusesBySection(ctx, { db });
 
 	// Built once. `countableClauses()` re-filters all 213 clauses on every call,
 	// and this page has 94 sections to render.
@@ -65,15 +67,16 @@ export const load: PageServerLoad = ({ locals, url }) => {
 						refs: refsBySection.get(section.key) ?? [],
 						definitionId: definition?.id ?? null,
 						term: termBySection.get(section.key) ?? null,
-						status: definition?.adoptedVersionId
-							? ('adopted' as const)
-							: definition
-								? ('drafting' as const)
-								: ('not_started' as const),
+						// The one derived status, as the definition page and the index show it.
+						status: statuses.get(section.key)?.status ?? ('not_started' as const),
+						rediscussed: statuses.get(section.key)?.rediscussed ?? false,
 						provisional: definition?.provisional ?? false
 					};
 				})
-				.filter((section) => !gapsOnly || section.status !== 'adopted');
+				.filter(
+					(section) =>
+						!gapsOnly || (section.status !== 'adopted' && section.status !== 'needs_review')
+				);
 
 			return {
 				key: artifact.key,

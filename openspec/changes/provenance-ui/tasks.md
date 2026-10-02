@@ -10,7 +10,7 @@
 
 ## 2. Derived status and definition provenance reads
 
-- [ ] 2.1 `src/lib/definitions/status.ts`: pure `definitionStatus(facts, now)` per design D2
+- [ ] 2.1 `src/lib/shared/definition-status.ts`: pure `definitionStatus(facts, now)` per design D2
 - [ ] 2.2 `discussionsForDefinition(ctx, id)`: by `definitionId` or by `sectionOf(view, thread) = definition.sectionKey`, de-duplicated, with message counts (D1)
 - [ ] 2.3 `definitionVersions(ctx, id)`: every adopted version, newest first, with its decision ref and date; `decisionForVersion` by `decisionId`
 - [ ] 2.4 `relatedDefinitions(ctx, id)`: from `Clause.referencedBy` and annotation `dependsOn`, resolved to this community's definitions, unanswered ones as "not written yet"; for local definitions, from `local_definition_touch` (D3)

@@ -995,5 +995,6 @@
 	"layer_reason_review_overdue": "Review was due {date}",
 	"public_restricted_one": "1 rule that every member must be able to read is restricted.",
 	"public_restricted_many": "{count} rules that every member must be able to read are restricted.",
-	"audit_restricted_heading": "Hidden from members where the standard allows no exception"
+	"audit_restricted_heading": "Hidden from members where the standard allows no exception",
+	"definition_rediscussed": "· under discussion"
 }

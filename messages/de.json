@@ -432,5 +432,6 @@
 	"layer_reason_review_overdue": "Überprüfung war fällig am {date}",
 	"public_restricted_one": "1 Regel, die alle Mitglieder lesen können müssen, ist eingeschränkt.",
 	"public_restricted_many": "{count} Regeln, die alle Mitglieder lesen können müssen, sind eingeschränkt.",
-	"audit_restricted_heading": "Vor Mitgliedern verborgen, wo der Standard keine Ausnahme erlaubt"
+	"audit_restricted_heading": "Vor Mitgliedern verborgen, wo der Standard keine Ausnahme erlaubt",
+	"definition_rediscussed": "· wird diskutiert"
 }
