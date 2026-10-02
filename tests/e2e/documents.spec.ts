@@ -110,7 +110,9 @@ test.describe('a community that already wrote it down', () => {
 		await visit(page, here);
 		await page.getByRole('button', { name: 'Turn into definition →' }).click();
 		await expect(page.getByRole('heading', { name: /Draft — not adopted/ })).toBeVisible();
-		await expect(page.getByText(/may leave at any time/)).toBeVisible();
+		// The draft first; the same words appear again as the evidence beside it,
+		// which is the definition page saying where they came from.
+		await expect(page.getByText(/may leave at any time/).first()).toBeVisible();
 		await expect(page.getByText(/From your own valle-verde-bylaws\.pdf/)).toBeVisible();
 	});
 
