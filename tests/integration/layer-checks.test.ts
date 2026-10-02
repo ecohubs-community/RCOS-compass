@@ -9,7 +9,7 @@ import { transparencyException } from '../../src/lib/server/db/schema/visibility
 import { layerChecks, type LayerCheck } from '../../src/lib/server/services/layer-checks.js';
 import { compliance } from '../../src/lib/server/services/readiness.js';
 import { outwardClaim } from '../../src/lib/server/services/claim.js';
-import { runSelfAudit } from '../../src/lib/server/services/self-audit.js';
+import { runSelfAudit, type AuditSnapshot } from '../../src/lib/server/services/self-audit.js';
 import { getStandard } from '../../src/lib/server/standard/index.js';
 import { createTestDb } from '../support/db.js';
 import { catchRefusal } from '../support/errors.js';
@@ -323,7 +323,7 @@ describe('a rule members cannot read, where the standard allows no exception', (
 		expect(JSON.stringify(outward)).not.toContain('Primary Purpose');
 		const audit = runSelfAudit({ ...ctx }, { db });
 		expect(audit.compliant).toBe(false);
-		expect(audit.snapshot.restricted).toEqual([
+		expect((audit.snapshot as AuditSnapshot).restricted).toEqual([
 			expect.objectContaining({ sectionKey: 'purpose-charter.primary-purpose', layer: 0 })
 		]);
 	});
