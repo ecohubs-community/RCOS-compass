@@ -44,13 +44,14 @@ Reasoning: `UI Spec — v0.1 (draft).md` §1.2, §1.4a–b, §4.0, §4.3, §4.8,
 ## What Changes
 
 - **Definition detail: "How we got here" is filled.** Discussions on this
-  definition (by `definitionId` *or* by a clause it answers — a thread opened on
-  a clause keeps `definitionId = null` after its freeze creates the definition),
-  the open proposal, the decision behind the adopted version (ref, mechanism,
-  tally, date, review due, provisional), earlier versions, related definitions
-  and confirmed evidence. The header gains the layer and artifact breadcrumb, the
-  obligation chip, a **derived status** chip, and *Start discussion* / *Propose
-  change*.
+  definition (by `definitionId` *or* by the section it answers, through
+  `sectionOf` — the thread's `section_key`, else its clause's owner, the rule
+  the Path and the freeze already share), the open proposal, the decision behind
+  the adopted version (ref, mechanism, tally, date, review due, provisional),
+  earlier versions, related definitions and confirmed evidence. The header —
+  which already cites its clauses and opens "The requirement" and "What to
+  cover" (#5, #6) — gains the layer and artifact breadcrumb, the obligation chip,
+  a **derived status** chip, and *Start discussion* / *Propose change*.
 - **One derived definition status**, computed as docs/03 §5 describes
   (not started → drafting → in discussion → in a round → adopted, with needs
   review), used by the header, the index and the Standard browser instead of the
@@ -58,7 +59,9 @@ Reasoning: `UI Spec — v0.1 (draft).md` §1.2, §1.4a–b, §4.0, §4.3, §4.8,
 - **An artifact detail page** at `/c/[slug]/artifacts/[key]`: required sections
   with the definition answering each and its status, local additions in a
   separate block that never counts, completeness as **counts, not a percentage**,
-  what is blocking completeness, publication state with a steward's *Publish*,
+  what is blocking completeness (including a Layer 0–2 definition hidden from
+  members, which costs compliance since #9), publication state with a steward's
+  *Publish*,
   and publication history read from the change log. The list's "Open" links here.
 - **A consent round view** inside the discussion: a steward can set or change a
   round's closing time and the rail counts down to it; each objection shows who
@@ -79,8 +82,9 @@ Reasoning: `UI Spec — v0.1 (draft).md` §1.2, §1.4a–b, §4.0, §4.3, §4.8,
   own nav entry again — now a different page from the Standard browser.
 - **Local definitions become usable end to end**: a member can create one from
   the index (*New definition*) — ticking "RCOS should require this" records it
-  as feedback on the standard, the first screen that can — open a discussion on
-  it, and a steward can freeze it. Its detail page shows "Why we made this rule" (its purpose), who asked for
+  as feedback on the standard, the first screen that can — and open a discussion
+  on it from its page. The service and the freeze already handle a discussion on
+  a definition; only the form and a freeze test are missing. Its detail page shows "Why we made this rule" (its purpose), who asked for
   it and when it was first written down, instead of hiding the left column.
 
 Out of scope, named so nobody assumes otherwise: artifact-level versions (§1.2 —
@@ -110,9 +114,11 @@ in P8.
   answer to it; a discussion may be opened on a definition.
 - `notifications`: stewards are told about a move request; the requester is
   told how it was answered.
-- `authorization`: new matrix rows — `proposal.request_move` (member, steward),
-  `definition.create_local` (member, steward); `objection.resolve` becomes the
-  gate for resolving objections in the UI, replacing `decision.freeze`.
+- `authorization`: one new matrix row — `proposal.request_move` (member,
+  steward). Creating a local definition stays on `definition.draft`, which
+  `createDefinition` already requires and which already grants exactly docs/04's
+  "Create a local definition" row. `objection.resolve` becomes the gate for
+  resolving objections in the UI, replacing `decision.freeze`.
 
 ## Impact
 
@@ -120,16 +126,22 @@ in P8.
   a `move_request` post kind; `community.interim_quorum_num`/`_den` and
   `community.interim_min_days` (nullable). No table rebuilds.
 - **Services**: new reads in `definitions.ts` (provenance, versions, related,
-  index, derived status), `completeness.ts`/a new `artifacts.ts` (artifact
-  detail), `consent-round.ts` (set closing time, checklist), `objections.ts`
-  (note-carrying resolution), `discussions.ts` (move requests; open on a
-  definition). `publishing.ts` gains a single-artifact entry point over
-  `publishAll`.
-- **Routes**: new `definitions/+page`, `artifacts/[key]/+page`; changes to
-  `definitions/[id]`, `discussions/[id]`, `discussions/+page.server.ts` (open on a
-  definition), `settings` (interim rule), the community layout's nav.
-- **Permissions**: two matrix rows, mirrored in `docs/04-security.md` §1 and
+  index, derived status), a new `artifacts.ts` (artifact detail, reusing
+  `progressOf` and `restrictedInClosedLayers`), `consent-round.ts` (set closing
+  time, checklist), `objections.ts` (note required for addressed/overruled),
+  `discussions.ts` (move requests), `evidence.ts` (confirmed evidence for a
+  definition's clauses — no such read exists today), `notifications.ts` (an
+  `activeStewards` helper — none exists). Publishing from the artifact page
+  calls the existing single-subject `publish()`; nothing new in `publishing.ts`.
+- **Routes**: new `definitions/+page` (the layout's breadcrumb already links
+  there and 404s today), `artifacts/[key]/+page`, `settings/adoption-rule`;
+  changes to `definitions/[id]`, `discussions/[id]`, `discussions/+page.server.ts`
+  (open on a definition), the community layout's nav.
+- **Permissions**: one matrix row, mirrored in `docs/04-security.md` §1 and
   `tests/unit/permissions.test.ts`.
+- **Notifications**: two kinds, each through `kinds.ts`, `text.ts`, the three
+  locales' messages and `jobs/notification-mail.ts`.
+- **Version**: `0.11.0 → 0.12.0`.
 - **i18n**: every new string through Paraglide; the definition and discussion
   detail pages' existing hard-coded English moves into messages as they are
   touched.

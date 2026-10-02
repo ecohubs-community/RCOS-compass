@@ -6,12 +6,12 @@ A steward SHALL be able to set or change the closing time of the consent round
 on the current version, opening the round if it has not opened yet. A closing
 time in the past MUST be refused. Setting or changing it MUST be recorded in the
 thread with who did it. While the round is open with a closing time, the
-discussion MUST show the closing time in the community's time zone and how long
-remains. A member MUST NOT be permitted to set it.
+discussion MUST show the closing time as a deadline — with the name of the time
+zone it is shown in, as the time-display spec requires — and how long remains. A member MUST NOT be permitted to set it.
 
 #### Scenario: A steward sets a closing time
 - **WHEN** a steward sets the round to close on 3 September at 20:00
-- **THEN** the discussion shows "Closes 3 Sep, 20:00" and the days left
+- **THEN** the discussion shows "Closes 3 Sep, 20:00" with the time zone's name, and the days left
 - **AND** a post in the thread says who set it
 
 #### Scenario: The round had not opened

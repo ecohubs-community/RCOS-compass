@@ -38,8 +38,9 @@ their message counts, the open proposal if any, the decision behind the adopted
 version (reference, mechanism, tally, date decided, review date, and whether
 provisional), its earlier versions, related definitions, and confirmed evidence
 for the clauses it answers. Discussions about it MUST include those opened on
-the definition and those opened on any clause it answers. Nothing from another
-community MUST appear.
+the definition and those that answer its section — named directly, or through a
+clause the section owns — by the same rule the Path and the freeze use. Nothing
+from another community MUST appear.
 
 #### Scenario: The decision is shown
 - **WHEN** a member opens an adopted definition
@@ -49,6 +50,14 @@ community MUST appear.
 #### Scenario: A thread opened on the clause is found
 - **WHEN** a discussion was opened on a clause before the definition answering it existed
 - **THEN** that discussion is listed on the definition's page
+
+#### Scenario: A thread started from the Path is found
+- **WHEN** a discussion was started from the Path item for a section that owns no clause, and frozen
+- **THEN** that discussion is listed on the definition it created
+
+#### Scenario: A thread on a clause this section only references
+- **WHEN** a discussion answers another section that cites one of this definition's clauses
+- **THEN** it is not listed on this definition's page
 
 #### Scenario: A thread matched both ways is listed once
 - **WHEN** a discussion is linked to the definition and also to a clause it answers
@@ -121,6 +130,10 @@ from the Standard browser. Below 768px each row MUST become a card.
 - **WHEN** another community's definitions exist
 - **THEN** none appear
 
+#### Scenario: A restricted definition
+- **WHEN** a definition is restricted to stewards under a transparency exception
+- **THEN** a member's index does not list it, and a steward's does
+
 ### Requirement: A member can create a local definition
 
 A member or steward SHALL be able to create a local definition from the
@@ -169,9 +182,10 @@ freeze.
 ### Requirement: A local definition's page says why it exists
 
 A local definition's page SHALL show, in place of the standard's requirement,
-why the community made the rule (its purpose), who asked for it, when it was
-first written down, and whether it is kept out of the public index. It MUST NOT
-show an empty column.
+why the community made the rule (its purpose), the community's adopted
+definitions in the same layer for context, who asked for it, when it was first
+written down, and whether it is kept out of the public index. It MUST NOT show
+an empty column.
 
 #### Scenario: The why is shown
 - **WHEN** a member opens a local definition with a purpose
