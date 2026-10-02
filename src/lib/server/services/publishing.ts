@@ -1,13 +1,18 @@
-import { and, eq, sql } from 'drizzle-orm';
+import { and, desc, eq, inArray, isNotNull, sql } from 'drizzle-orm';
 import { error } from '@sveltejs/kit';
 import { requirePermission, requireWritableCommunity, type Ctx } from '../auth/guard.js';
 import { getDb, type Db } from '../db/index.js';
 import { newId } from '../db/id.js';
 import { changeLog } from '../db/schema/decisions.js';
 import { decision } from '../db/schema/decisions.js';
-import { communityArtifact, definition } from '../db/schema/definitions.js';
-import { community } from '../db/schema/tenancy.js';
+import { communityArtifact, definition, definitionVersion } from '../db/schema/definitions.js';
+import { user } from '../db/schema/auth.js';
+import { community, membership } from '../db/schema/tenancy.js';
 import { reindex } from './visibility.js';
+import { activeStandardView } from './completeness.js';
+import { allocateRef } from './decisions.js';
+import { personLabel } from './person.js';
+import { indexDecision } from './search.js';
 
 /**
  * Making something readable by the world, and taking it back.
@@ -93,7 +98,26 @@ function setPublished(
 	const now = new Date(ctx.now());
 
 	db.transaction((tx) => {
-		for (const subject of subjects) applyOne(tx as unknown as Db, ctx, subject, toWorld, now);
+		for (const subject of subjects) {
+			const changed = applyOne(tx as unknown as Db, ctx, subject, toWorld, now);
+			// A community's own artifact is an artifact: publishing it is a
+			// decision, as the `publishing` and `decisions` specs require.
+			if (changed && subject.type === 'artifact') {
+				const row = tx
+					.select()
+					.from(communityArtifact)
+					.where(eq(communityArtifact.id, subject.id))
+					.get()!;
+				recordPublication(tx as unknown as Db, ctx, now, {
+					subjectType: 'artifact',
+					subjectId: row.id,
+					title: row.title,
+					layer: row.layer,
+					toWorld,
+					contents: row.title
+				});
+			}
+		}
 	});
 }
 
@@ -110,7 +134,7 @@ function applyOne(
 	subject: PublishableSubject,
 	toWorld: boolean,
 	now: Date
-): void {
+): boolean {
 	// The type already excludes documents; this is for a caller the compiler
 	// never saw — a form value cast, a script. Thrown before anything is
 	// written, so a batch holding one document publishes nothing.
@@ -131,7 +155,7 @@ function applyOne(
 		// exception is a deliberate step, and it has its own record.
 		error(409, 'This is restricted. End the transparency exception before publishing it.');
 	}
-	if (toWorld === (current.visibility === 'world')) return;
+	if (toWorld === (current.visibility === 'world')) return false;
 
 	tx.update(table)
 		.set({
@@ -164,6 +188,207 @@ function applyOne(
 			payload: null
 		})
 		.run();
+	return true;
+}
+
+/**
+ * Publish an RCOS artifact: every adopted definition answering it, as one act.
+ *
+ * An RCOS artifact is a shape in the standard rather than a row, so publishing
+ * it means publishing the definitions that answer it — all or nothing — and
+ * writing **one decision** for the act (`publishing` spec: "Publishing to the
+ * world is a recorded decision"; `decisions` spec: "Publishing an artifact is
+ * itself a decision"). The settings page and the artifact's own page both call
+ * this, so they cannot record the same act differently.
+ *
+ * Idempotent: publishing what is already public changes nothing and writes no
+ * decision. A refusal anywhere rolls everything back, the reference included.
+ */
+export function publishArtifact(ctx: Ctx, artifactKey: string, options: { db?: Db } = {}): void {
+	setArtifactPublished(ctx, artifactKey, true, options);
+}
+
+export function withdrawArtifact(ctx: Ctx, artifactKey: string, options: { db?: Db } = {}): void {
+	setArtifactPublished(ctx, artifactKey, false, options);
+}
+
+function setArtifactPublished(
+	ctx: Ctx,
+	artifactKey: string,
+	toWorld: boolean,
+	options: { db?: Db }
+): void {
+	requirePermission(ctx, 'artifact.publish');
+	requireWritableCommunity(ctx);
+	const db = options.db ?? getDb();
+	const standard = activeStandardView(db, ctx);
+	const artifact = standard?.view.artifact(artifactKey);
+	if (!standard || !artifact) error(404, 'Not found');
+	const now = new Date(ctx.now());
+	const sectionKeys = standard.view.authoredSectionsOf(artifactKey).map((section) => section.key);
+
+	const adopted = db
+		.select({ definition, n: definitionVersion.n })
+		.from(definition)
+		.innerJoin(definitionVersion, eq(definitionVersion.id, definition.adoptedVersionId))
+		.where(
+			and(
+				eq(definition.communityId, ctx.community.id),
+				eq(definition.communityStandardId, standard.row.id),
+				eq(definition.scope, 'standard'),
+				isNotNull(definition.adoptedVersionId),
+				inArray(definition.sectionKey, sectionKeys.length ? sectionKeys : [''])
+			)
+		)
+		.all()
+		.sort(
+			(a, b) =>
+				sectionKeys.indexOf(a.definition.sectionKey!) -
+				sectionKeys.indexOf(b.definition.sectionKey!)
+		);
+	if (adopted.length === 0) error(409, 'Nothing in this artifact has been adopted yet.');
+
+	const title =
+		standard.view.localise(artifact.i18n, ctx.community.locale).value.title ?? artifact.key;
+
+	db.transaction((tx) => {
+		let changed = false;
+		for (const row of adopted) {
+			changed =
+				applyOne(
+					tx as unknown as Db,
+					ctx,
+					{ type: 'definition', id: row.definition.id },
+					toWorld,
+					now
+				) || changed;
+		}
+		if (!changed) return;
+		recordPublication(tx as unknown as Db, ctx, now, {
+			subjectType: 'rcos_artifact',
+			subjectId: artifact.key,
+			title,
+			layer: artifact.layer,
+			toWorld,
+			// What was made public, quoted as the register quotes a freeze: each
+			// section and the version that answered it at that moment.
+			contents: [
+				title,
+				...adopted.map(
+					(row) =>
+						`- ${standard.view.localise(standard.view.section(row.definition.sectionKey!)!.i18n, ctx.community.locale).value.title} — v${row.n}`
+				)
+			].join('\n')
+		});
+	});
+}
+
+type PublicationRecord = {
+	subjectType: 'rcos_artifact' | 'artifact';
+	subjectId: string;
+	title: string;
+	layer: number | null;
+	toWorld: boolean;
+	contents: string;
+};
+
+/**
+ * The decision that records a publication, in the caller's transaction.
+ *
+ * A steward act, not a vote: `operational`, mechanism "steward act", no tally.
+ * The register then answers "when did this go public, and who did it?" beside
+ * every other decision, and the change-log entry links the artifact to it.
+ */
+function recordPublication(tx: Db, ctx: Ctx, now: Date, record: PublicationRecord): void {
+	const { seq, ref } = allocateRef(tx, ctx, now.getTime());
+	const decisionId = newId();
+	const title = record.toWorld
+		? `Published ${record.title}`
+		: `Withdrew ${record.title} from public view`;
+	tx.insert(decision)
+		.values({
+			id: decisionId,
+			communityId: ctx.community.id,
+			seq,
+			ref,
+			title,
+			type: 'operational',
+			layer: record.layer,
+			mechanism: 'steward act',
+			proposalText: record.contents,
+			decidedAt: now,
+			idempotencyKey: newId(),
+			recordedBy: ctx.user.id
+		})
+		.run();
+	tx.insert(changeLog)
+		.values({
+			id: newId(),
+			communityId: ctx.community.id,
+			at: now,
+			actorId: ctx.user.id,
+			kind: record.toWorld ? 'artifact.published' : 'artifact.withdrawn',
+			subjectType: record.subjectType,
+			subjectId: record.subjectId,
+			summary: title,
+			payload: { decisionId, ref }
+		})
+		.run();
+	indexDecision(tx, ctx.community.id, decisionId);
+}
+
+export type PublicationEvent = {
+	at: number;
+	published: boolean;
+	by: string | null;
+	ref: string | null;
+};
+
+/** Every publication and withdrawal of an RCOS artifact, newest first, each with its decision. */
+export function publicationHistory(
+	ctx: Ctx,
+	artifactKey: string,
+	options: { db?: Db } = {}
+): PublicationEvent[] {
+	requirePermission(ctx, 'community.read');
+	const db = options.db ?? getDb();
+	return db
+		.select({
+			entry: changeLog,
+			name: user.name,
+			erasedAt: user.erasedAt,
+			displayName: membership.displayName,
+			seq: membership.seq
+		})
+		.from(changeLog)
+		.leftJoin(user, eq(user.id, changeLog.actorId))
+		.leftJoin(
+			membership,
+			and(eq(membership.userId, changeLog.actorId), eq(membership.communityId, ctx.community.id))
+		)
+		.where(
+			and(
+				eq(changeLog.communityId, ctx.community.id),
+				eq(changeLog.subjectType, 'rcos_artifact'),
+				eq(changeLog.subjectId, artifactKey),
+				inArray(changeLog.kind, ['artifact.published', 'artifact.withdrawn'])
+			)
+		)
+		.orderBy(desc(changeLog.at))
+		.all()
+		.map((row) => ({
+			at: row.entry.at.getTime(),
+			published: row.entry.kind === 'artifact.published',
+			by: row.entry.actorId
+				? personLabel({
+						erasedAt: row.erasedAt ?? null,
+						name: row.name,
+						displayName: row.displayName,
+						seq: row.seq
+					})
+				: null,
+			ref: (row.entry.payload as { ref?: string } | null)?.ref ?? null
+		}));
 }
 
 /**

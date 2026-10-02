@@ -11,9 +11,10 @@
 	const slug = $derived(data.community.slug);
 
 	/**
-	 * Three states, and no fourth. An artifact is finished, started, or not — a
-	 * percentage per artifact would invite reading 80% as nearly compliant, and
-	 * compliance does not work that way (`services/claim.ts`).
+	 * Three states, and no fourth — plus, since 2026-10-01, the share of
+	 * sections answered beside the count. It is worded as sections, never as
+	 * compliance, and never leaves the community (`provenance-ui` D4): compliance
+	 * stays yes or no (`services/claim.ts`), and the line above the list says so.
 	 */
 	const state = (artifact: { complete: boolean; answered: number }) =>
 		artifact.complete ? 'complete' : artifact.answered > 0 ? 'in_progress' : 'not_started';
@@ -128,9 +129,10 @@
 						</div>
 						<p class="text-fg-muted text-meta mt-1">
 							{#if artifact.layer !== null}{m.artifacts_layer({ layer: artifact.layer })} ·
-							{/if}{m.artifacts_sections({
+							{/if}{m.artifacts_sections_share({
 								answered: artifact.answered,
-								authored: artifact.authored
+								authored: artifact.authored,
+								percent: artifact.percent
 							})}
 						</p>
 						{#if artifact.summary}
@@ -138,18 +140,12 @@
 						{/if}
 					</div>
 
-					<!--
-						eslint-disable svelte/no-navigation-without-resolve --
-						`links.standard` is a `resolve`; the rule reads the attribute rather
-						than the value, so it cannot see through an appended fragment.
-					-->
 					<a
-						href={`${links.standard(slug)}#${artifact.key}`}
+						href={links.artifact(slug, artifact.key)}
 						class="border-border hover:border-border-strong text-fg flex-none rounded-(--radius-control) border px-2.5 py-1"
 					>
 						{artifact.answered > 0 ? m.artifacts_open() : m.artifacts_start()}
 					</a>
-					<!-- eslint-enable svelte/no-navigation-without-resolve -->
 				</li>
 			{/each}
 		</ul>

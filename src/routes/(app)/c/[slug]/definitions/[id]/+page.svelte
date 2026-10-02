@@ -525,7 +525,7 @@
 								·
 								<a
 									href={links.decision(slug, v.decision.ref)}
-									class="text-fg-secondary hover:text-fg font-mono underline underline-offset-2"
+									class="text-fg-secondary hover:text-fg font-mono whitespace-nowrap underline underline-offset-2"
 									>{v.decision.ref}</a
 								>
 							{/if}

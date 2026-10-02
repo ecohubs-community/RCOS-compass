@@ -120,32 +120,36 @@ stay. Decided against the list's old comment, which refused a per-artifact
 percentage so nobody read 80% as nearly compliant; the wording and the binary
 compliance line beside it carry that instead.
 
-### D5. Publishing an artifact is a decision; history is read from the register and the log
+### D5. Publishing an artifact is a decision; history is read from the log
 
 The `publishing` spec ("Publishing to the world is a recorded decision";
 unpublishing too) and the `decisions` spec ("Publishing an artifact is itself a
-decision") already require it; `setPublished` writes only `change_log`
-(`visibility.published` / `visibility.withdrawn`). Decided 2026-10-01 to fix it
-in this change.
+decision") already require it; publishing wrote only `change_log`. Decided
+2026-10-01 to fix it in this change. Found while building it: an RCOS artifact is
+not a row — the settings page published one as a batch of definitions — so the
+single-subject `publish()` could not carry it.
 
-- `allocateRef(tx, ctx, now)` in `decisions.ts`: the `max(seq) + 1` and
-  `formatRef` that the freeze repeats inline three times, extracted. Every
-  caller allocates inside its own transaction, so gaplessness holds as today.
-- When the subject is an **artifact**, `setPublished` writes, in the same
-  transaction as the visibility flip and the change-log entry, a decision:
-  title "Published <artifact>" / "Withdrew <artifact> from public view", type
-  `operational`, mechanism "steward act", the artifact's layer, `proposalText`
-  naming the artifact and its sections' adopted versions at that moment, no
-  tally, actor and time. Publishing a definition, decision or document does not
-  — the specs ask it of artifacts.
-- Idempotent: publishing an artifact that is already world-visible changes
-  nothing and writes no decision.
-- `publicationHistory(ctx, key)` lists those decisions (ref linking to the
-  register) beside the change-log entries from before this change, newest
-  first.
-- The page's *Publish* / *Withdraw* call the existing `publish()` /
-  `withdraw()`, so the settings page and the artifact page write the same
-  decision.
+- `allocateRef(tx, ctx, now)` in `decisions.ts`: the freeze's `max(seq) + 1` and
+  `formatRef`, extracted (there was one allocation, reused for the change-log
+  payload and the notification, not three). Every caller allocates inside its
+  own transaction, so gaplessness holds as before.
+- `publishArtifact(ctx, key)` / `withdrawArtifact(ctx, key)` in `publishing.ts`:
+  every adopted definition answering the artifact, flipped in one transaction,
+  and **one decision** for the act — title "Published <artifact>" / "Withdrew
+  <artifact> from public view", type `operational`, mechanism "steward act", the
+  artifact's layer, `proposalText` listing each section and the version that
+  answered it, no tally. The settings page's RCOS-artifact rows and the artifact
+  page both call it. A community's own artifact (`type: 'artifact'`) published
+  through `publish()` writes the same kind of decision.
+- Idempotent: publishing what is already public changes nothing and writes no
+  decision. A refusal part-way (a restricted definition) rolls back everything,
+  the reference included. An artifact with nothing adopted is refused (409).
+- The decision is linked to its artifact through one change-log entry per act,
+  kind `artifact.published` / `artifact.withdrawn`, subject `rcos_artifact` (or
+  `artifact`) and the key, payload `{ decisionId, ref }` — no schema change.
+  `publicationHistory(ctx, key)` reads those, newest first, with who did it.
+  Per-definition `visibility.*` entries from before this change are not shown
+  as artifact history: no community had published before the first deployment.
 
 ### D6. Blockers are derived, never authored
 

@@ -8,10 +8,12 @@ import { answeredSections, standardViewFor } from '$lib/server/services/complete
 import { definitionsBySection } from '$lib/server/services/definitions';
 import {
 	publishAll,
+	publishArtifact,
 	PUBLISHABLE,
 	publishedSubjects,
 	setPublicIndex,
-	withdrawAll
+	withdrawAll,
+	withdrawArtifact
 } from '$lib/server/services/publishing';
 import type { Actions, PageServerLoad } from './$types';
 
@@ -106,6 +108,24 @@ export const actions: Actions = {
 	toggle: async (event) => {
 		const form = await event.request.formData();
 		setPublicIndex(event.locals.ctx!, form.get('enabled') === 'on', { db: getDb() });
+		return { saved: true };
+	},
+
+	/**
+	 * An RCOS artifact, published or withdrawn as one act with one decision —
+	 * the same function the artifact's own page calls.
+	 */
+	publishArtifact: async (event) => {
+		const form = await event.request.formData();
+		const key = String(form.get('artifactKey') ?? '');
+		try {
+			if (form.get('withdraw') === '1') withdrawArtifact(event.locals.ctx!, key, { db: getDb() });
+			else publishArtifact(event.locals.ctx!, key, { db: getDb() });
+		} catch (problem) {
+			const http = problem as { status?: number; body?: { message?: string } };
+			if (http.status === 409) return fail(409, { error: http.body?.message ?? '' });
+			throw problem;
+		}
 		return { saved: true };
 	},
 

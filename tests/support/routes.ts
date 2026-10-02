@@ -49,6 +49,11 @@ export const ROUTES: RouteCoverage[] = [
 	{ id: '(app)/c/[slug]/audit', scan: 'a11y', path: (slug) => `/c/${slug}/audit` },
 	{ id: '(app)/c/[slug]/artifacts', scan: 'a11y', path: (slug) => `/c/${slug}/artifacts` },
 	{
+		id: '(app)/c/[slug]/artifacts/[key]',
+		scan: 'a11y',
+		path: (slug) => `/c/${slug}/artifacts/purpose-charter`
+	},
+	{
 		id: '(app)/c/[slug]/d/[ref]',
 		scan: 'a11y',
 		coveredBy: 'every screen of the loop has no violations'

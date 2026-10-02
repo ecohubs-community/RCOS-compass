@@ -41,7 +41,7 @@ test.describe('the artifacts a community owes', () => {
 		await expect(page.locator('main')).not.toContainText('% compliant');
 	});
 
-	test('sends you to the artifact you picked, not to the top of the standard', async ({ page }) => {
+	test('sends you to the artifact you picked, on its own page', async ({ page }) => {
 		test.slow();
 		const fixture = await seed(page);
 		await signIn(page, fixture.email, fixture.password);
@@ -51,8 +51,8 @@ test.describe('the artifacts a community owes', () => {
 		const title = (await row.getByRole('heading').textContent())!.trim();
 		await row.getByRole('link').first().click();
 
-		await expect(page).toHaveURL(/\/standard#/);
-		await expect(page.getByRole('heading', { name: title, exact: true })).toBeVisible();
+		await expect(page).toHaveURL(/\/artifacts\/[a-z-]+$/);
+		await expect(page.getByRole('heading', { level: 1, name: title, exact: true })).toBeVisible();
 	});
 
 	test('is reachable from the shell', async ({ page }) => {

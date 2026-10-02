@@ -5,7 +5,8 @@ import type { Ctx } from '../../src/lib/server/auth/guard.js';
 import { newId } from '../../src/lib/server/db/id.js';
 import type { Db } from '../../src/lib/server/db/index.js';
 import { aiUsage } from '../../src/lib/server/db/schema/ai.js';
-import { decision, decisionAttendee } from '../../src/lib/server/db/schema/decisions.js';
+import { changeLog, decision, decisionAttendee } from '../../src/lib/server/db/schema/decisions.js';
+import { publicationHistory } from '../../src/lib/server/services/publishing.js';
 import { auditEvent, invitation, membership } from '../../src/lib/server/db/schema/tenancy.js';
 import { listFormerMembers, listMembers } from '../../src/lib/server/services/members.js';
 import { usageByMember } from '../../src/lib/server/services/ai-settings.js';
@@ -437,6 +438,33 @@ export const PERSON_SURFACES: PersonSurface[] = [
 				.run();
 		},
 		read: (ctx, db) => [localDefinitionContext(ctx, LOCAL_DEFINITION_ID, { db })?.askedBy ?? '']
+	},
+	{
+		name: 'publishing.publicationHistory',
+		module: 'publishing.ts',
+		/**
+		 * "Published by Ana" on an artifact's page. The decision and the entry stay
+		 * — they are the community's record — and only who did it becomes the label.
+		 */
+		seed: (db, ctx, subject) => {
+			db.insert(changeLog)
+				.values({
+					id: newId(),
+					communityId: ctx.community.id,
+					at: new Date(0),
+					actorId: subject.userId,
+					kind: 'artifact.published',
+					subjectType: 'rcos_artifact',
+					subjectId: 'purpose-charter',
+					summary: 'Published Purpose Charter',
+					payload: { ref: 'DEC-1970-001' }
+				})
+				.run();
+		},
+		read: (ctx, db) =>
+			publicationHistory(ctx, 'purpose-charter', { db })
+				.map((event) => event.by ?? '')
+				.filter(Boolean)
 	},
 	{
 		name: 'invitations.listInvitations',

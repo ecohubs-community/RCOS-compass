@@ -54,6 +54,9 @@ export const load: PageServerLoad = ({ locals }) => {
 				mandatory: artifact.mandatory,
 				authored: progress.authored,
 				answered: progress.answered,
+				/** Of sections answered — progress, never compliance (`provenance-ui` D4). */
+				percent:
+					progress.authored === 0 ? 0 : Math.round((progress.answered / progress.authored) * 100),
 				complete: progress.complete,
 				published: published.has(artifact.key),
 				/**
