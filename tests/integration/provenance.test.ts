@@ -3,7 +3,8 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import type { Ctx } from '../../src/lib/server/auth/guard.js';
 import { newId } from '../../src/lib/server/db/id.js';
 import { setDbForTests, type Db } from '../../src/lib/server/db/index.js';
-import { definition } from '../../src/lib/server/db/schema/definitions.js';
+import { definition, localDefinitionTouch } from '../../src/lib/server/db/schema/definitions.js';
+import { createDefinition } from '../../src/lib/server/services/definitions.js';
 import { evidence } from '../../src/lib/server/db/schema/documents.js';
 import { communityStandard } from '../../src/lib/server/db/schema/tenancy.js';
 import { freeze } from '../../src/lib/server/services/decisions.js';
@@ -16,6 +17,7 @@ import {
 	definitionVersions,
 	discussionsForDefinition,
 	evidenceForDefinition,
+	localDefinitionContext,
 	relatedDefinitions,
 	statusesBySection
 } from '../../src/lib/server/services/provenance.js';
@@ -60,7 +62,7 @@ beforeEach(() => {
 	({ db, cleanup } = createTestDb());
 	setDbForTests(db);
 	ctx = seedCommunity('valle-verde');
-	const person = makeUser(db, { email: 'lena@example.org' });
+	const person = makeUser(db, { email: 'lena@example.org', name: 'Lena' });
 	const seat = makeMembership(db, ctx.community.id, person.id, { role: 'member' });
 	memberCtx = { ...ctx, user: person, membership: seat };
 });
@@ -297,5 +299,64 @@ describe('evidence for a definition', () => {
 		expect(evidenceForDefinition(memberCtx, definitionFor(VOLUNTARY).id, { db })).toEqual([
 			expect.objectContaining({ quote: 'Leaving is never punished.', clauseRef: '3.6.2' })
 		]);
+	});
+});
+
+describe('a local definition', () => {
+	function quietHours() {
+		return createDefinition(
+			memberCtx,
+			{
+				scope: 'local',
+				title: 'Quiet hours',
+				purpose: 'People sleep here.',
+				layer: 1,
+				attach: { kind: 'rcos_artifact', artifactKey: 'membership-agreement' }
+			},
+			{ db }
+		);
+	}
+
+	it('says why it exists, who asked, what it touches and what is adopted beside it', () => {
+		frozenThread({ kind: 'clause', clauseKey: '3.6.1' });
+		const local = quietHours();
+		db.insert(localDefinitionTouch)
+			.values({ definitionId: local.id, clauseKey: 'l1.rights-and-obligations.1' })
+			.run();
+		const context = localDefinitionContext(ctx, local.id, { db })!;
+		expect(context).toMatchObject({
+			purpose: 'People sleep here.',
+			askedBy: 'Lena',
+			writtenDown: null,
+			internal: true
+		});
+		expect(context.sameLayer.map((d) => d.title)).toEqual(['Voluntary Exit']);
+		expect(context.touches).toEqual([{ ref: '3.4.1', owned: false }]);
+	});
+
+	it('is nothing for a definition that answers the standard', () => {
+		frozenThread({ kind: 'clause', clauseKey: '3.6.1' });
+		expect(localDefinitionContext(ctx, definitionFor(VOLUNTARY).id, { db })).toBeNull();
+	});
+
+	it('can be discussed and frozen into its own first version', () => {
+		const local = quietHours();
+		const thread = frozenThread(
+			{ kind: 'definition', definitionId: local.id },
+			'Quiet after 22:00.'
+		);
+		const versions = definitionVersions(ctx, local.id, { db });
+		expect(versions).toHaveLength(1);
+		expect(versions[0]!.current).toBe(true);
+		expect(discussionsForDefinition(ctx, local.id, { db }).map((d) => d.id)).toEqual([thread.id]);
+		expect(localDefinitionContext(ctx, local.id, { db })!.writtenDown).toBe(NOW);
+		// It moved no number: no standard definition was created.
+		expect(
+			db
+				.select()
+				.from(definition)
+				.all()
+				.filter((row) => row.scope === 'standard')
+		).toHaveLength(0);
 	});
 });

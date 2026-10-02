@@ -110,6 +110,7 @@ export const load: PageServerLoad = ({ locals, url }) => {
 			return (typed && standard?.view.clause(typed)?.ref) || typed;
 		})(),
 		sectionKey: url.searchParams.get('section') ?? '',
+		definitionId: url.searchParams.get('definition') ?? '',
 		title: url.searchParams.get('title') ?? ''
 	};
 };
@@ -120,6 +121,7 @@ export const actions: Actions = {
 		const title = String(form.get('title') ?? '').trim();
 		const clauseKey = String(form.get('clauseKey') ?? '').trim();
 		const sectionKey = String(form.get('sectionKey') ?? '').trim();
+		const definitionId = String(form.get('definitionId') ?? '').trim();
 		const origin = form.get('origin') === 'offline' ? ('offline' as const) : ('clause' as const);
 
 		if (!title) return fail(400, { error: 'Give the discussion a title.' });
@@ -136,11 +138,15 @@ export const actions: Actions = {
 					// Started from a Path item: the section it answers, with whatever
 					// is in the clause box now — the service keeps the section only
 					// while that clause still belongs to it.
-					about: sectionKey
-						? { kind: 'section', sectionKey, clauseKey: clauseKey || null }
-						: clauseKey
-							? { kind: 'clause', clauseKey }
-							: { kind: 'open_question' },
+					// Started from a definition's page: about that definition, which
+					// the service checks belongs to this community.
+					about: definitionId
+						? { kind: 'definition', definitionId }
+						: sectionKey
+							? { kind: 'section', sectionKey, clauseKey: clauseKey || null }
+							: clauseKey
+								? { kind: 'clause', clauseKey }
+								: { kind: 'open_question' },
 					origin
 				},
 				{ db: getDb() }

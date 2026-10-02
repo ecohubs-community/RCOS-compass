@@ -17,14 +17,26 @@ import { aiAvailability } from '$lib/server/ai/run';
 import { lintWithAssist } from '$lib/server/services/linting';
 import type { Actions, PageServerLoad } from './$types';
 import { guideFor, requirementFor } from '$lib/server/services/requirement';
+import {
+	definitionVersions,
+	discussionsForDefinition,
+	evidenceForDefinition,
+	localDefinitionContext,
+	relatedDefinitions
+} from '$lib/server/services/provenance';
+import { definitionStatus } from '$lib/shared/definition-status';
 
 /**
  * The definition detail — the hero screen. UI spec §4.3.
  *
  * Three fixed columns, always the same triad: *what the standard asks / what we
  * said / how we got here*. A local definition has no standard asking anything,
- * so its left column is absent rather than empty (§3a.1) — an empty column reads
- * as a missing feature instead of a deliberate absence.
+ * so its left column says why the community made the rule instead (docs/03
+ * §3a.1, review log #88) — neither absent nor empty.
+ *
+ * "How we got here" is the provenance column (UI spec §4.3: "never more than one
+ * glance away from the rule itself"): each fact comes from its own tested read
+ * in `services/provenance.ts`, so the column cannot drift from the register.
  */
 export const load: PageServerLoad = ({ locals, params }) => {
 	const ctx = locals.ctx!;
@@ -49,6 +61,30 @@ export const load: PageServerLoad = ({ locals, params }) => {
 		section && standard
 			? standard.view.localise(section.i18n, ctx.community.locale as 'en').value
 			: null;
+	const artifactKey = section?.artifact ?? found.attachRcosArtifactKey ?? null;
+	const artifact = artifactKey && standard ? standard.view.artifact(artifactKey) : undefined;
+	const layer = artifact?.layer ?? found.layer ?? null;
+
+	const discussions = discussionsForDefinition(ctx, params.id, { db });
+	const open = discussions.filter((thread) => thread.status === 'open');
+	const versions = definitionVersions(ctx, params.id, { db });
+	const status = definitionStatus(
+		{
+			exists: true,
+			adopted: found.adoptedVersionId !== null,
+			openDiscussion: open.length > 0,
+			openRound: open.some((thread) => thread.openRound),
+			reviewDueAt: found.reviewDueAt?.getTime() ?? null
+		},
+		ctx.now()
+	);
+	const requirement =
+		section && standard ? requirementFor(standard.view, section.key, ctx.community.locale) : null;
+	/** The strongest word among the clauses it answers: MUST over SHOULD over MAY. */
+	const obligation =
+		(['MUST', 'SHOULD', 'MAY'] as const).find((word) =>
+			requirement?.clauses.some((clause) => clause.owned && clause.normativity === word)
+		) ?? null;
 
 	return {
 		definition: {
@@ -58,11 +94,42 @@ export const load: PageServerLoad = ({ locals, params }) => {
 			provisional: found.provisional,
 			adopted: found.adoptedVersionId !== null,
 			reviewDueAt: found.reviewDueAt?.getTime() ?? null,
-			attachedTo: found.attachRcosArtifactKey
+			attachedTo: found.attachRcosArtifactKey,
+			status,
+			obligation,
+			/** `L1 · Membership / Exit & Separation Protocol`, as every other screen says it. */
+			layer,
+			layerName:
+				layer === null
+					? null
+					: (standard?.view.meta.layers.find((entry) => entry.n === layer)?.name ?? null),
+			artifact: artifact
+				? {
+						key: artifact.key,
+						title:
+							standard!.view.localise(artifact.i18n, ctx.community.locale).value.title ??
+							artifact.key
+					}
+				: null
 		},
-		/** The left column: null for a local definition, by design. */
-		requirement:
-			section && standard ? requirementFor(standard.view, section.key, ctx.community.locale) : null,
+		/** "How we got here", each from its own read. */
+		provenance: {
+			discussions,
+			/** The thread a new version would be proposed in: the open one, newest first. */
+			/**
+			 * Where a change would be proposed: the newest thread still in use. A
+			 * thread stays open for the next version after a freeze (its status reads
+			 * `frozen`), so a frozen one counts; only an abandoned one does not.
+			 */
+			openDiscussion: discussions.find((thread) => thread.status !== 'abandoned') ?? null,
+			versions,
+			related: relatedDefinitions(ctx, params.id, { db }),
+			evidence: evidenceForDefinition(ctx, params.id, { db })
+		},
+		/** For a local definition, what stands where the requirement would. */
+		local: localDefinitionContext(ctx, params.id, { db }),
+		/** The left column for a standard definition; `local` takes its place otherwise. */
+		requirement,
 		/** What a proposal should cover, and example answers. Compass's, not RCOS's. */
 		guide: section && standard ? guideFor(standard.view, section.key, ctx.community.locale) : null,
 		version: version && {
@@ -105,7 +172,11 @@ export const load: PageServerLoad = ({ locals, params }) => {
 		 * empty an allowance nobody chose to use.
 		 */
 		assist: aiAvailability(ctx, { db }) === null,
-		can: { propose: ctxCan(ctx, 'proposal.create'), draft: ctxCan(ctx, 'definition.draft') }
+		can: {
+			propose: ctxCan(ctx, 'proposal.create'),
+			draft: ctxCan(ctx, 'definition.draft'),
+			discuss: ctxCan(ctx, 'discussion.create')
+		}
 	};
 };
 

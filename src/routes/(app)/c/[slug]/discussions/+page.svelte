@@ -135,6 +135,10 @@
 				value={data.clauseKey}
 				class="w-44"
 			/>
+			{#if data.definitionId}
+				<!-- The definition this was started from; see `openDiscussion`. -->
+				<input type="hidden" name="definitionId" value={data.definitionId} />
+			{/if}
 			{#if data.sectionKey}
 				<!-- The Path item this was started from; see `openDiscussion`. -->
 				<input type="hidden" name="sectionKey" value={data.sectionKey} />

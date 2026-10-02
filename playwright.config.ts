@@ -70,7 +70,8 @@ export default defineConfig({
 		 */
 		{
 			name: 'mobile-small',
-			testMatch: /(loop|a11y|path-order|path-items|layer-checks|original-view)\.spec\.ts/,
+			testMatch:
+				/(loop|a11y|path-order|path-items|layer-checks|definition-provenance|original-view)\.spec\.ts/,
 			grepInvert: /@no-js/,
 			/**
 			 * The width written down, not a device preset that happens to be near

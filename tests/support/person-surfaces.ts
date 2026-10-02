@@ -31,7 +31,8 @@ import { makeDocument, makeEvidence, makePassage } from './documents.js';
 import { getTenant } from '../../src/lib/server/services/admin/communities.js';
 import { notification } from '../../src/lib/server/db/schema/notifications.js';
 import { listNotificationItems } from '../../src/lib/server/services/notifications.js';
-import { standardFeedback } from '../../src/lib/server/db/schema/definitions.js';
+import { definition, standardFeedback } from '../../src/lib/server/db/schema/definitions.js';
+import { localDefinitionContext } from '../../src/lib/server/services/provenance.js';
 import { listStandardFeedback } from '../../src/lib/server/services/standard-feedback.js';
 
 /**
@@ -101,6 +102,7 @@ const DECISION_ID = '01a00000-0000-7000-8000-000000000001';
 const LIBRARY_DOCUMENT_ID = '01a00000-0000-7000-8000-000000000002';
 const VERSIONED_DOCUMENT_ID = '01a00000-0000-7000-8000-000000000003';
 const WORKSPACE_DOCUMENT_ID = '01a00000-0000-7000-8000-000000000004';
+const LOCAL_DEFINITION_ID = '01a00000-0000-7000-8000-000000000005';
 
 /** Set by the thread surface's seed, read by its `read`. */
 let threadForPersonSurface = '';
@@ -408,6 +410,33 @@ export const PERSON_SURFACES: PersonSurface[] = [
 			listStandardFeedback(ctx, { db })
 				.map((row) => row.author ?? '')
 				.filter(Boolean)
+	},
+	{
+		name: 'provenance.localDefinitionContext',
+		module: 'provenance.ts',
+		/**
+		 * "Asked for by Ana" beside a local rule's reason for existing. The rule is
+		 * the community's and stays; only who asked for it becomes the label.
+		 */
+		seed: (db, ctx, subject) => {
+			db.insert(definition)
+				.values({
+					id: LOCAL_DEFINITION_ID,
+					communityId: ctx.community.id,
+					scope: 'local',
+					title: 'Quiet hours',
+					layer: 5,
+					purpose: 'Sleep matters.',
+					attachKind: 'rcos_artifact',
+					attachRcosArtifactKey: 'meeting-templates',
+					provisional: false,
+					createdBy: subject.userId,
+					createdAt: new Date(0),
+					updatedAt: new Date(0)
+				})
+				.run();
+		},
+		read: (ctx, db) => [localDefinitionContext(ctx, LOCAL_DEFINITION_ID, { db })?.askedBy ?? '']
 	},
 	{
 		name: 'invitations.listInvitations',

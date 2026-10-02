@@ -4,27 +4,27 @@
 
 ## 1. Schema and matrix
 
-- [ ] 1.1 Migration (additive only): `proposal_move_request` per design D10; `local_definition_touch(definition_id, clause_key)`; `community.interim_quorum_num`, `interim_quorum_den`, `interim_min_days` (nullable); `move_request` added to the post-kind enum. Check the generated SQL has no table rebuild
-- [ ] 1.2 `permissions.ts`: `proposal.request_move` for steward and member. Mirror it in `docs/04-security.md` §1, with the existing rows that now also gate new acts (`proposal.set_current` answers move requests; `consent.open` sets the closing time; `settings.manage` records the interim rule; `definition.draft` creates a local definition, as its "Create a local definition" row already says)
-- [ ] 1.3 Tests: a migration-upgrade test from the previous schema; the permission-matrix row for `proposal.request_move`, allowed and denied
+- [x] 1.1 Migration (additive only): `proposal_move_request` per design D10; `local_definition_touch(definition_id, clause_key)`; `community.interim_quorum_num`, `interim_quorum_den`, `interim_min_days` (nullable); `move_request` added to the post-kind enum. Check the generated SQL has no table rebuild
+- [x] 1.2 `permissions.ts`: `proposal.request_move` for steward and member. Mirror it in `docs/04-security.md` §1, with the existing rows that now also gate new acts (`proposal.set_current` answers move requests; `consent.open` sets the closing time; `settings.manage` records the interim rule; `definition.draft` creates a local definition, as its "Create a local definition" row already says)
+- [x] 1.3 Tests: a migration-upgrade test from the previous schema; the permission-matrix row for `proposal.request_move`, allowed and denied
 
 ## 2. Derived status and definition provenance reads
 
-- [ ] 2.1 `src/lib/shared/definition-status.ts`: pure `definitionStatus(facts, now)` per design D2
-- [ ] 2.2 `discussionsForDefinition(ctx, id)`: by `definitionId` or by `sectionOf(view, thread) = definition.sectionKey`, de-duplicated, with message counts (D1)
-- [ ] 2.3 `definitionVersions(ctx, id)`: every adopted version, newest first, with its decision ref and date; `decisionForVersion` by `decisionId`
-- [ ] 2.4 `relatedDefinitions(ctx, id)`: from `Clause.referencedBy` and annotation `dependsOn`, resolved to this community's definitions, unanswered ones as "not written yet"; for local definitions, from `local_definition_touch` (D3)
-- [ ] 2.5 `evidenceForDefinition(ctx, id)` in `evidence.ts` (no such read exists): confirmed, non-stale evidence for the clauses the definition's section owns
-- [ ] 2.6 Replace the Standard browser's three-way status with `definitionStatus`
-- [ ] 2.7 Tests: `definitionStatus` exhaustively, one case per state and the adopted-but-rediscussed case; each read's happy path plus cross-tenant isolation (another community with the same clause key); the discussion read by `definitionId`, by a clause, by a section-only thread from the Path, by both at once, and not for a thread on a clause this section only references; a definition with no adopted version
+- [x] 2.1 `src/lib/shared/definition-status.ts`: pure `definitionStatus(facts, now)` per design D2
+- [x] 2.2 `discussionsForDefinition(ctx, id)`: by `definitionId` or by `sectionOf(view, thread) = definition.sectionKey`, de-duplicated, with message counts (D1)
+- [x] 2.3 `definitionVersions(ctx, id)`: every adopted version, newest first, with its decision ref and date; `decisionForVersion` by `decisionId`
+- [x] 2.4 `relatedDefinitions(ctx, id)`: from `Clause.referencedBy` and annotation `dependsOn`, resolved to this community's definitions, unanswered ones as "not written yet"; for local definitions, from `local_definition_touch` (D3)
+- [x] 2.5 `evidenceForDefinition(ctx, id)` in `evidence.ts` (no such read exists): confirmed, non-stale evidence for the clauses the definition's section owns
+- [x] 2.6 Replace the Standard browser's three-way status with `definitionStatus`
+- [x] 2.7 Tests: `definitionStatus` exhaustively, one case per state and the adopted-but-rediscussed case; each read's happy path plus cross-tenant isolation (another community with the same clause key); the discussion read by `definitionId`, by a clause, by a section-only thread from the Path, by both at once, and not for a thread on a clause this section only references; a definition with no adopted version
 
 ## 3. Definition page
 
-- [ ] 3.1 Header: layer and artifact breadcrumb, obligation chip, derived-status chip, provisional chip, beside the existing `<CitedClauses>`; *Start discussion* (posting `definitionId` when none is open) / *Propose change* per D13; *Version history* anchors to the list. The requirement column and "What to cover" stay as built
-- [ ] 3.2 "How we got here" column, in this order: discussions (count and messages), open proposal, decision block (ref linking to the register, mechanism, tally, decided, review due, provisional), earlier versions, related definitions, evidence. The "no decision yet" state per spec
-- [ ] 3.3 On a phone, the column is the "How we got here" tab (docs/02 §7 triad already built); check it at 375px
-- [ ] 3.4 Move the page's hard-coded English into Paraglide messages as the page is touched; the i18n baseline must go down
-- [ ] 3.5 Tests: e2e on an adopted definition (decision, versions, a thread opened on the clause) and on a drafting one; accessibility scan of the page; the actions follow `can.*` props, never role checks
+- [x] 3.1 Header: layer and artifact breadcrumb, obligation chip, derived-status chip, provisional chip, beside the existing `<CitedClauses>`; *Start discussion* (posting `definitionId` when none is open) / *Propose change* per D13; *Version history* anchors to the list. The requirement column and "What to cover" stay as built
+- [x] 3.2 "How we got here" column, in this order: discussions (count and messages), open proposal, decision block (ref linking to the register, mechanism, tally, decided, review due, provisional), earlier versions, related definitions, evidence. The "no decision yet" state per spec
+- [x] 3.3 On a phone, the column is the "How we got here" tab (docs/02 §7 triad already built); check it at 375px
+- [x] 3.4 Move the page's hard-coded English into Paraglide messages as the page is touched; the i18n baseline must go down
+- [x] 3.5 Tests: e2e on an adopted definition (decision, versions, a thread opened on the clause) and on a drafting one; accessibility scan of the page; the actions follow `can.*` props, never role checks
 
 ## 4. Artifact detail
 

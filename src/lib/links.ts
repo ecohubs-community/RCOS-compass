@@ -37,6 +37,12 @@ export const links = {
 		if (title) query.set('title', title);
 		return `${resolve('/(app)/c/[slug]/discussions', { slug })}?${query}`;
 	},
+	/** A discussion about an existing definition — how a local rule, or a change to an adopted one, starts. */
+	startDiscussionOnDefinition: (slug: string, definitionId: string, title?: string) => {
+		const query = new URLSearchParams({ definition: definitionId });
+		if (title) query.set('title', title);
+		return `${resolve('/(app)/c/[slug]/discussions', { slug })}?${query}`;
+	},
 	discussion: (slug: string, id: string) =>
 		resolve('/(app)/c/[slug]/discussions/[id]', { slug, id }),
 	definition: (slug: string, id: string) =>
