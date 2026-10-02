@@ -13,12 +13,14 @@ import {
 	definition,
 	definitionDraft,
 	definitionVersion,
+	localDefinitionTouch,
 	standardFeedback,
 	type Definition
 } from '../db/schema/definitions.js';
 import { changeLog } from '../db/schema/decisions.js';
 import { communityStandard } from '../db/schema/tenancy.js';
 import { indexDefinition } from './search.js';
+import { activeStandardView } from './completeness.js';
 import { registerTenantService } from './registry.js';
 
 /**
@@ -93,6 +95,8 @@ export type CreateLocalDefinition = {
 		| { kind: 'rcos_artifact'; artifactKey: string };
 	/** UI spec §1.4b kind 3: "RCOS should require this." */
 	standardShouldRequireThis?: boolean;
+	/** Clause keys it touches and satisfies none of (`provenance-ui` D11). */
+	touches?: string[];
 };
 
 export function createDefinition(
@@ -202,6 +206,12 @@ export function createDefinition(
 			})
 			.run();
 
+		if (input.scope === 'local' && input.touches?.length) {
+			for (const clauseKey of new Set(input.touches)) {
+				tx.insert(localDefinitionTouch).values({ definitionId: values.id!, clauseKey }).run();
+			}
+		}
+
 		if (input.scope === 'local' && input.standardShouldRequireThis) {
 			// Captured from day one: you cannot retroactively collect "what did
 			// communities wish the standard had asked for". Nothing is sent
@@ -225,6 +235,124 @@ export function createDefinition(
 
 		return tx.select().from(definition).where(eq(definition.id, values.id!)).get()!;
 	});
+}
+
+/**
+ * A local definition, from the form a member fills in. `openspec/changes/provenance-ui`
+ * D11, the `definitions` spec.
+ *
+ * The form's rules on top of `createDefinition`, which stays permissive for its
+ * other caller (the test seed): a title, and a **layer**, because a community's
+ * own rule still has to say where it sits (UI spec §1.4b). The artifact is
+ * optional — without one it joins *Community Agreements*, the artifact every
+ * community is created with. Touched clauses arrive as the references a member
+ * reads (`7.2.1`) and are stored by key; touching one satisfies nothing.
+ */
+export function createLocalDefinition(
+	ctx: Ctx,
+	input: {
+		title: string;
+		purpose?: string | null;
+		layer: number | null;
+		/** An RCOS artifact key, or `local:<community artifact id>`, or null. */
+		artifact?: string | null;
+		touches?: string[];
+		standardShouldRequireThis?: boolean;
+	},
+	options: { db?: Db } = {}
+): Definition {
+	requirePermission(ctx, 'definition.draft');
+	requireWritableCommunity(ctx);
+	const db = options.db ?? getDb();
+
+	const title = input.title.trim();
+	if (!title) error(400, 'Give the rule a name.');
+
+	const standard = activeStandardView(db, ctx);
+	if (!standard) error(409, 'This community has not adopted a standard yet.');
+	const layers = new Set(
+		standard.view.artifacts.map((artifact) => artifact.layer).filter((n) => n !== null)
+	);
+	if (input.layer === null || !Number.isInteger(input.layer) || !layers.has(input.layer)) {
+		error(400, 'Choose the layer this rule belongs to.');
+	}
+
+	const attach: CreateLocalDefinition['attach'] = (() => {
+		const chosen = input.artifact?.trim();
+		if (chosen?.startsWith('local:')) {
+			return { kind: 'community_artifact', artifactId: chosen.slice('local:'.length) };
+		}
+		if (chosen) {
+			if (!standard.view.artifact(chosen)) error(400, 'That artifact is not in the standard.');
+			return { kind: 'rcos_artifact', artifactKey: chosen };
+		}
+		const agreements = db
+			.select()
+			.from(communityArtifact)
+			.where(
+				and(
+					eq(communityArtifact.communityId, ctx.community.id),
+					eq(communityArtifact.kind, 'default')
+				)
+			)
+			.get();
+		if (!agreements) error(409, 'This community has no Community Agreements artifact.');
+		return { kind: 'community_artifact', artifactId: agreements.id };
+	})();
+
+	const touches = (input.touches ?? []).map((ref) => {
+		const clause = standard.view.clauseByRef(ref.replace(/^§/, '').trim());
+		if (!clause) error(400, `There is no clause ${ref} in the standard.`);
+		return clause.key;
+	});
+
+	return createDefinition(
+		ctx,
+		{
+			scope: 'local',
+			title,
+			purpose: input.purpose ?? undefined,
+			layer: input.layer,
+			attach,
+			touches,
+			standardShouldRequireThis: input.standardShouldRequireThis
+		},
+		{ db }
+	);
+}
+
+/**
+ * What the *New definition* form offers: the standard's layers, and the
+ * artifacts a local rule can sit in — the community's own first, *Community
+ * Agreements* among them, then the standard's.
+ */
+export function newDefinitionChoices(
+	ctx: Ctx,
+	options: { db?: Db } = {}
+): { layers: number[]; artifacts: { key: string; title: string }[] } {
+	requirePermission(ctx, 'community.read');
+	const db = options.db ?? getDb();
+	const standard = activeStandardView(db, ctx);
+	const rcos = standard?.view.artifacts ?? [];
+	const own = db
+		.select()
+		.from(communityArtifact)
+		.where(eq(communityArtifact.communityId, ctx.community.id))
+		.orderBy(communityArtifact.order)
+		.all();
+	return {
+		layers: [
+			...new Set(rcos.map((artifact) => artifact.layer).filter((n): n is number => n !== null))
+		].sort((a, b) => a - b),
+		artifacts: [
+			...own.map((row) => ({ key: `local:${row.id}`, title: row.title })),
+			...rcos.map((artifact) => ({
+				key: artifact.key,
+				title:
+					standard!.view.localise(artifact.i18n, ctx.community.locale).value.title ?? artifact.key
+			}))
+		]
+	};
 }
 
 /** Everything hanging off one of the community's own artifacts. */

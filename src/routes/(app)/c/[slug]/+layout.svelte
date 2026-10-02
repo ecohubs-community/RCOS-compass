@@ -10,6 +10,7 @@
 	import IconClipboardCheck from '~icons/tabler/clipboard-check';
 	import IconDiamond from '~icons/tabler/diamond';
 	import IconFiles from '~icons/tabler/files';
+	import IconFileText from '~icons/tabler/file-text';
 	import IconGavel from '~icons/tabler/gavel';
 	import IconLayoutDashboard from '~icons/tabler/layout-dashboard';
 	import IconMessageReport from '~icons/tabler/message-report';
@@ -101,13 +102,14 @@
 			 * The eight settings panels used to sit here, which made a group called
 			 * "Reference" the longest list on the screen and the least like one —
 			 * they live under Settings now, in a list beside the panel they change.
-			 * "Definitions" and "Standard" remain one entry for the older reason:
-			 * both pointed at this page, so both lit up at once and a screen reader
-			 * announced two destinations that were the same screen.
+			 * "Definitions" and "Standard" were one entry while both pointed at the
+			 * standard browser; the definitions index is its own page now, so they
+			 * are two again (`provenance-ui` D12).
 			 */
 			id: 'reference',
 			label: m.nav_group_reference(),
 			items: [
+				{ href: links.definitions(slug), label: m.nav_definitions(), icon: IconFileText },
 				{ href: links.standard(slug), label: m.nav_standard(), icon: IconBook },
 				{ href: links.glossary(slug), label: m.nav_glossary(), icon: IconVocabulary },
 				{ href: links.members(slug), label: m.nav_members(), icon: IconUsers }
@@ -143,17 +145,16 @@
 	 * Where the reader is, in the nav's own words, for the breadcrumb.
 	 *
 	 * Longest matching prefix wins, so `/settings/language` says Settings rather
-	 * than stopping at the dashboard. The three additions are the screens the nav
-	 * does not list but does own: a definition belongs under the standard, a
-	 * decision under the register, and search has been a field rather than a
-	 * destination since the box moved into the shell.
+	 * than stopping at the dashboard. The two additions are the screens the nav
+	 * does not list but does own: a decision belongs under the register, and
+	 * search has been a field rather than a destination since the box moved into
+	 * the shell. A definition sits under the definitions index by its path.
 	 */
 	const crumbs = $derived([
 		...groups.flatMap((group) =>
 			group.items.map((item) => ({ href: item.href, label: item.label }))
 		),
 		{ href: links.search(slug), label: m.nav_search() },
-		{ href: `${links.dashboard(slug)}/definitions`, label: m.nav_standard() },
 		{ href: `${links.dashboard(slug)}/d`, label: m.nav_decisions() }
 	]);
 

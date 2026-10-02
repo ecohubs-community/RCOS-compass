@@ -1,6 +1,6 @@
 ## 0. Exit spec first
 
-- [ ] 0.1 Write the exit e2e as `fixme`, one flow: a member opens a definition and sees its decision, earlier versions and the thread it came from; opens its artifact and sees 5 of 8 with the blockers; asks for v3 back in a discussion; a steward grants it, sets a closing time and resolves an objection with a note; a member creates a local definition, discusses it and a steward freezes it. It goes green in 7.4
+- [x] 0.1 Write the exit e2e as `fixme`, one flow: a member opens a definition and sees its decision, earlier versions and the thread it came from; opens its artifact and sees 5 of 8 with the blockers; asks for v3 back in a discussion; a steward grants it, sets a closing time and resolves an objection with a note; a member creates a local definition, discusses it and a steward freezes it. It goes green in 7.4
 
 ## 1. Schema and matrix
 
@@ -54,14 +54,14 @@
 
 ## 7. Definitions index and local definitions
 
-- [ ] 7.1 `listDefinitions(ctx, filters)`: every definition the reader may see (`visibleTo`, D14) with artifact, ref, version, derived status, provisional, last changed and by whom, in a fixed number of queries; filters by status, artifact, needs-my-attention (D12) and provisional
-- [ ] 7.2 Route `/c/[slug]/definitions` with filters and cards below 768px; nav gets "Standard" and "Definitions" back as two entries (D12), `nav_standard` copy updated
-- [ ] 7.3 Local definitions: *New definition* form (title, layer required, purpose, optional artifact, touched clauses and "RCOS should require this", which `createDefinition` already records as feedback) behind `definition.draft`; the discussions `open` action accepts a `definitionId`; the local detail page shows "Why we made this rule" (purpose and the adopted definitions in its layer), who asked for it, when v1 was adopted, "Touches … satisfies neither" and the public-index note (D11). `resolveDefinition` is not changed
-- [ ] 7.4 Tests: a local definition marked "RCOS should require this" appears on the feedback page (#3); a restricted definition is hidden from a member's index, artifact page and related list and shown to a steward (D14); the index filters, needs-my-attention for an unanswered member vs an answered one; cross-tenant isolation; create refused without a layer and in a suspended community; a local definition moves no number; open-on-definition refused for another community's definition; freezing a local discussion versions that definition while the existing clause-path freeze tests pass unchanged; the exit spec from 0.1 goes green
+- [x] 7.1 `listDefinitions(ctx, filters)`: every definition the reader may see (`visibleTo`, D14) with artifact, ref, version, derived status, provisional, last changed and by whom, in a fixed number of queries; filters by status, artifact, needs-my-attention (D12) and provisional
+- [x] 7.2 Route `/c/[slug]/definitions` with filters and cards below 768px; nav gets "Standard" and "Definitions" back as two entries (D12), `nav_standard` copy updated
+- [x] 7.3 Local definitions: *New definition* form (title, layer required, purpose, optional artifact, touched clauses and "RCOS should require this", which `createDefinition` already records as feedback) behind `definition.draft`; the discussions `open` action accepts a `definitionId` (done in group 3); `createLocalDefinition` requires the layer and resolves touched references, defaulting to *Community Agreements*; the local detail page shows "Why we made this rule" (purpose and the adopted definitions in its layer), who asked for it, when v1 was adopted, "Touches … satisfies neither" and the public-index note (D11). `resolveDefinition` is not changed
+- [x] 7.4 Tests: a local definition marked "RCOS should require this" appears on the feedback page (#3); a restricted definition is hidden from a member's index, artifact page and related list and shown to a steward (D14); the index filters, needs-my-attention for an unanswered member vs an answered one; cross-tenant isolation; create refused without a layer and in a suspended community; a local definition moves no number; open-on-definition refused for another community's definition; freezing a local discussion versions that definition while the existing clause-path freeze tests pass unchanged; the exit spec from 0.1 goes green
 
 ## 8. Docs and close-out
 
-- [ ] 8.1 `docs/03`: §5 round closing (no longer "when everyone eligible has responded"), §3a the new tables and columns, §3a.1 matches the local page as built
-- [ ] 8.2 `docs/08`: note the provenance UI under the phase that ships it
-- [ ] 8.3 Bump the version per AGENTS.md: a minor, `0.11.0 → 0.12.0`
-- [ ] 8.4 `openspec validate provenance-ui`, then archive on ship
+- [x] 8.1 `docs/03`: §5 round closing (no longer "when everyone eligible has responded"), §3a the new tables and columns, §3a.1 matches the local page as built
+- [x] 8.2 `docs/08`: note the provenance UI under the phase that ships it
+- [x] 8.3 Bump the version per AGENTS.md, a minor per shipped part: `0.11.0 → 0.12.0` (definition page), `0.13.0` (artifact page), `0.14.0` (round view, move requests), `0.15.0` (definitions index, local definitions)
+- [x] 8.4 `openspec validate provenance-ui`, then archive on ship

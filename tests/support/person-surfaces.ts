@@ -37,6 +37,7 @@ import { localDefinitionContext } from '../../src/lib/server/services/provenance
 import { listStandardFeedback } from '../../src/lib/server/services/standard-feedback.js';
 import { listLabelledObjections } from '../../src/lib/server/services/objections.js';
 import { listMoveRequests, requestMove } from '../../src/lib/server/services/move-requests.js';
+import { listDefinitions } from '../../src/lib/server/services/definitions-index.js';
 
 /**
  * Every service that hands a person's name or address to a caller.
@@ -106,6 +107,7 @@ const LIBRARY_DOCUMENT_ID = '01a00000-0000-7000-8000-000000000002';
 const VERSIONED_DOCUMENT_ID = '01a00000-0000-7000-8000-000000000003';
 const WORKSPACE_DOCUMENT_ID = '01a00000-0000-7000-8000-000000000004';
 const LOCAL_DEFINITION_ID = '01a00000-0000-7000-8000-000000000005';
+const INDEXED_DEFINITION_ID = '01a00000-0000-7000-8000-000000000006';
 
 /** Set by the thread surface's seed, read by its `read`. */
 let threadForPersonSurface = '';
@@ -313,6 +315,32 @@ export const PERSON_SURFACES: PersonSurface[] = [
 		},
 		read: (ctx, db) =>
 			listMoveRequests(ctx, movedThreadForPersonSurface, { db }).map((row) => row.requestedBy)
+	},
+	{
+		name: 'definitions-index.listDefinitions',
+		module: 'definitions-index.ts',
+		// "Last changed by Ana" in the index: the rule stays, the name goes.
+		seed: (db, ctx, subject) => {
+			db.insert(definition)
+				.values({
+					id: INDEXED_DEFINITION_ID,
+					communityId: ctx.community.id,
+					scope: 'local',
+					title: 'Quiet hours',
+					layer: 5,
+					attachKind: 'rcos_artifact',
+					attachRcosArtifactKey: 'meeting-templates',
+					provisional: false,
+					createdBy: subject.userId,
+					createdAt: new Date(0),
+					updatedAt: new Date(0)
+				})
+				.run();
+		},
+		read: (ctx, db) =>
+			listDefinitions(ctx, {}, { db })
+				.filter((row) => row.id === INDEXED_DEFINITION_ID)
+				.map((row) => row.lastChangedBy ?? '')
 	},
 	{
 		name: 'ai-settings.usageByMember',

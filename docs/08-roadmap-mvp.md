@@ -16,7 +16,7 @@ overlap if content authoring is happening in parallel.
 Each phase names an **exit criterion** — the thing that must be demonstrably true
 before the next phase starts. No phase is "done" because its tickets are closed.
 
-## Where it stands — 2026-09-23
+## Where it stands — 2026-10-02
 
 - **P0–P7 are built**, each archived under `openspec/changes/archive/`. The gaps
   are named in each phase below: P1 has no `standard/migrations/` and no weekly
@@ -24,9 +24,13 @@ before the next phase starts. No phase is "done" because its tickets are closed.
 - **Next: deploy and test what is built.** The target is a Plesk server running
   Node (`00-architecture.md` §7, README §Deployment). Scheduled backups and a
   restore drill on the real host are deferred until close to that deployment.
-- **Next feature work: the provenance UI** — a definition's *How we got here*
-  column, an artifact detail page, a consent-round view, a definitions index, and
-  a member asking for the question to be moved back to an earlier proposal.
+- **The provenance UI is built** (`openspec/changes/archive/2026-10-02-provenance-ui`,
+  0.12.0–0.15.0): a definition's *How we got here* column, an artifact detail
+  page whose publishing is a decision, a consent-round view with closing times,
+  an interim adoption rule and answered objections, a member asking for the
+  question to be moved back, and a definitions index with local definitions.
+  Not in it: exporting a single definition, and parsing the community's adopted
+  Decision Matrix into the interim rule (D8's rejected alternative).
 - **P8 is post-MVP.** Its proposal (`openspec/changes/modules-and-migration`)
   exists and is parked until the MVP has run on real material.
 
