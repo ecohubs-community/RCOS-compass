@@ -66,15 +66,20 @@ Artifacts list and readiness use for the same artifact.
 
 ### Requirement: The page says what is blocking completeness
 
-The artifact page SHALL list what stands between the artifact and complete: each
-required section with no definition, each section whose definition is
-provisional, and each section whose discussion has an open proposal. Each item
-MUST link to the place it can be acted on. A complete artifact with no
-provisional answers MUST show no blockers.
+The artifact page SHALL list what stands between the artifact and complete or
+compliant: each required section with no definition, each section whose
+definition is provisional, each section whose definition is restricted in a
+layer whose artifact rule allows no exception to member access, and each section
+whose discussion has an open proposal. Each item MUST link to the place it can
+be acted on. A complete artifact with none of these MUST show no blockers.
 
 #### Scenario: Missing and provisional answers are listed
 - **WHEN** one section has no definition and one is answered provisionally
 - **THEN** both appear as blockers, each linking to where it is worked on
+
+#### Scenario: A hidden Layer 0 rule
+- **WHEN** every Purpose Charter section is answered and one definition is restricted
+- **THEN** that section is listed as a blocker, because it costs compliance
 
 #### Scenario: A complete artifact
 - **WHEN** every authored section is answered and none is provisional
@@ -83,13 +88,13 @@ provisional answers MUST show no blockers.
 ### Requirement: The page shows publication state and history, and a steward can publish from it
 
 The artifact page SHALL show whether the artifact is published to the world and
-list its publication history — each publish and unpublish with who did it and
-when — read from the change log. A steward MUST be able to publish the artifact
+list its publication history — each publication and withdrawal with who did it
+and when — read from the change log. A steward MUST be able to publish the artifact
 from the page through the same operation the publishing settings use. A member
 MUST NOT be offered or permitted the publish action.
 
 #### Scenario: History is read from the change log
-- **WHEN** an artifact was published, unpublished and published again
+- **WHEN** an artifact was published, withdrawn and published again
 - **THEN** all three entries are listed, newest first, each attributed
 
 #### Scenario: A steward publishes

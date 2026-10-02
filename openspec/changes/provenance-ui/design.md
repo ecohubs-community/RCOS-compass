@@ -15,8 +15,17 @@ What already exists and is reused rather than rebuilt:
   `supersedesVersionId`, `authorId`. Only `adoptedVersion()` reads them.
 - **Completeness** is `progressOf` / `artifactProgress` in `completeness.ts`,
   returning `{authored, answered, complete, missing[]}` per artifact.
-- **Publishing** is `publishAll(ctx, subjects)` in `publishing.ts`, which flips
-  visibility and writes `change_log` entries of kind `visibility.published`.
+- **Publishing** is `publishAll(ctx, subjects)` and the single-subject
+  `publish()` / `withdraw()` in `publishing.ts`, behind `artifact.publish`; they
+  flip visibility and write `change_log` entries of kind `visibility.published`
+  and `visibility.withdrawn`.
+- **Built since this proposal was first written** (#5–#9), and reused here:
+  `sectionOf(view, thread)` in `completeness.ts` — the one rule from a thread to
+  its section (`discussion.section_key`, else the clause's owner); the
+  definition page's "The requirement" column (`<Requirement>`), its clause
+  references (`<CitedClauses>`) and "What to cover" (`<QuestionGuide>`);
+  `requirementFor` / `guideFor` in `requirement.ts`; the per-layer checks and
+  `restrictedInClosedLayers` in `layer-checks.ts`, which compliance now reads.
 - **Consent rounds** have `openedAt`, `closesAt?`, a status including
   `superseded`, an eligibility snapshot, and responses linked to objections and
   reason posts. `setCurrentProposal` (the last change) moves the question.
@@ -62,11 +71,13 @@ forms; every new string goes through Paraglide.
 
 ### D1. Discussions for a definition are found two ways, in one read
 
-A thread opened on a clause keeps `definitionId = null` after its freeze
-creates the definition (`decisions.ts:413`). So "discussions about this
-definition" is `definitionId = :id` **or** `clauseKey ∈ clauses owned by the
-section this definition answers`. One read, `discussionsForDefinition(ctx, id)`,
-does both and de-duplicates.
+A thread opened on a clause or a section keeps `definitionId = null` after its
+freeze creates the definition. So "discussions about this definition" is
+`definitionId = :id` **or** `sectionOf(view, thread) = definition.sectionKey` —
+the same rule the Path and the freeze use since #5, so a thread is never shown
+on one definition and frozen into another. One read,
+`discussionsForDefinition(ctx, id)`, does both and de-duplicates. A local
+definition has no section; only the first half applies.
 
 *Alternative considered:* back-fill `definitionId` on freeze. Rejected for this
 change — it rewrites history on existing rows, and a thread on a clause is
@@ -116,17 +127,21 @@ call, listed as an open question.
 
 ### D5. Publication history is a read of the change log
 
-`publishAll` already writes `visibility.published` / `unpublished` entries.
-`publicationHistory(ctx, artifactKey)` reads them. *Publish* on the artifact page
-calls a new `publishArtifact(ctx, key)` that is `publishAll` with one subject, so
-the two entry points cannot diverge, and it stays behind `artifact.publish`.
+Publishing already writes `visibility.published` / `visibility.withdrawn`
+entries. `publicationHistory(ctx, artifactKey)` reads them. *Publish* on the
+artifact page calls the existing single-subject `publish()` — the function the
+publishing settings' path ends in — so no new entry point exists to diverge,
+and it stays behind `artifact.publish`.
 
 ### D6. Blockers are derived, never authored
 
 "What is blocking" lists, in order: sections with no definition
-(`progressOf().missing`), sections whose definition is provisional (blocks
-compliance per AGENTS.md), and sections with an open proposal awaiting a round.
-Each line links to where it is fixed.
+(`progressOf().missing`), sections whose definition is provisional, sections
+whose definition is restricted in a layer that allows no exception
+(`restrictedInClosedLayers`, #9) — the three things compliance reads — and
+sections with an open proposal awaiting a round. Each line links to where it is
+fixed. The artifact page does not repeat the layer's checks block; it links to
+it on the standard page.
 
 ### D7. A steward sets a round's closing time; nothing closes it early
 
@@ -134,9 +149,11 @@ Today no route calls `openRound`, so every round opens on its first response
 with `closesAt = null`. Rather than resurrecting an explicit "open a round" step
 (the last change called it "a system act nobody performs any more"), a steward
 may **set or change `closesAt`** on the round for the current version — opening
-it if it does not exist yet — under the existing `consent.open` capability. The
-rail shows "Closes 3 Sep, 20:00 · 2 days left" in the community's time zone
-(`time-display`). The existing reminder job ("A consent round about to close
+it if it does not exist yet, through the same `createRound` the first response
+uses (`consent-round.ts`) — under the existing `consent.open` capability. The
+rail shows "Closes 3 Sep, 20:00 CEST · 2 days left" through `useTime().deadline`:
+in the viewer's zone, with the zone named, as the `time-display` spec requires of
+a deadline. `openRound` (a provider method no route calls) is not revived. The existing reminder job ("A consent round about to close
 reminds those who have not answered") starts working for real, because rounds
 now have closing times.
 
@@ -152,9 +169,10 @@ the same way moving the question is — it changes what the community was told.
  ✓ Days open        6 of 7       rule: 7
 ```
 
-Two nullable columns on `community`: `interim_quorum` (a fraction, stored as
-numerator/denominator to avoid float rounding, e.g. 3/4) and
-`interim_min_days`. Set on the settings page by `settings.manage`. With no rule
+Nullable columns on `community`: `interim_quorum_num` / `_den` (a fraction,
+stored as numerator/denominator to avoid float rounding, e.g. 3/4) and
+`interim_min_days`. Set on a new `settings/adoption-rule` page (the bare
+`/settings` route only redirects) by `settings.manage`. With no rule
 recorded the checklist shows the facts and a line "Your community has not
 recorded an interim adoption rule" linking to settings.
 
@@ -175,10 +193,13 @@ rule back to it incorrectly with the app's authority.
 | Reply in thread | anyone who can comment | links to the objection's reason post and opens the reply form quoting it |
 | Amend the proposal | `proposal.create` | opens the new-version form prefilled with the current version, with the objection linked in the revision note |
 | Resolve | `objection.resolve` | addressed or overruled, with a **required** note |
-| Withdraw | the objector | already exists via changing their response; shown as a button on their own objection |
+| Withdraw | the objector | `resolveObjection(state: 'withdrawn')`, which already allows only the raiser; shown as a button on their own objection |
 
-The existing *Mark addressed* is gated on `can.freeze`; it moves to
-`objection.resolve`, which is the capability docs/04 names for it. The load adds
+The existing *Mark addressed* is shown under `can.freeze` (`decision.freeze`)
+while its server path checks `objection.resolve` and passes no note — two
+capabilities that agree today only because both are steward-only. The control
+moves to `can.resolveObjection` and the action passes the note, which
+`resolveObjection` makes required for addressed and overruled. The load adds
 `raisedBy` (tombstone-aware) and `raisedAt`.
 
 ### D10. A move request is a post plus a record — the objection pattern
@@ -201,7 +222,8 @@ requester may withdraw it. It **lapses** automatically when the question moves
 anyway — to the requested version (then it reads granted-by-event, attributed to
 whoever moved it) or to a newer version (lapsed). At most one open request per
 member per discussion; asking for the version that is already current is
-refused.
+refused. Stewards are found by a new `activeStewards(db, communityId)` in
+`services/notifications.ts`, beside `activeMemberships` — no such helper exists.
 
 *Alternatives considered:* a plain message with a convention — rejected, it has
 no state and nobody is told; a new notification only — rejected, the thread is
@@ -211,32 +233,36 @@ same reason).
 ### D11. Local definitions: create, discuss, freeze
 
 - **Create**: `createDefinition` already takes `CreateLocalDefinition`
-  (`{title, purpose?, layer?, attach, standardShouldRequireThis?}`). A form on the
-  index calls it behind a new `definition.create_local` capability (member,
-  steward — docs/04 §1 row "Create a local definition"). Layer is required
-  (§1.4b: a local definition "requires … to declare its layer").
-- **Discuss**: `discussions/+page.server.ts` `open` accepts a `definitionId`
-  as a third subject. The discussion service already has the column.
-- **Freeze**: `resolveDefinition` gains the definition-subject path; freezing a
-  discussion opened on a definition freezes a new version of *that* definition.
-  An open-question discussion still returns 409, unchanged.
-- **Detail**: the left column is "Why we made this rule" (`purpose`), "Asked
-  for by" (the creator), "Written down" (v1's `adoptedAt`). The design's "First
-  tried Nov 2023, informally" is prose and belongs in the purpose — no new
-  column. This reverses the code's "absent rather than empty" choice
-  (`definitions/[id]/+page.server.ts:26`) in favour of docs/03 §3a.1 and review
-  log #88, which already decided it.
+  (`{title, purpose?, layer?, attach, standardShouldRequireThis?}`) behind
+  `definition.draft` (member, steward — exactly docs/04 §1's "Create a local
+  definition" row), and already writes a `standard_feedback` gap when the flag
+  is set. A form on the index calls it; no new capability. The form requires a
+  layer (§1.4b: a local definition "requires … to declare its layer"); the
+  service keeps it optional for its other caller, the test seed.
+- **Discuss**: `openDiscussion` already accepts `{ kind: 'definition' }`; the
+  open form produces only clause, section and open question. The definition
+  page's *Start discussion* posts `definitionId`.
+- **Freeze**: `resolveDefinition` already takes the `thread.definitionId` path
+  and gives a local definition an empty clause list. Untested for a local
+  definition — this change adds that test and no code.
+- **Detail**: the left column is "Why we made this rule", as docs/03 §3a.1
+  says: the `purpose`, then the community's adopted definitions in the same
+  layer for context; plus "Asked for by" (the creator) and "Written down"
+  (v1's `adoptedAt`). The design's "First tried Nov 2023, informally" is prose
+  and belongs in the purpose — no new column. This reverses the code's "absent
+  rather than empty" choice (`definitions/[id]/+page.server.ts:24`) in favour of
+  the doc and review log #88.
 - **Touches**: a local definition may name the clauses it touches. Stored in a
   small join table `local_definition_touch(definition_id, clause_key)` —
-  optional, shown as "Touches §7.2.1 … satisfies neither", never counted. This
-  is the one piece of local-definition data that is new; it is included because
-  D3's related-definitions read needs it for local rules and the design leans on
-  it.
+  optional, shown as "Touches §7.2.1 … satisfies neither" through
+  `<CitedClauses>`, never counted. It is included because D3's related read
+  needs it for local rules.
 
 ### D12. The definitions index gets its own nav entry back
 
 The entry was folded into "Standard & definitions" (commit `d6d726b`) because
-two nav items pointed at one page. With `/c/[slug]/definitions` being its own
+two nav items pointed at one page. The layout's breadcrumb still links to
+`/definitions`, which 404s today; the index fixes that too. With `/c/[slug]/definitions` being its own
 page they no longer do, so the reason is gone: "Standard" and "Definitions"
 return as two entries under the §4.0 groups. *Needs my attention* means: I am
 eligible in an open round on it and have not answered, I authored it and it is
@@ -250,6 +276,18 @@ already open, links to it. *Propose change* goes to that discussion's
 new-version form. *Version history* is an anchor to the earlier-versions list in
 the right column — on a phone, the "How we got here" tab. *Export* is dropped
 (non-goal).
+
+### D14. Every new read honours visibility, and none is per-row
+
+A `restricted` definition is readable only by its transparency exception's
+audience (`getDefinition` filters through `visibleTo`). The index, the artifact
+page, related definitions and the discussion-to-definition read are new ways to
+reach a definition, so each filters the same way: a member does not see a
+restricted definition's title, text or link; the artifact page shows its section
+row as answered and "restricted", which is what the layer checks already reveal.
+The index computes derived status for all rows with a fixed number of queries
+(definitions, drafts, open discussions by `sectionOf`, open rounds, the reader's
+eligibility), never one per definition.
 
 ## Risks / Trade-offs
 
@@ -265,17 +303,17 @@ the right column — on a phone, the "How we got here" tab. *Export* is dropped
   while a request is open. → Requests lapse or are granted-by-event in the same
   transaction as `setCurrentProposal` and version posting; a test covers each.
 - **[Local freezes touching a path built for clauses]** `resolveDefinition` is
-  the freeze's riskiest function. → The definition-subject path is a separate
-  branch with its own tests; the clause path's existing tests must pass
-  unchanged.
+  the freeze's riskiest function. → Its definition-subject branch already
+  exists and is not edited; this change adds its first local-definition test,
+  and the clause and section paths' tests must pass unchanged.
 - **[Hard-coded English on touched pages]** → Strings move to Paraglide as
   touched; the i18n baseline must go down, not up.
 
 ## Migration Plan
 
 Additive migration: one table (`proposal_move_request`), one join table
-(`local_definition_touch`), two nullable columns on `community`, one post-kind
-value. No table rebuilds, so drizzle-kit's twelve-step rebuild stays out of it.
+(`local_definition_touch`), three nullable columns on `community`, one post-kind
+value (a plain text column — no CHECK, no trigger, so nothing to rebuild). No table rebuilds, so drizzle-kit's twelve-step rebuild stays out of it.
 Rollback is dropping the new tables and columns; no existing row changes.
 `docs/03` §3a/§5 and `docs/04` §1 are updated with the columns and rows.
 
