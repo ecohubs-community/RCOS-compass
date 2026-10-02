@@ -105,6 +105,7 @@ export type ImmediateMail =
 	| { kind: 'consent.closing'; when: string }
 	| { kind: 'membership.role_changed'; role: 'steward' | 'member' }
 	| { kind: 'claim.withdrawn' }
+	| { kind: 'proposal.move_requested' }
 	| { kind: 'removal' };
 
 /**
@@ -147,6 +148,11 @@ export function notificationMessage(input: {
 				return [
 					m.mail_claim_withdrawn_subject({ community }, options),
 					m.mail_claim_withdrawn_body({ community }, options)
+				];
+			case 'proposal.move_requested':
+				return [
+					m.mail_move_requested_subject({ community }, options),
+					m.mail_move_requested_body({ community }, options)
 				];
 			case 'removal':
 				return [

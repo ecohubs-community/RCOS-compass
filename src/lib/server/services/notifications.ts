@@ -1,6 +1,7 @@
 import { and, count, desc, eq, inArray, isNull } from 'drizzle-orm';
 import { error } from '@sveltejs/kit';
 import { requirePermission, type Ctx } from '../auth/guard.js';
+import { can, type Capability } from '../auth/permissions.js';
 import { getDb, type Db } from '../db/index.js';
 import { newId } from '../db/id.js';
 import { notification, type Notification } from '../db/schema/notifications.js';
@@ -235,6 +236,22 @@ export function activeMemberships(db: Db, communityId: string): string[] {
 		.from(membership)
 		.where(and(eq(membership.communityId, communityId), isNull(membership.endedAt)))
 		.all()
+		.map((row) => row.id);
+}
+
+/**
+ * Everyone still in the community who holds a capability — the stewards who can
+ * answer a move request, today. Asked of the permission matrix rather than by
+ * comparing roles, so the audience follows the matrix if it ever changes
+ * (`docs/04-security.md` §1).
+ */
+export function activeHolders(db: Db, communityId: string, capability: Capability): string[] {
+	return db
+		.select({ id: membership.id, role: membership.role, isOwner: membership.isOwner })
+		.from(membership)
+		.where(and(eq(membership.communityId, communityId), isNull(membership.endedAt)))
+		.all()
+		.filter((row) => can(row, capability))
 		.map((row) => row.id);
 }
 

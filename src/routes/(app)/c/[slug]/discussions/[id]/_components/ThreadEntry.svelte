@@ -6,6 +6,7 @@
 	import type { PageData } from '../$types';
 	import MeetingNote from './MeetingNote.svelte';
 	import MessageBody from './MessageBody.svelte';
+	import MoveRequestEntry from './MoveRequestEntry.svelte';
 	import Replies from './Replies.svelte';
 
 	/**
@@ -25,8 +26,18 @@
 		replies?: PageData['posts'][number][];
 		/** Where "Reply" goes, or null when this member may not reply. */
 		replyHref?: string | null;
+		/** The request this post carries, when it is a `move_request`. */
+		moveRequest?: PageData['moveRequests'][number];
+		/** May answer a move request — passed in, never derived from a role. */
+		canAnswerMove?: boolean;
 	}
-	let { entry, replies = [], replyHref = null }: Props = $props();
+	let {
+		entry,
+		replies = [],
+		replyHref = null,
+		moveRequest,
+		canAnswerMove = false
+	}: Props = $props();
 
 	const clock = useTime();
 	const time = (ms: number) => clock.moment(ms, 'dateTimeShort');
@@ -114,6 +125,8 @@
 			</div>
 		</div>
 	</div>
+{:else if entry.kind === 'move_request'}
+	<MoveRequestEntry {entry} request={moveRequest} canAnswer={canAnswerMove} />
 {:else}
 	<!--
 		`event`: the thread recording an act on the question itself. One grey line

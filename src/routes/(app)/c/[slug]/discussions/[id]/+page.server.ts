@@ -23,7 +23,15 @@ import {
 	threadGuide,
 	threadRequirement
 } from '$lib/server/services/discussions';
-import { listObjections, resolveObjection } from '$lib/server/services/objections';
+import { listLabelledObjections, resolveObjection } from '$lib/server/services/objections';
+import {
+	answerMove,
+	listMoveRequests,
+	requestMove,
+	withdrawMove
+} from '$lib/server/services/move-requests';
+import { interimRuleOf, passChecklist } from '$lib/shared/pass-checklist';
+import { timeZoneFor } from '$lib/time/zone';
 import { isArtifactComplete, DECISION_MATRIX } from '$lib/server/services/completeness';
 import { membershipLabel } from '$lib/server/services/person';
 import { parseMarkdown } from '$lib/server/markdown';
@@ -34,7 +42,7 @@ import { draftProposalFromThread, summariseThread } from '$lib/server/ai/tasks/s
 import { listResponses, roundFor } from '$lib/server/voting/consent-round';
 import type { Actions, PageServerLoad, RequestEvent } from './$types';
 import { run } from '$lib/server/http/form-action';
-import { localMidnight } from '$lib/time/format';
+import { localDateTime, localMidnight } from '$lib/time/format';
 import { mentionsToNames } from '$lib/shared/mentions';
 
 /**
@@ -103,6 +111,20 @@ export const load: PageServerLoad = ({ locals, params, url }) => {
 	// Read once and used twice — for the list and for this reader's own answer.
 	// It joins four tables, and this is the most-opened screen in the app.
 	const roundResponses = round ? listResponses(ctx, round.id, { db }) : [];
+	const roundTally = round ? getVotingProvider().tally(ctx, round.id, { db }) : null;
+
+	/**
+	 * The objection a revision is answering, from `?amend=` — in the URL like the
+	 * mode, so Amend works with no JavaScript. Only an open one on this version.
+	 */
+	const amendId = url.searchParams.get('amend');
+	const amending = (() => {
+		if (!amendId || !selected) return null;
+		const found = listLabelledObjections(ctx, selected.id, { db }).find(
+			(objection) => objection.id === amendId && objection.state === 'open'
+		);
+		return found ? { id: found.id, raisedBy: found.raisedByLabel, reason: found.reason } : null;
+	})();
 	const inForce = thread.frozenDecisionId ? decisions.get(thread.frozenDecisionId) : undefined;
 
 	/**
@@ -255,11 +277,18 @@ export const load: PageServerLoad = ({ locals, params, url }) => {
 			 * without anybody touching the text.
 			 */
 			linter: isCurrentShape(selected.linterResult) ? selected.linterResult : null,
-			objections: listObjections(ctx, selected.id, { db }).map((objection) => ({
+			objections: listLabelledObjections(ctx, selected.id, { db }).map((objection) => ({
 				id: objection.id,
 				reason: objection.reason,
 				state: objection.state,
 				raisedAt: objection.raisedAt.getTime(),
+				/** Who said it — the erased placeholder if they were erased. */
+				raisedBy: objection.raisedByLabel,
+				/** The reader raised it, so the panel offers them Withdraw. */
+				mine: objection.mine,
+				resolvedBy: objection.resolvedByLabel,
+				resolvedAt: objection.resolvedAt?.getTime() ?? null,
+				resolutionNote: objection.resolutionNote,
 				/** The thread post that said it, so the panel can reply to it. */
 				postId: objection.postId
 			}))
@@ -289,7 +318,17 @@ export const load: PageServerLoad = ({ locals, params, url }) => {
 			status: round.status,
 			openedAt: round.openedAt.getTime(),
 			closesAt: round.closesAt?.getTime() ?? null,
-			tally: getVotingProvider().tally(ctx, round.id, { db }),
+			tally: roundTally!,
+			/**
+			 * What it takes to pass, from the same tally the bar is drawn from, so
+			 * the two cannot disagree (D8). Shown again on the freeze form.
+			 */
+			checklist: passChecklist({
+				...roundTally!,
+				openedAt: round.openedAt.getTime(),
+				now: ctx.now(),
+				rule: interimRuleOf(ctx.community)
+			}),
 			responses: roundResponses,
 			/**
 			 * What this reader already said, if anything.
@@ -304,6 +343,11 @@ export const load: PageServerLoad = ({ locals, params, url }) => {
 			mine: roundResponses.find((entry) => entry.membershipId === ctx.membership.id) ?? null
 		},
 		previousTally,
+		amending,
+		/** Every request to put a version back, keyed for the thread's posts. */
+		moveRequests: listMoveRequests(ctx, params.id, { db }),
+		/** The community's interim rule, which the checklist is measured against. */
+		rule: interimRuleOf(ctx.community),
 		/**
 		 * Every version's round, for the thread.
 		 *
@@ -350,7 +394,10 @@ export const load: PageServerLoad = ({ locals, params, url }) => {
 			propose: ctxCan(ctx, 'proposal.create'),
 			freeze: ctxCan(ctx, 'decision.freeze'),
 			respond: ctxCan(ctx, 'consent.respond'),
-			setCurrent: ctxCan(ctx, 'proposal.set_current')
+			setCurrent: ctxCan(ctx, 'proposal.set_current'),
+			setClosing: ctxCan(ctx, 'consent.open'),
+			resolveObjection: ctxCan(ctx, 'objection.resolve'),
+			requestMove: ctxCan(ctx, 'proposal.request_move')
 		},
 		// Told before the modal is confirmed, not after (UI spec §5.1).
 		wouldBeProvisional: !isArtifactComplete(ctx, DECISION_MATRIX, { db }),
@@ -545,18 +592,112 @@ export const actions: Actions = {
 		redirect(303, `/c/${event.params.slug}/discussions/${event.params.id}?v=${version ?? ''}`);
 	},
 
+	/**
+	 * Addressed or overruled with a note, or withdrawn by the person who raised
+	 * it. The service decides who may do which; this only refuses a state that
+	 * is none of the three.
+	 */
 	resolveObjection: async (event) => {
 		const form = await event.request.formData();
+		const state = String(form.get('state') ?? '');
+		if (state !== 'addressed' && state !== 'overruled' && state !== 'withdrawn') {
+			return fail(400, { step: 'object', error: 'Choose addressed or overruled.' });
+		}
 		return run('object', () =>
 			resolveObjection(
 				event.locals.ctx!,
 				{
 					objectionId: String(form.get('objectionId') ?? ''),
-					state: String(form.get('state') ?? 'addressed') as 'addressed'
+					state,
+					note: String(form.get('note') ?? '')
 				},
 				{ db: getDb() }
 			)
 		);
+	},
+
+	/**
+	 * When the round on the version being asked about closes. The field is a
+	 * wall-clock time in the steward's own zone — the zone the page shows them
+	 * times in, and names beside the field.
+	 */
+	setClosing: async (event) => {
+		const ctx = event.locals.ctx!;
+		const form = await event.request.formData();
+		const closesAt = localDateTime(
+			String(form.get('closesAt') ?? '').trim(),
+			timeZoneFor(ctx.user, ctx.community)
+		);
+		if (closesAt === null) {
+			return fail(400, { step: 'closing', error: 'Choose a date and a time.' });
+		}
+		return run('closing', () =>
+			getVotingProvider().setClosing(
+				ctx,
+				{ proposalPostId: String(form.get('proposalPostId') ?? ''), closesAt },
+				{ db: getDb() }
+			)
+		);
+	},
+
+	/** Ask for an earlier version back. Moves nothing; a steward answers. */
+	requestMove: async (event) => {
+		const form = await event.request.formData();
+		const outcome = await run('requestMove', () =>
+			requestMove(
+				event.locals.ctx!,
+				{
+					discussionId: event.params.id,
+					targetProposalPostId: String(form.get('proposalPostId') ?? ''),
+					reason: String(form.get('reason') ?? '')
+				},
+				{ db: getDb() }
+			)
+		);
+		if ('status' in outcome) return outcome;
+		const { postId } = outcome.result as { postId: string };
+		redirect(303, backTo(event, form, postId));
+	},
+
+	/** A steward grants (the question moves) or declines (with a note). */
+	answerMove: async (event) => {
+		const form = await event.request.formData();
+		const requestId = String(form.get('requestId') ?? '');
+		const outcome = await run('answerMove', () =>
+			answerMove(
+				event.locals.ctx!,
+				{
+					requestId,
+					grant: form.get('grant') === '1',
+					note: String(form.get('note') ?? '') || null
+				},
+				{ db: getDb() }
+			)
+		);
+		// Which request it was, so the refusal shows under that one.
+		if ('status' in outcome) return fail(outcome.status, { ...outcome.data, requestId });
+		const { postId, state } = outcome.result as { postId: string; state: string };
+		// Granted, the question moved: land on the version now being asked about.
+		if (state === 'granted') {
+			const moved = currentProposal(getDiscussion(event.locals.ctx!, event.params.id), {
+				db: getDb()
+			});
+			redirect(
+				303,
+				`/c/${event.params.slug}/discussions/${event.params.id}?v=${moved?.proposalVersion ?? ''}#post-${postId}`
+			);
+		}
+		redirect(303, backTo(event, form, postId));
+	},
+
+	withdrawMove: async (event) => {
+		const form = await event.request.formData();
+		const requestId = String(form.get('requestId') ?? '');
+		const outcome = await run('answerMove', () =>
+			withdrawMove(event.locals.ctx!, { requestId }, { db: getDb() })
+		);
+		if ('status' in outcome) return fail(outcome.status, { ...outcome.data, requestId });
+		return outcome;
 	},
 
 	/**

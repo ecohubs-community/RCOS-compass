@@ -15,6 +15,8 @@ import '../../src/lib/server/services/documents.js';
 import '../../src/lib/server/services/evidence.js';
 import '../../src/lib/server/services/mapping.js';
 import '../../src/lib/server/services/document-versions.js';
+import '../../src/lib/server/services/move-requests.js';
+import { requestMove } from '../../src/lib/server/services/move-requests.js';
 import { inviteMember } from '../../src/lib/server/services/invitations.js';
 import { createDefinition } from '../../src/lib/server/services/definitions.js';
 import { addProposal, openDiscussion } from '../../src/lib/server/services/discussions.js';
@@ -235,6 +237,22 @@ beforeEach(() => {
 		{ db }
 	);
 
+	// A move request in A: a second version, and Alice asking for the first back.
+	addProposal(
+		ctxA,
+		{ discussionId: discussionInA.id, body: 'Members may leave, with notice.' },
+		{ db }
+	);
+	const moveRequestInA = requestMove(
+		ctxA,
+		{
+			discussionId: discussionInA.id,
+			targetProposalPostId: proposalInA.id,
+			reason: 'v1 was simpler.'
+		},
+		{ db }
+	);
+
 	// A notification in A, addressed to Alice, so `notifications.open` has a
 	// subject that is genuinely not Bob's.
 	const notificationInA = db.select().from(notification).all()[0];
@@ -261,6 +279,7 @@ beforeEach(() => {
 			// asked for a string it could have guessed.
 			decisionRef: decisionInA.ref,
 			consentRound: roundInA.id,
+			moveRequest: moveRequestInA.id,
 			document: documentInA,
 			passage: passageInA,
 			evidence: evidenceInA,

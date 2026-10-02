@@ -20,7 +20,9 @@ const SAMPLE: { [K in keyof NotificationParams]: NotificationParams[K] } = {
 	'discussion.mention': { title: 'Exit and separation', actor: 'membership-1' },
 	'discussion.quiet': { title: 'Exit and separation' },
 	'membership.role_changed': { role: 'steward' },
-	'claim.withdrawn': {}
+	'claim.withdrawn': {},
+	'proposal.move_requested': { title: 'Exit and separation', actor: 'membership-1', version: 3 },
+	'proposal.move_answered': { title: 'Exit and separation', version: 3, outcome: 'declined' }
 };
 
 const item = (kind: string, params: Record<string, unknown> | null, available = true) => ({

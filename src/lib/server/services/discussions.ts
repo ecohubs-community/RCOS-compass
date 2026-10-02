@@ -11,6 +11,7 @@ import {
 	discussion,
 	objection,
 	post,
+	proposalMoveRequest,
 	type Discussion,
 	type Objection,
 	type Post
@@ -908,6 +909,8 @@ function writeProposal(
 		.set({ currentProposalPostId: written.id })
 		.where(eq(discussion.id, found.id))
 		.run();
+	// Nobody asked for a version that did not exist yet: every open request lapses.
+	settleMoveRequests(tx, ctx, found, written.id);
 
 	/**
 	 * The round on the version that was the question, closed as superseded.
@@ -1034,15 +1037,17 @@ export function takeOffline(
  * reaching into `post` itself — the permission that allowed the vote is the
  * permission that allows this, and it has already been checked by the caller.
  *
- * Always a `response` or an `event`, never a `message`: a post nobody typed
- * into the reply box has to say what it is, or the thread shows a vote and a
- * reply as the same thing.
+ * Always a `response`, an `event` or a `move_request`, never a `message`: a post
+ * nobody typed into the reply box has to say what it is, or the thread shows a
+ * vote and a reply as the same thing.
  */
 export function writeThreadPost(
 	ctx: Ctx,
 	db: Db,
 	values: { discussionId: string; body: string; subjectPostId: string } & (
-		{ kind: 'response'; responseValue: 'consent' | 'objection' | 'abstain' } | { kind: 'event' }
+		| { kind: 'response'; responseValue: 'consent' | 'objection' | 'abstain' }
+		| { kind: 'event' }
+		| { kind: 'move_request' }
 	)
 ): Post {
 	return writePost(
@@ -1230,6 +1235,59 @@ function awaitingResponse(db: Db, proposalPostId: string): string[] {
 }
 
 /**
+ * Every open move request in a thread, settled because the question moved.
+ * `openspec/changes/provenance-ui` D10.
+ *
+ * Granted when it moved to the version asked for — attributed to whoever moved
+ * it, whether they were answering the request or not — and lapsed otherwise.
+ * In the transaction that moved it, so no request is ever left open asking for
+ * something that already happened. Each requester is told the outcome.
+ */
+function settleMoveRequests(tx: Db, ctx: Ctx, found: Discussion, movedTo: string): void {
+	const open = tx
+		.select({ request: proposalMoveRequest, version: post.proposalVersion })
+		.from(proposalMoveRequest)
+		.innerJoin(post, eq(post.id, proposalMoveRequest.targetProposalPostId))
+		.where(
+			and(eq(proposalMoveRequest.discussionId, found.id), eq(proposalMoveRequest.state, 'open'))
+		)
+		.all();
+	if (open.length === 0) return;
+
+	const now = new Date(ctx.now());
+	for (const { request, version } of open) {
+		const outcome = request.targetProposalPostId === movedTo ? 'granted' : 'lapsed';
+		tx.update(proposalMoveRequest)
+			.set({ state: outcome, answeredBy: ctx.user.id, answeredAt: now })
+			.where(eq(proposalMoveRequest.id, request.id))
+			.run();
+
+		const requester = request.requestedBy
+			? tx
+					.select({ id: membership.id })
+					.from(membership)
+					.where(
+						and(
+							eq(membership.userId, request.requestedBy),
+							eq(membership.communityId, ctx.community.id)
+						)
+					)
+					.get()
+			: undefined;
+		if (requester) {
+			notify(tx, ctx, {
+				kind: 'proposal.move_answered',
+				subjectType: 'discussion',
+				subjectId: found.id,
+				summary: `Your request to put v${version} back was ${outcome}`,
+				params: { title: found.title, version: version ?? 0, outcome },
+				recipients: [requester.id]
+			});
+		}
+	}
+}
+
+/**
  * Put an earlier version back on the table. `openspec/changes/movable-current-proposal`.
  *
  * The community can freeze v3 while v4 exists and, until this, could not
@@ -1250,7 +1308,6 @@ export function setCurrentProposal(
 	requirePermission(ctx, 'proposal.set_current');
 	requireWritableCommunity(ctx);
 	const db = options.db ?? getDb();
-	const now = ctx.now();
 
 	const found = getDiscussion(ctx, input.discussionId, { db });
 
@@ -1270,79 +1327,93 @@ export function setCurrentProposal(
 	// the one record a freeze is argued about from.
 	if (found.currentProposalPostId === target.id) return found;
 
-	const previous = found.currentProposalPostId
-		? (db.select().from(post).where(eq(post.id, found.currentProposalPostId)).get() ?? null)
-		: null;
-
 	return db.transaction((tx) => {
-		const inTx = tx as unknown as Db;
-
-		const outcome = reopenSupersededRound(inTx, target.id, now);
-
-		if (found.currentProposalPostId) {
-			tx.update(consentRound)
-				.set({ status: 'superseded', closedAt: new Date(now), supersededByPostId: target.id })
-				.where(
-					and(
-						eq(consentRound.proposalPostId, found.currentProposalPostId),
-						eq(consentRound.status, 'open')
-					)
-				)
-				.run();
-		}
-
-		tx.update(discussion)
-			.set({ currentProposalPostId: target.id })
-			.where(eq(discussion.id, found.id))
-			.run();
-
-		/**
-		 * The move, in the thread.
-		 *
-		 * `docs/03` §3 treats a revision note as an event a member reads rather
-		 * than as metadata, and moving the question is at least as consequential:
-		 * it changes what everybody is being asked. So it takes the same shape —
-		 * a post, attributed, saying where the question went.
-		 */
-		const reason = input.reason?.trim();
-		writeThreadPost(ctx, inTx, {
-			discussionId: found.id,
-			kind: 'event',
-			subjectPostId: target.id,
-			body:
-				`Put v${target.proposalVersion} back on the table` +
-				(previous?.proposalVersion ? `, from v${previous.proposalVersion}` : '') +
-				(reason ? ` — ${reason}` : '.') +
-				(outcome.round === 'open' && outcome.deadlineCleared
-					? ' The round reopened without its deadline, which had passed.'
-					: '') +
-				(outcome.round === 'closed' ? ' Its round is over, so it takes no new responses.' : '')
-		});
-
-		/**
-		 * The people with something to do, and nobody else.
-		 *
-		 * `writeThreadPost` notifies nobody, and reopening creates no round — so
-		 * without this the members whose live round just came back would hear
-		 * nothing at all. Those who already answered are not told: their response
-		 * still counts, and nothing is being asked of them again. Nobody is told
-		 * about the round that closed, because a closed round needs no action.
-		 */
-		const waiting = awaitingResponse(inTx, target.id);
-		if (waiting.length > 0) {
-			notify(inTx, ctx, {
-				kind: 'consent.opened',
-				subjectType: 'discussion',
-				subjectId: found.id,
-				summary: 'A proposal is open for your response',
-				params: { title: found.title },
-				recipients: waiting,
-				mail: true
-			});
-		}
-
+		moveQuestion(tx as unknown as Db, ctx, found, target, input.reason);
 		return tx.select().from(discussion).where(eq(discussion.id, found.id)).get()!;
 	});
+}
+
+/**
+ * The move itself, inside a transaction the caller owns — `setCurrentProposal`'s,
+ * or a steward granting a move request, which must move the question and mark
+ * the request in one commit. SQLite has no nested transactions, so the work is
+ * here and each caller opens its own.
+ */
+export function moveQuestion(
+	tx: Db,
+	ctx: Ctx,
+	found: Discussion,
+	target: Post,
+	reason?: string | null
+): void {
+	const now = ctx.now();
+	const previous = found.currentProposalPostId
+		? (tx.select().from(post).where(eq(post.id, found.currentProposalPostId)).get() ?? null)
+		: null;
+	const outcome = reopenSupersededRound(tx, target.id, now);
+
+	if (found.currentProposalPostId) {
+		tx.update(consentRound)
+			.set({ status: 'superseded', closedAt: new Date(now), supersededByPostId: target.id })
+			.where(
+				and(
+					eq(consentRound.proposalPostId, found.currentProposalPostId),
+					eq(consentRound.status, 'open')
+				)
+			)
+			.run();
+	}
+
+	tx.update(discussion)
+		.set({ currentProposalPostId: target.id })
+		.where(eq(discussion.id, found.id))
+		.run();
+	settleMoveRequests(tx, ctx, found, target.id);
+
+	/**
+	 * The move, in the thread.
+	 *
+	 * `docs/03` §3 treats a revision note as an event a member reads rather
+	 * than as metadata, and moving the question is at least as consequential:
+	 * it changes what everybody is being asked. So it takes the same shape —
+	 * a post, attributed, saying where the question went.
+	 */
+	const said = reason?.trim();
+	writeThreadPost(ctx, tx, {
+		discussionId: found.id,
+		kind: 'event',
+		subjectPostId: target.id,
+		body:
+			`Put v${target.proposalVersion} back on the table` +
+			(previous?.proposalVersion ? `, from v${previous.proposalVersion}` : '') +
+			(said ? ` — ${said}` : '.') +
+			(outcome.round === 'open' && outcome.deadlineCleared
+				? ' The round reopened without its deadline, which had passed.'
+				: '') +
+			(outcome.round === 'closed' ? ' Its round is over, so it takes no new responses.' : '')
+	});
+
+	/**
+	 * The people with something to do, and nobody else.
+	 *
+	 * `writeThreadPost` notifies nobody, and reopening creates no round — so
+	 * without this the members whose live round just came back would hear
+	 * nothing at all. Those who already answered are not told: their response
+	 * still counts, and nothing is being asked of them again. Nobody is told
+	 * about the round that closed, because a closed round needs no action.
+	 */
+	const waiting = awaitingResponse(tx, target.id);
+	if (waiting.length > 0) {
+		notify(tx, ctx, {
+			kind: 'consent.opened',
+			subjectType: 'discussion',
+			subjectId: found.id,
+			summary: 'A proposal is open for your response',
+			params: { title: found.title },
+			recipients: waiting,
+			mail: true
+		});
+	}
 }
 
 /**

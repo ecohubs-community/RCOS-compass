@@ -144,6 +144,13 @@ function immediateMail(
 				: null;
 		case 'claim.withdrawn':
 			return { kind };
+		/**
+		 * Straight away, because a steward has something to answer and the member
+		 * is waiting on it. The outcome goes to the digest: it asks nothing of
+		 * the requester.
+		 */
+		case 'proposal.move_requested':
+			return { kind };
 		default:
 			return null;
 	}

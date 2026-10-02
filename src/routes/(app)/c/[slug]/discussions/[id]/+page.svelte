@@ -11,6 +11,7 @@
 	import { setThreadContext } from './_components/thread-context';
 	import { ANSWER, ANSWERS, answerOf, type Answer } from './_components/answers';
 	import ThreadEntry from './_components/ThreadEntry.svelte';
+	import PassChecklist from './_components/PassChecklist.svelte';
 	import { setMentionLabels } from '$lib/components/ui/mentions';
 	import TextField from '$lib/components/ui/TextField.svelte';
 	import { links } from '$lib/links';
@@ -156,6 +157,23 @@
 	const time = (ms: number) => clock.moment(ms, 'dateTimeShort');
 	const day = (ms: number) => clock.dateShort(ms);
 
+	/** "2 days left", from the load's clock so the server and browser agree. */
+	const left = (closesAt: number) => {
+		const days = Math.floor((closesAt - data.now) / 86_400_000);
+		return days >= 2
+			? m.round_days_left_many({ count: days })
+			: days === 1
+				? m.round_days_left_one()
+				: m.round_less_than_a_day();
+	};
+	/** The reader's own open request in this thread, if any — one at a time. */
+	const myOpenRequest = $derived(
+		data.moveRequests.find((request) => request.mine && request.state === 'open')
+	);
+	const resolvedObjections = $derived(
+		data.proposal?.objections.filter((objection) => objection.state !== 'open') ?? []
+	);
+
 	/** The version on the rail's tally, drawn as one bar. */
 	const railCount = (value: Answer) =>
 		!data.round
@@ -256,6 +274,10 @@
 									entry={item.entry}
 									replies={repliesTo(item.entry.id)}
 									replyHref={item.entry.kind === 'message' ? replyHref(item.entry.id) : null}
+									moveRequest={data.moveRequests.find(
+										(request) => request.postId === item.entry.id
+									)}
+									canAnswerMove={data.can.setCurrent}
 								/>
 							{:else}
 								<!--
@@ -307,6 +329,18 @@
 								This adopts v{data.proposal.version}. v{data.laterVersion} is the later version, and will
 								stay freezable afterwards.
 							</p>
+						{/if}
+
+						{#if data.round && data.round.status === 'open' && data.proposal.isCurrent}
+							<!-- Repeated here so a steward freezes knowingly. It gates nothing (D8). -->
+							<div class="border-border mt-3 rounded-(--radius-control) border px-3 py-3">
+								<PassChecklist
+									checklist={data.round.checklist}
+									rule={data.rule}
+									{slug}
+									headingId="freeze-to-pass"
+								/>
+							</div>
 						{/if}
 
 						{#if data.wouldBeProvisional}
@@ -583,11 +617,22 @@
 							{#if errorFor('suggest')}<p role="alert" class="text-danger">
 									{errorFor('suggest')}
 								</p>{/if}
+							{#if data.amending}
+								<p class="text-fg-secondary text-meta">
+									{m.amend_line({ who: data.amending.raisedBy })}
+								</p>
+							{/if}
 							<TextField
 								id="revision-note"
 								name="revisionNote"
 								label="What changed"
 								hint="Optional — a line in the thread saying what this revision did."
+								value={data.amending
+									? m.amend_revision_note({
+											who: data.amending.raisedBy,
+											reason: data.amending.reason
+										})
+									: ''}
 							/>
 							<div class="flex flex-wrap items-center gap-3">
 								<Button type="submit" variant="secondary" icon={IconFilePlus}>
@@ -879,6 +924,52 @@
 						</form>
 					{/if}
 
+					{#if data.can.requestMove && !data.proposal.isCurrent && data.thread.status !== 'abandoned'}
+						<!--
+							Asking for this version back. Anybody may ask; a steward answers,
+							from the request in the thread (D10). Asking moves nothing.
+						-->
+						{#if myOpenRequest}
+							<p
+								class="border-border text-fg-secondary text-meta rounded-(--radius-card) border px-3 py-3"
+							>
+								{m.move_you_asked({ version: myOpenRequest.targetVersion ?? 0 })}
+								<a
+									href="?v={data.proposal.version}#post-{myOpenRequest.postId}"
+									class="text-fg underline underline-offset-2">{m.move_see_request()}</a
+								>
+							</p>
+						{:else}
+							<form
+								method="POST"
+								action="?/requestMove"
+								class="border-border rounded-(--radius-card) border px-3 py-3"
+								use:enhance
+							>
+								<input type="hidden" name="proposalPostId" value={data.proposal.id} />
+								<input type="hidden" name="v" value={data.proposal.version} />
+								<h3 class="text-fg font-medium">
+									{m.move_ask_heading({ version: data.proposal.version ?? 0 })}
+								</h3>
+								<p class="text-fg-muted text-meta mt-1">{m.move_ask_hint()}</p>
+								<label for="ask-reason" class="text-fg mt-2 block">{m.move_ask_why()}</label>
+								<textarea
+									id="ask-reason"
+									name="reason"
+									rows="2"
+									required
+									class="border-border bg-bg text-fg mt-1 w-full rounded-(--radius-control) border p-2"
+								></textarea>
+								<Button type="submit" variant="secondary" icon={IconArrowBackUp} class="mt-2">
+									{m.move_ask_submit({ version: data.proposal.version ?? 0 })}
+								</Button>
+								{#if errorFor('requestMove')}<p role="alert" class="text-danger mt-2">
+										{errorFor('requestMove')}
+									</p>{/if}
+							</form>
+						{/if}
+					{/if}
+
 					<!-- ── Responses to this version ──────────────────────── -->
 					<section class="border-border rounded-(--radius-card) border" aria-labelledby="responses">
 						<div class="border-border flex flex-wrap items-baseline gap-2 border-b px-3 py-2">
@@ -894,6 +985,19 @@
 								<span class="text-fg-muted text-meta">nobody yet</span>
 							{/if}
 						</div>
+
+						{#if data.round?.status === 'open' && data.round.closesAt !== null}
+							<!--
+								A deadline, so it names its zone (the time-display spec), and the
+								days left, so nobody has to do the arithmetic.
+							-->
+							<p class="text-fg-secondary text-meta px-3 pt-2" data-tabular>
+								{m.round_closes({
+									when: clock.deadline(data.round.closesAt),
+									left: left(data.round.closesAt)
+								})}
+							</p>
+						{/if}
 
 						{#if data.round}
 							<!--
@@ -1022,14 +1126,69 @@
 								{data.previousTally.consent === 1 ? 'consent' : 'consents'} — not carried, the text changed.
 							</p>
 						{/if}
+
+						{#if data.can.setClosing && data.proposal.isCurrent && data.proposal.state === 'open' && (!data.round || data.round.status === 'open')}
+							<!--
+								When the round closes: a steward's choice, said in the thread.
+								Before anyone has answered, setting it opens the round (D7). A
+								<details>, so it is one tap away and works with no JavaScript.
+							-->
+							<details class="border-border border-t px-3" open={errorFor('closing') !== undefined}>
+								<summary
+									class="text-fg-secondary hover:text-fg text-meta flex min-h-11 cursor-pointer items-center"
+									>{data.round?.closesAt != null
+										? m.round_change_closing()
+										: m.round_set_closing()}</summary
+								>
+								<form
+									method="POST"
+									action="?/setClosing"
+									class="flex flex-col gap-2 pb-3"
+									use:enhance
+								>
+									<input type="hidden" name="proposalPostId" value={data.proposal.id} />
+									<label for="closes-at" class="text-fg">{m.round_closes_at()}</label>
+									<input
+										id="closes-at"
+										name="closesAt"
+										type="datetime-local"
+										required
+										aria-describedby="closes-at-hint"
+										class="border-border bg-bg text-fg min-h-11 rounded-(--radius-control) border px-2"
+									/>
+									<p id="closes-at-hint" class="text-fg-muted text-meta">
+										{m.round_closing_hint({ zone: clock.zone() })}
+										{#if !data.round}{m.round_closing_opens({
+												version: data.proposal.version ?? 0
+											})}{/if}
+									</p>
+									<Button type="submit" variant="secondary" class="self-start">
+										{data.round ? m.round_save_closing() : m.round_open()}
+									</Button>
+									{#if errorFor('closing')}<p role="alert" class="text-danger">
+											{errorFor('closing')}
+										</p>{/if}
+								</form>
+							</details>
+						{/if}
 					</section>
+
+					{#if data.round && data.round.status === 'open' && data.proposal.isCurrent}
+						<PassChecklist
+							checklist={data.round.checklist}
+							rule={data.rule}
+							{slug}
+							headingId="to-pass"
+						/>
+					{/if}
 
 					{#if data.proposal.objections.some((objection) => objection.state === 'open')}
 						<!--
 							Each open objection as the thing it is: a person, what they said,
-							and what can be done about it — answer them, revise the text, or
-							(for a steward) record it as addressed. Tinted, because an open
-							objection is the one thing on this panel nobody should miss.
+							and what can be done about it — answer them, amend the text, resolve
+							it with a note (for whoever may), or withdraw it (for the person who
+							raised it). Tinted, because an open objection is the one thing on
+							this panel nobody should miss. D9.
 						-->
 						<section class="flex flex-col gap-3" aria-labelledby="open-objections">
 							<h3 id="open-objections" class="text-fg font-medium">Open objections</h3>
@@ -1040,15 +1199,13 @@
 									class="border-danger/40 bg-danger/5 rounded-(--radius-card) border px-3 py-3"
 								>
 									<p class="flex flex-wrap items-center gap-x-2 gap-y-1">
-										{#if said}
-											<span
-												class="bg-danger-subtle text-fg text-meta flex h-6 w-6 flex-none items-center justify-center rounded-full font-medium"
-												aria-hidden="true">{said.author.initials}</span
-											>
-											<span class="text-fg font-medium">{said.author.label} objects</span>
-										{:else}
-											<span class="text-fg font-medium">An objection</span>
-										{/if}
+										<span
+											class="bg-danger-subtle text-fg text-meta flex h-6 w-6 flex-none items-center justify-center rounded-full font-medium"
+											aria-hidden="true">{said?.author.initials ?? '!'}</span
+										>
+										<span class="text-fg font-medium"
+											>{m.objection_objects({ who: objection.raisedBy })}</span
+										>
 										<span class="text-fg-muted text-meta">{day(objection.raisedAt)}</span>
 										<span class="flex-1"></span>
 										<span
@@ -1061,31 +1218,110 @@
 										{#if objection.postId && replyHref(objection.postId)}
 											<a
 												href={replyHref(objection.postId)}
-												class="border-border-strong text-fg hover:bg-raised text-meta inline-flex min-h-9 items-center rounded-(--radius-control) border px-3"
+												class="border-border-strong text-fg hover:bg-raised text-meta inline-flex min-h-11 items-center rounded-(--radius-control) border px-3"
 												>Reply</a
 											>
 										{/if}
 										{#if data.can.propose}
 											<a
-												href={modeHref('revise')}
-												class="border-border-strong text-fg hover:bg-raised text-meta inline-flex min-h-9 items-center rounded-(--radius-control) border px-3"
-												>Revise to address it</a
+												href="?v={data.proposal.version}&mode=revise&amend={objection.id}#composer"
+												class="border-border-strong text-fg hover:bg-raised text-meta inline-flex min-h-11 items-center rounded-(--radius-control) border px-3"
+												>{m.objection_amend()}</a
 											>
 										{/if}
-										{#if data.can.freeze}
+										{#if objection.mine}
 											<form method="POST" action="?/resolveObjection" use:enhance>
 												<input type="hidden" name="objectionId" value={objection.id} />
-												<input type="hidden" name="state" value="addressed" />
+												<input type="hidden" name="state" value="withdrawn" />
 												<button
 													type="submit"
-													class="text-fg-secondary hover:text-fg text-meta inline-flex min-h-9 cursor-pointer items-center px-2"
-													>Mark addressed</button
+													class="text-fg-secondary hover:text-fg text-meta inline-flex min-h-11 cursor-pointer items-center px-2 underline underline-offset-2"
+													>{m.objection_withdraw()}</button
 												>
 											</form>
 										{/if}
 									</div>
+									{#if data.can.resolveObjection}
+										<!--
+											Addressed or overruled, always with a note: the register
+											keeps it beside the objection forever, and "addressed" with
+											nothing after it is one person's word against another's.
+										-->
+										<details class="mt-2">
+											<summary
+												class="text-fg-secondary hover:text-fg text-meta flex min-h-11 cursor-pointer items-center"
+												>{m.objection_resolve()}</summary
+											>
+											<form
+												method="POST"
+												action="?/resolveObjection"
+												class="flex flex-col gap-2"
+												use:enhance
+											>
+												<input type="hidden" name="objectionId" value={objection.id} />
+												<label for="note-{objection.id}" class="text-fg">{m.objection_note()}</label
+												>
+												<textarea
+													id="note-{objection.id}"
+													name="note"
+													rows="2"
+													required
+													class="border-border bg-bg text-fg rounded-(--radius-control) border p-2"
+												></textarea>
+												<div class="flex flex-wrap gap-2">
+													<button
+														type="submit"
+														name="state"
+														value="addressed"
+														class="border-border-strong text-fg hover:bg-raised text-meta inline-flex min-h-11 cursor-pointer items-center rounded-(--radius-control) border px-3"
+														>{m.objection_mark_addressed()}</button
+													>
+													<button
+														type="submit"
+														name="state"
+														value="overruled"
+														class="border-border-strong text-fg hover:bg-raised text-meta inline-flex min-h-11 cursor-pointer items-center rounded-(--radius-control) border px-3"
+														>{m.objection_overrule()}</button
+													>
+												</div>
+											</form>
+										</details>
+									{/if}
 								</article>
 							{/each}
+							{#if errorFor('object')}<p role="alert" class="text-danger">
+									{errorFor('object')}
+								</p>{/if}
+						</section>
+					{/if}
+
+					{#if resolvedObjections.length > 0}
+						<!-- Resolved, and still readable: who resolved it, how, and why. -->
+						<section aria-labelledby="resolved-objections">
+							<h3 id="resolved-objections" class="text-fg-secondary text-meta font-medium">
+								{m.objection_resolved_heading()}
+							</h3>
+							<ul class="mt-2 flex flex-col gap-2">
+								{#each resolvedObjections as objection (objection.id)}
+									<li class="border-border text-meta border-l-2 pl-3">
+										<p class="text-fg-secondary">
+											{objection.raisedBy}: “{objection.reason}”
+										</p>
+										<p class="text-fg-muted mt-0.5">
+											{objection.state === 'withdrawn'
+												? m.objection_withdrawn()
+												: objection.state === 'addressed'
+													? m.objection_addressed_by({ who: objection.resolvedBy ?? '' })
+													: m.objection_overruled_by({
+															who: objection.resolvedBy ?? ''
+														})}{#if objection.resolvedAt}&nbsp;· {day(objection.resolvedAt)}{/if}
+										</p>
+										{#if objection.resolutionNote}
+											<p class="text-fg mt-0.5">{objection.resolutionNote}</p>
+										{/if}
+									</li>
+								{/each}
+							</ul>
 						</section>
 					{/if}
 

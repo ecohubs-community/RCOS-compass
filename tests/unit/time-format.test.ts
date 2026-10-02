@@ -7,6 +7,7 @@ import {
 	formatMoment,
 	formatRelative,
 	isoDateIn,
+	localDateTime,
 	localMidnight
 } from '../../src/lib/time/format.js';
 
@@ -92,6 +93,22 @@ describe('a calendar date', () => {
 		expect(at('2026-01-01', 'Pacific/Kiritimati')).toBe('1 Jan 2026, 00:00');
 		expect(localMidnight('2026-02-30', 'UTC')).toBeNull();
 		expect(localMidnight('1 March', 'UTC')).toBeNull();
+	});
+});
+
+describe('a wall-clock time a person typed', () => {
+	it('is that time in their zone, which others then read in theirs', () => {
+		// A steward in Berlin sets 20:00; summer time there is UTC+2.
+		const closes = localDateTime('2026-09-03T20:00', 'Europe/Berlin')!;
+		expect(closes).toBe(Date.UTC(2026, 8, 3, 18, 0));
+		expect(formatMoment(closes, { timeZone: 'Europe/Lisbon', locale: 'en' }, 'time')).toBe('19:00');
+	});
+
+	it('refuses what is not a date and a time', () => {
+		expect(localDateTime('2026-09-03', 'UTC')).toBeNull();
+		expect(localDateTime('2026-02-30T10:00', 'UTC')).toBeNull();
+		expect(localDateTime('2026-09-03T24:00', 'UTC')).toBeNull();
+		expect(localDateTime('', 'UTC')).toBeNull();
 	});
 });
 

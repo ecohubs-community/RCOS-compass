@@ -35,6 +35,8 @@ import { listNotificationItems } from '../../src/lib/server/services/notificatio
 import { definition, standardFeedback } from '../../src/lib/server/db/schema/definitions.js';
 import { localDefinitionContext } from '../../src/lib/server/services/provenance.js';
 import { listStandardFeedback } from '../../src/lib/server/services/standard-feedback.js';
+import { listLabelledObjections } from '../../src/lib/server/services/objections.js';
+import { listMoveRequests, requestMove } from '../../src/lib/server/services/move-requests.js';
 
 /**
  * Every service that hands a person's name or address to a caller.
@@ -110,6 +112,20 @@ let threadForPersonSurface = '';
 
 /** Set by the vote-block surface's seed, read by its `read`. */
 let roundForPersonSurface = '';
+
+/** Set by the objection surface's seed, read by its `read`. */
+let objectedProposalForPersonSurface = '';
+
+/** Set by the move-request surface's seed, read by its `read`. */
+let movedThreadForPersonSurface = '';
+
+/** The subject acting, for a seed that needs them to have said something. */
+const actingAs = (ctx: Ctx, subject: Subject): Ctx =>
+	({
+		...ctx,
+		user: { ...ctx.user, id: subject.userId },
+		membership: { ...ctx.membership, id: subject.membershipId }
+	}) as Ctx;
 
 export const PERSON_SURFACES: PersonSurface[] = [
 	{
@@ -246,6 +262,57 @@ export const PERSON_SURFACES: PersonSurface[] = [
 			).id;
 		},
 		read: (ctx, db) => listResponses(ctx, roundForPersonSurface, { db }).map((row) => row.who)
+	},
+	{
+		name: 'objections.listLabelledObjections',
+		module: 'objections.ts',
+		/**
+		 * "Ana objects" on the rail. The objection stays open and its reason stays
+		 * readable — an objection never disappears — and only the name goes.
+		 */
+		seed: (db, ctx, subject) => {
+			const opened = openDiscussion(
+				ctx,
+				{ title: 'Exit and separation', about: { kind: 'open_question' } },
+				{ db }
+			);
+			objectedProposalForPersonSurface = addProposal(
+				ctx,
+				{ discussionId: opened.id, body: 'Members may leave.' },
+				{ db }
+			).id;
+			getVotingProvider().respond(
+				actingAs(ctx, subject),
+				{ proposalPostId: objectedProposalForPersonSurface, value: 'objection', reason: 'Assets.' },
+				{ db }
+			);
+		},
+		read: (ctx, db) =>
+			listLabelledObjections(ctx, objectedProposalForPersonSurface, { db }).map(
+				(row) => row.raisedByLabel
+			)
+	},
+	{
+		name: 'move-requests.listMoveRequests',
+		module: 'move-requests.ts',
+		// "Ana asks to put v1 back" in the thread: the request stays, the name goes.
+		seed: (db, ctx, subject) => {
+			const opened = openDiscussion(
+				ctx,
+				{ title: 'Exit and separation', about: { kind: 'open_question' } },
+				{ db }
+			);
+			movedThreadForPersonSurface = opened.id;
+			const first = addProposal(ctx, { discussionId: opened.id, body: 'v1' }, { db });
+			addProposal(ctx, { discussionId: opened.id, body: 'v2' }, { db });
+			requestMove(
+				actingAs(ctx, subject),
+				{ discussionId: opened.id, targetProposalPostId: first.id, reason: 'v1 was simpler.' },
+				{ db }
+			);
+		},
+		read: (ctx, db) =>
+			listMoveRequests(ctx, movedThreadForPersonSurface, { db }).map((row) => row.requestedBy)
 	},
 	{
 		name: 'ai-settings.usageByMember',
