@@ -45,20 +45,26 @@ figure.
 - **WHEN** a local definition is added to an artifact that has 5 of 8 required sections answered
 - **THEN** the page still reports 5 of 8
 
-### Requirement: Completeness is shown as counts, never as a percentage
+### Requirement: Completeness is shown as counts and, to members, a percentage of sections
 
-The artifact page SHALL state how many of its required, community-authored
-sections are answered, as a count of a total, with one visual segment per
-section. It MUST NOT show a percentage. The count MUST equal the one the
-Artifacts list and readiness use for the same artifact.
+The artifact page and the Artifacts list SHALL state how many of an artifact's
+required, community-authored sections are answered, as a count of a total, and
+the share of them as a percentage, with one visual segment per section on the
+page. The percentage MUST be worded as sections answered and MUST NOT be worded
+as compliance. It MUST NOT appear on any public page or in the outward claim.
+The count MUST equal the one readiness uses for the same artifact.
 
-#### Scenario: Counts are shown
+#### Scenario: Counts and share are shown
 - **WHEN** five of eight authored sections are answered
-- **THEN** the page says 5 of 8 and shows eight segments, five filled
+- **THEN** the page says 5 of 8 sections answered, 62%, and shows eight segments, five filled
 
-#### Scenario: No percentage appears
-- **WHEN** the page is rendered in any state
-- **THEN** no percentage sign appears in its completeness
+#### Scenario: Never worded as compliance
+- **WHEN** the page or the list is rendered in any state
+- **THEN** no "% compliant" appears
+
+#### Scenario: Not on the public page
+- **WHEN** the artifact is published
+- **THEN** its public page shows no percentage
 
 #### Scenario: Sections the community does not write are not counted
 - **WHEN** an artifact includes a section filled from a decision or kept as an instance record
@@ -89,13 +95,21 @@ be acted on. A complete artifact with none of these MUST show no blockers.
 
 The artifact page SHALL show whether the artifact is published to the world and
 list its publication history — each publication and withdrawal with who did it
-and when — read from the change log. A steward MUST be able to publish the artifact
+and when — from the decisions that recorded them. A steward MUST be able to publish the artifact
 from the page through the same operation the publishing settings use. A member
 MUST NOT be offered or permitted the publish action.
 
-#### Scenario: History is read from the change log
+#### Scenario: History is read from the register
 - **WHEN** an artifact was published, withdrawn and published again
-- **THEN** all three entries are listed, newest first, each attributed
+- **THEN** all three are listed, newest first, each attributed and each linking to its decision
+
+#### Scenario: Publishing writes a decision
+- **WHEN** a steward publishes the artifact
+- **THEN** the register gains a decision with the next reference, recording the publication, its actor and its time
+
+#### Scenario: Publishing what is already published
+- **WHEN** a steward publishes an artifact that is already world-visible
+- **THEN** nothing changes and no decision is written
 
 #### Scenario: A steward publishes
 - **WHEN** a steward publishes the artifact from its page

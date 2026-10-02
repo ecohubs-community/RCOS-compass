@@ -58,7 +58,10 @@ Reasoning: `UI Spec — v0.1 (draft).md` §1.2, §1.4a–b, §4.0, §4.3, §4.8,
   three-way approximation each computes today.
 - **An artifact detail page** at `/c/[slug]/artifacts/[key]`: required sections
   with the definition answering each and its status, local additions in a
-  separate block that never counts, completeness as **counts, not a percentage**,
+  separate block that never counts, completeness as **counts and, for members,
+  a percentage of sections answered** (decided 2026-10-01; never worded as
+  compliance, never on a public page) — the Artifacts list gains the same
+  percentage —
   what is blocking completeness (including a Layer 0–2 definition hidden from
   members, which costs compliance since #9), publication state with a steward's
   *Publish*,
@@ -87,12 +90,16 @@ Reasoning: `UI Spec — v0.1 (draft).md` §1.2, §1.4a–b, §4.0, §4.3, §4.8,
   a definition; only the form and a freeze test are missing. Its detail page shows "Why we made this rule" (its purpose), who asked for
   it and when it was first written down, instead of hiding the left column.
 
+- **Publishing and withdrawing an artifact write a decision record** (decided
+  2026-10-01 to do it here). The `publishing` and `decisions` specs already
+  require it; `publishing.ts` writes only a change-log entry today. The
+  decision takes the next gapless `DEC-` reference from the same allocation the
+  freeze uses, now one helper instead of three inline copies.
+
 Out of scope, named so nobody assumes otherwise: artifact-level versions (§1.2 —
 "nothing is authored at artifact level"; the design's "v2 / Publish v3" is read
-as publication history), publishing writing a decision record (a spec/code gap
-found here, recorded in design.md, left for its own change), per-definition
-export, reading thresholds out of an adopted Meeting Practice text, and anything
-in P8.
+as publication history), per-definition export, reading thresholds out of an
+adopted Meeting Practice text, and anything in P8.
 
 ## Capabilities
 
@@ -122,6 +129,8 @@ in P8.
 
 ## Impact
 
+- **Decisions**: `decisions.ts` gains `allocateRef(tx, ctx, now)`, used by the
+  freeze paths and by publishing; publishing an artifact writes a decision.
 - **Schema** (additive only): `proposal_move_request`; `local_definition_touch`;
   a `move_request` post kind; `community.interim_quorum_num`/`_den` and
   `community.interim_min_days` (nullable). No table rebuilds.
