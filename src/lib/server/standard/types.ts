@@ -78,8 +78,31 @@ export type Section = {
 			whyItMatters: string | null;
 			whatToDefine: string | null;
 			placeholders: string[];
-		}
+		} & Partial<GuidanceFields>
 	>;
+};
+
+/**
+ * The guidance RCOS publishes beside a section, per locale: the plain-language
+ * question the Path shows, the sub-questions a proposal should answer, and
+ * example answers. Guidance, not normative text — the clauses are the
+ * requirement. Optional in the data: upstream gives one to every authored
+ * section, and `pnpm check:standard` holds it to that for the default locale.
+ */
+export type GuidanceFields = {
+	/** The plain-language form of the section. A member should recognise their situation in it. */
+	question: string;
+	/** Sub-questions. Prompting only: they never become Path items of their own. */
+	prompts: string[];
+	/** Full-sentence example answers — never recommendations. */
+	examples: string[];
+};
+
+/** One section's guidance in one locale, each field falling back to the default locale. */
+export type SectionGuidance = {
+	question: string | null;
+	prompts: string[];
+	examples: string[];
 };
 
 export type Artifact = {
@@ -118,24 +141,17 @@ export type StandardMeta = {
 };
 
 /**
- * Compass's own annotation of a section. Not part of the standard: the plain
- * language, the effort estimate and the ordering edges are this tool's opinion,
- * and they are optional — a section without one still loads and is still
- * answerable.
+ * Compass's own annotation of a section. Not part of the standard: the effort
+ * estimate and the ordering edges are this tool's opinion about planning, and
+ * they are optional — a section without one still loads and is still
+ * answerable. The question and its guidance used to live here too; RCOS now
+ * publishes them with the section (`GuidanceFields`).
  */
 export type Effort = 'one_conversation' | 'one_meeting' | 'a_series';
 
 export type Annotation = {
-	question: string;
 	effort: Effort;
 	dependsOn: string[];
-	/**
-	 * Sub-questions a proposal should answer. Prompting only: they never become
-	 * Path items of their own, so a section stays one decision.
-	 */
-	prompts?: string[];
-	/** Full-sentence example answers written for Compass — never recommendations. */
-	examples?: string[];
 };
 
 export type Standard = {

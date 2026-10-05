@@ -310,7 +310,7 @@ export function workspaceView(
 					key: clause.key,
 					ref: clause.ref,
 					title: titleOf(clause.key),
-					question: standard.view.annotation(clause.owner!)?.question ?? null,
+					question: standard.view.guidance(clause.owner!, locale)?.question ?? null,
 					layer: clause.layer
 				}))
 		: [];

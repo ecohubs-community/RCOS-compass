@@ -148,8 +148,11 @@ community; a second, fake standard id loads alongside core without a code change
 > in CI), the multi-standard loader and the dispositions are in. **Not built:**
 > `standard/migrations/` and its schema — they arrive with P8, post-MVP — and the
 > weekly job that opens a PR when upstream changes; re-vendoring is by hand. Every
-> authored section carries a question in `annotations.yaml`, but Layers 2–6 still
-> have the placeholder `one_meeting` effort and no dependency edges.
+> authored section carries a question, with prompts and examples — written for
+> Compass, now published by RCOS with each section in all five locales
+> (`openspec/changes/revendor-guidance-from-upstream`). `annotations.yaml` keeps
+> only effort and dependency edges, and Layers 2–6 still have the placeholder
+> `one_meeting` effort and no dependency edges.
 
 ---
 

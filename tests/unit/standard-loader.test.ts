@@ -335,32 +335,59 @@ describe('the vendored copy is pinned to its source', () => {
 	});
 
 	it('fails when an authored section has no question, and names it', () => {
-		// annotations.yaml is Compass's own file, outside the manifest, so this
-		// trips the annotation rule and nothing else.
-		const file = join(standardRoot, 'rcos-core', '0.1', 'annotations.yaml');
+		// The question is published upstream now, so removing one trips the hash
+		// check too — correct, but the guidance rule is the one being proved.
+		const file = join(standardRoot, 'rcos-core', '0.1', 'sections.yaml');
 		const original = readFileSync(file, 'utf8');
-		const parsed = yaml.load(original) as { sections: Record<string, unknown> };
-		delete parsed.sections['exit-protocol.voluntary-exit'];
-		writeFileSync(file, yaml.dump(parsed, { lineWidth: 100, noRefs: true, sortKeys: false }));
+		const sections = yaml.load(original) as { key: string; i18n: Record<string, object> }[];
+		const section = sections.find((x) => x.key === 'exit-protocol.voluntary-exit')!;
+		delete (section.i18n.en as { question?: string }).question;
+		writeFileSync(file, yaml.dump(sections, { lineWidth: 100, noRefs: true, sortKeys: false }));
 		try {
 			run();
-			expect.unreachable('the annotation check should have failed');
+			expect.unreachable('the guidance check should have failed');
 		} catch (error) {
 			const output = String((error as { stdout?: string; stderr?: string }).stderr ?? '');
-			expect(output).toContain('exit-protocol.voluntary-exit: authored, but has no annotation');
-			expect(output).not.toContain('does not match the published hash');
+			expect(output).toContain(
+				'exit-protocol.voluntary-exit: authored, but has no question in "en"'
+			);
 		} finally {
 			writeFileSync(file, original);
 		}
 	});
 
-	it('fails when an annotation has an empty prompt, and names it', () => {
+	it('fails when a published prompt is empty, and names the section and locale', () => {
+		const file = join(standardRoot, 'rcos-core', '0.1', 'sections.yaml');
+		const original = readFileSync(file, 'utf8');
+		const sections = yaml.load(original) as {
+			key: string;
+			i18n: Record<string, { prompts?: string[] }>;
+		}[];
+		sections.find((x) => x.key === 'exit-protocol.voluntary-exit')!.i18n.de!.prompts = [
+			'Wie?',
+			' '
+		];
+		writeFileSync(file, yaml.dump(sections, { lineWidth: 100, noRefs: true, sortKeys: false }));
+		try {
+			run();
+			expect.unreachable('the guidance check should have failed');
+		} catch (error) {
+			const output = String((error as { stdout?: string; stderr?: string }).stderr ?? '');
+			expect(output).toContain(
+				'exit-protocol.voluntary-exit (de): prompts must be a list of non-empty text'
+			);
+		} finally {
+			writeFileSync(file, original);
+		}
+	});
+
+	it('refuses a question written back into the annotations, which would never be shown', () => {
+		// annotations.yaml is Compass's own file, outside the manifest, so this
+		// trips the annotation rule and nothing else.
 		const file = join(standardRoot, 'rcos-core', '0.1', 'annotations.yaml');
 		const original = readFileSync(file, 'utf8');
-		const parsed = yaml.load(original) as {
-			sections: Record<string, { prompts?: string[] }>;
-		};
-		parsed.sections['exit-protocol.voluntary-exit']!.prompts = ['How?', ' '];
+		const parsed = yaml.load(original) as { sections: Record<string, Record<string, unknown>> };
+		parsed.sections['exit-protocol.voluntary-exit']!.question = 'How does a member leave?';
 		writeFileSync(file, yaml.dump(parsed, { lineWidth: 100, noRefs: true, sortKeys: false }));
 		try {
 			run();
@@ -368,7 +395,27 @@ describe('the vendored copy is pinned to its source', () => {
 		} catch (error) {
 			const output = String((error as { stdout?: string; stderr?: string }).stderr ?? '');
 			expect(output).toContain(
-				'annotation "exit-protocol.voluntary-exit": prompts must be a list of non-empty text'
+				'annotation "exit-protocol.voluntary-exit": "question" is not an annotation field'
+			);
+			expect(output).not.toContain('does not match the published hash');
+		} finally {
+			writeFileSync(file, original);
+		}
+	});
+
+	it('fails when an annotation depends on a section that does not exist', () => {
+		const file = join(standardRoot, 'rcos-core', '0.1', 'annotations.yaml');
+		const original = readFileSync(file, 'utf8');
+		const parsed = yaml.load(original) as { sections: Record<string, { dependsOn: string[] }> };
+		parsed.sections['exit-protocol.voluntary-exit']!.dependsOn = ['nothing.like-this'];
+		writeFileSync(file, yaml.dump(parsed, { lineWidth: 100, noRefs: true, sortKeys: false }));
+		try {
+			run();
+			expect.unreachable('the annotation check should have failed');
+		} catch (error) {
+			const output = String((error as { stdout?: string; stderr?: string }).stderr ?? '');
+			expect(output).toContain(
+				'annotation "exit-protocol.voluntary-exit": depends on "nothing.like-this", which is not a section'
 			);
 		} finally {
 			writeFileSync(file, original);
@@ -392,38 +439,81 @@ describe('the vendored copy is pinned to its source', () => {
 	});
 }, 30_000);
 
-describe('annotations', () => {
-	it('covers every authored section, so the Path is questions rather than headings', () => {
+describe('published guidance', () => {
+	it('gives every authored section a question, so the Path is questions rather than headings', () => {
 		/**
-		 * Layers 0 and 1 were annotated first and 2-6 followed. The reason to
-		 * assert the whole set rather than the two layers P3 needed: a Path that
-		 * mixes "Why does this community exist — in one sentence that will still be
-		 * true in ten years?" with "Entry Format" is asking a group to recognise
-		 * its own situation in a table of contents, and the second kind of title
-		 * comes back the moment a section is added upstream without one.
+		 * The reason to assert the whole set: a Path that mixes "Why does this
+		 * community exist — in one sentence that will still be true in ten
+		 * years?" with "Entry Format" is asking a group to recognise its own
+		 * situation in a table of contents, and the second kind of title comes
+		 * back the moment a section is added upstream without one.
 		 */
 		const missing = view
 			.authoredSections()
-			.filter((section) => !view.annotation(section.key)?.question)
+			.filter((section) => !view.guidance(section.key, 'en')?.question)
 			.map((section) => section.key);
 
 		expect(missing, `sections with no question: ${missing.join(', ')}`).toEqual([]);
 	});
 
-	it('asks something, rather than naming a container', () => {
+	it('asks something a member would recognise, rather than naming a container', () => {
 		// Not a style rule for its own sake: the question is offered as the title
 		// of a discussion (`links.startDiscussion`), and "Overview" is not a thing
 		// a community can hold a discussion about.
-		for (const key of view.annotatedSectionKeys) {
-			const question = view.annotation(key)!.question;
-			expect(question.endsWith('?'), `${key}: ${question}`).toBe(true);
+		for (const section of view.authoredSections()) {
+			const question = view.guidance(section.key, 'en')!.question!;
+			expect(question.endsWith('?'), `${section.key}: ${question}`).toBe(true);
+			expect(question.length, section.key).toBeGreaterThan(10);
 		}
 	});
 
-	it('gives every annotation a question a member would recognise, and an effort', () => {
+	it('is read in the community’s language', () => {
+		const de = view.guidance('purpose-charter.primary-purpose', 'de')!;
+		const en = view.guidance('purpose-charter.primary-purpose', 'en')!;
+		expect(de.question).toMatch(/^Warum existiert diese Gemeinschaft/);
+		expect(de.prompts).toHaveLength(en.prompts.length);
+		expect(de.prompts[0]).not.toBe(en.prompts[0]);
+		expect(de.examples[0]).toMatch(/^Wir existieren/);
+	});
+
+	it('falls back to the default locale field by field, never to nothing', () => {
+		const dir = mkdtempSync(join(tmpdir(), 'compass-guidance-'));
+		try {
+			cpSync(join(standardRoot, 'rcos-core'), join(dir, 'rcos-core'), { recursive: true });
+			const file = join(dir, 'rcos-core', '0.1', 'sections.yaml');
+			const sections = yaml.load(readFileSync(file, 'utf8')) as {
+				key: string;
+				i18n: Record<string, Record<string, unknown>>;
+			}[];
+			const de = sections.find((x) => x.key === 'purpose-charter.primary-purpose')!.i18n.de!;
+			delete de.question;
+			delete de.examples;
+			writeFileSync(file, yaml.dump(sections, { lineWidth: 100, noRefs: true, sortKeys: false }));
+
+			const partial = new StandardView(
+				loadStandard('rcos-core', '0.1', { root: dir, useCache: false })
+			);
+			const shown = partial.guidance('purpose-charter.primary-purpose', 'de')!;
+			const english = partial.guidance('purpose-charter.primary-purpose', 'en')!;
+			expect(shown.question).toBe(english.question);
+			expect(shown.examples).toEqual(english.examples);
+			// What the translation does carry is still shown in German.
+			expect(shown.prompts[0]).toMatch(/^Wenn wir nur einen einzigen Grund/);
+		} finally {
+			rmSync(dir, { recursive: true, force: true });
+		}
+	});
+
+	it('is nothing for a section the standard does not have', () => {
+		expect(view.guidance('nothing.like-this', 'en')).toBeUndefined();
+	});
+});
+
+describe('annotations', () => {
+	it('carry effort and ordering edges only', () => {
 		for (const key of view.annotatedSectionKeys) {
 			const annotation = view.annotation(key)!;
-			expect(annotation.question.length, key).toBeGreaterThan(10);
+			expect(Object.keys(annotation).sort(), key).toEqual(['dependsOn', 'effort']);
 			expect(['one_conversation', 'one_meeting', 'a_series']).toContain(annotation.effort);
 		}
 	});

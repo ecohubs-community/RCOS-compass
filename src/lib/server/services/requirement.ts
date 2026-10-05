@@ -83,11 +83,14 @@ export function citedClauses(view: StandardView, sectionKey: string): CitedClaus
 	];
 }
 
-/** The Path's plain-language question for a section, or its title when it has none. */
+/**
+ * The Path's plain-language question for a section, in the community's
+ * language, or its title when it has none.
+ */
 export function questionFor(view: StandardView, sectionKey: string, locale: Locale): string {
 	const section = view.section(sectionKey);
 	return (
-		view.annotation(sectionKey)?.question ??
+		view.guidance(sectionKey, locale)?.question ??
 		(section ? view.localise(section.i18n, locale).value.title : sectionKey)
 	);
 }
@@ -153,9 +156,12 @@ export function requirementFor(
 /**
  * What a proposal for a section should cover, and what an answer can look like.
  *
- * Unlike the requirement above, this is Compass's guidance, not the standard's
- * words — so every example says where it came from, and the page calls them
- * examples rather than recommendations. Sub-questions never become Path items:
+ * Unlike the requirement above, this is guidance, not normative text — so
+ * every example says where it came from, and the page calls them examples
+ * rather than recommendations. The prompts and the `compass` examples were
+ * written for Compass and are now published by RCOS beside each section, in
+ * every locale; `template` examples are filtered from the template's own
+ * placeholders. Sub-questions never become Path items:
  * a section stays one discussion and one definition, so nothing in the
  * assembled artifact is decided twice.
  */
@@ -185,14 +191,14 @@ export function templateHints(english: readonly string[], shown: readonly string
 export function guideFor(view: StandardView, sectionKey: string, locale: Locale): Guide | null {
 	const section = view.section(sectionKey);
 	if (!section) return null;
-	const annotation = view.annotation(sectionKey);
+	const published = view.guidance(sectionKey, locale);
 	const english = view.localise(section.i18n, view.meta.defaultLocale).value.placeholders ?? [];
 	const shown = view.localise(section.i18n, locale).value.placeholders ?? [];
 
 	const guide: Guide = {
-		prompts: annotation?.prompts ?? [],
+		prompts: published?.prompts ?? [],
 		examples: [
-			...(annotation?.examples ?? []).map((text) => ({ text, source: 'compass' as const })),
+			...(published?.examples ?? []).map((text) => ({ text, source: 'compass' as const })),
 			...templateHints(english, shown).map((text) => ({ text, source: 'template' as const }))
 		]
 	};

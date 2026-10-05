@@ -4,7 +4,7 @@
  * the cheapest failure and the most likely: every number the product shows is
  * computed from this content.
  *
- * Two things are checked.
+ * Four things are checked.
  *
  * 1. INTEGRITY — the vendored files still match the hashes published upstream.
  *    The copy is meant to be regenerated in the RCOS-website repository and
@@ -15,6 +15,12 @@
  *    is explicitly marked as not answerable at all. Without this, readiness is
  *    either double-counted or capped below 100% forever.
  *    docs/03-data-model.md §4, §7.
+ *
+ * 3. THE PUBLISHED GUIDANCE — every authored section has a question in the
+ *    default locale, and no prompt or example is empty.
+ *
+ * 4. COMPASS'S ANNOTATIONS — standard/<id>/<version>/annotations.yaml, outside
+ *    the manifest, holds effort and ordering edges that point at real sections.
  */
 import { createHash } from 'node:crypto';
 import { readFileSync, existsSync } from 'node:fs';
@@ -169,48 +175,69 @@ for (const { id, version } of manifest.standards ?? []) {
 		}
 	}
 
-	// --- 3. Compass's annotations -------------------------------------------
+	// --- 3. The published guidance ------------------------------------------
 	//
 	// Every authored section needs a question: without one the Path shows a
 	// template heading ("Entry Format") where a community has to recognise its
-	// own situation. And a broken annotation is worse than none — a Path item
-	// pointing at a section that does not exist, or an ordering edge into
-	// nothing.
-	const annotationsFile = join(STANDARD_DIR, id, version, 'annotations.yaml');
-	const annotations = existsSync(annotationsFile)
-		? ((yaml.load(readFileSync(annotationsFile, 'utf8')) ?? {}).sections ?? {})
-		: {};
-	for (const section of sections.filter((s) => s.disposition === 'authored')) {
-		if (!annotations[section.key]) {
-			note(`${id}@${version} ${section.key}: authored, but has no annotation with a question.`);
+	// own situation. RCOS publishes the question, its prompts and its examples
+	// with each section, per locale; upstream checks that a question covers what
+	// its section owns, and this checks what Compass relies on — a question in
+	// the default locale for every authored section, and no empty entry that
+	// would render as an empty bullet a member is asked to answer.
+	const defaultLocale = load(id, version, 'meta').defaultLocale;
+	for (const section of sections) {
+		const where = `${id}@${version} ${section.key}`;
+		const question = section.i18n?.[defaultLocale]?.question;
+		if (
+			section.disposition === 'authored' &&
+			(typeof question !== 'string' || question.trim().length === 0)
+		) {
+			note(`${where}: authored, but has no question in "${defaultLocale}".`);
 		}
-	}
-	{
-		const efforts = new Set(['one_conversation', 'one_meeting', 'a_series']);
-		for (const [key, annotation] of Object.entries(annotations)) {
-			if (!sectionKeys.has(key)) {
-				note(`${id}@${version} annotation "${key}": not a section.`);
-				continue;
-			}
-			if (!annotation.question || annotation.question.trim().length === 0) {
-				note(`${id}@${version} annotation "${key}": has no question.`);
-			}
-			// Guidance is optional, but an empty prompt renders as an empty bullet a
-			// member is asked to answer.
+		for (const [locale, text] of Object.entries(section.i18n ?? {})) {
 			for (const field of ['prompts', 'examples']) {
-				const value = annotation[field];
+				const value = text?.[field];
 				if (value === undefined) continue;
 				if (
 					!Array.isArray(value) ||
 					value.some((entry) => typeof entry !== 'string' || entry.trim().length === 0)
 				) {
-					note(`${id}@${version} annotation "${key}": ${field} must be a list of non-empty text.`);
+					note(`${where} (${locale}): ${field} must be a list of non-empty text.`);
 				}
 			}
-			if (!efforts.has(annotation.effort)) {
-				note(`${id}@${version} annotation "${key}": unknown effort "${annotation.effort}".`);
+		}
+	}
+
+	// --- 4. Compass's annotations -------------------------------------------
+	//
+	// Effort and ordering edges only — the tool's opinion about planning. A
+	// broken annotation is worse than none: a Path item pointing at a section
+	// that does not exist, or an ordering edge into nothing. And a question
+	// written here would never be shown, so it is refused rather than ignored.
+	const annotationsFile = join(STANDARD_DIR, id, version, 'annotations.yaml');
+	const annotations = existsSync(annotationsFile)
+		? ((yaml.load(readFileSync(annotationsFile, 'utf8')) ?? {}).sections ?? {})
+		: {};
+	{
+		const efforts = new Set(['one_conversation', 'one_meeting', 'a_series']);
+		const fields = new Set(['effort', 'dependsOn']);
+		for (const [key, annotation] of Object.entries(annotations)) {
+			if (!sectionKeys.has(key)) {
+				note(`${id}@${version} annotation "${key}": not a section.`);
+				continue;
 			}
-			for (const dependency of annotation.dependsOn ?? []) {
+			for (const field of Object.keys(annotation ?? {})) {
+				if (!fields.has(field)) {
+					note(
+						`${id}@${version} annotation "${key}": "${field}" is not an annotation field — ` +
+							'questions, prompts and examples are published upstream in sections.yaml.'
+					);
+				}
+			}
+			if (!efforts.has(annotation?.effort)) {
+				note(`${id}@${version} annotation "${key}": unknown effort "${annotation?.effort}".`);
+			}
+			for (const dependency of annotation?.dependsOn ?? []) {
 				if (!sectionKeys.has(dependency)) {
 					note(
 						`${id}@${version} annotation "${key}": depends on "${dependency}", which is not a section.`
