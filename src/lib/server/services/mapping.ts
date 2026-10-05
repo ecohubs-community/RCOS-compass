@@ -95,9 +95,9 @@ const SENTENCE = {
 
 /**
  * The requirement list a model is shown: a reference, and the plain-language
- * question the standard's own annotation attaches to the section that answers
- * it. Never the clause text — it is long, legalistic, and the question is what
- * a passage actually resembles.
+ * question the standard publishes for the section that answers it — in
+ * English, like the rest of the prompt. Never the clause text — it is long,
+ * legalistic, and the question is what a passage actually resembles.
  */
 function requirementsFor(standard: NonNullable<ReturnType<typeof activeStandardView>>) {
 	return standard.view
@@ -107,7 +107,7 @@ function requirementsFor(standard: NonNullable<ReturnType<typeof activeStandardV
 			key: clause.key,
 			ref: clause.ref,
 			asks:
-				standard.view.annotation(clause.owner!)?.question ??
+				standard.view.guidance(clause.owner!, 'en')?.question ??
 				standard.view.localise(standard.view.section(clause.owner!)!.i18n, 'en').value.title
 		}));
 }

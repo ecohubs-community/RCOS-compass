@@ -50,11 +50,15 @@ tRPC/GraphQL (SvelteKit's own boundary is the API), a CSS-in-JS layer, Redis
 openspec/                    proposals + capability specs (source of truth for behaviour)
 docs/                        these documents
 standard/                    RCOS as data — YAML, versioned (UI spec §8, docs/09)
-  rcos-core/0.1/             clauses.yaml, sections.yaml, artifacts.yaml, glossary.yaml
+  rcos-core/0.1/             clauses, sections, artifacts, glossary, meta, specSections (.yaml) and
+                             schema.json — vendored byte for byte; sections carry the Path
+                             question, prompts and examples per locale
+    annotations.yaml         Compass's own, outside the manifest: effort and dependency edges
   rcos-module-*/<version>/   same shape — post-MVP content, MVP-ready loader
   upstream-manifest.json     sha256 per vendored file; `pnpm check:standard` holds the copy to it
   migrations/                core-0.1-to-0.2.yaml … — NOT BUILT: comes with P8 (post-MVP)
-  schema.json                NOT BUILT: CI checks hashes and the one-owner invariant instead
+  schema.json                NOT BUILT here: upstream publishes one per version (vendored, unused);
+                             CI checks hashes and the one-owner invariant instead
 src/
   lib/
     server/                  NEVER importable from a .svelte file

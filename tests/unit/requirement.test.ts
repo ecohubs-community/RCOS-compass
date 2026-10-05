@@ -38,7 +38,7 @@ describe('requirementFor', () => {
 			expect.objectContaining({
 				sectionKey: 'exit-protocol.forced-exit',
 				refs: ['3.6.3'],
-				question: view.annotation('exit-protocol.forced-exit')!.question
+				question: view.guidance('exit-protocol.forced-exit', 'en')!.question!
 			}),
 			expect.objectContaining({
 				sectionKey: 'exit-protocol.suspension',
@@ -74,6 +74,13 @@ describe('requirementFor', () => {
 	it('quotes the standard in the community’s language', () => {
 		const shown = requirementFor(view, 'exit-protocol.voluntary-exit', 'de')!;
 		expect(shown.title).toBe('Freiwilliger Austritt');
+		// The sibling's question too, not only its title.
+		expect(shown.notHere[0]!.question).toBe(
+			view.guidance('exit-protocol.forced-exit', 'de')!.question
+		);
+		expect(shown.notHere[0]!.question).not.toBe(
+			view.guidance('exit-protocol.forced-exit', 'en')!.question
+		);
 		expect(shown.clauses[0]!.body).toBe('Freiwilliger Austritt MUSS jederzeit möglich sein.');
 	});
 
@@ -100,7 +107,7 @@ describe('clause references', () => {
 describe('guideFor', () => {
 	it('gives the sub-questions, the Compass example, then the template hints', () => {
 		const guide = guideFor(view, 'exit-protocol.voluntary-exit', 'en')!;
-		expect(guide.prompts).toEqual(view.annotation('exit-protocol.voluntary-exit')!.prompts);
+		expect(guide.prompts).toEqual(view.guidance('exit-protocol.voluntary-exit', 'en')!.prompts);
 		expect(guide.prompts.length).toBeGreaterThan(0);
 		expect(guide.examples[0]).toEqual({
 			text: expect.stringMatching(/^Any member can leave the community at any time/),
@@ -120,6 +127,16 @@ describe('guideFor', () => {
 		// "e.g. Full Members (collective)", "e.g. Membership Admin", "e.g. Finance Steward"
 		expect(guide.examples.filter((e) => e.source === 'template')).toEqual([]);
 		expect(guide.prompts.at(-1)).toMatch(/temporary or emergency authority/);
+	});
+
+	it('gives the sub-questions and examples in the community’s language', () => {
+		const guide = guideFor(view, 'exit-protocol.voluntary-exit', 'de')!;
+		const german = view.guidance('exit-protocol.voluntary-exit', 'de')!;
+		expect(guide.prompts).toEqual(german.prompts);
+		expect(guide.prompts).not.toEqual(
+			guideFor(view, 'exit-protocol.voluntary-exit', 'en')!.prompts
+		);
+		expect(guide.examples[0]).toEqual({ text: german.examples[0], source: 'compass' });
 	});
 
 	it('shows the template hints in the community’s language', () => {

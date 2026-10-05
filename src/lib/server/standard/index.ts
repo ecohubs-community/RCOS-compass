@@ -9,6 +9,7 @@ import type {
 	Locale,
 	Localised,
 	Section,
+	SectionGuidance,
 	Standard,
 	StandardId,
 	StandardMeta,
@@ -151,7 +152,7 @@ export class StandardView {
 		return this.standard.glossary;
 	}
 
-	/** Compass's plain-language question, effort tag and ordering edges. */
+	/** Compass's effort tag and ordering edges for a section. */
 	annotation(sectionKey: string): Annotation | undefined {
 		return this.standard.annotations[sectionKey];
 	}
@@ -277,6 +278,29 @@ export class StandardView {
 
 	clauseText(clause: Clause, locale: Locale): Localised<string> {
 		return this.localise(clause.i18n, locale);
+	}
+
+	/**
+	 * The question, sub-questions and examples RCOS publishes for a section, in
+	 * the community's language.
+	 *
+	 * Each field falls back to the default locale on its own rather than with
+	 * the whole entry, as `localise` does: a translation can carry its title and
+	 * not yet its guidance, and an English question beats a German heading where
+	 * a question belongs. Undefined only for a section the standard does not
+	 * have.
+	 */
+	guidance(sectionKey: string, locale: Locale): SectionGuidance | undefined {
+		const section = this.#sectionsByKey.get(sectionKey);
+		if (!section) return undefined;
+		const wanted = section.i18n[locale];
+		const fallback = section.i18n[this.meta.defaultLocale];
+		const question = [wanted?.question, fallback?.question].find(
+			(text): text is string => typeof text === 'string' && text.trim().length > 0
+		);
+		const list = (field: 'prompts' | 'examples') =>
+			[wanted?.[field], fallback?.[field]].find((entries) => (entries?.length ?? 0) > 0) ?? [];
+		return { question: question ?? null, prompts: list('prompts'), examples: list('examples') };
 	}
 }
 
