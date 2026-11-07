@@ -93,17 +93,20 @@
 								{:else}
 									<span class="text-fg min-w-0 flex-1 font-medium">{section.title}</span>
 								{/if}
-								{#if section.counted}
+								{#if section.counted || section.optional}
 									<StatusChip status={section.status} />
 									{#if section.provisional}<StatusChip modifier="provisional" />{/if}
 									{#if section.restricted}
 										<span class="text-fg-muted text-meta">{m.artifact_restricted()}</span>
 									{/if}
+									{#if section.optional}
+										<span class="text-fg-muted text-meta">{m.section_optional()}</span>
+									{/if}
 								{:else}
 									<span class="text-fg-muted text-meta">{m.artifact_not_counted()}</span>
 								{/if}
 							</div>
-							{#if section.counted}
+							{#if section.counted || section.optional}
 								<p class="text-fg-secondary text-meta mt-1">{section.question}</p>
 							{/if}
 							{#if section.refs.length > 0}
@@ -114,7 +117,7 @@
 									/>
 								</p>
 							{/if}
-							{#if section.counted && section.status === 'not_started' && data.can.discuss}
+							{#if (section.counted || section.optional) && section.status === 'not_started' && data.can.discuss}
 								<!-- eslint-disable svelte/no-navigation-without-resolve -- `links.startDiscussion` is a `resolve` with a query appended. -->
 								<a
 									href={links.startDiscussion(

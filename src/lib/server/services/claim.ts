@@ -75,7 +75,7 @@ export function outwardClaim(reader: Reader, options: { db?: Db } = {}): Outward
 	const missing = view
 		.mandatoryArtifacts()
 		.filter((artifact) =>
-			view.authoredSectionsOf(artifact.key).some((section) => !answered.has(section.key))
+			view.requiredSectionsOf(artifact.key).some((section) => !answered.has(section.key))
 		)
 		.map((artifact) => ({
 			artifactKey: artifact.key,

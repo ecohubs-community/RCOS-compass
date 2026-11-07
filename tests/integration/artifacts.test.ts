@@ -28,6 +28,7 @@ import { makeCommunity, makeMembership, makeUser } from '../support/factories.js
 const NOW = Date.UTC(2026, 9, 2, 12, 0, 0);
 const CHARTER = 'purpose-charter';
 const PRIMARY = 'purpose-charter.primary-purpose';
+const NON_GOALS = 'purpose-charter.non-goals-and-exclusions';
 
 let db: Db;
 let cleanup: () => void;
@@ -95,11 +96,18 @@ const decisions = () => db.select().from(decision).all();
 describe('the artifact page', () => {
 	it('lists every section, counts only those a community writes, and names what is missing', () => {
 		const detail = artifactDetail(memberCtx, CHARTER, { db });
-		expect(detail).toMatchObject({ answered: 0, authored: 4, percent: 0, complete: false });
+		expect(detail).toMatchObject({ answered: 0, authored: 3, percent: 0, complete: false });
 		expect(
 			detail.sections.find((s) => s.key === 'purpose-charter.ratification-record')
-		).toMatchObject({ counted: false });
-		expect(detail.blockers.filter((b) => b.kind === 'missing')).toHaveLength(4);
+		).toMatchObject({ counted: false, optional: false });
+		// Listed and writable, but RCOS-Core does not require it: never a gap.
+		expect(detail.sections.find((s) => s.key === NON_GOALS)).toMatchObject({
+			counted: false,
+			optional: true,
+			status: 'not_started'
+		});
+		expect(detail.blockers.filter((b) => b.kind === 'missing')).toHaveLength(3);
+		expect(detail.blockers.map((b) => b.sectionKey)).not.toContain(NON_GOALS);
 		expect(detail.publication).toBe('nothing_adopted');
 	});
 
@@ -108,7 +116,7 @@ describe('the artifact page', () => {
 		const detail = artifactDetail(ctx, CHARTER, { db });
 		const progress = artifactProgress(ctx, CHARTER, { db });
 		expect([detail.answered, detail.authored]).toEqual([progress.answered, progress.authored]);
-		expect(detail.percent).toBe(25);
+		expect(detail.percent).toBe(33);
 		expect(detail.sections.find((s) => s.key === PRIMARY)).toMatchObject({ status: 'adopted' });
 		// Adopted before the Decision Matrix: provisional, which costs compliance.
 		expect(detail.blockers).toContainEqual(
@@ -130,7 +138,17 @@ describe('the artifact page', () => {
 		);
 		const detail = artifactDetail(ctx, CHARTER, { db });
 		expect(detail.local.map((l) => l.title)).toEqual(['Why we garden']);
-		expect([detail.answered, detail.authored]).toEqual([1, 4]);
+		expect([detail.answered, detail.authored]).toEqual([1, 3]);
+	});
+
+	it('adopts an optional section without moving the count', () => {
+		adoptSection(NON_GOALS);
+		const detail = artifactDetail(ctx, CHARTER, { db });
+		expect([detail.answered, detail.authored]).toEqual([0, 3]);
+		expect(detail.sections.find((s) => s.key === NON_GOALS)).toMatchObject({
+			status: 'adopted',
+			optional: true
+		});
 	});
 
 	it('names a Layer 0 rule hidden from members as a blocker, and hides it from a member', () => {

@@ -312,8 +312,8 @@ conflict check compares against.
 ## 3b. Artifact completeness with local content
 
 ```
-artifact_complete(a) := every AUTHORED section of a with scope='standard'
-                        has an adopted definition
+artifact_complete(a) := every AUTHORED, non-OPTIONAL section of a with
+                        scope='standard' has an adopted definition
 ```
 
 **Authored** is the section disposition the standard data carries
@@ -330,9 +330,23 @@ put that much busywork between a community and compliance:
 - **1 `derived`** — the Role Registry's summary table, generated from the roles
   defined below it.
 
-An artifact with no authored section at all would be complete on creation, which
-would read as work that never happened; `scripts/check-standard.mjs` refuses that
-shape.
+**Optional** is a flag on an authored section, published upstream with the rest
+of the section data: a community may write it, but RCOS-Core does not ask for it.
+In 0.1 there is one, the Purpose Charter's *Non-Goals and Exclusions* — the
+section follows the non-normative example in Appendix B, and no clause requires
+it. It is written, discussed, adopted, rendered and published like any other
+authored section, and it is never counted: not in completeness, not in the
+claim, not in the self-audit, not on the Path, and not as the decision a
+Ratification Record cites. Counting it would make a community write "none" to
+satisfy Compass rather than the standard. An optional section may own no MUST
+clause — skipping it would leave an obligation open — and both upstream and
+`check:standard` refuse one that does. That is why *Secondary Purposes* is not
+optional, although its template says to remove it when there are none: it owns
+2.1.4, whose "MUST NOT conflict with the primary purpose" makes it a MUST.
+
+An artifact with no required authored section at all would be complete on
+creation, which would read as work that never happened;
+`scripts/check-standard.mjs` refuses that shape.
 
 Local definitions attached to an RCOS artifact are rendered under it and are
 **excluded from its completeness computation and its percentage**. They can

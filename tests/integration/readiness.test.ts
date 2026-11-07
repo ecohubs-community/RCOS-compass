@@ -352,6 +352,20 @@ describe('the outward claim is binary', () => {
 
 		expect(compliance(ctx, { db })!.compliant).toBe(true);
 	});
+
+	it('is true without the optional sections, which RCOS-Core does not require', () => {
+		// Every required section answered; the Purpose Charter's Non-Goals left out.
+		for (const artifact of core.mandatoryArtifacts()) {
+			for (const section of core.requiredSectionsOf(artifact.key)) {
+				db.insert(definition).values(standardDefinitionRow(section.key)).run();
+			}
+		}
+
+		const charter = artifactProgress(ctx, 'purpose-charter', { db });
+		expect(charter.complete).toBe(true);
+		expect(charter.missing).toEqual([]);
+		expect(compliance(ctx, { db })!.compliant).toBe(true);
+	});
 });
 
 describe('a module is never summed into core', () => {

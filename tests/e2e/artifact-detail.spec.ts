@@ -14,17 +14,20 @@ test.describe('an artifact has a page', () => {
 		await signIn(page, email, password);
 
 		await visit(page, `/c/${slug}/artifacts`);
-		await expect(page.locator('main')).toContainText('0 of 4 sections · 0%');
+		await expect(page.locator('main')).toContainText('0 of 3 sections · 0%');
 		await expect(page.locator('main')).not.toContainText('% compliant');
 
 		await visit(page, `/c/${slug}/artifacts/purpose-charter`);
 		await expect(page.getByRole('heading', { level: 1, name: 'Purpose Charter' })).toBeVisible();
-		await expect(page.getByText('0 of 4 sections answered · 0%')).toBeVisible();
+		await expect(page.getByText('0 of 3 sections answered · 0%')).toBeVisible();
 		const blockers = page.getByRole('region', { name: 'What stands in the way' });
 		await expect(blockers.getByText('Primary Purpose')).toBeVisible();
 		await expect(page.locator('main')).not.toContainText('% compliant');
 		// A Ratification Record is listed, and not counted.
 		await expect(page.getByText('Written from a decision — not counted')).toBeVisible();
+		// Non-Goals is listed, writable and not counted: RCOS-Core does not require it.
+		await expect(page.getByText('Optional — not counted')).toBeVisible();
+		await expect(blockers.getByText('Non-Goals and Exclusions')).toHaveCount(0);
 
 		const scan = await new AxeBuilder({ page })
 			.withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'])
@@ -42,7 +45,7 @@ test.describe('an artifact has a page', () => {
 		await expect(page).toHaveURL(/\/d\/DEC-/);
 
 		await visit(page, `/c/${fixture.slug}/artifacts/purpose-charter`);
-		await expect(page.getByText('1 of 4 sections answered · 25%')).toBeVisible();
+		await expect(page.getByText('1 of 3 sections answered · 33%')).toBeVisible();
 		const publication = page.getByRole('region', { name: 'Publication' });
 		await expect(publication).toContainText('Never published.');
 		await publication.getByRole('button', { name: 'Publish' }).click();

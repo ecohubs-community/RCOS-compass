@@ -214,12 +214,48 @@ describe('what a section is, not only what it says', () => {
 	});
 
 	it('keeps the one authored section that answers nothing, on purpose', () => {
-		// Its clauses moved to the Change Protocol, so it is written and counts
-		// toward nothing. Recorded rather than inferred from silence.
+		// Its clauses moved to the Change Protocol, so it cites 8.3.4 and owns
+		// nothing. Recorded rather than inferred from silence.
 		const section = view.section('experiment-template.expiry-and-renewal')!;
 		expect(section.disposition).toBe('authored');
-		expect(section.clauseRefs).toEqual([]);
+		expect(section.clauseRefs).toEqual(['8.3.4']);
 		expect(section.ownsClauses).toEqual([]);
+	});
+});
+
+describe('optional sections', () => {
+	const NON_GOALS = 'purpose-charter.non-goals-and-exclusions';
+
+	it('says of every section whether it is optional', () => {
+		for (const section of view.sections) {
+			expect(typeof section.optional, `${section.key}`).toBe('boolean');
+		}
+	});
+
+	it('marks only Non-Goals optional: nothing in RCOS-Core requires it', () => {
+		expect(view.sections.filter((s) => s.optional).map((s) => s.key)).toEqual([NON_GOALS]);
+		const section = view.section(NON_GOALS)!;
+		expect(section.disposition).toBe('authored');
+		expect(section.dispositionNote).toContain('No RCOS-Core clause requires non-goals');
+	});
+
+	it('still lets a community write it, but never requires it', () => {
+		expect(view.authoredSectionsOf('purpose-charter').map((s) => s.key)).toContain(NON_GOALS);
+		expect(view.requiredSectionsOf('purpose-charter').map((s) => s.key)).toEqual([
+			'purpose-charter.primary-purpose',
+			'purpose-charter.secondary-purposes',
+			'purpose-charter.conditions-for-purpose-change'
+		]);
+		expect(view.requiredSections()).toHaveLength(93);
+		expect(view.counts()).toMatchObject({ authoredSections: 94, requiredSections: 93 });
+	});
+
+	it('never owns a MUST clause, so skipping one leaves no obligation open', () => {
+		for (const section of view.sections.filter((s) => s.optional)) {
+			for (const ref of section.ownsClauses) {
+				expect(view.clauseByRef(ref)!.normativity, `${section.key} owns ${ref}`).not.toBe('MUST');
+			}
+		}
 	});
 });
 
@@ -329,6 +365,27 @@ describe('the vendored copy is pinned to its source', () => {
 			// It trips the hash check too, which is correct — but the section
 			// invariant is the one being proved here.
 			expect(output).toContain('only an authored section can answer one');
+		} finally {
+			writeFileSync(file, original);
+		}
+	});
+
+	it('fails when an optional section owns a MUST clause', () => {
+		// Secondary Purposes is the real near-miss: its template says "remove it if
+		// you have none", but it owns 2.1.4, a MUST.
+		const file = join(standardRoot, 'rcos-core', '0.1', 'sections.yaml');
+		const original = readFileSync(file, 'utf8');
+		const sections = yaml.load(original) as { key: string; optional: boolean }[];
+		sections.find((x) => x.key === 'purpose-charter.secondary-purposes')!.optional = true;
+		writeFileSync(file, yaml.dump(sections, { lineWidth: 100, noRefs: true, sortKeys: false }));
+		try {
+			run();
+			expect.unreachable('the optional-section check should have failed');
+		} catch (error) {
+			const output = String((error as { stdout?: string; stderr?: string }).stderr ?? '');
+			expect(output).toContain(
+				'purpose-charter.secondary-purposes: optional, but it owns MUST clause(s) 2.1.4'
+			);
 		} finally {
 			writeFileSync(file, original);
 		}

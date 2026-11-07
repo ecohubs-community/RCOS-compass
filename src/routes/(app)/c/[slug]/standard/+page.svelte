@@ -108,6 +108,9 @@
 								>{:else}no clause{/each}
 						</span>
 						<StatusChip status={section.status} />
+						{#if section.optional}
+							<span class="text-fg-muted text-meta">{m.section_optional()}</span>
+						{/if}
 						{#if section.rediscussed}
 							<span class="text-fg-muted text-meta">{m.definition_rediscussed()}</span>
 						{/if}

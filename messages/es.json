@@ -478,6 +478,7 @@
 	"artifact_completeness": "{answered} de {authored} secciones respondidas · {percent} %",
 	"artifact_progress_note": "Progreso, no cumplimiento — el cumplimiento es sí o no, en todos los artefactos obligatorios.",
 	"artifact_not_counted": "Escrito a partir de una decisión — no cuenta",
+	"section_optional": "Opcional — no cuenta",
 	"artifact_no_definition": "Aún sin definición",
 	"artifact_start": "Empezar",
 	"artifact_restricted": "Restringida",

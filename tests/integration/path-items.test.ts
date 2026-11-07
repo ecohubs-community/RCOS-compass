@@ -14,6 +14,7 @@ import {
 	openDiscussion,
 	threadRequirement
 } from '../../src/lib/server/services/discussions.js';
+import { artifactProgress } from '../../src/lib/server/services/completeness.js';
 import { path } from '../../src/lib/server/services/path.js';
 import { readiness } from '../../src/lib/server/services/readiness.js';
 import { getStandard } from '../../src/lib/server/standard/index.js';
@@ -37,6 +38,8 @@ const VOLUNTARY = 'exit-protocol.voluntary-exit';
 const FORCED = 'exit-protocol.forced-exit';
 const SEPARATION = 'exit-protocol.asset-role-and-responsibility-separation';
 const NON_GOALS = 'purpose-charter.non-goals-and-exclusions';
+// Cites §3.6.3 and owns nothing: Forced Exit answers it.
+const DUE_PROCESS = 'membership-agreement.due-process-reference';
 const PRIMARY = 'purpose-charter.primary-purpose';
 const keyOf = (ref: string) => view.clauseByRef(ref)!.key;
 
@@ -114,16 +117,19 @@ describe('what a Path item cites', () => {
 	});
 
 	it('cites what a section owning no countable clause relies on, as related', () => {
-		expect(item(NON_GOALS)!.cites).toEqual([{ key: keyOf('2.1.5'), ref: '2.1.5', owned: false }]);
+		expect(item(DUE_PROCESS)!.cites).toEqual([{ key: keyOf('3.6.3'), ref: '3.6.3', owned: false }]);
 	});
 
-	it('gives every one of the 94 items somewhere to start', () => {
+	it('gives every one of the 93 items somewhere to start', () => {
 		const all = path(ctx, { db });
-		expect(all).toHaveLength(view.meta.counts?.authoredSections ?? 94);
+		// Every required section: the 94 a community writes, less Non-Goals, which
+		// RCOS-Core does not require.
+		expect(all).toHaveLength(view.requiredSections().length);
+		expect(all).toHaveLength(93);
 		for (const entry of all) expect(entry.start.sectionKey).toBe(entry.sectionKey);
-		// The 28 that used to fall through to a blank form, and the two whose only
-		// clause (2.5.2, 3.8.2) became the platform's when it was re-vendored.
-		expect(all.filter((entry) => entry.start.clauseKey === null)).toHaveLength(30);
+		// The sections that own no clause (two of them, 2.5.2 and 3.8.2, became the
+		// platform's when it was re-vendored), and so start on the section alone.
+		expect(all.filter((entry) => entry.start.clauseKey === null)).toHaveLength(29);
 		expect(item(VOLUNTARY)!.start).toEqual({ sectionKey: VOLUNTARY, clauseKey: keyOf('3.6.1') });
 	});
 });
@@ -208,12 +214,35 @@ describe('starting a discussion on a section', () => {
 	it('is not reachable from another community', () => {
 		const thread = openDiscussion(
 			ctx,
-			{ title: 'Not us', about: { kind: 'section', sectionKey: NON_GOALS } },
+			{ title: 'Not us', about: { kind: 'section', sectionKey: DUE_PROCESS } },
 			{ db }
 		);
 		const other = seedCommunity('rio-claro');
 		expect(catchRefusal(() => getDiscussion(other, thread.id, { db }))?.status).toBe(404);
-		expect(item(NON_GOALS, other)!.discussionId).toBeNull();
+		expect(item(DUE_PROCESS, other)!.discussionId).toBeNull();
+	});
+});
+
+describe('an optional section', () => {
+	it('is never a Path item, answered or not', () => {
+		expect(item(NON_GOALS)).toBeUndefined();
+	});
+
+	it('can still be discussed and adopted, and moves neither readiness nor completeness', () => {
+		const before = readiness({ ...ctx }, { db })!;
+		const charter = artifactProgress(ctx, 'purpose-charter', { db });
+		const thread = openDiscussion(
+			ctx,
+			{ title: 'What we are not', about: { kind: 'section', sectionKey: NON_GOALS } },
+			{ db }
+		);
+		freezeWith(ctx, thread.id);
+
+		const adopted = db.select().from(definition).all();
+		expect(adopted.map((row) => row.sectionKey)).toEqual([NON_GOALS]);
+		expect(adopted[0]!.adoptedVersionId).not.toBeNull();
+		expect(readiness({ ...ctx }, { db })!.satisfied).toBe(before.satisfied);
+		expect(artifactProgress(ctx, 'purpose-charter', { db })).toEqual(charter);
 	});
 });
 
@@ -222,21 +251,21 @@ describe('freezing a section that owns no countable clause', () => {
 		const before = readiness({ ...ctx }, { db })!;
 		const thread = openDiscussion(
 			ctx,
-			{ title: 'Not us', about: { kind: 'section', sectionKey: NON_GOALS } },
+			{ title: 'Not us', about: { kind: 'section', sectionKey: DUE_PROCESS } },
 			{ db }
 		);
 		const recorded = freezeWith(ctx, thread.id);
 
 		const adopted = db.select().from(definition).all();
 		expect(adopted).toHaveLength(1);
-		expect(adopted[0]!.sectionKey).toBe(NON_GOALS);
+		expect(adopted[0]!.sectionKey).toBe(DUE_PROCESS);
 		expect(adopted[0]!.adoptedVersionId).not.toBeNull();
-		expect(adopted[0]!.layer).toBe(0);
+		expect(adopted[0]!.layer).toBe(1);
 		expect(
 			db.select().from(decisionClause).where(eq(decisionClause.decisionId, recorded.id)).all()
 		).toHaveLength(0);
 
-		expect(item(NON_GOALS)).toBeUndefined();
+		expect(item(DUE_PROCESS)).toBeUndefined();
 		expect(item(PRIMARY)).toBeDefined();
 		expect(readiness({ ...ctx }, { db })!.satisfied).toBe(before.satisfied);
 	});
@@ -285,10 +314,10 @@ describe('which item an open discussion belongs to', () => {
 	it('is found for a section that owns no clause', () => {
 		const thread = openDiscussion(
 			ctx,
-			{ title: 'Not us', about: { kind: 'section', sectionKey: NON_GOALS } },
+			{ title: 'Due process', about: { kind: 'section', sectionKey: DUE_PROCESS } },
 			{ db }
 		);
-		expect(item(NON_GOALS)!.discussionId).toBe(thread.id);
+		expect(item(DUE_PROCESS)!.discussionId).toBe(thread.id);
 		expect(item(PRIMARY)!.discussionId).toBeNull();
 	});
 

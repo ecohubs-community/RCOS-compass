@@ -225,6 +225,25 @@ export class StandardView {
 	}
 
 	/**
+	 * The authored sections the standard requires — everything a community can
+	 * write except the optional ones.
+	 *
+	 * Completeness, the claim, the self-audit and the Path read this, not
+	 * `authoredSections`: counting a section RCOS-Core does not ask for would make
+	 * a community write "none" to satisfy the tool rather than the standard.
+	 * Writing, discussing, rendering and publishing still read `authoredSections`,
+	 * because an optional section is written like any other.
+	 */
+	requiredSections(): Section[] {
+		return this.authoredSections().filter((s) => !s.optional);
+	}
+
+	/** The required sections of one artifact, in document order. */
+	requiredSectionsOf(artifactKey: string): Section[] {
+		return this.authoredSectionsOf(artifactKey).filter((s) => !s.optional);
+	}
+
+	/**
 	 * The Ratification Records, which the platform fills from the decision that
 	 * adopted each artifact. Exposed so the freeze path can find them by artifact
 	 * rather than by matching on a key suffix.
@@ -248,6 +267,7 @@ export class StandardView {
 			mandatoryArtifacts: this.mandatoryArtifacts().length,
 			sections: this.standard.sections.length,
 			authoredSections: this.authoredSections().length,
+			requiredSections: this.requiredSections().length,
 			glossary: this.standard.glossary.length
 		};
 	}

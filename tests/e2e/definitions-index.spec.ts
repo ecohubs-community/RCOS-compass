@@ -171,7 +171,7 @@ test.describe('the provenance exit flow', () => {
 
 		// Its artifact, as counts and what stands in the way.
 		await visit(member, `/c/${fixture.slug}/artifacts/purpose-charter`);
-		await expect(member.getByText('1 of 4 sections answered · 25%')).toBeVisible();
+		await expect(member.getByText('1 of 3 sections answered · 33%')).toBeVisible();
 		await expect(member.getByRole('region', { name: 'What stands in the way' })).toBeVisible();
 
 		// The member asks for v2 back; the steward grants it.

@@ -618,8 +618,9 @@ function clausesOwnedBy(
  * The decision that adopted an artifact — what a Ratification Record is rendered
  * from. docs/12, resolved 3 September 2026.
  *
- * It is the decision behind the *last* authored section to be answered: that is
- * the moment the artifact became complete. Returns null while it is not.
+ * It is the decision behind the *last* required section to be answered: that is
+ * the moment the artifact became complete. An optional section adopted later
+ * does not move it. Returns null while it is not.
  */
 export function ratificationRecord(
 	ctx: Ctx,
@@ -632,7 +633,7 @@ export function ratificationRecord(
 	const standard = activeStandardView(db, ctx);
 	if (!standard) return null;
 
-	const authored = standard.view.authoredSectionsOf(artifactKey).map((s) => s.key);
+	const authored = standard.view.requiredSectionsOf(artifactKey).map((s) => s.key);
 	if (authored.length === 0) return null;
 
 	// Restricted to *this artifact's* sections. Read across the whole community

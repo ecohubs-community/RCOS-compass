@@ -147,16 +147,32 @@ for (const { id, version } of manifest.standards ?? []) {
 					`${section.ownsClauses.length} clause(s) — only an authored section can answer one.`
 			);
 		}
+		// Optional means "written if the community wants to, never counted". Only
+		// an authored section can be that, and skipping it must never leave a MUST
+		// clause unanswered — or the claim could be made with an obligation open.
+		if (typeof section.optional !== 'boolean') {
+			note(`${where}: "optional" must be true or false.`);
+		} else if (section.optional) {
+			if (section.disposition !== 'authored') {
+				note(`${where}: optional, but "${section.disposition}" — only an authored section can be.`);
+			}
+			const musts = (section.ownsClauses ?? []).filter(
+				(ref) => clauses.find((c) => String(c.ref) === String(ref))?.normativity === 'MUST'
+			);
+			if (musts.length > 0) {
+				note(`${where}: optional, but it owns MUST clause(s) ${musts.join(', ')}.`);
+			}
+		}
 	}
 
 	// Every mandatory artifact must have something a community can actually
 	// write, or completing it would be a no-op that nonetheless reads as work.
 	for (const artifact of artifacts.filter((a) => a.mandatory)) {
-		const authored = sections.filter(
-			(s) => s.artifact === artifact.key && s.disposition === 'authored'
+		const required = sections.filter(
+			(s) => s.artifact === artifact.key && s.disposition === 'authored' && !s.optional
 		);
-		if (authored.length === 0) {
-			note(`${id}@${version} ${artifact.key}: mandatory, but no section is authored.`);
+		if (required.length === 0) {
+			note(`${id}@${version} ${artifact.key}: mandatory, but no required section is authored.`);
 		}
 	}
 
