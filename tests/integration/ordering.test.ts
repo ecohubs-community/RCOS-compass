@@ -73,7 +73,7 @@ describe('a community that has changed nothing sees no change', () => {
 	function p3Order() {
 		const answered = new Set<string>();
 		const items = view
-			.authoredSections()
+			.requiredSections()
 			.filter((section) => !answered.has(section.key))
 			.map((section) => ({
 				sectionKey: section.key,

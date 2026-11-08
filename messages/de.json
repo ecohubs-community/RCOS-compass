@@ -478,6 +478,7 @@
 	"artifact_completeness": "{answered} von {authored} Abschnitten beantwortet · {percent} %",
 	"artifact_progress_note": "Fortschritt, nicht Konformität — Konformität ist ja oder nein, über alle verpflichtenden Artefakte.",
 	"artifact_not_counted": "Aus einer Entscheidung geschrieben — nicht gezählt",
+	"section_optional": "Optional — wird nicht gezählt",
 	"artifact_no_definition": "Noch keine Definition",
 	"artifact_start": "Beginnen",
 	"artifact_restricted": "Eingeschränkt",

@@ -141,8 +141,10 @@ export function path(
 		getRiskProfile(ctx, { db })
 	);
 
+	// Required sections only: the Path is what a community still has to decide,
+	// and an optional section is never that. It stays writable from its artifact.
 	const items = standard.view
-		.authoredSections()
+		.requiredSections()
 		.filter((section) => !answered.has(section.key))
 		.map((section) => {
 			const annotation = standard.view.annotation(section.key);

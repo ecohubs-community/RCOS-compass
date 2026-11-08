@@ -86,7 +86,7 @@ export function runSelfAudit(ctx: Ctx, options: { db?: Db } = {}): SelfAudit {
 			key: artifact.key,
 			title: standard.view.localise(artifact.i18n, locale).value.title ?? artifact.key,
 			missing: standard.view
-				.authoredSectionsOf(artifact.key)
+				.requiredSectionsOf(artifact.key)
 				.filter((section) => !answered.has(section.key))
 				.map((section) => section.key)
 		}))

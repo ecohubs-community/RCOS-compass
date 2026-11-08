@@ -28,8 +28,13 @@ export type ArtifactSection = {
 	title: string;
 	question: string;
 	refs: string[];
-	/** Written by the community, and so counted. Records and summaries are listed, not counted. */
+	/**
+	 * Required and written by the community, and so counted. Records, summaries
+	 * and optional sections are listed, not counted.
+	 */
 	counted: boolean;
+	/** Written by the community if it wants to; never counted, never a blocker. */
+	optional: boolean;
 	definitionId: string | null;
 	status: DefinitionStatus;
 	provisional: boolean;
@@ -91,6 +96,7 @@ export function artifactDetail(ctx: Ctx, key: string, options: { db?: Db } = {})
 			.map((row) => [row.sectionKey, row])
 	);
 	const authoredKeys = new Set(view.authoredSectionsOf(key).map((section) => section.key));
+	const requiredKeys = new Set(view.requiredSectionsOf(key).map((section) => section.key));
 
 	const sections: ArtifactSection[] = view.sectionsOf(key).map((section) => {
 		const row = rows.get(section.key);
@@ -104,7 +110,8 @@ export function artifactDetail(ctx: Ctx, key: string, options: { db?: Db } = {})
 				.filter((clause) => clause.owner === section.key)
 				.map((clause) => clause.ref)
 				.sort(compareRefs),
-			counted: authoredKeys.has(section.key),
+			counted: requiredKeys.has(section.key),
+			optional: authoredKeys.has(section.key) && !requiredKeys.has(section.key),
 			definitionId: hidden ? null : (row?.id ?? null),
 			status: statuses.get(section.key)?.status ?? 'not_started',
 			provisional: row?.provisional ?? false,

@@ -71,6 +71,13 @@ export type Section = {
 	ownsClauses: string[];
 	disposition: SectionDisposition;
 	dispositionNote?: string | null;
+	/**
+	 * An authored section RCOS-Core does not require (the Purpose Charter's
+	 * Non-Goals). A community may write it; it never counts toward completeness,
+	 * never blocks the claim and never appears on the Path. Upstream refuses an
+	 * optional section that owns a MUST clause, and check:standard does too.
+	 */
+	optional: boolean;
 	i18n: Record<
 		Locale,
 		{

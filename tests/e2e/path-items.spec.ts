@@ -9,11 +9,11 @@ import { seed, signIn, visit } from './support.js';
  * thread opens that text in a sheet rather than sending its reader away.
  *
  * The refs are the standard's own (Voluntary Exit owns §3.6.1, §3.6.2, §3.6.4;
- * Non-Goals owns nothing and relies on §2.1.5), written down because the point
+ * Due Process Reference owns nothing and relies on §3.6.3), written down because the point
  * of the test is that those particular numbers reach the screen.
  */
 
-const NON_GOALS = /What are we deliberately not/;
+const DUE_PROCESS = /What protects a member when the community turns against them/;
 const VOLUNTARY = /How can someone leave whenever they choose/;
 
 const pathItem = (page: Page, question: RegExp) =>
@@ -30,23 +30,23 @@ test.describe('a Path item', () => {
 		await signIn(page, email, password);
 
 		await visit(page, `/c/${slug}/path?all=1`);
-		const item = pathItem(page, NON_GOALS);
+		const item = pathItem(page, DUE_PROCESS);
 		// The clause it relies on, said to be related rather than answered.
 		await expect(item).toContainText('related');
-		await expect(item.getByRole('link', { name: '§2.1.5' })).toHaveAttribute(
+		await expect(item.getByRole('link', { name: '§3.6.3' })).toHaveAttribute(
 			'href',
-			`/c/${slug}/standard#clause-2.1.5`
+			`/c/${slug}/standard#clause-3.6.3`
 		);
 
 		await item.getByRole('link', { name: 'Start discussion' }).click();
-		await expect(page.getByLabel('Start a discussion')).toHaveValue(NON_GOALS);
+		await expect(page.getByLabel('Start a discussion')).toHaveValue(DUE_PROCESS);
 		await page.getByRole('button', { name: 'Start', exact: true }).click();
 		await expect(page).toHaveURL(new RegExp(`/c/${slug}/discussions/[^/?]+`));
-		await expect(page.getByRole('link', { name: '§2.1.5' })).toBeVisible();
+		await expect(page.getByRole('link', { name: '§3.6.3' })).toBeVisible();
 
 		await visit(page, `/c/${slug}/path?all=1`);
 		await expect(
-			pathItem(page, NON_GOALS).getByRole('link', { name: 'Open discussion' })
+			pathItem(page, DUE_PROCESS).getByRole('link', { name: 'Open discussion' })
 		).toBeVisible();
 	});
 

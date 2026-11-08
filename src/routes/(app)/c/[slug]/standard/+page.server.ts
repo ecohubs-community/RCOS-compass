@@ -70,13 +70,17 @@ export const load: PageServerLoad = ({ locals, url }) => {
 						// The one derived status, as the definition page and the index show it.
 						status: statuses.get(section.key)?.status ?? ('not_started' as const),
 						rediscussed: statuses.get(section.key)?.rediscussed ?? false,
-						provisional: definition?.provisional ?? false
+						provisional: definition?.provisional ?? false,
+						optional: section.optional
 					};
 				})
+				// An unanswered optional section is not a gap: nothing requires it.
 				.filter(
 					(section) =>
-						!gapsOnly || (section.status !== 'adopted' && section.status !== 'needs_review')
+						!gapsOnly ||
+						(!section.optional && section.status !== 'adopted' && section.status !== 'needs_review')
 				);
+			const required = authored.filter((section) => !section.optional);
 
 			return {
 				key: artifact.key,
@@ -86,8 +90,8 @@ export const load: PageServerLoad = ({ locals, url }) => {
 				sections,
 				// The platform fills these; they are shown as done, never as work.
 				filledByPlatform: standard.view.sectionsFilledFromDecision(artifact.key).length,
-				answered: authored.filter((section) => answered.has(section.key)).length,
-				authored: authored.length
+				answered: required.filter((section) => answered.has(section.key)).length,
+				authored: required.length
 			};
 		})
 		.filter((artifact) => artifact.sections.length > 0);

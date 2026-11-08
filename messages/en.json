@@ -1041,6 +1041,7 @@
 	"artifact_completeness": "{answered} of {authored} sections answered · {percent}%",
 	"artifact_progress_note": "Progress, not compliance — compliance is yes or no, across every mandatory artifact.",
 	"artifact_not_counted": "Written from a decision — not counted",
+	"section_optional": "Optional — not counted",
 	"artifact_no_definition": "No definition yet",
 	"artifact_start": "Start",
 	"artifact_restricted": "Restricted",

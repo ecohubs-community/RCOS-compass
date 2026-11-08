@@ -8,12 +8,14 @@ import { getStandard, type StandardView } from '../standard/index.js';
 /**
  * Which artifacts a community has finished. docs/03-data-model.md §3b.
  *
- * The rule the whole phase turns on: **completeness counts only authored
- * sections.** Of RCOS-Core 0.1's 118 sections, 94 are authored; the other 24 are
- * Ratification Records the platform fills, a generated summary table, and
- * specimen entries that recur per event. Counting them would put 24 pieces of
- * busywork between a community and compliance, and would make an artifact
- * incomplete for want of text nobody is ever asked to write.
+ * The rule the whole phase turns on: **completeness counts only required
+ * authored sections.** Of RCOS-Core 0.1's 118 sections, 94 are authored; the
+ * other 24 are Ratification Records the platform fills, a generated summary
+ * table, and specimen entries that recur per event. Counting them would put 24
+ * pieces of busywork between a community and compliance, and would make an
+ * artifact incomplete for want of text nobody is ever asked to write. One
+ * authored section is optional (the Purpose Charter's Non-Goals): written if
+ * the community wants to, never counted, for the same reason.
  *
  * Local definitions are outside this arithmetic entirely — they can neither
  * complete an artifact nor block one (§3a).
@@ -21,10 +23,12 @@ import { getStandard, type StandardView } from '../standard/index.js';
 
 export type ArtifactProgress = {
 	artifactKey: string;
+	/** Required authored sections — the denominator. Optional sections are not in it. */
 	authored: number;
+	/** Of those, the ones with an adopted version. */
 	answered: number;
 	complete: boolean;
-	/** The authored sections still without an adopted version. */
+	/** The required authored sections still without an adopted version. */
 	missing: string[];
 };
 
@@ -121,7 +125,7 @@ export function progressOf(
 	artifactKey: string,
 	answered: Set<string>
 ): ArtifactProgress {
-	const authored = standard.view.authoredSectionsOf(artifactKey);
+	const authored = standard.view.requiredSectionsOf(artifactKey);
 	const missing = authored.filter((section) => !answered.has(section.key)).map((s) => s.key);
 
 	return {
