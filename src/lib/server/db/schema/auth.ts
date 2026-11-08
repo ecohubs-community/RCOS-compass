@@ -93,8 +93,14 @@ export const account = sqliteTable(
 		userId: text('user_id')
 			.notNull()
 			.references(() => user.id, { onDelete: 'cascade' }),
-		/** Required by better-auth; identifies the credential's issuer. */
-		issuer: text('issuer').notNull(),
+		/**
+		 * Left over from better-auth 1.7.0–1.7.2, which wrote it; 1.7.3 onward never
+		 * does. The default keeps inserts working without a migration on this table,
+		 * using the value those versions wrote for a password account.
+		 */
+		issuer: text('issuer')
+			.notNull()
+			.$default(() => 'local:credential'),
 		accountId: text('account_id').notNull(),
 		providerId: text('provider_id').notNull(),
 		accessToken: text('access_token'),
