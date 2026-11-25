@@ -27,6 +27,10 @@ export type NotificationParams = {
 	'claim.withdrawn': Record<string, never>;
 	/** A member asked for an earlier version back. `actor` is their membership id. */
 	'proposal.move_requested': { title: string; actor: string; version: number };
+	/** Someone asked to join through the link. No name: that is on the Members page. */
+	'membership.join_requested': Record<string, never>;
+	/** The reader was let in through the join link. */
+	'membership.join_approved': Record<string, never>;
 	/** What became of the reader's own request. */
 	'proposal.move_answered': {
 		title: string;
@@ -38,7 +42,14 @@ export type NotificationParams = {
 export type NotificationKind = keyof NotificationParams;
 
 export type SubjectType =
-	'discussion' | 'decision' | 'definition' | 'export' | 'document' | 'community';
+	| 'discussion'
+	| 'decision'
+	| 'definition'
+	| 'export'
+	| 'document'
+	| 'community'
+	/** The community's Members page — subject id is the community's own id. */
+	| 'members';
 
 /** Every kind, for tests that must cover each one and for the digest's counts. */
 export const NOTIFICATION_KINDS = [
@@ -55,7 +66,9 @@ export const NOTIFICATION_KINDS = [
 	'membership.role_changed',
 	'claim.withdrawn',
 	'proposal.move_requested',
-	'proposal.move_answered'
+	'proposal.move_answered',
+	'membership.join_requested',
+	'membership.join_approved'
 ] as const satisfies readonly NotificationKind[];
 
 /**

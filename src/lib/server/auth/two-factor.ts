@@ -102,7 +102,7 @@ export async function removeEnrolment(
 }
 
 /** What the library returns once a challenge is answered. */
-export type ChallengeAccepted = { token?: string };
+export type ChallengeAccepted = { token?: string; user?: { id: string } };
 
 /** Answer the sign-in challenge with a code from the authenticator app. */
 export async function answerChallengeWithCode(

@@ -78,6 +78,33 @@ export function invitationMessage(to: string, communityName: string, url: string
 	};
 }
 
+/**
+ * A join request that a steward declined. `openspec/changes/pilot-blockers` D5.
+ *
+ * The person is not a member, so no notification can reach them; this is the
+ * only word they get. It names the community and nothing else — not who
+ * declined, not why — and carries no link, because there is nowhere in it for
+ * them to go.
+ */
+export function joinDeclinedMessage(to: string, communityName: string, locale: Locale): Message {
+	const options = { locale };
+	return {
+		to,
+		subject: m.mail_join_declined_subject({ community: communityName }, options),
+		text: [
+			m.mail_join_declined_body({ community: communityName }, options),
+			'',
+			`— ${SIGNATURE}`
+		].join('\n'),
+		kind: 'join-declined'
+	};
+}
+
+/** The link a join link points at. Built here so the shape has one owner. */
+export function joinLinkUrl(appUrl: string, token: string): string {
+	return new URL(`/join/${encodeURIComponent(token)}`, appUrl).toString();
+}
+
 /** The link an invited person follows. Built here so the shape has one owner. */
 export function invitationUrl(appUrl: string, slug: string, token: string): string {
 	const url = new URL(`/invitations/${encodeURIComponent(token)}`, appUrl);
@@ -106,6 +133,8 @@ export type ImmediateMail =
 	| { kind: 'membership.role_changed'; role: 'steward' | 'member' }
 	| { kind: 'claim.withdrawn' }
 	| { kind: 'proposal.move_requested' }
+	| { kind: 'membership.join_requested' }
+	| { kind: 'membership.join_approved' }
 	| { kind: 'removal' };
 
 /**
@@ -153,6 +182,16 @@ export function notificationMessage(input: {
 				return [
 					m.mail_move_requested_subject({ community }, options),
 					m.mail_move_requested_body({ community }, options)
+				];
+			case 'membership.join_requested':
+				return [
+					m.mail_join_requested_subject({ community }, options),
+					m.mail_join_requested_body({ community }, options)
+				];
+			case 'membership.join_approved':
+				return [
+					m.mail_join_approved_subject({ community }, options),
+					m.mail_join_approved_body({ community }, options)
 				];
 			case 'removal':
 				return [

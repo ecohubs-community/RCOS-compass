@@ -222,6 +222,67 @@ export const invitation = sqliteTable(
 );
 
 /**
+ * A community's shareable join link. `openspec/changes/pilot-blockers` D3.
+ *
+ * At most one per community; the row exists while the link is on. The token is
+ * looked up by hash, like an invitation's, and also kept sealed (`crypto/sealed`)
+ * because a steward copies the link again weeks later. A database copy alone
+ * opens neither: the hash cannot be followed and the seal needs the secret.
+ */
+export const communityJoinLink = sqliteTable(
+	'community_join_link',
+	{
+		id: text('id').primaryKey(),
+		communityId: text('community_id')
+			.notNull()
+			.references(() => community.id, { onDelete: 'cascade' }),
+		tokenHash: text('token_hash').notNull(),
+		/** `Sealed` as JSON: `{ generation, ciphertext }`. */
+		tokenSealed: text('token_sealed', { mode: 'json' }).notNull().$type<{
+			generation: number;
+			ciphertext: string;
+		}>(),
+		createdBy: text('created_by').references(() => user.id, { onDelete: 'set null' }),
+		createdAt: integer('created_at', { mode: 'timestamp_ms' }).notNull()
+	},
+	(table) => [
+		uniqueIndex('community_join_link_community_idx').on(table.communityId),
+		uniqueIndex('community_join_link_token_idx').on(table.tokenHash)
+	]
+);
+
+/**
+ * Someone who followed a join link and is waiting for a steward. D4.
+ *
+ * Not a membership and never one by itself: a steward lets them in (and the
+ * row is deleted as the membership is made) or declines (and it is deleted).
+ * Stewards see it only once the account's address is verified — derived from
+ * `user.email_verified`, never stored here. `notified_at` is when stewards were
+ * told, and is what makes telling them happen once.
+ */
+export const joinRequest = sqliteTable(
+	'join_request',
+	{
+		id: text('id').primaryKey(),
+		communityId: text('community_id')
+			.notNull()
+			.references(() => community.id, { onDelete: 'cascade' }),
+		userId: text('user_id')
+			.notNull()
+			.references(() => user.id, { onDelete: 'cascade' }),
+		createdAt: integer('created_at', { mode: 'timestamp_ms' }).notNull(),
+		notifiedAt: integer('notified_at', { mode: 'timestamp_ms' })
+	},
+	(table) => [
+		uniqueIndex('join_request_person_idx').on(table.communityId, table.userId),
+		index('join_request_user_idx').on(table.userId)
+	]
+);
+
+export type CommunityJoinLink = typeof communityJoinLink.$inferSelect;
+export type JoinRequest = typeof joinRequest.$inferSelect;
+
+/**
  * Append-only, platform-wide. Distinct from a community's own change log: this
  * records administrative and security events — sign-in failures, role changes,
  * exports, every admin action. docs/03-data-model.md §3.

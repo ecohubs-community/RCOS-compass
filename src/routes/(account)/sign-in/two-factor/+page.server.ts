@@ -9,7 +9,8 @@ import {
 } from '$lib/server/auth/two-factor';
 import { systemClock } from '$lib/server/clock';
 import { getDb } from '$lib/server/db';
-import { safeRedirectTarget } from '$lib/server/http/redirect-target';
+import { askedTarget } from '$lib/server/http/redirect-target';
+import { landingFor } from '$lib/server/services/tenancy';
 import { recordAudit } from '$lib/server/services/audit';
 import { backupCodeSchema, totpCodeSchema } from '$lib/shared/schemas/auth';
 import * as m from '$lib/paraglide/messages';
@@ -25,19 +26,19 @@ import type { Actions, PageServerLoad, RequestEvent } from './$types';
  */
 
 export const load: PageServerLoad = ({ locals, url, cookies }) => {
-	const target = safeRedirectTarget(url.searchParams.get('redirectTo'));
+	const asked = askedTarget(url.searchParams.get('redirectTo'));
 	// Already through: nothing left to challenge.
-	if (locals.user) redirect(303, target);
+	if (locals.user) redirect(303, asked ?? landingFor(getDb(), locals.user.id));
 	// No challenge in flight — arriving here directly means starting again.
 	if (!cookies.get(TWO_FACTOR_CHALLENGE_COOKIE)) redirect(303, '/sign-in');
-	return { redirectTo: target };
+	return { redirectTo: asked ?? '' };
 };
 
 /** The two actions differ only in which code they carry. */
 async function answer(kind: 'totp' | 'backup', event: RequestEvent) {
 	const { request, cookies, getClientAddress } = event;
 	const form = await request.formData();
-	const target = safeRedirectTarget(String(form.get('redirectTo') ?? '') || null);
+	const asked = askedTarget(String(form.get('redirectTo') ?? '') || null);
 
 	const parsed = v.safeParse(kind === 'totp' ? totpCodeSchema : backupCodeSchema, form.get('code'));
 	if (!parsed.success) {
@@ -62,7 +63,8 @@ async function answer(kind: 'totp' | 'backup', event: RequestEvent) {
 	applyAuthCookies(outcome.response, cookies);
 	if (outcome.data?.token) stampAbsoluteExpiry(getDb(), outcome.data.token, systemClock.now());
 
-	redirect(303, target);
+	const userId = outcome.data?.user?.id;
+	redirect(303, asked ?? (userId ? landingFor(getDb(), userId) : '/'));
 }
 
 export const actions: Actions = {

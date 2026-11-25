@@ -6,8 +6,9 @@ import { applyAuthCookies } from '$lib/server/auth/cookies';
 import { stampAbsoluteExpiry } from '$lib/server/auth/session';
 import { systemClock } from '$lib/server/clock';
 import { getDb } from '$lib/server/db';
-import { safeRedirectTarget } from '$lib/server/http/redirect-target';
+import { askedTarget } from '$lib/server/http/redirect-target';
 import { recordAudit } from '$lib/server/services/audit';
+import { landingFor } from '$lib/server/services/tenancy';
 import { fieldErrors, signInSchema } from '$lib/shared/schemas/auth';
 import * as m from '$lib/paraglide/messages';
 import type { Actions, PageServerLoad } from './$types';
@@ -21,16 +22,21 @@ import type { Actions, PageServerLoad } from './$types';
  * are members of named communities.
  *
  * In the browser's language (`signInLocale`): there is no community yet to ask.
+ *
+ * Without a destination asked for, the person lands where they work
+ * (`landingFor`). The form carries the asked-for destination, or nothing, so the
+ * difference survives the round trip.
  */
 export const load: PageServerLoad = ({ locals, url }) => {
-	if (locals.user) redirect(303, safeRedirectTarget(url.searchParams.get('redirectTo')));
-	return { redirectTo: safeRedirectTarget(url.searchParams.get('redirectTo')) };
+	const asked = askedTarget(url.searchParams.get('redirectTo'));
+	if (locals.user) redirect(303, asked ?? landingFor(getDb(), locals.user.id));
+	return { redirectTo: asked ?? '' };
 };
 
 export const actions: Actions = {
 	default: async ({ request, cookies, url, getClientAddress }) => {
 		const form = await request.formData();
-		const target = safeRedirectTarget(String(form.get('redirectTo') ?? '') || null);
+		const asked = askedTarget(String(form.get('redirectTo') ?? '') || null);
 
 		const parsed = v.safeParse(signInSchema, {
 			email: form.get('email'),
@@ -49,7 +55,11 @@ export const actions: Actions = {
 			body: { email, password },
 			asResponse: true
 		});
-		const outcome = await readAuth<{ token?: string; twoFactorRedirect?: boolean }>(response);
+		const outcome = await readAuth<{
+			token?: string;
+			twoFactorRedirect?: boolean;
+			user?: { id: string };
+		}>(response);
 
 		if (!outcome.ok) {
 			recordAudit(getDb(), systemClock, {
@@ -70,7 +80,7 @@ export const actions: Actions = {
 
 		if (outcome.data?.twoFactorRedirect) {
 			const next = new URL('/sign-in/two-factor', url);
-			if (target !== '/') next.searchParams.set('redirectTo', target);
+			if (asked) next.searchParams.set('redirectTo', asked);
 			redirect(303, `${next.pathname}${next.search}`);
 		}
 
@@ -78,6 +88,7 @@ export const actions: Actions = {
 			stampAbsoluteExpiry(getDb(), outcome.data.token, systemClock.now());
 		}
 
-		redirect(303, target);
+		const userId = outcome.data?.user?.id;
+		redirect(303, asked ?? (userId ? landingFor(getDb(), userId) : '/'));
 	}
 };

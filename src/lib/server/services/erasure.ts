@@ -4,7 +4,7 @@ import { getConfig, isPlatformAdmin } from '../config.js';
 import { getDb, type Db } from '../db/index.js';
 import { account, session, user, verification } from '../db/schema/auth.js';
 import { twoFactor } from '../db/schema/auth.js';
-import { auditEvent, invitation, membership } from '../db/schema/tenancy.js';
+import { auditEvent, invitation, joinRequest, membership } from '../db/schema/tenancy.js';
 import { recordAudit } from './audit.js';
 import { membershipLabel } from './person.js';
 
@@ -125,6 +125,13 @@ export function erasePerson(db: Db = getDb(), input: EraseInput): void {
 				)
 			)
 			.run();
+
+		/**
+		 * A request to join that nobody has decided is a standing copy of the
+		 * name and address on a steward's screen. Deleted, not kept: undecided,
+		 * it never became part of anyone's record.
+		 */
+		tx.delete(joinRequest).where(eq(joinRequest.userId, input.userId)).run();
 
 		/**
 		 * Recorded as an act, without recording who it was about.

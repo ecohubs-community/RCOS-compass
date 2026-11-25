@@ -90,7 +90,7 @@ export async function proposeOnOpenThread(page: Page, text: string) {
 /** Freeze the version on the table, with the least the form will accept. */
 export async function freezeOnOpenThread(page: Page, mechanism = 'consent') {
 	await page.getByRole('button', { name: /^Freeze v\d+$/ }).click();
-	const form = page.getByRole('region', { name: /^Freeze v\d+ into a decision$/ });
+	const form = page.getByRole('dialog', { name: /^Freeze v\d+ into a decision$/ });
 	await form.getByLabel('Mechanism').fill(mechanism);
 	await form.getByRole('button', { name: 'Record decision' }).click();
 }

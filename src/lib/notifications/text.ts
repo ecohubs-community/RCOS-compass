@@ -89,6 +89,11 @@ export function notificationText(
 					? m.notification_move_declined(words)
 					: m.notification_move_lapsed(words);
 		}
+		case 'membership.join_requested':
+			// No name: who it is waits on the Members page, behind `member.invite`.
+			return m.notification_join_requested();
+		case 'membership.join_approved':
+			return m.notification_join_approved();
 		default:
 			return item.summary ?? m.notification_gone();
 	}

@@ -91,3 +91,48 @@ test.describe('the member list', () => {
 		await expect(page.getByRole('button', { name: 'Change role' })).toHaveCount(0);
 	});
 });
+
+/**
+ * Inviting from the member list. `openspec/changes/pilot-blockers` D1–D2.
+ *
+ * E2E has no mail server, so every invitation that is created comes back as
+ * "not sent" — which is the state a steward must be able to read and act on.
+ */
+test.describe('inviting people', () => {
+	test('a steward pastes a list and reads what became of each address', async ({ page }) => {
+		test.slow();
+		const fixture = await seed(page);
+		await signIn(page, fixture.email, fixture.password);
+		await visit(page, `/c/${fixture.slug}/members`);
+
+		const fresh = `marco-${fixture.slug}@valle-verde.test`;
+		await page.getByLabel('Addresses').fill(`${fresh}, ${fixture.member.email}\nnot-an-address`);
+		await page.getByRole('button', { name: 'Send invitations' }).click();
+
+		const results = page.getByRole('region', { name: 'What happened' });
+		await expect(results).toContainText(`${fresh}`);
+		await expect(results).toContainText('Not sent');
+		await expect(results).toContainText('Already a member');
+		await expect(results).toContainText('Not an email address');
+		// The link itself is never put on the page instead of the mail.
+		await expect(page.locator('main')).not.toContainText('/invitations/');
+
+		const pending = page.getByRole('region', { name: 'Invitations sent' });
+		await expect(pending).toContainText(fresh);
+		await pending.getByRole('button', { name: `Withdraw the invitation to ${fresh}` }).click();
+		await expect(page.getByText('Withdrawn. That link no longer works.')).toBeVisible();
+		await expect(page.getByRole('region', { name: 'Invitations sent' })).not.toContainText(fresh);
+	});
+
+	test('a member sees no invite form and no pending invitations', async ({ page }) => {
+		test.slow();
+		const fixture = await seed(page);
+		await signIn(page, fixture.member.email, fixture.member.password);
+		await visit(page, `/c/${fixture.slug}/members`);
+
+		await expect(page.getByRole('button', { name: 'Send invitations' })).toHaveCount(0);
+		await expect(page.getByRole('region', { name: 'Invitations sent' })).toHaveCount(0);
+		// The seed left one invitation pending; a member is not shown it.
+		await expect(page.locator('main')).not.toContainText(fixture.invitation.email);
+	});
+});

@@ -7,7 +7,8 @@ export type Target =
 	| { type: 'definition'; id: string }
 	| { type: 'document'; id: string }
 	| { type: 'export' }
-	| { type: 'community' };
+	| { type: 'community' }
+	| { type: 'members' };
 
 export function targetHref(slug: string, target: Target): string {
 	switch (target.type) {
@@ -23,5 +24,7 @@ export function targetHref(slug: string, target: Target): string {
 			return links.exportSettings(slug);
 		case 'community':
 			return links.dashboard(slug);
+		case 'members':
+			return links.members(slug);
 	}
 }

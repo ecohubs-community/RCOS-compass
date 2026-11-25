@@ -2,7 +2,9 @@
 	import { useTime } from '$lib/time/use-time';
 	import { enhance } from '$app/forms';
 	import { afterNavigate } from '$app/navigation';
-	import Button from '$lib/components/ui/Button.svelte';
+	import { onMount } from 'svelte';
+	import { Dialog } from 'bits-ui';
+	import Button, { buttonClass } from '$lib/components/ui/Button.svelte';
 	import LinterPanel from '$lib/components/ui/LinterPanel.svelte';
 	import LinterNotRun from '$lib/components/ui/LinterNotRun.svelte';
 	import Markdown from '$lib/components/ui/Markdown.svelte';
@@ -25,6 +27,7 @@
 	import IconNotes from '~icons/tabler/notes';
 	import IconSend from '~icons/tabler/send';
 	import IconSnowflake from '~icons/tabler/snowflake';
+	import IconX from '~icons/tabler/x';
 
 	let { data, form } = $props();
 	setThreadContext({
@@ -62,15 +65,39 @@
 	/** The same screen, same version, different composer. */
 	const modeHref = (next: Mode) => `?v=${data.proposal?.version ?? ''}&mode=${next}#composer`;
 
+	/**
+	 * The freeze opens in a sheet (docs/02 §7): a long form, readable at any
+	 * width, with "Record decision" always on screen.
+	 *
+	 * It used to open at the end of the thread column and scroll itself into
+	 * view — through an element reference that was never bound, so the scroll
+	 * did nothing and the click looked dead.
+	 *
+	 * `?freeze=1` still opens it. Before the page has hydrated (or with no
+	 * JavaScript at all) the same form renders in the page instead; once it has,
+	 * only the sheet does — never both.
+	 */
 	let freezeOpen = $state(false);
+	/**
+	 * Opened when `?freeze=1` *arrives*, not whenever it is still there: every
+	 * enhanced action re-runs the load with the same URL, and a sheet the steward
+	 * closed must not reopen because they then consented in the panel.
+	 */
+	let freezeAsked = false;
 	$effect(() => {
-		if (data.freezeOpen) freezeOpen = true;
+		const asked = data.freezeOpen;
+		if (asked && !freezeAsked) freezeOpen = true;
+		freezeAsked = asked;
 	});
-	/** Brought into view when it opens: it sits at the end of the thread. */
-	let freezeForm = $state<HTMLElement>();
-	$effect(() => {
-		if (freezeOpen) freezeForm?.scrollIntoView({ block: 'start' });
-	});
+	let hydrated = $state(false);
+	onMount(() => (hydrated = true));
+	/** Where focus goes back to when the sheet closes. */
+	let freezeOpener = $state<HTMLElement | null>(null);
+	const canFreezeNow = $derived(
+		!!data.proposal && data.can.freeze && data.proposal.state === 'open'
+	);
+	/** Pre-selected as present: whoever answered the version being frozen. */
+	const answered = $derived(new Set(data.round?.responses.map((r) => r.membershipId) ?? []));
 
 	/**
 	 * The thread in order, with each proposal version drawn as one card.
@@ -195,6 +222,202 @@
 	here that *does* navigate goes through `links`.
 -->
 
+{#snippet freezeForm(proposal: NonNullable<typeof data.proposal>)}
+	<form
+		method="POST"
+		action="?/freeze"
+		class="flex min-h-0 flex-1 flex-col"
+		use:enhance
+		aria-labelledby="freeze-heading"
+	>
+		<div class="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto p-4">
+			<p class="text-fg-muted text-meta">
+				{data.requirement
+					? `${data.requirement.title} · ${data.requirement.clauses
+							.filter((clause) => clause.owned)
+							.map((clause) => `§${clause.ref}`)
+							.join(' ')}`.trim()
+					: 'No clause'} · v{proposal.version} of {data.versions.length}, as written on {day(
+					proposal.createdAt
+				)}
+			</p>
+
+			{#if data.laterVersion}
+				<p
+					class="border-attention/40 bg-attention-subtle text-fg rounded-(--radius-control) border px-3 py-2"
+				>
+					This adopts v{proposal.version}. v{data.laterVersion} is the later version, and will stay freezable
+					afterwards.
+				</p>
+			{/if}
+
+			{#if data.round && data.round.status === 'open' && proposal.isCurrent}
+				<!-- Repeated here so a steward freezes knowingly. It gates nothing (D8). -->
+				<div class="border-border rounded-(--radius-control) border px-3 py-3">
+					<PassChecklist
+						checklist={data.round.checklist}
+						rule={data.rule}
+						{slug}
+						headingId="freeze-to-pass"
+					/>
+				</div>
+			{/if}
+
+			{#if data.wouldBeProvisional}
+				<p
+					class="border-attention/40 bg-attention-subtle text-fg rounded-(--radius-control) border px-3 py-2"
+				>
+					Your Decision Matrix isn't adopted yet. This will be recorded as
+					<strong>Provisional</strong> and listed for ratification later.
+				</p>
+			{/if}
+
+			<input type="hidden" name="idempotencyKey" value={data.idempotencyKey} />
+			<!-- The version the steward read, carried to the record. -->
+			<input type="hidden" name="proposalPostId" value={proposal.id} />
+			<TextField id="title" name="title" label="Title" value={data.thread.title} required />
+
+			<fieldset class="flex flex-wrap gap-3">
+				<legend class="text-fg mb-1 font-medium">Decision type</legend>
+				{#each ['constitutional', 'strategic', 'operational'] as type (type)}
+					<label class="flex min-h-11 items-center gap-2">
+						<input type="radio" name="type" value={type} checked={type === 'operational'} />
+						<span>{type}</span>
+					</label>
+				{/each}
+			</fieldset>
+
+			<div class="grid gap-3 sm:grid-cols-2">
+				<TextField
+					id="mechanism"
+					name="mechanism"
+					label="Mechanism"
+					value={data.round ? data.round.tally.mechanism : ''}
+					required
+				/>
+				<TextField id="threshold" name="threshold" label="Threshold" />
+				<TextField
+					id="tallyPresent"
+					name="tallyPresent"
+					label="Number present"
+					inputmode="numeric"
+					value={data.round ? String(data.round.tally.responded) : ''}
+				/>
+				<TextField
+					id="tallyFor"
+					name="tallyFor"
+					label="In favour"
+					inputmode="numeric"
+					value={data.round ? String(data.round.tally.consent) : ''}
+				/>
+			</div>
+
+			{#if data.members.length > 0}
+				<!--
+					Every current member, those who answered this version already ticked —
+					the room is not always the round, and someone who was there without
+					answering is still someone who was there. The service refuses anyone
+					who is not a current member here. Consent to be named is per person: no
+					community-level setting may publish somebody who did not agree
+					(`docs/03` §10).
+				-->
+				<fieldset class="border-border rounded-(--radius-control) border p-3">
+					<legend class="text-fg px-1 font-medium">Who was present</legend>
+					<ul class="flex flex-col gap-1">
+						{#each data.members as person (person.membershipId)}
+							<li class="flex flex-wrap items-center gap-x-4">
+								<label class="flex min-h-11 items-center gap-2">
+									<input
+										type="checkbox"
+										name="attendee"
+										value={person.membershipId}
+										checked={answered.has(person.membershipId)}
+									/>
+									<span>{person.name}</span>
+								</label>
+								<label class="text-fg-secondary text-meta flex min-h-11 items-center gap-2">
+									<input type="checkbox" name="attendeePublish" value={person.membershipId} />
+									may be named outside the community
+								</label>
+							</li>
+						{/each}
+					</ul>
+				</fieldset>
+			{/if}
+
+			<div class="grid gap-3 sm:grid-cols-2">
+				<TextField
+					id="reviewDueAt"
+					name="reviewDueAt"
+					label="Review date"
+					type="date"
+					hint={`Optional — when this should be looked at again. A day in ${data.communityTimeZone} time.`}
+				/>
+			</div>
+
+			<label for="rationale" class="text-fg font-medium">
+				Rationale — why this, and what it replaces
+			</label>
+			<textarea
+				id="rationale"
+				name="rationale"
+				rows="3"
+				class="border-border bg-raised text-fg rounded-(--radius-control) border p-2"></textarea>
+
+			{#if errorFor('freeze')}<p role="alert" class="text-danger">{errorFor('freeze')}</p>{/if}
+		</div>
+
+		<!-- Always on screen while the form above it scrolls. -->
+		<div class="border-border bg-surface flex flex-none items-center gap-3 border-t px-4 py-3">
+			<Button type="submit" variant="primary" icon={IconGavel}>Record decision</Button>
+			{#if hydrated}
+				<button
+					type="button"
+					class="text-fg-secondary hover:text-fg min-h-11 cursor-pointer px-2 underline underline-offset-2"
+					onclick={() => (freezeOpen = false)}>{m.freeze_cancel()}</button
+				>
+			{:else}
+				<a
+					href="?v={proposal.version}"
+					class="text-fg-secondary hover:text-fg inline-flex min-h-11 items-center px-2 underline underline-offset-2"
+					>{m.freeze_cancel()}</a
+				>
+			{/if}
+		</div>
+	</form>
+{/snippet}
+
+{#if hydrated && canFreezeNow && data.proposal}
+	{@const proposal = data.proposal}
+	<Dialog.Root bind:open={freezeOpen}>
+		<Dialog.Portal>
+			<Dialog.Overlay class="fixed inset-0 z-40 bg-black/50" />
+			<Dialog.Content
+				class="border-border bg-surface fixed inset-0 z-50 flex flex-col shadow-lg md:left-auto md:w-[560px] md:border-l"
+				onCloseAutoFocus={(event) => {
+					if (freezeOpener) {
+						event.preventDefault();
+						freezeOpener.focus();
+					}
+				}}
+			>
+				<div class="border-border flex flex-none items-center gap-2 border-b py-1 pr-1 pl-4">
+					<Dialog.Title id="freeze-heading" class="text-fg min-w-0 flex-1 font-medium">
+						Freeze v{proposal.version} into a decision
+					</Dialog.Title>
+					<Dialog.Close
+						class="text-fg-secondary hover:text-fg hover:bg-raised inline-flex h-11 w-11 flex-none cursor-pointer items-center justify-center rounded-(--radius-control)"
+						aria-label={m.freeze_close()}
+					>
+						<IconX class="h-4 w-4" aria-hidden="true" />
+					</Dialog.Close>
+				</div>
+				{@render freezeForm(proposal)}
+			</Dialog.Content>
+		</Dialog.Portal>
+	</Dialog.Root>
+{/if}
+
 <div class="flex min-h-0 flex-1 flex-col lg:overflow-clip">
 	<!-- The thread's own header, above both panes. -->
 	<header class="border-border flex-none border-b px-6 py-4">
@@ -245,6 +468,25 @@
 			</p>
 		{/if}
 	</header>
+
+	{#if !hydrated && data.freezeOpen && canFreezeNow && data.proposal}
+		<!--
+			The same form, in the page, for a browser that has not run (or will not
+			run) the script that opens the sheet. Above both panes, so it is the
+			first thing on screen rather than the last thing in the thread, and
+			capped in height: on a wide screen the page clips its overflow, so an
+			uncapped form would push "Record decision" out of reach.
+		-->
+		<section
+			class="border-border bg-surface mx-6 my-4 flex max-h-[70dvh] flex-none flex-col rounded-(--radius-card) border"
+			aria-labelledby="freeze-heading"
+		>
+			<h2 id="freeze-heading" class="text-section px-4 pt-4 font-medium">
+				Freeze v{data.proposal.version} into a decision
+			</h2>
+			{@render freezeForm(data.proposal)}
+		</section>
+	{/if}
 
 	<div class="flex min-h-0 flex-1 flex-col lg:flex-row lg:overflow-clip">
 		<!-- ── The conversation ─────────────────────────────────────────── -->
@@ -298,171 +540,6 @@
 						</li>
 					{/each}
 				</ol>
-
-				{#if freezeOpen && data.proposal}
-					<!--
-						Rendered in the page rather than in a dialog element, so it works with
-						no JavaScript and the server can open it with ?freeze=1.
-					-->
-					<section
-						class="border-border bg-surface mx-6 mb-6 rounded-(--radius-card) border p-4"
-						aria-labelledby="freeze-heading"
-					>
-						<h2 id="freeze-heading" class="text-section font-medium">
-							Freeze v{data.proposal.version} into a decision
-						</h2>
-						<p class="text-fg-muted text-meta mt-1">
-							{data.requirement
-								? `${data.requirement.title} · ${data.requirement.clauses
-										.filter((clause) => clause.owned)
-										.map((clause) => `§${clause.ref}`)
-										.join(' ')}`.trim()
-								: 'No clause'} · v{data.proposal.version} of {data.versions.length}, as written on {day(
-								data.proposal.createdAt
-							)}
-						</p>
-
-						{#if data.laterVersion}
-							<p
-								class="border-attention/40 bg-attention-subtle text-fg mt-3 rounded-(--radius-control) border px-3 py-2"
-							>
-								This adopts v{data.proposal.version}. v{data.laterVersion} is the later version, and will
-								stay freezable afterwards.
-							</p>
-						{/if}
-
-						{#if data.round && data.round.status === 'open' && data.proposal.isCurrent}
-							<!-- Repeated here so a steward freezes knowingly. It gates nothing (D8). -->
-							<div class="border-border mt-3 rounded-(--radius-control) border px-3 py-3">
-								<PassChecklist
-									checklist={data.round.checklist}
-									rule={data.rule}
-									{slug}
-									headingId="freeze-to-pass"
-								/>
-							</div>
-						{/if}
-
-						{#if data.wouldBeProvisional}
-							<p
-								class="border-attention/40 bg-attention-subtle text-fg mt-3 rounded-(--radius-control) border px-3 py-2"
-							>
-								Your Decision Matrix isn't adopted yet. This will be recorded as
-								<strong>Provisional</strong> and listed for ratification later.
-							</p>
-						{/if}
-
-						<form method="POST" action="?/freeze" class="mt-4 flex flex-col gap-3" use:enhance>
-							<input type="hidden" name="idempotencyKey" value={data.idempotencyKey} />
-							<!-- The version the steward read, carried to the record. -->
-							<input type="hidden" name="proposalPostId" value={data.proposal.id} />
-							<TextField id="title" name="title" label="Title" value={data.thread.title} required />
-
-							<fieldset class="flex flex-wrap gap-3">
-								<legend class="text-fg mb-1 font-medium">Decision type</legend>
-								{#each ['constitutional', 'strategic', 'operational'] as type (type)}
-									<label class="flex items-center gap-2">
-										<input type="radio" name="type" value={type} checked={type === 'operational'} />
-										<span>{type}</span>
-									</label>
-								{/each}
-							</fieldset>
-
-							<div class="grid gap-3 sm:grid-cols-2">
-								<TextField
-									id="mechanism"
-									name="mechanism"
-									label="Mechanism"
-									value={data.round ? data.round.tally.mechanism : ''}
-									required
-								/>
-								<TextField id="threshold" name="threshold" label="Threshold" />
-								<TextField
-									id="tallyPresent"
-									name="tallyPresent"
-									label="Who was present"
-									inputmode="numeric"
-									value={data.round ? String(data.round.tally.responded) : ''}
-								/>
-								<TextField
-									id="tallyFor"
-									name="tallyFor"
-									label="In favour"
-									inputmode="numeric"
-									value={data.round ? String(data.round.tally.consent) : ''}
-								/>
-							</div>
-
-							{#if data.round && data.round.responses.length > 0}
-								<!--
-									Who was present, pre-filled from the people who answered this
-									version — and every one of them still editable, because the room is
-									not always the round. Consent to be named is per person: no
-									community-level setting may publish somebody who did not agree
-									(`docs/03` §10).
-								-->
-								<fieldset class="border-border rounded-(--radius-control) border p-3">
-									<legend class="text-fg px-1 font-medium">Who was present</legend>
-									<ul class="flex flex-col gap-2">
-										{#each data.round.responses as person (person.who + person.respondedAt)}
-											<li class="flex flex-wrap items-center gap-3">
-												<label class="flex items-center gap-2">
-													<input
-														type="checkbox"
-														name="attendee"
-														value={person.membershipId}
-														checked
-													/>
-													<span>{person.who}</span>
-												</label>
-												<label class="text-fg-secondary text-meta flex items-center gap-2">
-													<input
-														type="checkbox"
-														name="attendeePublish"
-														value={person.membershipId}
-													/>
-													may be named outside the community
-												</label>
-											</li>
-										{/each}
-									</ul>
-								</fieldset>
-							{/if}
-
-							<div class="grid gap-3 sm:grid-cols-2">
-								<TextField
-									id="reviewDueAt"
-									name="reviewDueAt"
-									label="Review date"
-									type="date"
-									hint={`Optional — when this should be looked at again. A day in ${data.communityTimeZone} time.`}
-								/>
-							</div>
-
-							<label for="rationale" class="text-fg font-medium">
-								Rationale — why this, and what it replaces
-							</label>
-							<textarea
-								id="rationale"
-								name="rationale"
-								rows="3"
-								class="border-border bg-raised text-fg rounded-(--radius-control) border p-2"
-							></textarea>
-
-							<div class="flex items-center gap-3">
-								<Button type="submit" variant="primary" icon={IconGavel}>Record decision</Button>
-								<button
-									type="button"
-									class="text-fg-secondary hover:text-fg cursor-pointer underline underline-offset-2"
-									onclick={() => (freezeOpen = false)}>Cancel</button
-								>
-							</div>
-							{#if errorFor('freeze')}<p role="alert" class="text-danger">
-									{errorFor('freeze')}
-								</p>{/if}
-						</form>
-					</section>
-				{/if}
 			</div>
 
 			<!-- ── The composer ──────────────────────────────────────────── -->
@@ -1343,9 +1420,30 @@
 			<!-- ── The freeze ───────────────────────────────────────────── -->
 			{#if data.proposal && data.can.freeze && data.proposal.state === 'open'}
 				<div class="border-border flex-none border-t px-4 py-3">
-					<Button variant="primary" icon={IconSnowflake} onclick={() => (freezeOpen = true)}>
+					<!--
+						A link to the server's own way of opening the form, so it works with
+						no JavaScript; with it, the sheet opens in place.
+					-->
+					<a
+						href="?v={data.proposal.version}&freeze=1"
+						class={buttonClass('primary')}
+						role="button"
+						onclick={(event) => {
+							event.preventDefault();
+							freezeOpener = event.currentTarget;
+							freezeOpen = true;
+						}}
+						onkeydown={(event) => {
+							// A button answers Space as well as Enter; a link only Enter.
+							if (event.key === ' ') {
+								event.preventDefault();
+								event.currentTarget.click();
+							}
+						}}
+					>
+						<IconSnowflake class="h-4 w-4 flex-none" aria-hidden="true" />
 						Freeze v{data.proposal.version}
-					</Button>
+					</a>
 					<p class="text-fg-muted text-meta mt-2">
 						{#if data.round && data.round.tally.unresolvedObjections > 0}
 							<!--

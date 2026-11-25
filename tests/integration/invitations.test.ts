@@ -10,11 +10,15 @@ import {
 	INVITATION_TTL_MS,
 	acceptInvitation,
 	hashToken,
+	INVITES_PER_STEWARD_PER_DAY,
 	inspectInvitation,
 	inviteMember,
+	inviteMembers,
 	listInvitations,
+	resendInvitation,
 	revokeInvitation
 } from '../../src/lib/server/services/invitations.js';
+import { catchRefusal } from '../support/errors.js';
 import { createTestDb } from '../support/db.js';
 import { makeCommunity, makeMembership, makeUser } from '../support/factories.js';
 
@@ -274,5 +278,122 @@ describe('listing and revoking', () => {
 			membership: { ...ctx.membership, role: 'member', isOwner: false }
 		};
 		expect(() => listInvitations(plain, { db })).toThrow();
+	});
+});
+
+describe('inviting a list from the member page', () => {
+	const batch = (addresses: string, who: Ctx = ctx) =>
+		inviteMembers(who, { addresses, role: 'member' }, { db });
+
+	it('invites each address in a pasted list, as members, one invitation each', () => {
+		const outcomes = batch('marco@example.org, sofia@example.org\ntomas@example.org');
+
+		expect(outcomes.map((o) => [o.address, o.outcome])).toEqual([
+			['marco@example.org', 'invited'],
+			['sofia@example.org', 'invited'],
+			['tomas@example.org', 'invited']
+		]);
+		const rows = listInvitations(ctx, { db });
+		expect(rows.map((r) => r.email).sort()).toEqual([
+			'marco@example.org',
+			'sofia@example.org',
+			'tomas@example.org'
+		]);
+		expect(rows.every((r) => r.role === 'member')).toBe(true);
+	});
+
+	it('reports a current member and a word that is not an address, and still invites the rest', () => {
+		const existing = makeUser(db, { email: 'already@example.org' });
+		makeMembership(db, ctx.community.id, existing.id);
+
+		const outcomes = batch('already@example.org, marco, new@example.org');
+
+		expect(outcomes.map((o) => [o.address, o.outcome])).toEqual([
+			['already@example.org', 'already_member'],
+			['marco', 'not_an_address'],
+			['new@example.org', 'invited']
+		]);
+		expect(listInvitations(ctx, { db }).map((r) => r.email)).toEqual(['new@example.org']);
+	});
+
+	it('sends one invitation for the same address written twice in different case', () => {
+		batch('Marco@Example.org, marco@example.org');
+		expect(listInvitations(ctx, { db })).toHaveLength(1);
+	});
+
+	it('refuses 51 addresses and sends none', () => {
+		const many = Array.from({ length: 51 }, (_, i) => `p${i}@example.org`).join(', ');
+		expect(catchRefusal(() => batch(many))?.status).toBe(400);
+		expect(db.select().from(invitation).all()).toHaveLength(0);
+	});
+
+	it('stops at the daily limit and says so for each address over it', () => {
+		const first = Array.from({ length: 50 }, (_, i) => `a${i}@example.org`).join(', ');
+		const second = Array.from({ length: 50 }, (_, i) => `b${i}@example.org`).join(', ');
+		batch(first);
+		batch(second);
+		expect(listInvitations(ctx, { db })).toHaveLength(INVITES_PER_STEWARD_PER_DAY);
+
+		const over = batch('late@example.org');
+		expect(over).toEqual([{ address: 'late@example.org', outcome: 'limited' }]);
+		expect(listInvitations(ctx, { db })).toHaveLength(INVITES_PER_STEWARD_PER_DAY);
+	});
+
+	it('does not spend the daily allowance on people who are already members', () => {
+		const existing = makeUser(db, { email: 'already@example.org' });
+		makeMembership(db, ctx.community.id, existing.id);
+		for (let i = 0; i < 101; i += 1) batch('already@example.org');
+		expect(batch('new@example.org')).toEqual([
+			expect.objectContaining({ address: 'new@example.org', outcome: 'invited' })
+		]);
+	});
+
+	it('is refused to a member', () => {
+		const plain: Ctx = {
+			...ctx,
+			membership: { ...ctx.membership, role: 'member', isOwner: false }
+		};
+		expect(catchRefusal(() => batch('x@example.org', plain))?.status).toBe(403);
+		expect(db.select().from(invitation).all()).toHaveLength(0);
+	});
+});
+
+describe('resending an invitation', () => {
+	it('replaces an expired invitation with a new one, and the old link stops working', () => {
+		const { invitation: first, token: oldToken } = invite();
+		clock.advance(INVITATION_TTL_MS + 1);
+		expect(inspectInvitation(db, clock, oldToken).kind).toBe('expired');
+
+		const { token: newToken } = resendInvitation({ ...ctx, now: clock.now }, first.id, { db });
+
+		expect(inspectInvitation(db, clock, newToken).kind).toBe('open');
+		expect(inspectInvitation(db, clock, oldToken).kind).toBe('already_used');
+		expect(listInvitations(ctx, { db })).toHaveLength(1);
+	});
+
+	it('keeps the owner flag of the invitation it replaces', () => {
+		const { invitation: owners } = inviteMember(
+			ctx,
+			{ email: 'next-owner@example.org', role: 'steward', grantsOwner: true },
+			{ db }
+		);
+		const { invitation: again } = resendInvitation(ctx, owners.id, { db });
+		expect(again.grantsOwner).toBe(true);
+		expect(again.role).toBe('steward');
+	});
+
+	it('answers 404 for an invitation that was withdrawn', () => {
+		const { invitation: row } = invite();
+		revokeInvitation(ctx, row.id, { db });
+		expect(catchRefusal(() => resendInvitation(ctx, row.id, { db }))?.status).toBe(404);
+	});
+
+	it('is refused to a member', () => {
+		const { invitation: row } = invite();
+		const plain: Ctx = {
+			...ctx,
+			membership: { ...ctx.membership, role: 'member', isOwner: false }
+		};
+		expect(catchRefusal(() => resendInvitation(plain, row.id, { db }))?.status).toBe(403);
 	});
 });

@@ -50,7 +50,9 @@ export type TenantService = {
 		 * take one are the ones most worth pointing at a neighbour's register.
 		 */
 		| 'decisionRef'
-		| 'notification';
+		| 'notification'
+		/** Someone waiting to be let in through the join link. */
+		| 'joinRequest';
 };
 
 const services: TenantService[] = [];

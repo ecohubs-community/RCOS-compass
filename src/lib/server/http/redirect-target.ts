@@ -18,3 +18,15 @@ export function safeRedirectTarget(raw: string | null | undefined, fallback = '/
 	}
 	return raw;
 }
+
+/**
+ * The destination a person asked for, or `null` when they asked for none.
+ *
+ * Kept apart from {@link safeRedirectTarget}'s fallback on purpose: "no
+ * destination" lands somewhere chosen for the person (`landingFor`), while an
+ * explicit `/` — the landing page's own Sign in — still means the front page.
+ * An unsafe value counts as asked-for and falls back to `/`, as before.
+ */
+export function askedTarget(raw: string | null | undefined): string | null {
+	return raw ? safeRedirectTarget(raw) : null;
+}

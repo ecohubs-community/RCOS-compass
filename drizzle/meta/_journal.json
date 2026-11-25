@@ -211,6 +211,13 @@
       "when": 1790910659329,
       "tag": "0029_complete_kulan_gath",
       "breakpoints": true
+    },
+    {
+      "idx": 30,
+      "version": "6",
+      "when": 1795627765987,
+      "tag": "0030_useful_ghost_rider",
+      "breakpoints": true
     }
   ]
 }

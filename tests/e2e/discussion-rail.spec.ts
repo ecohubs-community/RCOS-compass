@@ -189,7 +189,7 @@ test.describe('freezing the version a community actually agreed on', () => {
 		await expect(rail(page).getByRole('heading', { name: 'Responses to v1' })).toBeVisible();
 		await page.getByRole('button', { name: 'Freeze v1' }).click();
 
-		const form = page.getByRole('region', { name: 'Freeze v1 into a decision' });
+		const form = page.getByRole('dialog', { name: 'Freeze v1 into a decision' });
 		// Said before the form is submitted: this is not the newest text.
 		await expect(form).toContainText('v2 is the later version');
 		await expect(form).toContainText('v1 of 2');
@@ -208,7 +208,7 @@ test.describe('freezing the version a community actually agreed on', () => {
 		await revise(page, 'The later text.', 'reworded');
 		await visit(page, `${thread}?v=1`);
 		await page.getByRole('button', { name: 'Freeze v1' }).click();
-		const form = page.getByRole('region', { name: 'Freeze v1 into a decision' });
+		const form = page.getByRole('dialog', { name: 'Freeze v1 into a decision' });
 		await form.getByLabel('Mechanism').fill('consent');
 		await form.getByRole('button', { name: 'Record decision' }).click();
 		await expect(page).toHaveURL(new RegExp(`/c/${fixture.slug}/d/DEC-`));
@@ -483,8 +483,8 @@ test.describe('a question the community can move', () => {
 		// And the steward records v1 on the tally the community actually gave.
 		await visit(page, `${thread}?v=1`);
 		await page.getByRole('button', { name: 'Freeze v1' }).click();
-		const form = page.getByRole('region', { name: 'Freeze v1 into a decision' });
-		await expect(form.getByLabel('Who was present')).toHaveValue('2');
+		const form = page.getByRole('dialog', { name: 'Freeze v1 into a decision' });
+		await expect(form.getByLabel('Number present')).toHaveValue('2');
 		await form.getByRole('button', { name: 'Record decision' }).click();
 		await expect(page).toHaveURL(new RegExp(`/c/${fixture.slug}/d/DEC-`));
 	});
