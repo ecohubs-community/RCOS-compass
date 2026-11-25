@@ -1,11 +1,11 @@
 <script lang="ts">
-	import { enhance } from '$app/forms';
-	import * as m from '$lib/paraglide/messages';
-	import { links } from '$lib/links';
-	import { useTime } from '$lib/time/use-time';
-	import StatusChip, { STATUS_LABELS } from '$lib/components/ui/StatusChip.svelte';
-	import Button from '$lib/components/ui/Button.svelte';
-	import TextField from '$lib/components/ui/TextField.svelte';
+	import { enhance } from '#lib/enhance.ts';
+	import * as m from '#lib/paraglide/messages.js';
+	import { links } from '#lib/links.ts';
+	import { useTime } from '#lib/time/use-time.ts';
+	import StatusChip, { STATUS_LABELS } from '#lib/components/ui/StatusChip.svelte';
+	import Button from '#lib/components/ui/Button.svelte';
+	import TextField from '#lib/components/ui/TextField.svelte';
 	import IconPlus from '~icons/tabler/plus';
 
 	let { data, form } = $props();

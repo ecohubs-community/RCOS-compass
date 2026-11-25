@@ -1,5 +1,5 @@
 import { error } from '@sveltejs/kit';
-import { getConfig } from '$lib/server/config';
+import { getConfig } from '#lib/server/config.ts';
 import { pdf } from '../../../../../scripts/make-document-fixtures.mjs';
 
 /**

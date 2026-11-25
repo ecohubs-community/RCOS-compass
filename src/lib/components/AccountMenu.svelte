@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { DropdownMenu } from 'bits-ui';
 	import { onMount } from 'svelte';
-	import * as m from '$lib/paraglide/messages';
+	import * as m from '#lib/paraglide/messages.js';
 	import IconDots from '~icons/tabler/dots';
 	import IconLogout from '~icons/tabler/logout';
 	import IconSettings from '~icons/tabler/settings';

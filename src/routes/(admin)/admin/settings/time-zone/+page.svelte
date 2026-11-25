@@ -1,5 +1,5 @@
 <script lang="ts">
-	import TimeZonePanel from '$lib/components/account/TimeZonePanel.svelte';
+	import TimeZonePanel from '#lib/components/account/TimeZonePanel.svelte';
 
 	let { data, form } = $props();
 </script>

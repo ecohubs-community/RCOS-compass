@@ -1,10 +1,10 @@
 <script lang="ts">
-	import { useTime } from '$lib/time/use-time';
-	import { enhance } from '$app/forms';
+	import { useTime } from '#lib/time/use-time.ts';
+	import { enhance } from '#lib/enhance.ts';
 	import { onMount } from 'svelte';
-	import Button from '$lib/components/ui/Button.svelte';
-	import * as m from '$lib/paraglide/messages';
-	import { INVITE_BATCH_MAX } from '$lib/shared/addresses';
+	import Button from '#lib/components/ui/Button.svelte';
+	import * as m from '#lib/paraglide/messages.js';
+	import { INVITE_BATCH_MAX } from '#lib/shared/addresses.ts';
 	import type { PageData } from './$types';
 	import IconCopy from '~icons/tabler/copy';
 	import IconLink from '~icons/tabler/link';

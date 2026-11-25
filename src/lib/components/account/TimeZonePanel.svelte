@@ -1,7 +1,7 @@
 <script lang="ts">
-	import { enhance } from '$app/forms';
+	import { enhance } from '#lib/enhance.ts';
 	import { onMount } from 'svelte';
-	import * as m from '$lib/paraglide/messages';
+	import * as m from '#lib/paraglide/messages.js';
 
 	/** The zone times are shown to this person in. The `time-display` spec. */
 	type Props = {

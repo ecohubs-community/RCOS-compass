@@ -1,8 +1,8 @@
-import { anonymousIn } from '$lib/server/auth/audience';
-import { getDb } from '$lib/server/db';
-import { outwardClaim } from '$lib/server/services/claim';
-import { standardViewFor } from '$lib/server/services/completeness';
-import { publishedArtifacts } from '$lib/server/services/public-index';
+import { anonymousIn } from '#lib/server/auth/audience.ts';
+import { getDb } from '#lib/server/db/index.ts';
+import { outwardClaim } from '#lib/server/services/claim.ts';
+import { standardViewFor } from '#lib/server/services/completeness.ts';
+import { publishedArtifacts } from '#lib/server/services/public-index.ts';
 import type { PageServerLoad } from './$types';
 
 /**

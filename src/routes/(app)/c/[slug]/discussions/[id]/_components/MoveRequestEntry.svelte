@@ -1,9 +1,9 @@
 <script lang="ts">
-	import { enhance } from '$app/forms';
+	import { enhance } from '#lib/enhance.ts';
 	import { page } from '$app/state';
-	import Markdown from '$lib/components/ui/Markdown.svelte';
-	import * as m from '$lib/paraglide/messages';
-	import { useTime } from '$lib/time/use-time';
+	import Markdown from '#lib/components/ui/Markdown.svelte';
+	import * as m from '#lib/paraglide/messages.js';
+	import { useTime } from '#lib/time/use-time.ts';
 	import IconArrowBackUp from '~icons/tabler/arrow-back-up';
 	import type { PageData } from '../$types';
 	import { threadContext } from './thread-context';

@@ -1,5 +1,5 @@
-import { browser } from '$app/environment';
-import { overwriteGetLocale } from '$lib/paraglide/runtime';
+import { browser } from '$app/env';
+import { overwriteGetLocale } from '#lib/paraglide/runtime.js';
 import type { LayoutLoad } from './$types';
 
 /**

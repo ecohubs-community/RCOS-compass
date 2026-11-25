@@ -1,5 +1,5 @@
 <script lang="ts">
-	import * as m from '$lib/paraglide/messages';
+	import * as m from '#lib/paraglide/messages.js';
 	import StoryCard from './StoryCard.svelte';
 
 	/** A term explained where it is read, and a note back to the standard. */

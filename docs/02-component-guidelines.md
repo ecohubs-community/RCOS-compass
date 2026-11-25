@@ -17,8 +17,8 @@ fiftieth screen.
 
 | Tier | Location | May know about | Example |
 |---|---|---|---|
-| **Primitive** | `$lib/components/ui/` | Nothing about RCOS. Props in, events out. | `Button`, `Dialog`, `Select`, `Tooltip`, `Popover`, `Tabs`, `Field` |
-| **Domain** | `$lib/components/rcos/` | RCOS vocabulary and types. No data access. | `StatusChip`, `ClauseRef`, `ReadinessBar`, `DefinitionCard`, `DecisionRow`, `LinterPanel`, `ProvisionalBadge`, `AiDraftedTag` |
+| **Primitive** | `#lib/components/ui/` | Nothing about RCOS. Props in, events out. | `Button`, `Dialog`, `Select`, `Tooltip`, `Popover`, `Tabs`, `Field` |
+| **Domain** | `#lib/components/rcos/` | RCOS vocabulary and types. No data access. | `StatusChip`, `ClauseRef`, `ReadinessBar`, `DefinitionCard`, `DecisionRow`, `LinterPanel`, `ProvisionalBadge`, `AiDraftedTag` |
 | **Route-local** | `routes/**/_components/` | This one screen. | `FreezeModal`, `MappingStack`, `PathReorderList` |
 
 Primitives are **thin wrappers around Bits UI**: Bits owns focus trapping, ARIA,
@@ -68,8 +68,8 @@ premature hierarchy.
 
 ## 4. What a component must NOT contain
 
-- **Data fetching.** No `fetch`, no `load`, no imports from `$lib/server/*`.
-  A component that needs data takes it as a prop. This is enforced: `$lib/server`
+- **Data fetching.** No `fetch`, no `load`, no imports from `#lib/server/*`.
+  A component that needs data takes it as a prop. This is enforced: `#lib/server`
   is unimportable from `.svelte` by convention and by an ESLint boundary rule.
 - **Authorisation decisions.** Never `{#if user.role === 'steward'}` inside a
   component. The page passes `canFreeze={…}` computed server-side. Role checks in
@@ -149,7 +149,7 @@ gets skipped under deadline and then never added.
 
 - One component, **`<HelpTip id="linter" />`**, renders the `?` and its content.
   It takes an id, never inline prose.
-- **All help text lives in one registry** (`$lib/help/`, one entry per id,
+- **All help text lives in one registry** (`#lib/help/`, one entry per id,
   translated like any other string). Same term, same words, everywhere it
   appears — and a writer can review the whole vocabulary in one file.
 - An entry is: one sentence of what it is, one of why it exists, and an optional
@@ -257,10 +257,10 @@ Rules that follow:
   are positive (`disabled`, not `notEnabled`).
 - **Events:** callback props (`onSelect`), not `createEventDispatcher`.
 - **Icons:** one set, 16px, `stroke-width: 1.25`, `currentColor`, exported from
-  `$lib/components/ui/icons`. Never paste an inline SVG into a screen.
+  `#lib/components/ui/icons`. Never paste an inline SVG into a screen.
 - **A gallery route `/dev/components`** (dev-only) renders every primitive and
   domain component in all states. It is the review surface and the a11y test target.
-- **Dates and times only through `$lib/time`.** `useTime()` in a component
+- **Dates and times only through `#lib/time`.** `useTime()` in a component
   (`time.date(ms)`, `time.dateTime(ms)`, `time.deadline(ms)`,
   `time.calendarDate(ms)` for a date the community set). Never
   `toLocaleDateString` or `toLocaleTimeString` directly: without an explicit zone

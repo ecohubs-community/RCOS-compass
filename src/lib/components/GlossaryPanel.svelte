@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { links } from '$lib/links';
+	import { links } from '#lib/links.ts';
 	import GlossaryEntry from './GlossaryEntry.svelte';
 
 	/**

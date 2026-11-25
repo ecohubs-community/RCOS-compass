@@ -25,7 +25,7 @@
 <script lang="ts">
 	import { Combobox } from 'bits-ui';
 	import { onMount } from 'svelte';
-	import * as m from '$lib/paraglide/messages';
+	import * as m from '#lib/paraglide/messages.js';
 
 	/**
 	 * Choose a clause by typing. Design 05's *Change clause*; the change's

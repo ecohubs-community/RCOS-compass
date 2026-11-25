@@ -1,4 +1,4 @@
-import * as m from '$lib/paraglide/messages';
+import * as m from '#lib/paraglide/messages.js';
 import type { NotificationItem, NotificationParams } from './kinds.js';
 
 const ROLE_SENTENCE: Record<NotificationParams['membership.role_changed']['role'], () => string> = {

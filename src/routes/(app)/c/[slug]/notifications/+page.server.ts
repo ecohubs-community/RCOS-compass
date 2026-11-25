@@ -1,14 +1,14 @@
 import { redirect } from '@sveltejs/kit';
-import { getDb } from '$lib/server/db';
-import { run } from '$lib/server/http/form-action';
+import { getDb } from '#lib/server/db/index.ts';
+import { run } from '#lib/server/http/form-action.ts';
 import {
 	listNotificationItems,
 	markAllRead,
 	openNotification,
 	unreadCount
-} from '$lib/server/services/notifications';
-import { targetHref } from '$lib/notifications/href';
-import { links } from '$lib/links';
+} from '#lib/server/services/notifications.ts';
+import { targetHref } from '#lib/notifications/href.ts';
+import { links } from '#lib/links.ts';
 import type { Actions, PageServerLoad } from './$types';
 
 /**

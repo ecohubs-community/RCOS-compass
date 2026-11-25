@@ -1,6 +1,6 @@
 <script lang="ts">
-	import Markdown from '$lib/components/ui/Markdown.svelte';
-	import { useTime } from '$lib/time/use-time';
+	import Markdown from '#lib/components/ui/Markdown.svelte';
+	import { useTime } from '#lib/time/use-time.ts';
 	import IconCalendarEvent from '~icons/tabler/calendar-event';
 	import type { PageData } from '../$types';
 

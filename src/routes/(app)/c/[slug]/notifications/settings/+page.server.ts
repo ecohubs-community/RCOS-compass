@@ -1,10 +1,10 @@
-import { getDb } from '$lib/server/db';
-import { run } from '$lib/server/http/form-action';
+import { getDb } from '#lib/server/db/index.ts';
+import { run } from '#lib/server/http/form-action.ts';
 import {
 	notificationPreferences,
 	setNotificationPreferences
-} from '$lib/server/services/notification-preferences';
-import { timeZoneFor } from '$lib/time/zone';
+} from '#lib/server/services/notification-preferences.ts';
+import { timeZoneFor } from '#lib/time/zone.ts';
 import type { Actions, PageServerLoad } from './$types';
 
 /**

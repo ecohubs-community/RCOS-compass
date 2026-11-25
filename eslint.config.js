@@ -3,7 +3,9 @@ import svelte from 'eslint-plugin-svelte';
 import prettier from 'eslint-config-prettier';
 import globals from 'globals';
 import ts from 'typescript-eslint';
-import svelteConfig from './svelte.config.js';
+import { loadConfig } from '@sveltejs/load-config';
+
+const svelteConfig = (await loadConfig('./', { traverse: false }))?.config;
 
 /**
  * `no-restricted-syntax` does not accumulate across flat-config blocks: the last
@@ -101,11 +103,28 @@ export default ts.config(
 			'no-restricted-imports': [
 				'error',
 				{
+					paths: [
+						{
+							// SvelteKit 3's update() leaves the page for the action's URL,
+							// dropping the query string; src/lib/enhance.ts says why we don't.
+							name: '$app/forms',
+							importNames: ['enhance'],
+							message:
+								"Import enhance from '#lib/enhance.ts', which keeps a member on the page they submitted from."
+						}
+					],
 					patterns: [
 						{
-							group: ['$lib/server', '$lib/server/*', '**/lib/server/*'],
+							// A regex, not a glob: these patterns are gitignore-style, where a
+							// leading `#` makes the whole pattern a comment that matches nothing.
+							regex: '^#lib/server(/|$)',
 							message:
-								'Components never import from $lib/server. Pass the data in as a prop — docs/02-component-guidelines.md §4.'
+								'Components never import from #lib/server. Pass the data in as a prop — docs/02-component-guidelines.md §4.'
+						},
+						{
+							group: ['**/lib/server', '**/lib/server/*'],
+							message:
+								'Components never import from #lib/server. Pass the data in as a prop — docs/02-component-guidelines.md §4.'
 						}
 					]
 				}
@@ -136,19 +155,26 @@ export default ts.config(
 							// Any depth: `ai/tasks/x.ts` reaches a service as `../../services/…`,
 							// which a `../services/*` pattern does not match — and a boundary
 							// with a hole in it is worse than none, because it is trusted.
-							group: [
-								'**/services/*',
-								'**/services/**',
-								'$lib/server/services/*',
-								'$lib/server/services/**'
-							],
+							group: ['**/services/*', '**/services/**'],
+							message:
+								'The AI module may not reach a service that writes. A task returns data; a service with a Ctx and a permission check turns it into a suggestion a person confirms — docs/00-architecture.md §4 rule 7.'
+						},
+						{
+							// The `#lib` alias, as a regex for the reason given on the
+							// component boundary above.
+							regex: '^#lib/server/services(/|$)',
 							message:
 								'The AI module may not reach a service that writes. A task returns data; a service with a Ctx and a permission check turns it into a suggestion a person confirms — docs/00-architecture.md §4 rule 7.'
 						},
 						{
 							// Everything under db/schema *except* its own log, which is the
 							// only state an AI task is allowed to produce.
-							group: ['**/db/schema/*', '**/db/schema/**', '!**/db/schema/ai.js'],
+							group: [
+								'**/db/schema/*',
+								'**/db/schema/**',
+								'!**/db/schema/ai.js',
+								'!**/db/schema/ai.ts'
+							],
 							message:
 								'The AI module may only touch `db/schema/ai` — the call log and the usage counter. Anything else is state a model would be writing.'
 						}
@@ -184,7 +210,7 @@ export default ts.config(
 					object: 'process',
 					property: 'env',
 					message:
-						'Read configuration from $lib/server/config, which validates it at boot — docs/00-architecture.md §10.'
+						'Read configuration from #lib/server/config.ts, which validates it at boot — docs/00-architecture.md §10.'
 				}
 			]
 		}

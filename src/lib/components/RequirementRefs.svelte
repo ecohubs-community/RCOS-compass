@@ -1,9 +1,9 @@
 <script lang="ts">
 	import { tick } from 'svelte';
 	import { Dialog } from 'bits-ui';
-	import * as m from '$lib/paraglide/messages';
+	import * as m from '#lib/paraglide/messages.js';
 	import IconX from '~icons/tabler/x';
-	import CitedClauses from '$lib/components/ui/CitedClauses.svelte';
+	import CitedClauses from '#lib/components/ui/CitedClauses.svelte';
 	import Requirement, { type RequirementData } from './Requirement.svelte';
 
 	/**

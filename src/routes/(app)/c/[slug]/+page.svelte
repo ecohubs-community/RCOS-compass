@@ -1,10 +1,10 @@
 <script lang="ts">
-	import { useTime } from '$lib/time/use-time';
-	import { links } from '$lib/links';
-	import StatusChip from '$lib/components/ui/StatusChip.svelte';
-	import HelpTip from '$lib/components/ui/HelpTip.svelte';
-	import CitedClauses from '$lib/components/ui/CitedClauses.svelte';
-	import * as m from '$lib/paraglide/messages';
+	import { useTime } from '#lib/time/use-time.ts';
+	import { links } from '#lib/links.ts';
+	import StatusChip from '#lib/components/ui/StatusChip.svelte';
+	import HelpTip from '#lib/components/ui/HelpTip.svelte';
+	import CitedClauses from '#lib/components/ui/CitedClauses.svelte';
+	import * as m from '#lib/paraglide/messages.js';
 
 	let { data } = $props();
 

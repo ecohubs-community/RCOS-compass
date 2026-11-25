@@ -1,11 +1,11 @@
 import { fail, redirect } from '@sveltejs/kit';
-import { requirePlatformAdmin } from '$lib/server/auth/admin';
-import { systemClock } from '$lib/server/clock';
-import { getConfig } from '$lib/server/config';
-import { getDb } from '$lib/server/db';
-import { getLogger } from '$lib/server/logger';
-import { getMailTransport, invitationMessage, invitationUrl } from '$lib/server/mail';
-import { TenantError, createTenant } from '$lib/server/services/admin/communities';
+import { requirePlatformAdmin } from '#lib/server/auth/admin.ts';
+import { systemClock } from '#lib/server/clock.ts';
+import { getConfig } from '#lib/server/config.ts';
+import { getDb } from '#lib/server/db/index.ts';
+import { getLogger } from '#lib/server/logger.ts';
+import { getMailTransport, invitationMessage, invitationUrl } from '#lib/server/mail/index.ts';
+import { TenantError, createTenant } from '#lib/server/services/admin/communities.ts';
 import type { Actions, PageServerLoad } from './$types';
 
 /**

@@ -1,11 +1,11 @@
 <script lang="ts">
-	import * as m from '$lib/paraglide/messages';
+	import * as m from '#lib/paraglide/messages.js';
 
 	/**
 	 * A post's text box that can mention a member. `openspec/changes/notifications-page`.
 	 *
 	 * A member writes a name — `@Lena Vogt` — with or without JavaScript. The
-	 * server keeps it as her number when the text is saved (`$lib/shared/mentions`),
+	 * server keeps it as her number when the text is saved (`#lib/shared/mentions.ts`),
 	 * because a number stays right through a rename, a shared name and an erasure;
 	 * nobody has to type one. With JavaScript, typing `@` offers the community's
 	 * members and inserts the chosen name.

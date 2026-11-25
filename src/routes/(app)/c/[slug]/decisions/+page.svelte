@@ -1,7 +1,7 @@
 <script lang="ts">
-	import { useTime } from '$lib/time/use-time';
-	import StatusChip from '$lib/components/ui/StatusChip.svelte';
-	import { links } from '$lib/links';
+	import { useTime } from '#lib/time/use-time.ts';
+	import StatusChip from '#lib/components/ui/StatusChip.svelte';
+	import { links } from '#lib/links.ts';
 
 	let { data } = $props();
 	const slug = $derived(data.community.slug);

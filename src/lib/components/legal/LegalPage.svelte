@@ -1,8 +1,8 @@
 <script lang="ts">
-	import { useTime } from '$lib/time/use-time';
-	import type { BlockNode } from '$lib/shared/markdown';
-	import Markdown from '$lib/components/ui/Markdown.svelte';
-	import * as m from '$lib/paraglide/messages';
+	import { useTime } from '#lib/time/use-time.ts';
+	import type { BlockNode } from '#lib/shared/markdown.ts';
+	import Markdown from '#lib/components/ui/Markdown.svelte';
+	import * as m from '#lib/paraglide/messages.js';
 
 	/**
 	 * One component for three routes.

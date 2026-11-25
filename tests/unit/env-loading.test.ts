@@ -36,7 +36,7 @@ describe('the Vite entry points load .env into process.env', () => {
 		// to be in place before it does.
 		const plugins = viteConfig.slice(viteConfig.indexOf('plugins: ['));
 		const ours = plugins.indexOf('envIntoProcessEnv');
-		const kit = plugins.indexOf('sveltekit()');
+		const kit = plugins.indexOf('sveltekit(');
 		expect(ours).toBeGreaterThanOrEqual(0);
 		expect(ours, 'the env plugin must come first in the plugins array').toBeLessThan(kit);
 	});

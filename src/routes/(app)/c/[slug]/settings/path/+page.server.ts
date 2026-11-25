@@ -1,9 +1,9 @@
 import { fail } from '@sveltejs/kit';
-import { ctxCan } from '$lib/server/auth/guard';
-import { getDb } from '$lib/server/db';
-import { DEFAULT_WEIGHTS } from '$lib/server/db/schema/path';
-import { activeWeights, setWeights, weightsHistory } from '$lib/server/services/ordering';
-import { path } from '$lib/server/services/path';
+import { ctxCan } from '#lib/server/auth/guard.ts';
+import { getDb } from '#lib/server/db/index.ts';
+import { DEFAULT_WEIGHTS } from '#lib/server/db/schema/path.ts';
+import { activeWeights, setWeights, weightsHistory } from '#lib/server/services/ordering.ts';
+import { path } from '#lib/server/services/path.ts';
 import type { Actions, PageServerLoad } from './$types';
 
 /**

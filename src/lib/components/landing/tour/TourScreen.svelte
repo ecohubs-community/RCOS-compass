@@ -1,6 +1,6 @@
 <script lang="ts">
 	import type { Snippet } from 'svelte';
-	import { cn } from '$lib/components/ui/cn.js';
+	import { cn } from '#lib/components/ui/cn.js';
 	import type { Place } from '../reveal.js';
 
 	/**

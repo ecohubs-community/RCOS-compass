@@ -1,18 +1,18 @@
 <script lang="ts">
-	import { useTime } from '$lib/time/use-time';
-	import { enhance } from '$app/forms';
-	import Button from '$lib/components/ui/Button.svelte';
-	import * as m from '$lib/paraglide/messages';
+	import { useTime } from '#lib/time/use-time.ts';
+	import { enhance } from '#lib/enhance.ts';
+	import Button from '#lib/components/ui/Button.svelte';
+	import * as m from '#lib/paraglide/messages.js';
 	import IconDeviceFloppy from '~icons/tabler/device-floppy';
-	import LinterPanel from '$lib/components/ui/LinterPanel.svelte';
-	import LinterNotRun from '$lib/components/ui/LinterNotRun.svelte';
-	import Markdown from '$lib/components/ui/Markdown.svelte';
-	import StatusChip from '$lib/components/ui/StatusChip.svelte';
-	import { links } from '$lib/links';
-	import CitedClauses from '$lib/components/ui/CitedClauses.svelte';
-	import ClauseRef from '$lib/components/ui/ClauseRef.svelte';
-	import Requirement from '$lib/components/Requirement.svelte';
-	import QuestionGuide from '$lib/components/QuestionGuide.svelte';
+	import LinterPanel from '#lib/components/ui/LinterPanel.svelte';
+	import LinterNotRun from '#lib/components/ui/LinterNotRun.svelte';
+	import Markdown from '#lib/components/ui/Markdown.svelte';
+	import StatusChip from '#lib/components/ui/StatusChip.svelte';
+	import { links } from '#lib/links.ts';
+	import CitedClauses from '#lib/components/ui/CitedClauses.svelte';
+	import ClauseRef from '#lib/components/ui/ClauseRef.svelte';
+	import Requirement from '#lib/components/Requirement.svelte';
+	import QuestionGuide from '#lib/components/QuestionGuide.svelte';
 	import IconSparkles from '~icons/tabler/sparkles';
 
 	let { data, form } = $props();

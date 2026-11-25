@@ -1,5 +1,5 @@
 import { error } from '@sveltejs/kit';
-import { getConfig } from '$lib/server/config';
+import { getConfig } from '#lib/server/config.ts';
 
 export function load() {
 	if (!getConfig().allowTestRoutes) error(404, 'Not found');

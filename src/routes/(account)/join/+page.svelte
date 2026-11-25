@@ -1,8 +1,8 @@
 <script lang="ts">
-	import { enhance } from '$app/forms';
-	import Button from '$lib/components/ui/Button.svelte';
-	import TextField from '$lib/components/ui/TextField.svelte';
-	import * as m from '$lib/paraglide/messages';
+	import { enhance } from '#lib/enhance.ts';
+	import Button from '#lib/components/ui/Button.svelte';
+	import TextField from '#lib/components/ui/TextField.svelte';
+	import * as m from '#lib/paraglide/messages.js';
 
 	let { data, form } = $props();
 </script>

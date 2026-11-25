@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { useTime } from '$lib/time/use-time';
+	import { useTime } from '#lib/time/use-time.ts';
 	let { data } = $props();
 
 	const time = useTime();

@@ -1,8 +1,8 @@
 <script lang="ts">
-	import StatusChip from '$lib/components/ui/StatusChip.svelte';
-	import * as m from '$lib/paraglide/messages';
-	import { links } from '$lib/links';
-	import LayerChecks from '$lib/components/LayerChecks.svelte';
+	import StatusChip from '#lib/components/ui/StatusChip.svelte';
+	import * as m from '#lib/paraglide/messages.js';
+	import { links } from '#lib/links.ts';
+	import LayerChecks from '#lib/components/LayerChecks.svelte';
 
 	let { data } = $props();
 	const slug = $derived(data.community.slug);

@@ -1,7 +1,7 @@
 <script lang="ts">
-	import { useTime } from '$lib/time/use-time';
-	import Markdown from '$lib/components/ui/Markdown.svelte';
-	import * as m from '$lib/paraglide/messages';
+	import { useTime } from '#lib/time/use-time.ts';
+	import Markdown from '#lib/components/ui/Markdown.svelte';
+	import * as m from '#lib/paraglide/messages.js';
 
 	let { data } = $props();
 

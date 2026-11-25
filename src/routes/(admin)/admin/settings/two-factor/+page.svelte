@@ -1,5 +1,5 @@
 <script lang="ts">
-	import TwoFactorPanel from '$lib/components/account/TwoFactorPanel.svelte';
+	import TwoFactorPanel from '#lib/components/account/TwoFactorPanel.svelte';
 
 	let { data, form } = $props();
 </script>

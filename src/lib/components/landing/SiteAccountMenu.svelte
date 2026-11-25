@@ -9,8 +9,8 @@
 	import { DropdownMenu } from 'bits-ui';
 	import { onMount } from 'svelte';
 	import { resolve } from '$app/paths';
-	import { cn } from '$lib/components/ui/cn.js';
-	import * as m from '$lib/paraglide/messages';
+	import { cn } from '#lib/components/ui/cn.js';
+	import * as m from '#lib/paraglide/messages.js';
 	import IconChevronDown from '~icons/tabler/chevron-down';
 	import IconLogout from '~icons/tabler/logout';
 

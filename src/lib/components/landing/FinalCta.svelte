@@ -1,6 +1,6 @@
 <script lang="ts">
-	import Logo from '$lib/components/Logo.svelte';
-	import * as m from '$lib/paraglide/messages';
+	import Logo from '#lib/components/Logo.svelte';
+	import * as m from '#lib/paraglide/messages.js';
 	import { RCOS_STANDARD_URL } from './demo.js';
 	import PillLink from './PillLink.svelte';
 

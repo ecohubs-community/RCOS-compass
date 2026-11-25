@@ -83,6 +83,16 @@ test.describe('errors reveal nothing', () => {
 		const response = await page.goto('/no-such-page');
 		expect(response?.status()).toBe(404);
 		expect(await page.content()).not.toContain('SQLITE_ERROR');
+		await expect(page.getByText('Something went wrong on our side.')).toHaveCount(0);
+	});
+
+	// SvelteKit 3 passes deliberate errors through handleError too; the hook must
+	// leave their status and message alone rather than report them as a fault.
+	test('an error the app throws on purpose keeps its own status and message', async ({ page }) => {
+		const response = await page.goto('/c/no-such-community');
+		expect(response?.status()).toBe(404);
+		await expect(page.getByText('Not found')).toBeVisible();
+		await expect(page.getByText('Something went wrong on our side.')).toHaveCount(0);
 	});
 });
 

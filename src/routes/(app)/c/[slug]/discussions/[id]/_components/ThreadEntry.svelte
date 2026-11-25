@@ -1,7 +1,7 @@
 <script lang="ts">
-	import InlineText from '$lib/components/ui/InlineText.svelte';
-	import Markdown from '$lib/components/ui/Markdown.svelte';
-	import { useTime } from '$lib/time/use-time';
+	import InlineText from '#lib/components/ui/InlineText.svelte';
+	import Markdown from '#lib/components/ui/Markdown.svelte';
+	import { useTime } from '#lib/time/use-time.ts';
 	import IconArrowBackUp from '~icons/tabler/arrow-back-up';
 	import type { PageData } from '../$types';
 	import MeetingNote from './MeetingNote.svelte';

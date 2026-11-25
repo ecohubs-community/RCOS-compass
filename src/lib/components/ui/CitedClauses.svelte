@@ -1,5 +1,5 @@
 <script lang="ts">
-	import * as m from '$lib/paraglide/messages';
+	import * as m from '#lib/paraglide/messages.js';
 	import type { HTMLAnchorAttributes } from 'svelte/elements';
 	import ClauseRef from './ClauseRef.svelte';
 	import { cn } from './cn.js';

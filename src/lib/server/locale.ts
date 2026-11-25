@@ -6,7 +6,7 @@ import {
 	locales,
 	overwriteServerAsyncLocalStorage,
 	type Locale
-} from '$lib/paraglide/runtime';
+} from '#lib/paraglide/runtime.js';
 
 /**
  * Which language this request is answered in. UI spec §1.6, `docs/09` §i18n.

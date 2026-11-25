@@ -1,7 +1,7 @@
 <script lang="ts">
-	import { useTime } from '$lib/time/use-time';
-	import { enhance } from '$app/forms';
-	import Button from '$lib/components/ui/Button.svelte';
+	import { useTime } from '#lib/time/use-time.ts';
+	import { enhance } from '#lib/enhance.ts';
+	import Button from '#lib/components/ui/Button.svelte';
 
 	let { data, form } = $props();
 

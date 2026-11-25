@@ -1,8 +1,8 @@
 <script lang="ts">
-	import { enhance } from '$app/forms';
-	import Button from '$lib/components/ui/Button.svelte';
-	import Markdown from '$lib/components/ui/Markdown.svelte';
-	import MentionField from '$lib/components/discussions/MentionField.svelte';
+	import { enhance } from '#lib/enhance.ts';
+	import Button from '#lib/components/ui/Button.svelte';
+	import Markdown from '#lib/components/ui/Markdown.svelte';
+	import MentionField from '#lib/components/discussions/MentionField.svelte';
 	import type { PageData } from '../$types';
 	import { threadContext } from './thread-context';
 

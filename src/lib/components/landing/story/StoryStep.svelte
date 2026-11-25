@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { cn } from '$lib/components/ui/cn.js';
+	import { cn } from '#lib/components/ui/cn.js';
 
 	/**
 	 * One beat of the story. The one being read is ink; the rest step back to

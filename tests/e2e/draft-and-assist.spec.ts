@@ -98,14 +98,12 @@ test.describe('asking the thread for a suggestion', () => {
 			maxRedirects: 0
 		});
 
-		// Reached, and answered with words rather than a stack trace. A SvelteKit
-		// action failure is a 200 carrying the refusal, so the status the member
-		// gets is in the body: with no provider the suggestion degrades to a
-		// sentence, never to a guess.
-		expect(posted.status()).toBe(200);
-		const body = await posted.text();
-		expect(body).toContain('"status":409');
-		expect(body).toMatch(/not switched on/i);
+		// Reached, and answered with words rather than a stack trace. Since
+		// SvelteKit 3 an action failure answers with the status passed to
+		// `fail(...)`: with no provider the suggestion degrades to a sentence,
+		// never to a guess.
+		expect(posted.status()).toBe(409);
+		expect(await posted.text()).toMatch(/not switched on/i);
 	});
 
 	test('does not offer the buttons when there is no provider', async ({ page }) => {

@@ -1,7 +1,7 @@
 /**
  * The shapes a linter finding and a linter result can take.
  *
- * Here rather than in `$lib/server/linter` because the panel is a component and
+ * Here rather than in `#lib/server/linter/index.ts` because the panel is a component and
  * a component may never import from the server (docs/02-component-guidelines.md
  * §4). The rules themselves stay on the server: they are the part with a spec.
  */

@@ -1,7 +1,7 @@
-import { ctxCan } from '$lib/server/auth/guard';
-import { getDb } from '$lib/server/db';
-import type { AuditSnapshot } from '$lib/server/services/self-audit';
-import { listSelfAudits, runSelfAudit } from '$lib/server/services/self-audit';
+import { ctxCan } from '#lib/server/auth/guard.ts';
+import { getDb } from '#lib/server/db/index.ts';
+import type { AuditSnapshot } from '#lib/server/services/self-audit.ts';
+import { listSelfAudits, runSelfAudit } from '#lib/server/services/self-audit.ts';
 import type { Actions, PageServerLoad } from './$types';
 
 /**

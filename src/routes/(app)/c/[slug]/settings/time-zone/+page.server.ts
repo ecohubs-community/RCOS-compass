@@ -1,4 +1,4 @@
-import { timeZonePanel } from '$lib/server/http/account-panels';
+import { timeZonePanel } from '#lib/server/http/account-panels.ts';
 import type { Actions, PageServerLoad } from './$types';
 
 /**

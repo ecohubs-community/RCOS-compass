@@ -1,6 +1,6 @@
 <script lang="ts">
-	import { cn } from '$lib/components/ui/cn.js';
-	import * as m from '$lib/paraglide/messages';
+	import { cn } from '#lib/components/ui/cn.js';
+	import * as m from '#lib/paraglide/messages.js';
 
 	/**
 	 * Marks something on the roadmap that is not in the product yet. The page

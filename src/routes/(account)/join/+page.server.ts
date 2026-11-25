@@ -1,12 +1,12 @@
 import { fail, redirect } from '@sveltejs/kit';
 import { resolve } from '$app/paths';
 import * as v from 'valibot';
-import { hasPassword, setFirstPassword } from '$lib/server/auth/join-account';
-import { getDb } from '$lib/server/db';
-import { openRequestsOf } from '$lib/server/services/join-requests';
-import { landingFor } from '$lib/server/services/tenancy';
-import { fieldErrors } from '$lib/shared/schemas/auth';
-import { NEW_PASSWORD_MIN, joinPasswordSchema } from '$lib/shared/schemas/invitations';
+import { hasPassword, setFirstPassword } from '#lib/server/auth/join-account.ts';
+import { getDb } from '#lib/server/db/index.ts';
+import { openRequestsOf } from '#lib/server/services/join-requests.ts';
+import { landingFor } from '#lib/server/services/tenancy.ts';
+import { fieldErrors } from '#lib/shared/schemas/auth.ts';
+import { NEW_PASSWORD_MIN, joinPasswordSchema } from '#lib/shared/schemas/invitations.ts';
 import type { Actions, PageServerLoad } from './$types';
 
 /**

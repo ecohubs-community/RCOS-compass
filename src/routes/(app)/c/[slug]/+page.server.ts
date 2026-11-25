@@ -1,6 +1,6 @@
-import { listDecisions } from '$lib/server/services/decisions';
-import { languageCoverage } from '$lib/server/services/evidence';
-import { needsAttention, path } from '$lib/server/services/path';
+import { listDecisions } from '#lib/server/services/decisions.ts';
+import { languageCoverage } from '#lib/server/services/evidence.ts';
+import { needsAttention, path } from '#lib/server/services/path.ts';
 import type { PageServerLoad } from './$types';
 
 /**

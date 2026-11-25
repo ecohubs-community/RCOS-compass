@@ -1,11 +1,11 @@
 <script lang="ts">
-	import { enhance } from '$app/forms';
-	import Button from '$lib/components/ui/Button.svelte';
-	import StatusChip, { type Status } from '$lib/components/ui/StatusChip.svelte';
-	import TextField from '$lib/components/ui/TextField.svelte';
-	import { useTime } from '$lib/time/use-time';
-	import { links } from '$lib/links';
-	import * as m from '$lib/paraglide/messages';
+	import { enhance } from '#lib/enhance.ts';
+	import Button from '#lib/components/ui/Button.svelte';
+	import StatusChip, { type Status } from '#lib/components/ui/StatusChip.svelte';
+	import TextField from '#lib/components/ui/TextField.svelte';
+	import { useTime } from '#lib/time/use-time.ts';
+	import { links } from '#lib/links.ts';
+	import * as m from '#lib/paraglide/messages.js';
 	import IconAlertTriangle from '~icons/tabler/alert-triangle';
 	import IconChevronRight from '~icons/tabler/chevron-right';
 	import IconClock from '~icons/tabler/clock';

@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { resolve } from '$app/paths';
 	import { page } from '$app/state';
-	import AccountMenu from '$lib/components/AccountMenu.svelte';
+	import AccountMenu from '#lib/components/AccountMenu.svelte';
 
 	let { data, children } = $props();
 
@@ -23,7 +23,7 @@
 					<li>
 						<a
 							href={item.href}
-							aria-current={current.startsWith(new URL(item.href, page.url).pathname)
+							aria-current={current.startsWith(new URL(item.href, page.url.href).pathname)
 								? 'page'
 								: undefined}
 							class="rounded-(--radius-control) px-2.5 py-1 aria-[current=page]:bg-raised aria-[current=page]:text-fg text-fg-secondary hover:text-fg"

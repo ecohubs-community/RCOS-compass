@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { useTime } from '$lib/time/use-time';
+	import { useTime } from '#lib/time/use-time.ts';
 	import type { PageData } from '../$types';
 	import MessageBody from './MessageBody.svelte';
 

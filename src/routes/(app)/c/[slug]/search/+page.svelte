@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { links } from '$lib/links';
+	import { links } from '#lib/links.ts';
 
 	let { data } = $props();
 	const slug = $derived(data.community.slug);

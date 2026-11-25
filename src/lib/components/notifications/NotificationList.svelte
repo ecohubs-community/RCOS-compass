@@ -1,10 +1,10 @@
 <script lang="ts">
-	import { enhance } from '$app/forms';
-	import * as m from '$lib/paraglide/messages';
-	import { links } from '$lib/links';
-	import type { NotificationItem } from '$lib/notifications/kinds';
-	import { notificationText } from '$lib/notifications/text';
-	import { useTime } from '$lib/time/use-time';
+	import { enhance } from '#lib/enhance.ts';
+	import * as m from '#lib/paraglide/messages.js';
+	import { links } from '#lib/links.ts';
+	import type { NotificationItem } from '#lib/notifications/kinds.ts';
+	import { notificationText } from '#lib/notifications/text.ts';
+	import { useTime } from '#lib/time/use-time.ts';
 
 	/**
 	 * Notifications as rows. Shared by the page and the bell, so both open the

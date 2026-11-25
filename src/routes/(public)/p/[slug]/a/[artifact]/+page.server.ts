@@ -1,11 +1,11 @@
 import { error } from '@sveltejs/kit';
 import { and, eq, inArray } from 'drizzle-orm';
-import { anonymousIn } from '$lib/server/auth/audience';
-import { getDb } from '$lib/server/db';
-import { definition } from '$lib/server/db/schema/definitions';
-import { standardViewFor } from '$lib/server/services/completeness';
-import { renderArtifact } from '$lib/server/services/render-artifact';
-import { parseMarkdown } from '$lib/server/markdown';
+import { anonymousIn } from '#lib/server/auth/audience.ts';
+import { getDb } from '#lib/server/db/index.ts';
+import { definition } from '#lib/server/db/schema/definitions.ts';
+import { standardViewFor } from '#lib/server/services/completeness.ts';
+import { renderArtifact } from '#lib/server/services/render-artifact.ts';
+import { parseMarkdown } from '#lib/server/markdown.ts';
 import type { PageServerLoad } from './$types';
 
 /**

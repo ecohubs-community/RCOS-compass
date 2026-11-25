@@ -1,9 +1,9 @@
 <script lang="ts">
-	import { enhance } from '$app/forms';
-	import NotificationList from '$lib/components/notifications/NotificationList.svelte';
-	import Button from '$lib/components/ui/Button.svelte';
-	import { links } from '$lib/links';
-	import * as m from '$lib/paraglide/messages';
+	import { enhance } from '#lib/enhance.ts';
+	import NotificationList from '#lib/components/notifications/NotificationList.svelte';
+	import Button from '#lib/components/ui/Button.svelte';
+	import { links } from '#lib/links.ts';
+	import * as m from '#lib/paraglide/messages.js';
 
 	let { data } = $props();
 </script>

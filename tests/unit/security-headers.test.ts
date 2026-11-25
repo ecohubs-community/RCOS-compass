@@ -1,10 +1,15 @@
+import { join } from 'node:path';
+import { loadConfig } from '@sveltejs/load-config';
+import type { Config } from '@sveltejs/kit/vite';
 import { describe, expect, it } from 'vitest';
 import { securityHeaders } from '../../src/lib/server/http/security-headers.js';
-import { cspDirectives as maybeDirectives } from '../../svelte.config.js';
 
-// The export is typed as optional by KitConfig; it is always present here, and a
-// missing CSP is itself a failure worth asserting.
-const cspDirectives = maybeDirectives!;
+// The policy SvelteKit is actually handed: read through the same loader the
+// tooling uses, from the options passed to `sveltekit(...)` in vite.config.ts.
+const loaded = await loadConfig(join(import.meta.dirname, '../..'), { traverse: false });
+if (!loaded || 'error' in loaded) throw new Error('vite.config.ts did not load');
+// A missing CSP is itself a failure worth asserting.
+const cspDirectives = (loaded.config as Config).csp!.directives!;
 
 describe('content security policy', () => {
 	const flat = JSON.stringify(cspDirectives);
@@ -23,8 +28,9 @@ describe('content security policy', () => {
 	});
 
 	it('relaxes nothing else', () => {
-		const relaxed = Object.entries(cspDirectives).filter(([, values]) =>
-			(values as string[]).includes('unsafe-inline')
+		// SvelteKit fills in every directive it knows; unset ones are not lists.
+		const relaxed = Object.entries(cspDirectives).filter(
+			([, values]) => Array.isArray(values) && values.includes('unsafe-inline')
 		);
 		expect(relaxed.map(([name]) => name)).toEqual(['style-src-attr']);
 	});

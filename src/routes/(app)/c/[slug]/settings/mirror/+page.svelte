@@ -1,6 +1,6 @@
 <script lang="ts">
-	import { useTime } from '$lib/time/use-time';
-	import { enhance } from '$app/forms';
+	import { useTime } from '#lib/time/use-time.ts';
+	import { enhance } from '#lib/enhance.ts';
 	import IconGitBranch from '~icons/tabler/git-branch';
 	import IconUnlink from '~icons/tabler/unlink';
 

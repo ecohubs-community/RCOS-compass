@@ -1,5 +1,5 @@
 import * as v from 'valibot';
-import * as m from '$lib/paraglide/messages';
+import * as m from '#lib/paraglide/messages.js';
 import { emailSchema } from './auth';
 
 /**

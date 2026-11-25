@@ -1,4 +1,4 @@
-import { invalidateAll } from '$app/navigation';
+import { refreshAll } from '$app/navigation';
 
 /** Every three seconds, for at most fifteen minutes — the library's and the workspace's rule. */
 export const POLL_MS = 3_000;
@@ -14,7 +14,7 @@ export function pollWhileScanning(): () => void {
 	const started = Date.now();
 	const timer = setInterval(() => {
 		if (Date.now() - started > POLL_LIMIT_MS) return clearInterval(timer);
-		void invalidateAll();
+		void refreshAll();
 	}, POLL_MS);
 	return () => clearInterval(timer);
 }

@@ -1,25 +1,25 @@
-import type { Handle, HandleServerError } from '@sveltejs/kit';
+import type { Handle, HandleServerError } from '@sveltejs/kit/hooks';
 import { randomUUID } from 'node:crypto';
-import { assertConfigOrExit, getConfig } from '$lib/server/config';
-import { getDb, initDatabase } from '$lib/server/db';
-import { getLogger } from '$lib/server/logger';
-import { securityHeaders } from '$lib/server/http/security-headers';
-import { baseLocale, localeOf, withLocale } from '$lib/server/locale';
-import { rateLimitRequest } from '$lib/server/http/rate-limit-request';
-import { recordError } from '$lib/server/services/errors';
-import { resolveActor } from '$lib/server/auth/session';
-import { requirePlatformAdmin } from '$lib/server/auth/admin';
+import { assertConfigOrExit, getConfig } from '#lib/server/config.ts';
+import { getDb, initDatabase } from '#lib/server/db/index.ts';
+import { getLogger } from '#lib/server/logger.ts';
+import { securityHeaders } from '#lib/server/http/security-headers.ts';
+import { baseLocale, localeOf, withLocale } from '#lib/server/locale.ts';
+import { rateLimitRequest } from '#lib/server/http/rate-limit-request.ts';
+import { recordError } from '#lib/server/services/errors.ts';
+import { resolveActor } from '#lib/server/auth/session.ts';
+import { requirePlatformAdmin } from '#lib/server/auth/admin.ts';
 import {
 	invitationLocale,
 	joinLocale,
 	publicLocale,
 	resolveTenant,
 	signInLocale
-} from '$lib/server/http/resolve-tenant';
-import { handlers } from '$lib/server/jobs/handlers';
-import { enqueueOnce, startWorker } from '$lib/server/jobs';
-import { enqueueRereadIfNeeded } from '$lib/server/documents/reread';
-import { systemClock } from '$lib/server/clock';
+} from '#lib/server/http/resolve-tenant.ts';
+import { handlers } from '#lib/server/jobs/handlers.ts';
+import { enqueueOnce, startWorker } from '#lib/server/jobs/index.ts';
+import { enqueueRereadIfNeeded } from '#lib/server/documents/reread.ts';
+import { systemClock } from '#lib/server/clock.ts';
 
 /**
  * Validated before the server accepts a single request. A misconfigured instance
@@ -183,41 +183,47 @@ export const handle: Handle = async ({ event, resolve }) => {
  * docs/01-server-client-contract.md §4: an unexpected error returns a generic
  * message and the request id — never a stack trace, SQL, a file path, or
  * exception text. The detail goes to the log against that same id.
+ *
+ * Since SvelteKit 3 every error passes through here, not only unexpected ones.
+ * An `error(403, …)` a service threw on purpose (`kind: 'app'`) and a route
+ * SvelteKit could not find (`kind: 'framework'`) keep their own status and
+ * message; they only gain the request id. Only an `unknown` error, or a
+ * framework one SvelteKit itself reports as a 5xx, is logged and replaced.
  */
-export const handleError: HandleServerError = ({ error, event, status, message }) => {
+export const handleError: HandleServerError = ({ kind, error, event }) => {
 	const requestId = event.locals.requestId ?? 'unknown';
+	// Thrown on purpose: its status and message are already what the visitor
+	// should see.
+	if (kind === 'app') return { requestId };
+	const status = kind === 'unknown' ? 500 : error.status;
+	if (status < 500) return { requestId };
 
-	if (status !== 404) {
-		(event.locals.log ?? log).error(
-			{ requestId, err: error instanceof Error ? error.message : String(error), status },
-			'unhandled error'
+	(event.locals.log ?? log).error(
+		{ requestId, err: error instanceof Error ? error.message : String(error), status },
+		'unhandled error'
+	);
+
+	/**
+	 * And on the instance, where an operator will actually look.
+	 *
+	 * Wrapped, because recording a failure must not become one: if the database
+	 * is what broke, this write fails too, and the visitor still gets their
+	 * generic page and their request id.
+	 */
+	try {
+		recordError(getDb(), {
+			error,
+			route: event.route.id,
+			requestId,
+			communityId: event.locals.community?.id ?? null,
+			now: systemClock.now()
+		});
+	} catch (problem) {
+		(event.locals.log ?? log).warn(
+			{ requestId, err: problem instanceof Error ? problem.message : String(problem) },
+			'could not record the error'
 		);
-
-		/**
-		 * And on the instance, where an operator will actually look.
-		 *
-		 * Wrapped, because recording a failure must not become one: if the database
-		 * is what broke, this write fails too, and the visitor still gets their
-		 * generic page and their request id.
-		 */
-		try {
-			recordError(getDb(), {
-				error,
-				route: event.route.id,
-				requestId,
-				communityId: event.locals.community?.id ?? null,
-				now: systemClock.now()
-			});
-		} catch (problem) {
-			(event.locals.log ?? log).warn(
-				{ requestId, err: problem instanceof Error ? problem.message : String(problem) },
-				'could not record the error'
-			);
-		}
 	}
 
-	return {
-		message: status === 404 ? message : 'Something went wrong on our side.',
-		requestId
-	};
+	return { message: 'Something went wrong on our side.', requestId };
 };

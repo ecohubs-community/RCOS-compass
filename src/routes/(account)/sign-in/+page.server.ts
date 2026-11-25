@@ -1,16 +1,16 @@
 import { fail, redirect } from '@sveltejs/kit';
 import * as v from 'valibot';
-import { getAuth } from '$lib/server/auth/auth';
-import { readAuth } from '$lib/server/auth/api';
-import { applyAuthCookies } from '$lib/server/auth/cookies';
-import { stampAbsoluteExpiry } from '$lib/server/auth/session';
-import { systemClock } from '$lib/server/clock';
-import { getDb } from '$lib/server/db';
-import { askedTarget } from '$lib/server/http/redirect-target';
-import { recordAudit } from '$lib/server/services/audit';
-import { landingFor } from '$lib/server/services/tenancy';
-import { fieldErrors, signInSchema } from '$lib/shared/schemas/auth';
-import * as m from '$lib/paraglide/messages';
+import { getAuth } from '#lib/server/auth/auth.ts';
+import { readAuth } from '#lib/server/auth/api.ts';
+import { applyAuthCookies } from '#lib/server/auth/cookies.ts';
+import { stampAbsoluteExpiry } from '#lib/server/auth/session.ts';
+import { systemClock } from '#lib/server/clock.ts';
+import { getDb } from '#lib/server/db/index.ts';
+import { askedTarget } from '#lib/server/http/redirect-target.ts';
+import { recordAudit } from '#lib/server/services/audit.ts';
+import { landingFor } from '#lib/server/services/tenancy.ts';
+import { fieldErrors, signInSchema } from '#lib/shared/schemas/auth.ts';
+import * as m from '#lib/paraglide/messages.js';
 import type { Actions, PageServerLoad } from './$types';
 
 /**

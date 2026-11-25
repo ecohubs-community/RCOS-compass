@@ -1,7 +1,7 @@
 import { and, eq } from 'drizzle-orm';
-import { getConfig } from '$lib/server/config';
-import { getDb } from '$lib/server/db';
-import { community } from '$lib/server/db/schema/tenancy';
+import { getConfig } from '#lib/server/config.ts';
+import { getDb } from '#lib/server/db/index.ts';
+import { community } from '#lib/server/db/schema/tenancy.ts';
 import type { RequestHandler } from './$types';
 
 /**

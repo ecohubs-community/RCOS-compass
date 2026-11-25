@@ -1,8 +1,8 @@
 import { fail } from '@sveltejs/kit';
-import { requirePlatformAdmin } from '$lib/server/auth/admin';
-import { systemClock } from '$lib/server/clock';
-import { getDb } from '$lib/server/db';
-import { reviewLegalDocument, legalDocumentsForReview } from '$lib/server/services/admin/legal';
+import { requirePlatformAdmin } from '#lib/server/auth/admin.ts';
+import { systemClock } from '#lib/server/clock.ts';
+import { getDb } from '#lib/server/db/index.ts';
+import { reviewLegalDocument, legalDocumentsForReview } from '#lib/server/services/admin/legal.ts';
 import type { Actions, PageServerLoad } from './$types';
 
 /**

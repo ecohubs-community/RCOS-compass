@@ -2,18 +2,22 @@ import { fail, redirect } from '@sveltejs/kit';
 import { resolve } from '$app/paths';
 import { sql } from 'drizzle-orm';
 import * as v from 'valibot';
-import * as m from '$lib/paraglide/messages';
-import { links } from '$lib/links';
-import { getAuth } from '$lib/server/auth/auth';
-import { createAccountWithoutPassword, hasPassword } from '$lib/server/auth/join-account';
-import { systemClock } from '$lib/server/clock';
-import { getDb, type Db } from '$lib/server/db';
-import { user } from '$lib/server/db/schema/auth';
-import { recordAudit } from '$lib/server/services/audit';
-import { inspectJoinLink } from '$lib/server/services/join-link';
-import { joinQueueIsFull, joinStatusOf, requestToJoin } from '$lib/server/services/join-requests';
-import { fieldErrors } from '$lib/shared/schemas/auth';
-import { joinRequestSchema } from '$lib/shared/schemas/invitations';
+import * as m from '#lib/paraglide/messages.js';
+import { links } from '#lib/links.ts';
+import { getAuth } from '#lib/server/auth/auth.ts';
+import { createAccountWithoutPassword, hasPassword } from '#lib/server/auth/join-account.ts';
+import { systemClock } from '#lib/server/clock.ts';
+import { getDb, type Db } from '#lib/server/db/index.ts';
+import { user } from '#lib/server/db/schema/auth.ts';
+import { recordAudit } from '#lib/server/services/audit.ts';
+import { inspectJoinLink } from '#lib/server/services/join-link.ts';
+import {
+	joinQueueIsFull,
+	joinStatusOf,
+	requestToJoin
+} from '#lib/server/services/join-requests.ts';
+import { fieldErrors } from '#lib/shared/schemas/auth.ts';
+import { joinRequestSchema } from '#lib/shared/schemas/invitations.ts';
 import type { Actions, PageServerLoad } from './$types';
 
 /**

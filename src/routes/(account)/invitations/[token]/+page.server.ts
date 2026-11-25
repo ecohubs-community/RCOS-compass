@@ -2,26 +2,26 @@ import { fail, redirect } from '@sveltejs/kit';
 import { resolve } from '$app/paths';
 import { eq, sql } from 'drizzle-orm';
 import * as v from 'valibot';
-import * as m from '$lib/paraglide/messages';
-import { links } from '$lib/links';
-import { readAuth } from '$lib/server/auth/api';
-import { getAuth } from '$lib/server/auth/auth';
-import { applyAuthCookies } from '$lib/server/auth/cookies';
-import { stampAbsoluteExpiry } from '$lib/server/auth/session';
-import { systemClock } from '$lib/server/clock';
-import { getDb, type Db } from '$lib/server/db';
-import { user } from '$lib/server/db/schema/auth';
-import { hasPassword, setFirstPassword } from '$lib/server/auth/join-account';
-import { recordAudit } from '$lib/server/services/audit';
-import { noteVerifiedJoinRequests } from '$lib/server/services/join-requests';
+import * as m from '#lib/paraglide/messages.js';
+import { links } from '#lib/links.ts';
+import { readAuth } from '#lib/server/auth/api.ts';
+import { getAuth } from '#lib/server/auth/auth.ts';
+import { applyAuthCookies } from '#lib/server/auth/cookies.ts';
+import { stampAbsoluteExpiry } from '#lib/server/auth/session.ts';
+import { systemClock } from '#lib/server/clock.ts';
+import { getDb, type Db } from '#lib/server/db/index.ts';
+import { user } from '#lib/server/db/schema/auth.ts';
+import { hasPassword, setFirstPassword } from '#lib/server/auth/join-account.ts';
+import { recordAudit } from '#lib/server/services/audit.ts';
+import { noteVerifiedJoinRequests } from '#lib/server/services/join-requests.ts';
 import {
 	INVITATION_TTL_MS,
 	acceptInvitation,
 	inspectInvitation,
 	type AcceptResult
-} from '$lib/server/services/invitations';
-import { fieldErrors } from '$lib/shared/schemas/auth';
-import { NEW_PASSWORD_MIN, acceptInvitationSchema } from '$lib/shared/schemas/invitations';
+} from '#lib/server/services/invitations.ts';
+import { fieldErrors } from '#lib/shared/schemas/auth.ts';
+import { NEW_PASSWORD_MIN, acceptInvitationSchema } from '#lib/shared/schemas/invitations.ts';
 import type { Actions, PageServerLoad, RequestEvent } from './$types';
 
 /**

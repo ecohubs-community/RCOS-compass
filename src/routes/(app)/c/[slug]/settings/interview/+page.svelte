@@ -1,6 +1,6 @@
 <script lang="ts">
-	import { enhance } from '$app/forms';
-	import { links } from '$lib/links';
+	import { enhance } from '#lib/enhance.ts';
+	import { links } from '#lib/links.ts';
 	import IconDeviceFloppy from '~icons/tabler/device-floppy';
 
 	let { data, form } = $props();

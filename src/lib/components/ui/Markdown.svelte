@@ -1,12 +1,12 @@
 <script lang="ts">
-	import type { BlockNode } from '$lib/shared/markdown';
+	import type { BlockNode } from '#lib/shared/markdown.ts';
 	import InlineText from './InlineText.svelte';
 	import Self from './Markdown.svelte';
 
 	/**
 	 * Governance text, as a tree rather than as a string.
 	 *
-	 * The parser (`$lib/server/markdown`) produces only the node types below, so
+	 * The parser (`#lib/server/markdown.ts`) produces only the node types below, so
 	 * this component is the allowlist made visible: an HTML block, an image, an
 	 * `onerror` attribute or a `javascript:` URL never became a node, and so
 	 * cannot be rendered. Nothing here takes an HTML string.

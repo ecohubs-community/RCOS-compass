@@ -1,11 +1,11 @@
-import { anonymousIn } from '$lib/server/auth/audience';
-import { getDb } from '$lib/server/db';
+import { anonymousIn } from '#lib/server/auth/audience.ts';
+import { getDb } from '#lib/server/db/index.ts';
 import {
 	activeStandardView,
 	answeredSections,
 	progressOf
-} from '$lib/server/services/completeness';
-import { publishedArtifacts } from '$lib/server/services/public-index';
+} from '#lib/server/services/completeness.ts';
+import { publishedArtifacts } from '#lib/server/services/public-index.ts';
 import type { PageServerLoad } from './$types';
 
 /**

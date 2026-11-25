@@ -1,6 +1,6 @@
-import { ctxCan } from '$lib/server/auth/guard';
-import { getDb } from '$lib/server/db';
-import { listExceptions } from '$lib/server/services/visibility';
+import { ctxCan } from '#lib/server/auth/guard.ts';
+import { getDb } from '#lib/server/db/index.ts';
+import { listExceptions } from '#lib/server/services/visibility.ts';
 import type { PageServerLoad } from './$types';
 
 /**

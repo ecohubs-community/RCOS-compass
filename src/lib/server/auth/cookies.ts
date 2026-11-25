@@ -96,7 +96,7 @@ export function applyAuthCookies(response: Response, cookies: Cookies): void {
 		cookies.set(parsed.name, parsed.value, {
 			...parsed.options,
 			// Verbatim: see the note above.
-			encode: (value) => value
+			encode: (value: string) => value
 		});
 	}
 }

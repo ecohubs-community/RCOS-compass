@@ -1,12 +1,12 @@
 import { fail } from '@sveltejs/kit';
-import { ctxCan } from '$lib/server/auth/guard';
-import { getDb } from '$lib/server/db';
+import { ctxCan } from '#lib/server/auth/guard.ts';
+import { getDb } from '#lib/server/db/index.ts';
 import {
 	availableLocales,
 	setCommunityLocale,
 	setCommunityTimeZone
-} from '$lib/server/services/community-locale';
-import { timeZoneChoices } from '$lib/server/services/time-zone';
+} from '#lib/server/services/community-locale.ts';
+import { timeZoneChoices } from '#lib/server/services/time-zone.ts';
 import type { Actions, PageServerLoad } from './$types';
 
 /**

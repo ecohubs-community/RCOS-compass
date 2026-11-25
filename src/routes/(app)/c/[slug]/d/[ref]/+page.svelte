@@ -1,8 +1,8 @@
 <script lang="ts">
-	import { useTime } from '$lib/time/use-time';
-	import Markdown from '$lib/components/ui/Markdown.svelte';
-	import StatusChip from '$lib/components/ui/StatusChip.svelte';
-	import { links } from '$lib/links';
+	import { useTime } from '#lib/time/use-time.ts';
+	import Markdown from '#lib/components/ui/Markdown.svelte';
+	import StatusChip from '#lib/components/ui/StatusChip.svelte';
+	import { links } from '#lib/links.ts';
 
 	let { data } = $props();
 	const slug = $derived(data.community.slug);

@@ -1,5 +1,5 @@
-import { getDb } from '$lib/server/db';
-import { lookup } from '$lib/server/services/lookup';
+import { getDb } from '#lib/server/db/index.ts';
+import { lookup } from '#lib/server/services/lookup.ts';
 import type { PageServerLoad } from './$types';
 
 /**

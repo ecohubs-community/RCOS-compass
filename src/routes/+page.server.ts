@@ -1,9 +1,9 @@
 import { fail } from '@sveltejs/kit';
-import { systemClock } from '$lib/server/clock';
-import { getConfig } from '$lib/server/config';
-import { getDb } from '$lib/server/db';
-import { communitiesOf } from '$lib/server/services/tenancy';
-import { detectPersonTimeZone } from '$lib/server/services/time-zone';
+import { systemClock } from '#lib/server/clock.ts';
+import { getConfig } from '#lib/server/config.ts';
+import { getDb } from '#lib/server/db/index.ts';
+import { communitiesOf } from '#lib/server/services/tenancy.ts';
+import { detectPersonTimeZone } from '#lib/server/services/time-zone.ts';
 import type { Actions, PageServerLoad } from './$types';
 
 /**

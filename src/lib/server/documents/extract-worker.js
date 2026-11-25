@@ -48,7 +48,7 @@ async function pdfRaw(path, maxPages) {
 		const [x0, y0, x1, y1] = page.view;
 		// pdf.js's default normalisation (ligatures expanded), as the original
 		// view's text layer uses: a member's selection there is matched against
-		// this text (`PdfPage.svelte`, `$lib/shared/excerpt.ts`). Change both or neither.
+		// this text (`PdfPage.svelte`, `#lib/shared/excerpt.ts`). Change both or neither.
 		const content = await page.getTextContent();
 		pages.push({
 			width: x1 - x0,

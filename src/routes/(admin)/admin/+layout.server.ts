@@ -1,4 +1,4 @@
-import { requirePlatformAdmin } from '$lib/server/auth/admin';
+import { requirePlatformAdmin } from '#lib/server/auth/admin.ts';
 import type { LayoutServerLoad } from './$types';
 
 /** The second of three checks; see requirePlatformAdmin. */

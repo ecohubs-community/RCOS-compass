@@ -1,7 +1,7 @@
 <script lang="ts">
-	import { useTime } from '$lib/time/use-time';
+	import { useTime } from '#lib/time/use-time.ts';
 	import { resolve } from '$app/paths';
-	import * as m from '$lib/paraglide/messages';
+	import * as m from '#lib/paraglide/messages.js';
 
 	let { data } = $props();
 

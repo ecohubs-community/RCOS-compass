@@ -1,6 +1,6 @@
 <script lang="ts">
 	import type { Snippet } from 'svelte';
-	import { cn } from '$lib/components/ui/cn.js';
+	import { cn } from '#lib/components/ui/cn.js';
 
 	/** The miniature of the app's status chip, as the tour draws it. */
 	let { tone, children }: { tone: 'attention' | 'info' | 'accent'; children: Snippet } = $props();

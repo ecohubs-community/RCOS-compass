@@ -1,9 +1,9 @@
 <script lang="ts">
-	import { enhance } from '$app/forms';
+	import { enhance } from '#lib/enhance.ts';
 	import { page } from '$app/state';
-	import Button from '$lib/components/ui/Button.svelte';
-	import TextField from '$lib/components/ui/TextField.svelte';
-	import * as m from '$lib/paraglide/messages';
+	import Button from '#lib/components/ui/Button.svelte';
+	import TextField from '#lib/components/ui/TextField.svelte';
+	import * as m from '#lib/paraglide/messages.js';
 
 	/**
 	 * Enrolling a second factor, and removing it. openspec `authentication`.

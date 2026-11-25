@@ -1,8 +1,8 @@
 <script lang="ts">
 	import { deserialize } from '$app/forms';
-	import { invalidateAll } from '$app/navigation';
-	import * as m from '$lib/paraglide/messages';
-	import Button from '$lib/components/ui/Button.svelte';
+	import { refreshAll } from '$app/navigation';
+	import * as m from '#lib/paraglide/messages.js';
+	import Button from '#lib/components/ui/Button.svelte';
 	import IconUpload from '~icons/tabler/upload';
 
 	/**
@@ -80,7 +80,7 @@
 		}
 		progress = null;
 		if (input) input.value = '';
-		await invalidateAll();
+		await refreshAll();
 	}
 
 	function drop(event: DragEvent) {

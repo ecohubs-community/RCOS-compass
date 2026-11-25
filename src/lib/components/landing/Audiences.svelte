@@ -1,9 +1,9 @@
 <script lang="ts">
-	import cohousing from '$lib/assets/cohousing.webp';
-	import ecovillages from '$lib/assets/ecovillages.webp';
-	import formingGroups from '$lib/assets/forming-groups.webp';
-	import landTrusts from '$lib/assets/landtrusts-farmingcollectives.webp';
-	import * as m from '$lib/paraglide/messages';
+	import cohousing from '#lib/assets/cohousing.webp';
+	import ecovillages from '#lib/assets/ecovillages.webp';
+	import formingGroups from '#lib/assets/forming-groups.webp';
+	import landTrusts from '#lib/assets/landtrusts-farmingcollectives.webp';
+	import * as m from '#lib/paraglide/messages.js';
 	import AudienceCard from './AudienceCard.svelte';
 	import Eyebrow from './Eyebrow.svelte';
 	import SectionHeading from './SectionHeading.svelte';

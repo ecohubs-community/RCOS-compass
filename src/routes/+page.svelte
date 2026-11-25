@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { resolve } from '$app/paths';
-	import Landing from '$lib/components/landing/Landing.svelte';
+	import Landing from '#lib/components/landing/Landing.svelte';
 
 	let { data } = $props();
 </script>

@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { Popover } from 'bits-ui';
-	import { HELP, type HelpId } from '$lib/help/registry';
+	import { HELP, type HelpId } from '#lib/help/registry.ts';
 	import { cn } from './cn.js';
 
 	/**

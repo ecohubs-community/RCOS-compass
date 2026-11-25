@@ -1,4 +1,4 @@
-import type { InlineNode } from '$lib/shared/markdown';
+import type { InlineNode } from '#lib/shared/markdown.ts';
 import { inlineText, parseMarkdown } from '../markdown.js';
 
 /**

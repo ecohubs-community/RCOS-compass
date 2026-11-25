@@ -1,9 +1,9 @@
 <script lang="ts">
-	import { enhance } from '$app/forms';
+	import { enhance } from '#lib/enhance.ts';
 	import { resolve } from '$app/paths';
 	import { page } from '$app/state';
-	import Button from '$lib/components/ui/Button.svelte';
-	import TextField from '$lib/components/ui/TextField.svelte';
+	import Button from '#lib/components/ui/Button.svelte';
+	import TextField from '#lib/components/ui/TextField.svelte';
 
 	let { data, form } = $props();
 

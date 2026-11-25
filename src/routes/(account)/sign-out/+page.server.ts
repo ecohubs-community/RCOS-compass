@@ -1,6 +1,6 @@
 import { redirect } from '@sveltejs/kit';
-import { getAuth } from '$lib/server/auth/auth';
-import { applyAuthCookies } from '$lib/server/auth/cookies';
+import { getAuth } from '#lib/server/auth/auth.ts';
+import { applyAuthCookies } from '#lib/server/auth/cookies.ts';
 import type { Actions, PageServerLoad } from './$types';
 
 /**

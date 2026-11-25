@@ -1,5 +1,5 @@
 import * as v from 'valibot';
-import * as m from '$lib/paraglide/messages';
+import * as m from '#lib/paraglide/messages.js';
 
 /**
  * Shapes for the authentication forms. docs/01-server-client-contract.md §1:

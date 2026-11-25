@@ -37,7 +37,7 @@
 				<li>
 					<a
 						href={panel.href}
-						aria-current={new URL(panel.href, page.url).pathname === page.url.pathname
+						aria-current={new URL(panel.href, page.url.href).pathname === page.url.pathname
 							? 'page'
 							: undefined}
 						class="aria-[current=page]:bg-raised aria-[current=page]:text-fg text-fg-secondary hover:text-fg flex items-center gap-2 rounded-(--radius-control) px-2.5 py-1.5 whitespace-nowrap lg:whitespace-normal"

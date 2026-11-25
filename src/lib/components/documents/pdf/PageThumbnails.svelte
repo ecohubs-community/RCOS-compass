@@ -1,6 +1,6 @@
 <script lang="ts">
 	import type { PDFDocumentProxy } from 'pdfjs-dist';
-	import * as m from '$lib/paraglide/messages';
+	import * as m from '#lib/paraglide/messages.js';
 	import { outputScale } from './geometry.js';
 
 	/**

@@ -1,7 +1,7 @@
-import { requirePlatformAdmin } from '$lib/server/auth/admin';
-import { systemClock } from '$lib/server/clock';
-import { getDb } from '$lib/server/db';
-import { openFeedbackAsMarkdown } from '$lib/server/services/admin/feedback';
+import { requirePlatformAdmin } from '#lib/server/auth/admin.ts';
+import { systemClock } from '#lib/server/clock.ts';
+import { getDb } from '#lib/server/db/index.ts';
+import { openFeedbackAsMarkdown } from '#lib/server/services/admin/feedback.ts';
 import type { PageServerLoad } from './$types';
 
 /**

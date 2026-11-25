@@ -14,7 +14,7 @@ export type LineBox = { x: number; y: number; w: number; h: number; start: numbe
 
 /**
  * A line box as the workspace sends it, `[x, y, w, h, start, end]` — mirrored
- * from `$lib/server/services/workspace.ts`, which components may not import.
+ * from `#lib/server/services/workspace.ts`, which components may not import.
  */
 export type LineTuple = readonly [number, number, number, number, number, number];
 

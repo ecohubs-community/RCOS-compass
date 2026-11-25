@@ -1,11 +1,11 @@
 import { fail } from '@sveltejs/kit';
 import { and, desc, eq, inArray } from 'drizzle-orm';
-import { ctxCan } from '$lib/server/auth/guard';
-import { changeLog } from '$lib/server/db/schema/decisions';
-import { getDb } from '$lib/server/db';
-import { outwardClaim } from '$lib/server/services/claim';
-import { answeredSections, standardViewFor } from '$lib/server/services/completeness';
-import { definitionsBySection } from '$lib/server/services/definitions';
+import { ctxCan } from '#lib/server/auth/guard.ts';
+import { changeLog } from '#lib/server/db/schema/decisions.ts';
+import { getDb } from '#lib/server/db/index.ts';
+import { outwardClaim } from '#lib/server/services/claim.ts';
+import { answeredSections, standardViewFor } from '#lib/server/services/completeness.ts';
+import { definitionsBySection } from '#lib/server/services/definitions.ts';
 import {
 	publishAll,
 	publishArtifact,
@@ -14,7 +14,7 @@ import {
 	setPublicIndex,
 	withdrawAll,
 	withdrawArtifact
-} from '$lib/server/services/publishing';
+} from '#lib/server/services/publishing.ts';
 import type { Actions, PageServerLoad } from './$types';
 
 /**

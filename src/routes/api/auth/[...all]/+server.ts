@@ -1,5 +1,5 @@
 import type { RequestHandler } from './$types';
-import { getAuth } from '$lib/server/auth/auth';
+import { getAuth } from '#lib/server/auth/auth.ts';
 
 /**
  * better-auth's own endpoints. docs/01-server-client-contract.md §2 allows this

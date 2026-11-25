@@ -1,41 +1,41 @@
 import { fail } from '@sveltejs/kit';
-import { ctxCan } from '$lib/server/auth/guard';
-import { getConfig } from '$lib/server/config';
-import type { Role } from '$lib/server/db/schema/tenancy';
-import { getLogger } from '$lib/server/logger';
+import { ctxCan } from '#lib/server/auth/guard.ts';
+import { getConfig } from '#lib/server/config.ts';
+import type { Role } from '#lib/server/db/schema/tenancy.ts';
+import { getLogger } from '#lib/server/logger.ts';
 import {
 	getMailTransport,
 	invitationMessage,
 	invitationUrl,
 	joinDeclinedMessage,
 	joinLinkUrl
-} from '$lib/server/mail';
+} from '#lib/server/mail/index.ts';
 import {
 	INVITES_PER_STEWARD_PER_DAY,
 	inviteMembers,
 	listInvitations,
 	resendInvitation,
 	revokeInvitation
-} from '$lib/server/services/invitations';
+} from '#lib/server/services/invitations.ts';
 import {
 	joinLinkOf,
 	replaceJoinLink,
 	turnOffJoinLink,
 	turnOnJoinLink
-} from '$lib/server/services/join-link';
+} from '#lib/server/services/join-link.ts';
 import {
 	admitJoinRequest,
 	declineJoinRequest,
 	listJoinRequests
-} from '$lib/server/services/join-requests';
+} from '#lib/server/services/join-requests.ts';
 import {
 	endMembership,
 	listFormerMembers,
 	listMembers,
 	setMemberRole
-} from '$lib/server/services/members';
-import type { Locale } from '$lib/paraglide/runtime';
-import type { Ctx } from '$lib/server/auth/guard';
+} from '#lib/server/services/members.ts';
+import type { Locale } from '#lib/paraglide/runtime.js';
+import type { Ctx } from '#lib/server/auth/guard.ts';
 import type { Actions, PageServerLoad } from './$types';
 
 /**

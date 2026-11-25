@@ -1,7 +1,7 @@
 import { fail } from '@sveltejs/kit';
-import { ctxCan } from '$lib/server/auth/guard';
-import { activeStandardView } from '$lib/server/services/completeness';
-import { getDb } from '$lib/server/db';
+import { ctxCan } from '#lib/server/auth/guard.ts';
+import { activeStandardView } from '#lib/server/services/completeness.ts';
+import { getDb } from '#lib/server/db/index.ts';
 import {
 	DEFAULT_WEIGHTS_PRESETS,
 	clearOverride,
@@ -11,9 +11,9 @@ import {
 	publishPrivateOrder,
 	releasePrivate,
 	setWeights
-} from '$lib/server/services/ordering';
-import { effortLabel, path } from '$lib/server/services/path';
-import { getRiskProfile } from '$lib/server/services/risk-profile';
+} from '#lib/server/services/ordering.ts';
+import { effortLabel, path } from '#lib/server/services/path.ts';
+import { getRiskProfile } from '#lib/server/services/risk-profile.ts';
 import type { Actions, PageServerLoad } from './$types';
 
 /**
