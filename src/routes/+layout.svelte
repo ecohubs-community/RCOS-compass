@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { deserialize } from '$app/forms';
-	import { afterNavigate, invalidateAll } from '$app/navigation';
+	import { afterNavigate, refreshAll } from '$app/navigation';
 	import { resolve } from '$app/paths';
 	import '../app.css';
 
@@ -29,7 +29,7 @@
 		})
 			.then(async (response) => deserialize(await response.text()))
 			.then((result) => {
-				if (result.type === 'success' && result.data?.changed) void invalidateAll();
+				if (result.type === 'success' && result.data?.changed) void refreshAll();
 			})
 			.catch(() => {
 				// Nothing to tell anybody: times stay in the community's zone.
@@ -59,7 +59,8 @@
 	 * around its title. The router only owes focus back on the navigations it
 	 * handles itself.
 	 */
-	afterNavigate(({ type }) => {
+	afterNavigate(({ type, shallow }) => {
+		if (shallow && type === 'goto') return;
 		if (type === 'enter') return;
 		const heading = document.querySelector<HTMLElement>('main h1, h1');
 		if (!heading) return;

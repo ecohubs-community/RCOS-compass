@@ -1,7 +1,7 @@
 <script lang="ts">
-	import { useTime } from '$lib/time/use-time';
-	import { enhance } from '$app/forms';
-	import { links } from '$lib/links';
+	import { useTime } from '#lib/time/use-time.ts';
+	import { enhance } from '#lib/enhance.ts';
+	import { links } from '#lib/links.ts';
 	import IconDeviceFloppy from '~icons/tabler/device-floppy';
 	import IconRestore from '~icons/tabler/restore';
 

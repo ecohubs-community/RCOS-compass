@@ -1,6 +1,6 @@
 <script lang="ts" module>
 	import type { Highlight } from './PdfPage.svelte';
-	import type { SelectedWords } from '$lib/shared/excerpt';
+	import type { SelectedWords } from '#lib/shared/excerpt.ts';
 	import type { ParagraphLines } from './geometry.js';
 
 	/** A highlight as the workspace sends it: its lines come from `paragraphs`. */
@@ -40,7 +40,7 @@
 	import type { PDFDocumentProxy } from 'pdfjs-dist';
 	import { onMount, tick } from 'svelte';
 	import { SvelteSet } from 'svelte/reactivity';
-	import * as m from '$lib/paraglide/messages';
+	import * as m from '#lib/paraglide/messages.js';
 	import IconMinus from '~icons/tabler/minus';
 	import IconPlus from '~icons/tabler/plus';
 	import PageThumbnails from './PageThumbnails.svelte';

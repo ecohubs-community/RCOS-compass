@@ -1,6 +1,6 @@
 <script lang="ts">
-	import { isUntranslated } from '$lib/i18n';
-	import * as m from '$lib/paraglide/messages';
+	import { isUntranslated } from '#lib/i18n.ts';
+	import * as m from '#lib/paraglide/messages.js';
 
 	/**
 	 * A string, and whether it is still English.

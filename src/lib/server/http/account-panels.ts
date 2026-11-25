@@ -1,24 +1,24 @@
 import { fail, redirect, type RequestEvent } from '@sveltejs/kit';
 import * as v from 'valibot';
-import { applyAuthCookies } from '$lib/server/auth/cookies';
-import { stampAbsoluteExpiry } from '$lib/server/auth/session';
+import { applyAuthCookies } from '#lib/server/auth/cookies.ts';
+import { stampAbsoluteExpiry } from '#lib/server/auth/session.ts';
 import {
 	beginEnrolment,
 	confirmEnrolment,
 	manualEntryKey,
 	removeEnrolment,
 	twoFactorState
-} from '$lib/server/auth/two-factor';
-import { systemClock } from '$lib/server/clock';
-import { getConfig, isPlatformAdmin } from '$lib/server/config';
-import { getDb } from '$lib/server/db';
-import { run } from '$lib/server/http/form-action';
-import * as m from '$lib/paraglide/messages';
-import { erasureSummary, renamePerson } from '$lib/server/services/account';
-import { recordAudit } from '$lib/server/services/audit';
-import { erasePerson } from '$lib/server/services/erasure';
-import { setPersonTimeZone, timeZoneChoices } from '$lib/server/services/time-zone';
-import { passwordSchema, totpCodeSchema } from '$lib/shared/schemas/auth';
+} from '#lib/server/auth/two-factor.ts';
+import { systemClock } from '#lib/server/clock.ts';
+import { getConfig, isPlatformAdmin } from '#lib/server/config.ts';
+import { getDb } from '#lib/server/db/index.ts';
+import { run } from '#lib/server/http/form-action.ts';
+import * as m from '#lib/paraglide/messages.js';
+import { erasureSummary, renamePerson } from '#lib/server/services/account.ts';
+import { recordAudit } from '#lib/server/services/audit.ts';
+import { erasePerson } from '#lib/server/services/erasure.ts';
+import { setPersonTimeZone, timeZoneChoices } from '#lib/server/services/time-zone.ts';
+import { passwordSchema, totpCodeSchema } from '#lib/shared/schemas/auth.ts';
 
 /**
  * The three panels about the person rather than the community — Account,

@@ -1,7 +1,7 @@
 import { fail } from '@sveltejs/kit';
-import { ctxCan } from '$lib/server/auth/guard';
-import { getDb } from '$lib/server/db';
-import { listFeedback, markHandled, reportFeedback } from '$lib/server/services/feedback';
+import { ctxCan } from '#lib/server/auth/guard.ts';
+import { getDb } from '#lib/server/db/index.ts';
+import { listFeedback, markHandled, reportFeedback } from '#lib/server/services/feedback.ts';
 import type { Actions, PageServerLoad } from './$types';
 
 /**

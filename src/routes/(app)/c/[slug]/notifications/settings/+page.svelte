@@ -1,10 +1,10 @@
 <script lang="ts">
-	import { enhance } from '$app/forms';
+	import { enhance } from '#lib/enhance.ts';
 	import { page } from '$app/state';
-	import Button from '$lib/components/ui/Button.svelte';
-	import { links } from '$lib/links';
-	import * as m from '$lib/paraglide/messages';
-	import { weekdayName } from '$lib/time/format';
+	import Button from '#lib/components/ui/Button.svelte';
+	import { links } from '#lib/links.ts';
+	import * as m from '#lib/paraglide/messages.js';
+	import { weekdayName } from '#lib/time/format.ts';
 	import IconDeviceFloppy from '~icons/tabler/device-floppy';
 
 	let { data, form } = $props();

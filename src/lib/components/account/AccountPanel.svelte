@@ -1,8 +1,8 @@
 <script lang="ts">
-	import { enhance } from '$app/forms';
-	import * as m from '$lib/paraglide/messages';
-	import Button from '$lib/components/ui/Button.svelte';
-	import TextField from '$lib/components/ui/TextField.svelte';
+	import { enhance } from '#lib/enhance.ts';
+	import * as m from '#lib/paraglide/messages.js';
+	import Button from '#lib/components/ui/Button.svelte';
+	import TextField from '#lib/components/ui/TextField.svelte';
 	import IconDeviceFloppy from '~icons/tabler/device-floppy';
 
 	/**

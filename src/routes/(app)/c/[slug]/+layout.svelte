@@ -1,11 +1,11 @@
 <script lang="ts">
 	import { page } from '$app/state';
-	import AccountMenu from '$lib/components/AccountMenu.svelte';
-	import Footer from '$lib/components/legal/Footer.svelte';
-	import TopBar from '$lib/components/TopBar.svelte';
-	import GlossaryPanel from '$lib/components/GlossaryPanel.svelte';
-	import * as m from '$lib/paraglide/messages';
-	import { links } from '$lib/links';
+	import AccountMenu from '#lib/components/AccountMenu.svelte';
+	import Footer from '#lib/components/legal/Footer.svelte';
+	import TopBar from '#lib/components/TopBar.svelte';
+	import GlossaryPanel from '#lib/components/GlossaryPanel.svelte';
+	import * as m from '#lib/paraglide/messages.js';
+	import { links } from '#lib/links.ts';
 	import IconBook from '~icons/tabler/book';
 	import IconClipboardCheck from '~icons/tabler/clipboard-check';
 	import IconDiamond from '~icons/tabler/diamond';
@@ -136,7 +136,7 @@
 	 * page you are on, in dev or in production, and neither the a11y suite nor
 	 * anybody reading the code noticed, because the code reads as though it does.
 	 */
-	const pathOf = (href: string) => new URL(href, page.url).pathname;
+	const pathOf = (href: string) => new URL(href, page.url.href).pathname;
 
 	const isCurrent = (href: string, exact = false) =>
 		exact ? pathOf(href) === page.url.pathname : page.url.pathname.startsWith(pathOf(href));

@@ -1,4 +1,4 @@
-import { getConfig } from '$lib/server/config';
+import { getConfig } from '#lib/server/config.ts';
 import type { RequestHandler } from './$types';
 
 /**

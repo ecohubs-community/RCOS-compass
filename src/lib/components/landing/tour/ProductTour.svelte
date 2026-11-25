@@ -1,6 +1,6 @@
 <script lang="ts">
-	import { cn } from '$lib/components/ui/cn.js';
-	import * as m from '$lib/paraglide/messages';
+	import { cn } from '#lib/components/ui/cn.js';
+	import * as m from '#lib/paraglide/messages.js';
 	import { placeOf } from '../reveal.js';
 	import TourConsent from './TourConsent.svelte';
 	import TourDefinition from './TourDefinition.svelte';

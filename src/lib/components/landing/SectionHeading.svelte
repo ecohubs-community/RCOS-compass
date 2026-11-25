@@ -1,6 +1,6 @@
 <script lang="ts">
 	import type { Snippet } from 'svelte';
-	import { cn } from '$lib/components/ui/cn.js';
+	import { cn } from '#lib/components/ui/cn.js';
 
 	/** A section's `h2`, in the display serif. The id is what the section is labelled by. */
 	let {

@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { page } from '$app/state';
-	import * as m from '$lib/paraglide/messages';
-	import { links } from '$lib/links';
+	import * as m from '#lib/paraglide/messages.js';
+	import { links } from '#lib/links.ts';
 	import IconAdjustments from '~icons/tabler/adjustments';
 	import IconClock from '~icons/tabler/clock';
 	import IconScale from '~icons/tabler/scale';
@@ -106,7 +106,7 @@
 					<li>
 						<a
 							href={panel.href}
-							aria-current={new URL(panel.href, page.url).pathname === page.url.pathname
+							aria-current={new URL(panel.href, page.url.href).pathname === page.url.pathname
 								? 'page'
 								: undefined}
 							class="aria-[current=page]:bg-raised aria-[current=page]:text-fg text-fg-secondary hover:text-fg flex items-center gap-2 rounded-(--radius-control) px-2.5 py-1.5 whitespace-nowrap lg:whitespace-normal"

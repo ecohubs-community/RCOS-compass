@@ -1,5 +1,5 @@
-import { getDb, type Db } from '$lib/server/db';
-import { ctxCan, type Ctx } from '$lib/server/auth/guard';
+import { getDb, type Db } from '#lib/server/db/index.ts';
+import { ctxCan, type Ctx } from '#lib/server/auth/guard.ts';
 import {
 	adoptedVersion,
 	getDefinition,
@@ -7,24 +7,24 @@ import {
 	runLinter,
 	saveDraft,
 	StaleDraftError
-} from '$lib/server/services/definitions';
-import { definitionOrigin } from '$lib/server/services/evidence';
-import { activeStandardView } from '$lib/server/services/completeness';
-import { isCurrentShape, type LintResult } from '$lib/shared/linter';
-import { parseMarkdown } from '$lib/server/markdown';
+} from '#lib/server/services/definitions.ts';
+import { definitionOrigin } from '#lib/server/services/evidence.ts';
+import { activeStandardView } from '#lib/server/services/completeness.ts';
+import { isCurrentShape, type LintResult } from '#lib/shared/linter.ts';
+import { parseMarkdown } from '#lib/server/markdown.ts';
 import { fail } from '@sveltejs/kit';
-import { aiAvailability } from '$lib/server/ai/run';
-import { lintWithAssist } from '$lib/server/services/linting';
+import { aiAvailability } from '#lib/server/ai/run.ts';
+import { lintWithAssist } from '#lib/server/services/linting.ts';
 import type { Actions, PageServerLoad } from './$types';
-import { guideFor, requirementFor } from '$lib/server/services/requirement';
+import { guideFor, requirementFor } from '#lib/server/services/requirement.ts';
 import {
 	definitionVersions,
 	discussionsForDefinition,
 	evidenceForDefinition,
 	localDefinitionContext,
 	relatedDefinitions
-} from '$lib/server/services/provenance';
-import { definitionStatus } from '$lib/shared/definition-status';
+} from '#lib/server/services/provenance.ts';
+import { definitionStatus } from '#lib/shared/definition-status.ts';
 
 /**
  * The definition detail — the hero screen. UI spec §4.3.

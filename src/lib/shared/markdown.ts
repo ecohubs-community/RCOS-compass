@@ -1,7 +1,7 @@
 /**
  * The shapes governance text can take once it has been parsed.
  *
- * These live outside `$lib/server` because the renderer is a component and a
+ * These live outside `#lib/server` because the renderer is a component and a
  * component may never import from the server (docs/02-component-guidelines.md
  * §4). The *parser* stays server-side — it is where the safety argument lives,
  * and there is no reason to ship a Markdown parser to the browser to render text
@@ -9,7 +9,7 @@
  *
  * The union is the allowlist. A node type that is not here cannot be produced
  * and cannot be rendered, which is why an HTML block or a `javascript:` URL has
- * nowhere to go — see `$lib/server/markdown`.
+ * nowhere to go — see `#lib/server/markdown.ts`.
  */
 export type InlineNode =
 	| { type: 'text'; value: string }

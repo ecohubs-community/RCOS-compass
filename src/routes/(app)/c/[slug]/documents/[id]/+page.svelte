@@ -1,20 +1,20 @@
 <script lang="ts">
-	import { enhance } from '$app/forms';
+	import { enhance } from '#lib/enhance.ts';
 	import { goto } from '$app/navigation';
 	import { onMount, type Component } from 'svelte';
-	import HandMapCard from '$lib/components/documents/HandMapCard.svelte';
-	import MappingQueue from '$lib/components/documents/MappingQueue.svelte';
-	import MappingStateChip from '$lib/components/documents/MappingStateChip.svelte';
-	import PaperView, { type Excerpt } from '$lib/components/documents/PaperView.svelte';
-	import ReconfirmBlock from '$lib/components/documents/ReconfirmBlock.svelte';
-	import ScanBlock from '$lib/components/documents/ScanBlock.svelte';
-	import SuggestionCard from '$lib/components/documents/SuggestionCard.svelte';
-	import VersionList from '$lib/components/documents/VersionList.svelte';
-	import { pollWhileScanning } from '$lib/components/documents/poll';
-	import { findExcerpt, type SelectedWords } from '$lib/shared/excerpt';
-	import Button from '$lib/components/ui/Button.svelte';
-	import * as m from '$lib/paraglide/messages';
-	import { links } from '$lib/links';
+	import HandMapCard from '#lib/components/documents/HandMapCard.svelte';
+	import MappingQueue from '#lib/components/documents/MappingQueue.svelte';
+	import MappingStateChip from '#lib/components/documents/MappingStateChip.svelte';
+	import PaperView, { type Excerpt } from '#lib/components/documents/PaperView.svelte';
+	import ReconfirmBlock from '#lib/components/documents/ReconfirmBlock.svelte';
+	import ScanBlock from '#lib/components/documents/ScanBlock.svelte';
+	import SuggestionCard from '#lib/components/documents/SuggestionCard.svelte';
+	import VersionList from '#lib/components/documents/VersionList.svelte';
+	import { pollWhileScanning } from '#lib/components/documents/poll.ts';
+	import { findExcerpt, type SelectedWords } from '#lib/shared/excerpt.ts';
+	import Button from '#lib/components/ui/Button.svelte';
+	import * as m from '#lib/paraglide/messages.js';
+	import { links } from '#lib/links.ts';
 	import IconDownload from '~icons/tabler/download';
 
 	let { data, form } = $props();
@@ -60,7 +60,7 @@
 	let originalFailed = $state(false);
 	let originalReady = $state(false);
 	let Viewer = $state.raw<Component<
-		import('$lib/components/documents/pdf/PdfViewer.svelte').PdfViewerProps
+		import('#lib/components/documents/pdf/PdfViewer.svelte').PdfViewerProps
 	> | null>(null);
 	const wantsOriginal = $derived(
 		mounted &&
@@ -73,7 +73,7 @@
 	);
 	$effect(() => {
 		if (!wantsOriginal || Viewer) return;
-		import('$lib/components/documents/pdf/PdfViewer.svelte').then(
+		import('#lib/components/documents/pdf/PdfViewer.svelte').then(
 			(module) => (Viewer = module.default),
 			() => (originalFailed = true)
 		);
@@ -89,9 +89,7 @@
 	 * reload lands in the same place — replaced rather than pushed, because
 	 * stepping back through every card a member looked at is not what Back means.
 	 */
-	const select = (href: string) =>
-		// eslint-disable-next-line svelte/no-navigation-without-resolve -- same page, query only
-		goto(href, { replaceState: true, noScroll: true, keepFocus: true });
+	const select = (href: string) => goto(href, { replace: true, reset: false });
 
 	/**
 	 * Words selected in a paragraph, in either view, until they are matched. The

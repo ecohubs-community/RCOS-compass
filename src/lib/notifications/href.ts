@@ -1,4 +1,4 @@
-import { links } from '$lib/links';
+import { links } from '#lib/links.ts';
 
 /** A notification's target as a link inside its community. Mirrors `NotificationTarget`. */
 export type Target =

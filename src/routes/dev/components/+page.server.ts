@@ -1,8 +1,8 @@
 import { error } from '@sveltejs/kit';
-import { getConfig } from '$lib/server/config';
-import { lint } from '$lib/server/linter';
-import { parseMarkdown } from '$lib/server/markdown';
-import { buildPaper } from '$lib/server/documents/paper';
+import { getConfig } from '#lib/server/config.ts';
+import { lint } from '#lib/server/linter/index.ts';
+import { parseMarkdown } from '#lib/server/markdown.ts';
+import { buildPaper } from '#lib/server/documents/paper.ts';
 
 /**
  * The gallery is a development and review surface; it never ships.

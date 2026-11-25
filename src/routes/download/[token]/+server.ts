@@ -2,12 +2,12 @@ import { error } from '@sveltejs/kit';
 import { createReadStream, statSync } from 'node:fs';
 import { Readable } from 'node:stream';
 import { eq } from 'drizzle-orm';
-import { systemClock } from '$lib/server/clock';
-import { getDb } from '$lib/server/db';
-import { producedFile } from '$lib/server/db/schema/self-audit';
-import { absolutePathOf } from '$lib/server/documents/storage';
-import { recordAudit } from '$lib/server/services/audit';
-import { verifyDownload } from '$lib/server/services/export';
+import { systemClock } from '#lib/server/clock.ts';
+import { getDb } from '#lib/server/db/index.ts';
+import { producedFile } from '#lib/server/db/schema/self-audit.ts';
+import { absolutePathOf } from '#lib/server/documents/storage.ts';
+import { recordAudit } from '#lib/server/services/audit.ts';
+import { verifyDownload } from '#lib/server/services/export.ts';
 import type { RequestHandler } from './$types';
 
 /**

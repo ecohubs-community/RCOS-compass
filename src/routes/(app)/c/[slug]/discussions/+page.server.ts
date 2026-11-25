@@ -1,8 +1,8 @@
 import { fail, redirect } from '@sveltejs/kit';
-import { getDb } from '$lib/server/db';
-import { listDiscussionSummaries, openDiscussion } from '$lib/server/services/discussions';
-import { activeStandardView, sectionOf } from '$lib/server/services/completeness';
-import { ctxCan } from '$lib/server/auth/guard';
+import { getDb } from '#lib/server/db/index.ts';
+import { listDiscussionSummaries, openDiscussion } from '#lib/server/services/discussions.ts';
+import { activeStandardView, sectionOf } from '#lib/server/services/completeness.ts';
+import { ctxCan } from '#lib/server/auth/guard.ts';
 import type { Actions, PageServerLoad } from './$types';
 
 /**

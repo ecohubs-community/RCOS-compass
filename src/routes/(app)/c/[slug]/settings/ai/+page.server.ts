@@ -1,7 +1,7 @@
 import { fail } from '@sveltejs/kit';
-import { ctxCan } from '$lib/server/auth/guard';
-import { getDb } from '$lib/server/db';
-import { aiSettings, setAiEnabled, usageByMember } from '$lib/server/services/ai-settings';
+import { ctxCan } from '#lib/server/auth/guard.ts';
+import { getDb } from '#lib/server/db/index.ts';
+import { aiSettings, setAiEnabled, usageByMember } from '#lib/server/services/ai-settings.ts';
 import type { Actions, PageServerLoad } from './$types';
 
 /**

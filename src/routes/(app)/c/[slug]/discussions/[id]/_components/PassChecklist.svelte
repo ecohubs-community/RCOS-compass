@@ -1,7 +1,7 @@
 <script lang="ts">
-	import { links } from '$lib/links';
-	import * as m from '$lib/paraglide/messages';
-	import type { InterimRule, PassChecklist } from '$lib/shared/pass-checklist';
+	import { links } from '#lib/links.ts';
+	import * as m from '#lib/paraglide/messages.js';
+	import type { InterimRule, PassChecklist } from '#lib/shared/pass-checklist.ts';
 	import IconCheck from '~icons/tabler/check';
 	import IconAlertTriangle from '~icons/tabler/alert-triangle';
 	import IconMinus from '~icons/tabler/minus';

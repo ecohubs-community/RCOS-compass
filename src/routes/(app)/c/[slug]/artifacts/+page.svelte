@@ -1,6 +1,6 @@
 <script lang="ts">
-	import * as m from '$lib/paraglide/messages';
-	import { links } from '$lib/links';
+	import * as m from '#lib/paraglide/messages.js';
+	import { links } from '#lib/links.ts';
 	import IconCircleCheck from '~icons/tabler/circle-check';
 	import IconCircleDashed from '~icons/tabler/circle-dashed';
 	import IconProgress from '~icons/tabler/progress';

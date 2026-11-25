@@ -1,4 +1,4 @@
-import { twoFactorPanel } from '$lib/server/http/account-panels';
+import { twoFactorPanel } from '#lib/server/http/account-panels.ts';
 import type { Actions, PageServerLoad } from './$types';
 
 /** The reader's second factor, from inside a community. */

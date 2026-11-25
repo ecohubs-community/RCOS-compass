@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { cn } from '$lib/components/ui/cn.js';
+	import { cn } from '#lib/components/ui/cn.js';
 
 	/** Who Compass is for: a photograph, a name, one line. */
 	let {

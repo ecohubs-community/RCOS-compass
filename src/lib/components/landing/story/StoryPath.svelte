@@ -1,6 +1,6 @@
 <script lang="ts">
-	import { cn } from '$lib/components/ui/cn.js';
-	import * as m from '$lib/paraglide/messages';
+	import { cn } from '#lib/components/ui/cn.js';
+	import * as m from '#lib/paraglide/messages.js';
 	import StoryCard from './StoryCard.svelte';
 
 	/** The Path with its lens chosen, and the member's private order. */

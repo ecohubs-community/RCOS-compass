@@ -1,8 +1,8 @@
-import { getDb } from '$lib/server/db';
-import { activeStandardView, answeredSections } from '$lib/server/services/completeness';
-import { definitionsBySection } from '$lib/server/services/definitions';
-import { layerChecks } from '$lib/server/services/layer-checks';
-import { statusesBySection } from '$lib/server/services/provenance';
+import { getDb } from '#lib/server/db/index.ts';
+import { activeStandardView, answeredSections } from '#lib/server/services/completeness.ts';
+import { definitionsBySection } from '#lib/server/services/definitions.ts';
+import { layerChecks } from '#lib/server/services/layer-checks.ts';
+import { statusesBySection } from '#lib/server/services/provenance.ts';
 import type { PageServerLoad } from './$types';
 
 /**

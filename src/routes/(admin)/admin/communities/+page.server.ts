@@ -1,5 +1,5 @@
-import { requirePlatformAdmin } from '$lib/server/auth/admin';
-import { listTenants } from '$lib/server/services/admin/communities';
+import { requirePlatformAdmin } from '#lib/server/auth/admin.ts';
+import { listTenants } from '#lib/server/services/admin/communities.ts';
 import type { PageServerLoad } from './$types';
 
 export const load: PageServerLoad = ({ locals }) => {

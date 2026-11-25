@@ -1,5 +1,5 @@
-import { getDb } from '$lib/server/db';
-import { glossary } from '$lib/server/services/glossary';
+import { getDb } from '#lib/server/db/index.ts';
+import { glossary } from '#lib/server/services/glossary.ts';
 import type { PageServerLoad } from './$types';
 
 /**

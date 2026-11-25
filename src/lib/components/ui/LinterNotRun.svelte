@@ -1,7 +1,7 @@
 <script lang="ts">
-	import Button from '$lib/components/ui/Button.svelte';
-	import { enhance } from '$app/forms';
-	import * as m from '$lib/paraglide/messages';
+	import Button from '#lib/components/ui/Button.svelte';
+	import { enhance } from '#lib/enhance.ts';
+	import * as m from '#lib/paraglide/messages.js';
 	import IconWand from '~icons/tabler/wand';
 
 	/**

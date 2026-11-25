@@ -4,8 +4,8 @@
 
 <script lang="ts">
 	import type { Snippet } from 'svelte';
-	import { cn } from '$lib/components/ui/cn.js';
-	import * as m from '$lib/paraglide/messages';
+	import { cn } from '#lib/components/ui/cn.js';
+	import * as m from '#lib/paraglide/messages.js';
 	import { demo } from '../demo.js';
 
 	/**

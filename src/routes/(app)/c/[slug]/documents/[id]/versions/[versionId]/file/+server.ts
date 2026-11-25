@@ -1,6 +1,6 @@
-import { getDb } from '$lib/server/db';
-import { serveStoredFile } from '$lib/server/documents/serve-file';
-import { getVersion } from '$lib/server/services/document-versions';
+import { getDb } from '#lib/server/db/index.ts';
+import { serveStoredFile } from '#lib/server/documents/serve-file.ts';
+import { getVersion } from '#lib/server/services/document-versions.ts';
 import type { RequestHandler } from './$types';
 
 /**

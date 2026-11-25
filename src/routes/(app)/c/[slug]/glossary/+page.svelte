@@ -1,5 +1,5 @@
 <script lang="ts">
-	import GlossaryEntry from '$lib/components/GlossaryEntry.svelte';
+	import GlossaryEntry from '#lib/components/GlossaryEntry.svelte';
 
 	let { data } = $props();
 	const slug = $derived(data.community.slug);

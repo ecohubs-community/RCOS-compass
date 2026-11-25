@@ -1,13 +1,13 @@
 <script lang="ts">
-	import { enhance } from '$app/forms';
+	import type { SubmitFunction } from '$app/forms';
+	import { enhance } from '#lib/enhance.ts';
 	import { goto } from '$app/navigation';
-	import type { SubmitFunction } from '@sveltejs/kit';
-	import Button from '$lib/components/ui/Button.svelte';
-	import * as m from '$lib/paraglide/messages';
+	import Button from '#lib/components/ui/Button.svelte';
+	import * as m from '#lib/paraglide/messages.js';
 	import IconCheck from '~icons/tabler/check';
 	import ClausePicker, { type ClauseOption } from './ClausePicker.svelte';
 	import HandMapCard from './HandMapCard.svelte';
-	import type { SelectedWords } from '$lib/shared/excerpt';
+	import type { SelectedWords } from '#lib/shared/excerpt.ts';
 	import PaperView, { type Excerpt, type Paper } from './PaperView.svelte';
 	import ReconfirmBlock from './ReconfirmBlock.svelte';
 	import RequirementTip, { type Requirement } from './RequirementTip.svelte';
@@ -105,8 +105,7 @@
 		() =>
 		async ({ result, update }) => {
 			if (result.type === 'success') {
-				// eslint-disable-next-line svelte/no-navigation-without-resolve -- same page, query only
-				await goto(`?${NEXT}`, { replaceState: true, noScroll: true, invalidateAll: true });
+				await goto(`?${NEXT}`, { replace: true, reset: false, refreshAll: true });
 			} else {
 				await update();
 			}
@@ -162,8 +161,7 @@
 				anchorPrefix="queue-passage-"
 				passageHref={pageHref}
 				pageHref={(page) => at({ view: 'page', page: String(page) })}
-				onselect={(_id, href) =>
-					goto(href, { replaceState: true, noScroll: true, keepFocus: true })}
+				onselect={(_id, href) => goto(href, { replace: true, reset: false })}
 				{onexcerpt}
 				{onselectionproblem}
 			/>
@@ -250,11 +248,12 @@
 								aria-expanded={tipOpen}
 								aria-controls="queue-requirement"
 								onclick={() => (tipOpen = !tipOpen)}
-								><span
+							>
+								<span
 									class="border-border-strong inline-flex h-5 w-5 items-center justify-center rounded-full border"
 									>?</span
-								></button
-							>
+								>
+							</button>
 						{/if}
 					</div>
 					<p class="text-fg">{current.clauseTitle}</p>

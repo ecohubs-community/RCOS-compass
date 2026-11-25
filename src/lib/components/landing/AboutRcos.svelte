@@ -1,5 +1,5 @@
 <script lang="ts">
-	import * as m from '$lib/paraglide/messages';
+	import * as m from '#lib/paraglide/messages.js';
 	import { RCOS_STANDARD_URL } from './demo.js';
 	import Eyebrow from './Eyebrow.svelte';
 	import LaterTag from './LaterTag.svelte';

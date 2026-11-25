@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { links } from '$lib/links';
+	import { links } from '#lib/links.ts';
 
 	/**
 	 * One term, shared by the page and the panel.

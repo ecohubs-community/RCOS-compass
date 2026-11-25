@@ -1,8 +1,8 @@
-import { requirePermission } from '$lib/server/auth/guard';
-import { systemClock } from '$lib/server/clock';
-import { getDb } from '$lib/server/db';
-import { enqueue } from '$lib/server/jobs/queue';
-import { EXPORT_LINK_TTL_MS, listExports, signDownload } from '$lib/server/services/export';
+import { requirePermission } from '#lib/server/auth/guard.ts';
+import { systemClock } from '#lib/server/clock.ts';
+import { getDb } from '#lib/server/db/index.ts';
+import { enqueue } from '#lib/server/jobs/queue.ts';
+import { EXPORT_LINK_TTL_MS, listExports, signDownload } from '#lib/server/services/export.ts';
 import type { Actions, PageServerLoad } from './$types';
 
 /**

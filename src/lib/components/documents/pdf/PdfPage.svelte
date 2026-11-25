@@ -21,7 +21,7 @@
 
 <script lang="ts">
 	import type { PDFDocumentProxy, RenderTask } from 'pdfjs-dist';
-	import * as m from '$lib/paraglide/messages';
+	import * as m from '#lib/paraglide/messages.js';
 	import {
 		lineRect,
 		linesFor,

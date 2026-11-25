@@ -1,38 +1,38 @@
 <script lang="ts">
-	import Button from '$lib/components/ui/Button.svelte';
-	import Untranslated from '$lib/components/ui/Untranslated.svelte';
+	import Button from '#lib/components/ui/Button.svelte';
+	import Untranslated from '#lib/components/ui/Untranslated.svelte';
 	import StatusChip, {
 		MODIFIER_LABELS,
 		STATUS_LABELS,
 		type Modifier,
 		type Status
-	} from '$lib/components/ui/StatusChip.svelte';
-	import HelpTip from '$lib/components/ui/HelpTip.svelte';
-	import TextField from '$lib/components/ui/TextField.svelte';
-	import Markdown from '$lib/components/ui/Markdown.svelte';
-	import InlineText from '$lib/components/ui/InlineText.svelte';
-	import ClauseRef from '$lib/components/ui/ClauseRef.svelte';
-	import CitedClauses from '$lib/components/ui/CitedClauses.svelte';
-	import LinterPanel from '$lib/components/ui/LinterPanel.svelte';
-	import LinterNotRun from '$lib/components/ui/LinterNotRun.svelte';
-	import { HELP, type HelpId } from '$lib/help/registry';
-	import DocumentRow from '$lib/components/documents/DocumentRow.svelte';
+	} from '#lib/components/ui/StatusChip.svelte';
+	import HelpTip from '#lib/components/ui/HelpTip.svelte';
+	import TextField from '#lib/components/ui/TextField.svelte';
+	import Markdown from '#lib/components/ui/Markdown.svelte';
+	import InlineText from '#lib/components/ui/InlineText.svelte';
+	import ClauseRef from '#lib/components/ui/ClauseRef.svelte';
+	import CitedClauses from '#lib/components/ui/CitedClauses.svelte';
+	import LinterPanel from '#lib/components/ui/LinterPanel.svelte';
+	import LinterNotRun from '#lib/components/ui/LinterNotRun.svelte';
+	import { HELP, type HelpId } from '#lib/help/registry.ts';
+	import DocumentRow from '#lib/components/documents/DocumentRow.svelte';
 	import MappingStateChip, {
 		type MappingState
-	} from '$lib/components/documents/MappingStateChip.svelte';
-	import UploadDropZone from '$lib/components/documents/UploadDropZone.svelte';
-	import ClausePicker from '$lib/components/documents/ClausePicker.svelte';
-	import HandMapCard from '$lib/components/documents/HandMapCard.svelte';
-	import MappingQueue from '$lib/components/documents/MappingQueue.svelte';
-	import PaperView from '$lib/components/documents/PaperView.svelte';
-	import ReconfirmBlock from '$lib/components/documents/ReconfirmBlock.svelte';
-	import ScanBlock from '$lib/components/documents/ScanBlock.svelte';
-	import SuggestionCard, { type Card } from '$lib/components/documents/SuggestionCard.svelte';
-	import VersionList from '$lib/components/documents/VersionList.svelte';
-	import PdfViewer from '$lib/components/documents/pdf/PdfViewer.svelte';
-	import NotificationBell from '$lib/components/notifications/NotificationBell.svelte';
-	import NotificationList from '$lib/components/notifications/NotificationList.svelte';
-	import type { NotificationItem } from '$lib/notifications/kinds';
+	} from '#lib/components/documents/MappingStateChip.svelte';
+	import UploadDropZone from '#lib/components/documents/UploadDropZone.svelte';
+	import ClausePicker from '#lib/components/documents/ClausePicker.svelte';
+	import HandMapCard from '#lib/components/documents/HandMapCard.svelte';
+	import MappingQueue from '#lib/components/documents/MappingQueue.svelte';
+	import PaperView from '#lib/components/documents/PaperView.svelte';
+	import ReconfirmBlock from '#lib/components/documents/ReconfirmBlock.svelte';
+	import ScanBlock from '#lib/components/documents/ScanBlock.svelte';
+	import SuggestionCard, { type Card } from '#lib/components/documents/SuggestionCard.svelte';
+	import VersionList from '#lib/components/documents/VersionList.svelte';
+	import PdfViewer from '#lib/components/documents/pdf/PdfViewer.svelte';
+	import NotificationBell from '#lib/components/notifications/NotificationBell.svelte';
+	import NotificationList from '#lib/components/notifications/NotificationList.svelte';
+	import type { NotificationItem } from '#lib/notifications/kinds.ts';
 
 	let { data } = $props();
 

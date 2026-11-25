@@ -1,14 +1,14 @@
 import { eq } from 'drizzle-orm';
-import type { Ctx } from '$lib/server/auth/guard';
-import { getAuth } from '$lib/server/auth/auth';
-import type { Clock } from '$lib/server/clock';
-import type { Db } from '$lib/server/db';
-import { user } from '$lib/server/db/schema/auth';
-import { community, membership } from '$lib/server/db/schema/tenancy';
-import { freeze } from '$lib/server/services/decisions';
-import { addProposal, openDiscussion } from '$lib/server/services/discussions';
-import { acceptInvitation, inviteMember } from '$lib/server/services/invitations';
-import { getStandard } from '$lib/server/standard';
+import type { Ctx } from '#lib/server/auth/guard.ts';
+import { getAuth } from '#lib/server/auth/auth.ts';
+import type { Clock } from '#lib/server/clock.ts';
+import type { Db } from '#lib/server/db/index.ts';
+import { user } from '#lib/server/db/schema/auth.ts';
+import { community, membership } from '#lib/server/db/schema/tenancy.ts';
+import { freeze } from '#lib/server/services/decisions.ts';
+import { addProposal, openDiscussion } from '#lib/server/services/discussions.ts';
+import { acceptInvitation, inviteMember } from '#lib/server/services/invitations.ts';
+import { getStandard } from '#lib/server/standard/index.ts';
 
 /**
  * The mockups' community, at the state the mockups show it in.

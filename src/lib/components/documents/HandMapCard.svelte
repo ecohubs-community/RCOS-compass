@@ -1,7 +1,7 @@
 <script lang="ts">
-	import { enhance } from '$app/forms';
-	import Button from '$lib/components/ui/Button.svelte';
-	import * as m from '$lib/paraglide/messages';
+	import { enhance } from '#lib/enhance.ts';
+	import Button from '#lib/components/ui/Button.svelte';
+	import * as m from '#lib/paraglide/messages.js';
 	import ClausePicker, { type ClauseOption } from './ClausePicker.svelte';
 
 	/**

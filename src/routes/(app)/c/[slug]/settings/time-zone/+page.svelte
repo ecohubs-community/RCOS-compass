@@ -1,6 +1,6 @@
 <script lang="ts">
-	import TimeZonePanel from '$lib/components/account/TimeZonePanel.svelte';
-	import * as m from '$lib/paraglide/messages';
+	import TimeZonePanel from '#lib/components/account/TimeZonePanel.svelte';
+	import * as m from '#lib/paraglide/messages.js';
 
 	let { data, form } = $props();
 </script>

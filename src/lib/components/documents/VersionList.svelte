@@ -1,9 +1,9 @@
 <script lang="ts">
-	import { enhance } from '$app/forms';
-	import * as m from '$lib/paraglide/messages';
-	import { links } from '$lib/links';
+	import { enhance } from '#lib/enhance.ts';
+	import * as m from '#lib/paraglide/messages.js';
+	import { links } from '#lib/links.ts';
 	import { fileSize } from './format.js';
-	import { useTime } from '$lib/time/use-time';
+	import { useTime } from '#lib/time/use-time.ts';
 
 	/**
 	 * A document's earlier files: what each was, who put it up, who replaced it.

@@ -1,7 +1,7 @@
 <script lang="ts">
-	import * as m from '$lib/paraglide/messages';
-	import { useTime } from '$lib/time/use-time';
-	import { enhance } from '$app/forms';
+	import * as m from '#lib/paraglide/messages.js';
+	import { useTime } from '#lib/time/use-time.ts';
+	import { enhance } from '#lib/enhance.ts';
 
 	let { data } = $props();
 	const latest = $derived(data.audits[0]);

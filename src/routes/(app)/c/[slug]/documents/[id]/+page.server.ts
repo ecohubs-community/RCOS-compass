@@ -1,14 +1,14 @@
 import { redirect } from '@sveltejs/kit';
-import { ctxCan } from '$lib/server/auth/guard';
-import { getDb } from '$lib/server/db';
+import { ctxCan } from '#lib/server/auth/guard.ts';
+import { getDb } from '#lib/server/db/index.ts';
 import {
 	deleteVersionAction,
 	replaceAction,
 	restoreAction
-} from '$lib/server/documents/version-actions';
-import { ACCEPTED } from '$lib/server/documents/sniff';
-import { run } from '$lib/server/http/form-action';
-import { markMappingDone, reopenMapping } from '$lib/server/services/documents';
+} from '#lib/server/documents/version-actions.ts';
+import { ACCEPTED } from '#lib/server/documents/sniff.ts';
+import { run } from '#lib/server/http/form-action.ts';
+import { markMappingDone, reopenMapping } from '#lib/server/services/documents.ts';
 import {
 	changeClause,
 	confirmEvidence,
@@ -17,11 +17,11 @@ import {
 	mapPassage,
 	reconfirmStale,
 	turnIntoDefinition
-} from '$lib/server/services/evidence';
-import { versionsWithPeople } from '$lib/server/services/library';
-import { startScan } from '$lib/server/services/mapping';
-import { workspaceView } from '$lib/server/services/workspace';
-import { links } from '$lib/links';
+} from '#lib/server/services/evidence.ts';
+import { versionsWithPeople } from '#lib/server/services/library.ts';
+import { startScan } from '#lib/server/services/mapping.ts';
+import { workspaceView } from '#lib/server/services/workspace.ts';
+import { links } from '#lib/links.ts';
 import type { Actions, PageServerLoad } from './$types';
 
 /**

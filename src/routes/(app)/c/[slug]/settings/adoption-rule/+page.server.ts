@@ -1,8 +1,8 @@
 import { fail } from '@sveltejs/kit';
-import { ctxCan } from '$lib/server/auth/guard';
-import { getDb } from '$lib/server/db';
-import { interimRule, setInterimRule } from '$lib/server/services/adoption-rule';
-import { run } from '$lib/server/http/form-action';
+import { ctxCan } from '#lib/server/auth/guard.ts';
+import { getDb } from '#lib/server/db/index.ts';
+import { interimRule, setInterimRule } from '#lib/server/services/adoption-rule.ts';
+import { run } from '#lib/server/http/form-action.ts';
 import type { Actions, PageServerLoad } from './$types';
 
 /**

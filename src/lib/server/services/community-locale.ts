@@ -18,7 +18,7 @@ import { isTimeZone } from '../../time/zone.js';
  * which point five of the six are still right and one is not, and the one is a
  * screen in the wrong language that nobody can find.
  *
- * Distinct from `$lib/server/locale`, which decides the *interface* language:
+ * Distinct from `#lib/server/locale.ts`, which decides the *interface* language:
  * Paraglide speaks three locales and the vendored standard ships five, so the
  * two types are not interchangeable and neither are the fallbacks.
  */

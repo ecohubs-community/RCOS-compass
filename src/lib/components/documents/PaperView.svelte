@@ -1,7 +1,7 @@
 <script lang="ts" module>
-	import type { InlineNode } from '$lib/shared/markdown';
+	import type { InlineNode } from '#lib/shared/markdown.ts';
 
-	/** The shapes `$lib/server/documents/paper.ts` builds; mirrored, as components may not import the server. */
+	/** The shapes `#lib/server/documents/paper.ts` builds; mirrored, as components may not import the server. */
 	export type PaperPassage = {
 		id: string;
 		page: number;
@@ -35,9 +35,9 @@
 </script>
 
 <script lang="ts">
-	import InlineText from '$lib/components/ui/InlineText.svelte';
-	import type { SelectedWords } from '$lib/shared/excerpt';
-	import * as m from '$lib/paraglide/messages';
+	import InlineText from '#lib/components/ui/InlineText.svelte';
+	import type { SelectedWords } from '#lib/shared/excerpt.ts';
+	import * as m from '#lib/paraglide/messages.js';
 
 	/**
 	 * A document, read as text on a sheet of paper. Design 05's document pane; the
@@ -87,7 +87,7 @@
 	/**
 	 * Words selected inside one paragraph, reported with roughly where they begin
 	 * in it. The page matches them to the passage's stored text
-	 * (`$lib/shared/excerpt.ts`), so what the server stores is what the document
+	 * (`#lib/shared/excerpt.ts`), so what the server stores is what the document
 	 * says, whatever the rendering did with it — and the occurrence stored is the
 	 * one selected, not the first.
 	 */

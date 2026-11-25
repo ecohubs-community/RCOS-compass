@@ -1,8 +1,8 @@
-import { ctxCan } from '$lib/server/auth/guard';
-import { getDb } from '$lib/server/db';
-import type { Meets } from '$lib/server/db/schema/path';
-import { activeStandardView } from '$lib/server/services/completeness';
-import { getRiskProfile, interview, setRiskProfile } from '$lib/server/services/risk-profile';
+import { ctxCan } from '#lib/server/auth/guard.ts';
+import { getDb } from '#lib/server/db/index.ts';
+import type { Meets } from '#lib/server/db/schema/path.ts';
+import { activeStandardView } from '#lib/server/services/completeness.ts';
+import { getRiskProfile, interview, setRiskProfile } from '#lib/server/services/risk-profile.ts';
 import type { Actions, PageServerLoad } from './$types';
 
 /**

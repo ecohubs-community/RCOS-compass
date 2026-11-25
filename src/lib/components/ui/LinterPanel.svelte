@@ -6,7 +6,7 @@
 		type LintResult,
 		type Remedy,
 		type StoredLint
-	} from '$lib/shared/linter';
+	} from '#lib/shared/linter.ts';
 
 	/**
 	 * The linter's findings, line by line. docs/11-definition-linter.md §1.

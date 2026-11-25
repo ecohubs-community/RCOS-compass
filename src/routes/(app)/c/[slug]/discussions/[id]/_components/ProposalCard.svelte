@@ -1,7 +1,7 @@
 <script lang="ts">
-	import HelpTip from '$lib/components/ui/HelpTip.svelte';
-	import Markdown from '$lib/components/ui/Markdown.svelte';
-	import { useTime } from '$lib/time/use-time';
+	import HelpTip from '#lib/components/ui/HelpTip.svelte';
+	import Markdown from '#lib/components/ui/Markdown.svelte';
+	import { useTime } from '#lib/time/use-time.ts';
 	import IconAlertTriangle from '~icons/tabler/alert-triangle';
 	import IconCheck from '~icons/tabler/check';
 	import IconChevronRight from '~icons/tabler/chevron-right';

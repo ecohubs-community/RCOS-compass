@@ -1,5 +1,5 @@
-import { getDb } from '$lib/server/db';
-import { listDecisions, searchDecisions } from '$lib/server/services/decisions';
+import { getDb } from '#lib/server/db/index.ts';
+import { listDecisions, searchDecisions } from '#lib/server/services/decisions.ts';
 import type { PageServerLoad } from './$types';
 
 /**

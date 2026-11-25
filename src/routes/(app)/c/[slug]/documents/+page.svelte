@@ -1,9 +1,9 @@
 <script lang="ts">
-	import DocumentRow from '$lib/components/documents/DocumentRow.svelte';
-	import UploadDropZone from '$lib/components/documents/UploadDropZone.svelte';
-	import { pollWhileScanning } from '$lib/components/documents/poll';
-	import * as m from '$lib/paraglide/messages';
-	import { links } from '$lib/links';
+	import DocumentRow from '#lib/components/documents/DocumentRow.svelte';
+	import UploadDropZone from '#lib/components/documents/UploadDropZone.svelte';
+	import { pollWhileScanning } from '#lib/components/documents/poll.ts';
+	import * as m from '#lib/paraglide/messages.js';
+	import { links } from '#lib/links.ts';
 
 	let { data, form } = $props();
 	const slug = $derived(data.community.slug);

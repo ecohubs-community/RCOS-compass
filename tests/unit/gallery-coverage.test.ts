@@ -27,7 +27,7 @@ describe('the component gallery', () => {
 	it('renders every primitive', () => {
 		const source = readFileSync(gallery, 'utf8');
 		const missing = primitives.filter(
-			(name) => !source.includes(`$lib/components/ui/${name}.svelte`)
+			(name) => !source.includes(`#lib/components/ui/${name}.svelte`)
 		);
 		expect(missing, 'primitives missing from /dev/components').toEqual([]);
 	});

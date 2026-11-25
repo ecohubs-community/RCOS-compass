@@ -90,6 +90,23 @@ describe('the AI module writes nothing but its own log', () => {
 		expect(output).toContain('may not reach a service that writes');
 	});
 
+	it('refuses a service reached through the #lib alias', () => {
+		// In these gitignore-style patterns a leading `#` is a comment, so a glob
+		// for `#lib/...` silently matches nothing. This is the import that proves
+		// the rule is a regex that actually fires.
+		const output = inAiModule(
+			"import { freeze } from '#lib/server/services/decisions.ts';\nexport const x = freeze;\n"
+		);
+		expect(output).toContain('may not reach a service that writes');
+	});
+
+	it('still allows its own log, imported either way', () => {
+		const output = inAiModule(
+			"import { aiCall } from '#lib/server/db/schema/ai.ts';\nimport { aiUsage } from '../db/schema/ai.js';\nexport const x = [aiCall, aiUsage];\n"
+		);
+		expect(output).not.toContain('may only touch');
+	});
+
 	it('refuses a content table', () => {
 		const output = inAiModule(
 			"import { definition } from '../db/schema/definitions.js';\nexport const x = definition;\n"
@@ -254,7 +271,7 @@ describe('the design-token check', () => {
 describe('lint boundaries', () => {
 	it('fails when a source file reads process.env outside the config module', () => {
 		const output = lint('reads-env.ts', 'export const x = process.env.SOME_VALUE;\n');
-		expect(output).toContain('$lib/server/config');
+		expect(output).toContain('#lib/server/config.ts');
 	});
 
 	it('allows the config module itself to read process.env', () => {
@@ -264,12 +281,23 @@ describe('lint boundaries', () => {
 		expect(output).not.toContain('no-restricted-properties');
 	});
 
-	it('fails when a component imports from $lib/server', () => {
+	it.each(['#lib/server/config.ts', '#lib/server', '../../lib/server/config.ts'])(
+		'fails when a component imports server code as %s',
+		(from) => {
+			const output = lint(
+				'Leaky.svelte',
+				`<script lang="ts">\n\timport { getConfig } from "${from}";\n\tconst c = getConfig();\n</script>\n\n<p>{c.LOG_LEVEL}</p>\n`
+			);
+			expect(output).toContain('docs/02-component-guidelines.md');
+		}
+	);
+
+	it('fails when a component takes enhance from $app/forms instead of the page-keeping wrapper', () => {
 		const output = lint(
-			'Leaky.svelte',
-			'<script lang="ts">\n\timport { getConfig } from "$lib/server/config";\n\tconst c = getConfig();\n</script>\n\n<p>{c.LOG_LEVEL}</p>\n'
+			'Wanders.svelte',
+			'<script lang="ts">\n\timport { enhance } from "$app/forms";\n</script>\n\n<form method="POST" use:enhance></form>\n'
 		);
-		expect(output).toContain('docs/02-component-guidelines.md');
+		expect(output).toContain('#lib/enhance.ts');
 	});
 
 	it('fails when a hex colour appears outside the token file', () => {

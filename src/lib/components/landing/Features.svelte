@@ -1,5 +1,5 @@
 <script lang="ts">
-	import * as m from '$lib/paraglide/messages';
+	import * as m from '#lib/paraglide/messages.js';
 	import { demo } from './demo.js';
 	import Eyebrow from './Eyebrow.svelte';
 	import FeatureCard from './FeatureCard.svelte';

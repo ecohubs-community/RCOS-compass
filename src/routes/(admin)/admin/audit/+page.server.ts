@@ -1,7 +1,7 @@
-import { requirePlatformAdmin } from '$lib/server/auth/admin';
-import { getDb } from '$lib/server/db';
-import { auditActionsSeen, listPlatformAudit } from '$lib/server/services/admin/audit';
-import { listTenants } from '$lib/server/services/admin/communities';
+import { requirePlatformAdmin } from '#lib/server/auth/admin.ts';
+import { getDb } from '#lib/server/db/index.ts';
+import { auditActionsSeen, listPlatformAudit } from '#lib/server/services/admin/audit.ts';
+import { listTenants } from '#lib/server/services/admin/communities.ts';
 import type { PageServerLoad } from './$types';
 
 /**

@@ -1,5 +1,5 @@
 <script lang="ts" module>
-	/** The shape `services/layer-checks.ts` returns, restated: components never import `$lib/server`. */
+	/** The shape `services/layer-checks.ts` returns, restated: components never import `#lib/server`. */
 	export type LayerChecksData = {
 		layer: number;
 		name: string;
@@ -33,16 +33,16 @@
 </script>
 
 <script lang="ts">
-	import * as m from '$lib/paraglide/messages';
+	import * as m from '#lib/paraglide/messages.js';
 	import IconAlertTriangle from '~icons/tabler/alert-triangle';
 	import IconCheck from '~icons/tabler/check';
 	import IconMinus from '~icons/tabler/minus';
 	import IconUser from '~icons/tabler/user';
 	import IconX from '~icons/tabler/x';
-	import HelpTip from '$lib/components/ui/HelpTip.svelte';
-	import ClauseRef from '$lib/components/ui/ClauseRef.svelte';
-	import { links } from '$lib/links';
-	import { useTime } from '$lib/time/use-time';
+	import HelpTip from '#lib/components/ui/HelpTip.svelte';
+	import ClauseRef from '#lib/components/ui/ClauseRef.svelte';
+	import { links } from '#lib/links.ts';
+	import { useTime } from '#lib/time/use-time.ts';
 
 	/**
 	 * Whether a layer's artifacts are what the standard says artifacts must be —

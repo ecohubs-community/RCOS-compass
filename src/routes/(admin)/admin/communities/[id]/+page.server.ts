@@ -1,9 +1,9 @@
 import { error, fail } from '@sveltejs/kit';
-import { requirePlatformAdmin } from '$lib/server/auth/admin';
-import { systemClock } from '$lib/server/clock';
-import { getDb } from '$lib/server/db';
-import { listPlatformAudit } from '$lib/server/services/admin/audit';
-import { erasePersonAsAdmin } from '$lib/server/services/admin/people';
+import { requirePlatformAdmin } from '#lib/server/auth/admin.ts';
+import { systemClock } from '#lib/server/clock.ts';
+import { getDb } from '#lib/server/db/index.ts';
+import { listPlatformAudit } from '#lib/server/services/admin/audit.ts';
+import { erasePersonAsAdmin } from '#lib/server/services/admin/people.ts';
 import {
 	SLUG_REDIRECT_MS,
 	TenantError,
@@ -18,7 +18,7 @@ import {
 	transferOwnership,
 	unsuspendTenant,
 	type AdminActor
-} from '$lib/server/services/admin/communities';
+} from '#lib/server/services/admin/communities.ts';
 import type { Actions, PageServerLoad, RequestEvent } from './$types';
 
 /**

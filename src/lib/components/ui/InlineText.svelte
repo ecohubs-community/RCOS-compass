@@ -1,5 +1,5 @@
 <script lang="ts">
-	import type { InlineNode } from '$lib/shared/markdown';
+	import type { InlineNode } from '#lib/shared/markdown.ts';
 	import Self from './InlineText.svelte';
 	import { mentionLabels } from './mentions.js';
 

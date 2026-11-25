@@ -1,4 +1,4 @@
-import { baseLocale, getLocale, locales } from '$lib/paraglide/runtime';
+import { baseLocale, getLocale, locales } from '#lib/paraglide/runtime.js';
 
 /**
  * Which strings are still English, said out loud.

@@ -1,6 +1,6 @@
 import { error, json } from '@sveltejs/kit';
-import { getDb } from '$lib/server/db';
-import { glossaryTerm } from '$lib/server/services/glossary';
+import { getDb } from '#lib/server/db/index.ts';
+import { glossaryTerm } from '#lib/server/services/glossary.ts';
 import type { RequestHandler } from './$types';
 
 /**

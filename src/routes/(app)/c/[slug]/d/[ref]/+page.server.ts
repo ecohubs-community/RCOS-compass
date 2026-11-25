@@ -1,6 +1,6 @@
-import { getDb } from '$lib/server/db';
-import { decisionDetail } from '$lib/server/services/decisions';
-import { parseMarkdown } from '$lib/server/markdown';
+import { getDb } from '#lib/server/db/index.ts';
+import { decisionDetail } from '#lib/server/services/decisions.ts';
+import { parseMarkdown } from '#lib/server/markdown.ts';
 import type { PageServerLoad } from './$types';
 
 /**

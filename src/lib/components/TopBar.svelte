@@ -1,8 +1,8 @@
 <script lang="ts">
-	import * as m from '$lib/paraglide/messages';
-	import { links } from '$lib/links';
-	import NotificationBell from '$lib/components/notifications/NotificationBell.svelte';
-	import type { NotificationItem } from '$lib/notifications/kinds';
+	import * as m from '#lib/paraglide/messages.js';
+	import { links } from '#lib/links.ts';
+	import NotificationBell from '#lib/components/notifications/NotificationBell.svelte';
+	import type { NotificationItem } from '#lib/notifications/kinds.ts';
 	import IconPlus from '~icons/tabler/plus';
 	import IconSearch from '~icons/tabler/search';
 

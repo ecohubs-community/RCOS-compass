@@ -1,6 +1,6 @@
-import { requirePermission } from '$lib/server/auth/guard';
-import { getDb } from '$lib/server/db';
-import { listStandardFeedback } from '$lib/server/services/standard-feedback';
+import { requirePermission } from '#lib/server/auth/guard.ts';
+import { getDb } from '#lib/server/db/index.ts';
+import { listStandardFeedback } from '#lib/server/services/standard-feedback.ts';
 import type { PageServerLoad } from './$types';
 
 /**

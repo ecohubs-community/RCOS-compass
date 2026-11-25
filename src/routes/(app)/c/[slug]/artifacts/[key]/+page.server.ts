@@ -1,8 +1,8 @@
 import { fail } from '@sveltejs/kit';
-import { ctxCan } from '$lib/server/auth/guard';
-import { getDb } from '$lib/server/db';
-import { artifactDetail } from '$lib/server/services/artifacts';
-import { publishArtifact, withdrawArtifact } from '$lib/server/services/publishing';
+import { ctxCan } from '#lib/server/auth/guard.ts';
+import { getDb } from '#lib/server/db/index.ts';
+import { artifactDetail } from '#lib/server/services/artifacts.ts';
+import { publishArtifact, withdrawArtifact } from '#lib/server/services/publishing.ts';
 import type { Actions, PageServerLoad } from './$types';
 
 /**

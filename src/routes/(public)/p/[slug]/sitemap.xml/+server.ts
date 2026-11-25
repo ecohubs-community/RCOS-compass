@@ -1,10 +1,10 @@
 import { error } from '@sveltejs/kit';
 import { and, eq } from 'drizzle-orm';
-import { anonymousIn } from '$lib/server/auth/audience';
-import { getConfig } from '$lib/server/config';
-import { getDb } from '$lib/server/db';
-import { community } from '$lib/server/db/schema/tenancy';
-import { publishedArtifacts } from '$lib/server/services/public-index';
+import { anonymousIn } from '#lib/server/auth/audience.ts';
+import { getConfig } from '#lib/server/config.ts';
+import { getDb } from '#lib/server/db/index.ts';
+import { community } from '#lib/server/db/schema/tenancy.ts';
+import { publishedArtifacts } from '#lib/server/services/public-index.ts';
 import type { RequestHandler } from './$types';
 
 /** One community's published pages, for a crawler that found its index. */

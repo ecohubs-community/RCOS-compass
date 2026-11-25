@@ -1,9 +1,9 @@
 <script lang="ts">
-	import { useTime } from '$lib/time/use-time';
-	import { enhance } from '$app/forms';
-	import { invalidateAll } from '$app/navigation';
+	import { useTime } from '#lib/time/use-time.ts';
+	import { enhance } from '#lib/enhance.ts';
+	import { refreshAll } from '$app/navigation';
 	import { resolve } from '$app/paths';
-	import * as m from '$lib/paraglide/messages';
+	import * as m from '#lib/paraglide/messages.js';
 	import IconDownload from '~icons/tabler/download';
 
 	let { data, form } = $props();
@@ -32,7 +32,7 @@
 		const started = data.exports.length;
 		for (const delay of pollDelaysMs) {
 			await new Promise((resolve) => setTimeout(resolve, delay));
-			await invalidateAll();
+			await refreshAll();
 			if (data.exports.length > started) break;
 		}
 		waiting = false;

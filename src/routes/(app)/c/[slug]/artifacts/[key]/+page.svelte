@@ -1,10 +1,10 @@
 <script lang="ts">
-	import { enhance } from '$app/forms';
-	import * as m from '$lib/paraglide/messages';
-	import { links } from '$lib/links';
-	import { useTime } from '$lib/time/use-time';
-	import StatusChip from '$lib/components/ui/StatusChip.svelte';
-	import CitedClauses from '$lib/components/ui/CitedClauses.svelte';
+	import { enhance } from '#lib/enhance.ts';
+	import * as m from '#lib/paraglide/messages.js';
+	import { links } from '#lib/links.ts';
+	import { useTime } from '#lib/time/use-time.ts';
+	import StatusChip from '#lib/components/ui/StatusChip.svelte';
+	import CitedClauses from '#lib/components/ui/CitedClauses.svelte';
 	import IconWorld from '~icons/tabler/world';
 	import IconWorldOff from '~icons/tabler/world-off';
 

@@ -1089,7 +1089,7 @@ function writePost(
 			id,
 			discussionId: values.discussionId,
 			authorId: ctx.user.id,
-			// "@Lena Vogt" as typed, kept as her number. `$lib/shared/mentions`.
+			// "@Lena Vogt" as typed, kept as her number. `#lib/shared/mentions.ts`.
 			body: namesToMentions(values.body, mentionableMembers(db, ctx.community.id)),
 			kind: values.kind,
 			proposalVersion: values.proposalVersion,

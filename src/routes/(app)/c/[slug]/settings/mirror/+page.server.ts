@@ -1,7 +1,7 @@
 import { fail } from '@sveltejs/kit';
-import { ctxCan } from '$lib/server/auth/guard';
-import { getDb } from '$lib/server/db';
-import { removeRemote, remoteView, setRemote } from '$lib/server/services/mirror';
+import { ctxCan } from '#lib/server/auth/guard.ts';
+import { getDb } from '#lib/server/db/index.ts';
+import { removeRemote, remoteView, setRemote } from '#lib/server/services/mirror.ts';
 import type { Actions, PageServerLoad } from './$types';
 
 /**

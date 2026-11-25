@@ -1,5 +1,5 @@
-import { adminActions, requirePlatformAdmin } from '$lib/server/auth/admin';
-import { twoFactorPanel } from '$lib/server/http/account-panels';
+import { adminActions, requirePlatformAdmin } from '#lib/server/auth/admin.ts';
+import { twoFactorPanel } from '#lib/server/http/account-panels.ts';
 import type { Actions, PageServerLoad } from './$types';
 
 export const load: PageServerLoad = (event) => {

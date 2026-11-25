@@ -1,9 +1,9 @@
 /// <reference types="unplugin-icons/types/svelte" />
 
 import type { Logger } from 'pino';
-import type { User } from '$lib/server/db/schema/auth';
-import type { Community, Membership } from '$lib/server/db/schema/tenancy';
-import type { Ctx } from '$lib/server/auth/guard';
+import type { User } from '#lib/server/db/schema/auth.ts';
+import type { Community, Membership } from '#lib/server/db/schema/tenancy.ts';
+import type { Ctx } from '#lib/server/auth/guard.ts';
 
 declare global {
 	/** Where pdf.js's standard fonts and CMaps are served; `scripts/vite-pdfjs-assets.ts`. */

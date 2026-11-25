@@ -68,7 +68,11 @@ the server where a mistake is visible in one place.
   theirs / merge by hand*. Silent last-write-wins on governance text is the kind
   of bug a community notices only after it has quoted the wrong version.
 - **`use:enhance` for progressive enhancement**, with a pending state on the
-  submit button. Never disable the form without a visible spinner.
+  submit button. Never disable the form without a visible spinner. It is
+  imported from `#lib/enhance.ts`, not `$app/forms` (eslint enforces this):
+  SvelteKit 3's default leaves for the action's URL after a submit, which drops
+  the query string a page was showing; the wrapper keeps the member where they
+  were, as SvelteKit 2 did.
 
 ---
 

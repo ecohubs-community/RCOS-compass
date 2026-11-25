@@ -1,7 +1,7 @@
 import { json } from '@sveltejs/kit';
 import { sql } from 'drizzle-orm';
-import { getConfig } from '$lib/server/config';
-import { getDb } from '$lib/server/db';
+import { getConfig } from '#lib/server/config.ts';
+import { getDb } from '#lib/server/db/index.ts';
 
 /**
  * docs/00-architecture.md §11.

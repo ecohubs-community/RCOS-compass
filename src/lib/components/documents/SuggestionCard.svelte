@@ -19,14 +19,14 @@
 </script>
 
 <script lang="ts">
-	import { enhance } from '$app/forms';
-	import Button from '$lib/components/ui/Button.svelte';
-	import * as m from '$lib/paraglide/messages';
+	import { enhance } from '#lib/enhance.ts';
+	import Button from '#lib/components/ui/Button.svelte';
+	import * as m from '#lib/paraglide/messages.js';
 	import IconArrowRight from '~icons/tabler/arrow-right';
 	import IconCircleCheck from '~icons/tabler/circle-check';
 	import ClausePicker, { type ClauseOption } from './ClausePicker.svelte';
 	import RequirementTip, { type Requirement } from './RequirementTip.svelte';
-	import { useTime } from '$lib/time/use-time';
+	import { useTime } from '#lib/time/use-time.ts';
 
 	/**
 	 * One claim about one passage. Design 05's card; the change's

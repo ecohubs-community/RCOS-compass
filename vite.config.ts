@@ -1,6 +1,8 @@
+import adapter from '@sveltejs/adapter-node';
+import { vitePreprocess } from '@sveltejs/vite-plugin-svelte';
 import { paraglideVitePlugin } from '@inlang/paraglide-js';
 import Icons from 'unplugin-icons/vite';
-import { sveltekit } from '@sveltejs/kit/vite';
+import { sveltekit, type Config } from '@sveltejs/kit/vite';
 import tailwindcss from '@tailwindcss/vite';
 import { loadEnv, type Plugin } from 'vite';
 import { defineConfig } from 'vitest/config';
@@ -33,6 +35,43 @@ function envIntoProcessEnv(): Plugin {
 	};
 }
 
+/**
+ * Content-Security-Policy directives. docs/04-security.md §7.
+ *
+ * Defined here rather than in hooks because SvelteKit has to know them: it
+ * nonces its own hydration script, and a hand-rolled header would block the app
+ * it is protecting. One source of truth, asserted in tests/unit/csp.test.ts.
+ *
+ * `unsafe-inline` never appears. This app renders community-authored text and,
+ * later, model output — an XSS here is an attacker editing a governance record.
+ */
+const csp = {
+	mode: 'nonce',
+	directives: {
+		'default-src': ['self'],
+		'script-src': ['self', 'strict-dynamic'],
+		'style-src': ['self'],
+		// SvelteKit's client runtime sets style *attributes* on elements (scroll
+		// restoration, transitions). A style attribute cannot execute script, and
+		// naming this directive explicitly means it no longer falls back to
+		// style-src — so inline <style> blocks stay blocked. This is the only
+		// relaxation in the policy, and script-src is untouched by it.
+		'style-src-attr': ['unsafe-inline'],
+		'img-src': ['self', 'data:', 'blob:'],
+		'font-src': ['self'],
+		'connect-src': ['self'],
+		// The original PDF view parses files in a Web Worker. Under 'strict-dynamic'
+		// browsers ignore 'self' in script-src, and worker-src falls back to it — so
+		// without this a same-origin worker is refused. It allows exactly our own
+		// origin, and script-src gains nothing.
+		'worker-src': ['self'],
+		'object-src': ['none'],
+		'frame-ancestors': ['none'],
+		'base-uri': ['self'],
+		'form-action': ['self']
+	}
+} satisfies Config['csp'];
+
 export default defineConfig({
 	plugins: [
 		envIntoProcessEnv(),
@@ -63,7 +102,14 @@ export default defineConfig({
 		Icons({ compiler: 'svelte' }),
 		tailwindcss(),
 		pdfjsAssets(),
-		sveltekit()
+		sveltekit({
+			preprocess: vitePreprocess(),
+			// Path-based tenancy on one origin: docs/00-architecture.md §7. No subdomain
+			// routing, so no wildcard TLS and no cookie-scoping games. SvelteKit checks
+			// the Origin header on form actions by default.
+			adapter: adapter(),
+			csp
+		})
 	],
 	test: {
 		// Determinism: docs/06-testing-strategy.md §2.1. No shared state between

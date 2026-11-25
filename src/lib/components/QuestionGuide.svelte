@@ -1,5 +1,5 @@
 <script lang="ts" module>
-	/** The shape `guideFor` returns, restated: components never import `$lib/server`. */
+	/** The shape `guideFor` returns, restated: components never import `#lib/server`. */
 	export type GuideData = {
 		prompts: string[];
 		examples: { text: string; source: 'compass' | 'template' }[];
@@ -7,7 +7,7 @@
 </script>
 
 <script lang="ts">
-	import * as m from '$lib/paraglide/messages';
+	import * as m from '#lib/paraglide/messages.js';
 
 	/**
 	 * What a proposal for this question should cover, and what an answer can

@@ -535,7 +535,7 @@ deletes one. The purge job sweeps files no document or version references.
    UTC epoch milliseconds (`integer … mode: 'timestamp_ms'`, every `*_at` column;
    `tests/unit/time-zone.test.ts` refuses a text date) and **shown in the viewer's
    zone**: `user.time_zone`, else `community.timezone`, else UTC
-   (`$lib/time/zone.ts#timeZoneFor`).
+   (`#lib/time/zone.ts#timeZoneFor`).
 2. **A calendar date a community sets** (a review date) is stored as the start of
    that day in the **community's** zone, and shown in the community's zone, so it
    is the same date to every member wherever they are.
@@ -546,7 +546,7 @@ deletes one. The purge job sweeps files no document or version references.
 signed-in person loads a page without one, is never overwritten by that report
 again, and is changed on the account page. It is erased with the account.
 Archival exports write `YYYY-MM-DD` on the community's calendar
-(`$lib/time/format.ts#isoDateIn`); machine-read dates (sitemaps, JSON, filenames)
+(`#lib/time/format.ts#isoDateIn`); machine-read dates (sitemaps, JSON, filenames)
 stay ISO UTC.
 
 ## 6. Decision references (`DEC-2026-014`)

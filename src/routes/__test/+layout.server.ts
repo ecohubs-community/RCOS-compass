@@ -1,5 +1,5 @@
 import { error } from '@sveltejs/kit';
-import { getConfig } from '$lib/server/config';
+import { getConfig } from '#lib/server/config.ts';
 
 /**
  * Routes that exist only so the error and header contracts can be asserted

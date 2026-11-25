@@ -1,6 +1,6 @@
 <script lang="ts">
-	import AccountPanel from '$lib/components/account/AccountPanel.svelte';
-	import * as m from '$lib/paraglide/messages';
+	import AccountPanel from '#lib/components/account/AccountPanel.svelte';
+	import * as m from '#lib/paraglide/messages.js';
 
 	let { data, form } = $props();
 </script>

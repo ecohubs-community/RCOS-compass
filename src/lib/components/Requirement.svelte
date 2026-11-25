@@ -1,7 +1,7 @@
 <script lang="ts" module>
 	/**
 	 * The shape `services/requirement.ts` returns, restated here because a
-	 * component never imports from `$lib/server`.
+	 * component never imports from `#lib/server`.
 	 */
 	export type RequirementData = {
 		standard: string;
@@ -21,9 +21,9 @@
 </script>
 
 <script lang="ts">
-	import * as m from '$lib/paraglide/messages';
-	import ClauseRef from '$lib/components/ui/ClauseRef.svelte';
-	import HelpTip from '$lib/components/ui/HelpTip.svelte';
+	import * as m from '#lib/paraglide/messages.js';
+	import ClauseRef from '#lib/components/ui/ClauseRef.svelte';
+	import HelpTip from '#lib/components/ui/HelpTip.svelte';
 
 	/**
 	 * "The requirement" — design artboard 03's left column, and the sheet a

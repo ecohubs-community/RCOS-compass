@@ -1,6 +1,6 @@
 <script lang="ts">
-	import Logo from '$lib/components/Logo.svelte';
-	import * as m from '$lib/paraglide/messages';
+	import Logo from '#lib/components/Logo.svelte';
+	import * as m from '#lib/paraglide/messages.js';
 	import PillLink from './PillLink.svelte';
 	import SiteAccountMenu, { type SiteAccount } from './SiteAccountMenu.svelte';
 

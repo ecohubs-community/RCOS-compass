@@ -1,4 +1,4 @@
-import { legalPage } from '$lib/server/services/legal-page';
+import { legalPage } from '#lib/server/services/legal-page.ts';
 import type { PageServerLoad } from './$types';
 
 /** Anonymous: a community reads this before anybody signs up. */

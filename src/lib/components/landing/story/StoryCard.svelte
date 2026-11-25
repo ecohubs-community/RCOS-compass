@@ -1,6 +1,6 @@
 <script lang="ts">
 	import type { Snippet } from 'svelte';
-	import { cn } from '$lib/components/ui/cn.js';
+	import { cn } from '#lib/components/ui/cn.js';
 
 	/** The paper card most of the story's pictures sit on. */
 	let { class: className, children }: { class?: string; children: Snippet } = $props();

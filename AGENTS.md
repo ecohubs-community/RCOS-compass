@@ -110,7 +110,7 @@ one; `1.0.0` is a deliberate release decision, never an automatic one.
   call a service, shape a response. Nothing else.
 - Reads are server `load`; writes are form actions. A `+server.ts` endpoint is
   only for the seven cases listed in `01` §2.
-- `$lib/server/*` is never imported from a `.svelte` file.
+- `#lib/server/*` is never imported from a `.svelte` file.
 - IDs are UUIDv7 strings, timestamps are epoch-ms integers, no raw SQL outside
   `src/lib/server/db` — this is what keeps Postgres a config change.
 

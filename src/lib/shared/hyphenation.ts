@@ -1,7 +1,7 @@
 /**
  * The one rule for a word split with a hyphen at a line break.
  *
- * The extractor (`$lib/server/documents/extract.ts`) joins such a word back
+ * The extractor (`#lib/server/documents/extract.ts`) joins such a word back
  * together when it builds a paragraph, and the excerpt matcher (`./excerpt.ts`)
  * has to recognise the same join in words a member selected on the rendered
  * page, where the hyphen is still drawn. Two copies of the rule would drift, and

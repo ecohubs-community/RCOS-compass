@@ -1,13 +1,13 @@
 <script lang="ts">
-	import { enhance } from '$app/forms';
-	import * as m from '$lib/paraglide/messages';
+	import { enhance } from '#lib/enhance.ts';
+	import * as m from '#lib/paraglide/messages.js';
 	import IconArrowBackUp from '~icons/tabler/arrow-back-up';
 	import IconArrowDown from '~icons/tabler/arrow-down';
 	import IconArrowUp from '~icons/tabler/arrow-up';
 	import IconGripVertical from '~icons/tabler/grip-vertical';
 	import IconPlus from '~icons/tabler/plus';
-	import { links } from '$lib/links';
-	import CitedClauses from '$lib/components/ui/CitedClauses.svelte';
+	import { links } from '#lib/links.ts';
+	import CitedClauses from '#lib/components/ui/CitedClauses.svelte';
 
 	let { data, form } = $props();
 	const slug = $derived(data.community.slug);

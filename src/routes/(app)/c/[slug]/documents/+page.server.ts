@@ -1,26 +1,26 @@
 import { fail, redirect } from '@sveltejs/kit';
-import { ctxCan } from '$lib/server/auth/guard';
-import { getDb } from '$lib/server/db';
-import { getConfig } from '$lib/server/config';
-import { run } from '$lib/server/http/form-action';
-import { UploadRefused, receiveUpload } from '$lib/server/documents/storage';
-import { ACCEPTED } from '$lib/server/documents/sniff';
-import { aiAvailability } from '$lib/server/ai/run';
-import { activeStandardView } from '$lib/server/services/completeness';
+import { ctxCan } from '#lib/server/auth/guard.ts';
+import { getDb } from '#lib/server/db/index.ts';
+import { getConfig } from '#lib/server/config.ts';
+import { run } from '#lib/server/http/form-action.ts';
+import { UploadRefused, receiveUpload } from '#lib/server/documents/storage.ts';
+import { ACCEPTED } from '#lib/server/documents/sniff.ts';
+import { aiAvailability } from '#lib/server/ai/run.ts';
+import { activeStandardView } from '#lib/server/services/completeness.ts';
 import {
 	deleteVersionAction,
 	replaceAction,
 	restoreAction
-} from '$lib/server/documents/version-actions';
-import { createDocument, deleteDocument } from '$lib/server/services/documents';
+} from '#lib/server/documents/version-actions.ts';
+import { createDocument, deleteDocument } from '#lib/server/services/documents.ts';
 import {
 	LIBRARY_FILTERS,
 	libraryView,
 	versionsWithPeople,
 	type LibraryFilter
-} from '$lib/server/services/library';
-import { startScan } from '$lib/server/services/mapping';
-import { links } from '$lib/links';
+} from '#lib/server/services/library.ts';
+import { startScan } from '#lib/server/services/mapping.ts';
+import { links } from '#lib/links.ts';
 import type { Actions, PageServerLoad } from './$types';
 
 /**

@@ -1,7 +1,7 @@
 <script lang="ts">
 	import type { Component } from 'svelte';
-	import { cn } from '$lib/components/ui/cn.js';
-	import * as m from '$lib/paraglide/messages';
+	import { cn } from '#lib/components/ui/cn.js';
+	import * as m from '#lib/paraglide/messages.js';
 	import Eyebrow from '../Eyebrow.svelte';
 	import SectionHeading from '../SectionHeading.svelte';
 	import { placeOf } from '../reveal.js';

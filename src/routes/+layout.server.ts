@@ -1,5 +1,5 @@
-import { getLocale } from '$lib/paraglide/runtime';
-import { timeZoneFor } from '$lib/time/zone';
+import { getLocale } from '#lib/paraglide/runtime.js';
+import { timeZoneFor } from '#lib/time/zone.ts';
 import type { LayoutServerLoad } from './$types';
 
 /**

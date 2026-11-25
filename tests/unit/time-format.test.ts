@@ -124,7 +124,7 @@ describe('no screen formats a date on its own', () => {
 	/**
 	 * `toLocaleDateString` and friends without an explicit zone format in the
 	 * server's zone during rendering and the browser's after hydration. Only
-	 * `$lib/time/format.ts` may turn a moment into text.
+	 * `#lib/time/format.ts` may turn a moment into text.
 	 */
 	const ROOT = join(import.meta.dirname, '../../src');
 	const files: string[] = [];

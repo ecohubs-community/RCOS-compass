@@ -1,5 +1,5 @@
 import { redirect } from '@sveltejs/kit';
-import { links } from '$lib/links';
+import { links } from '#lib/links.ts';
 import type { PageServerLoad } from './$types';
 
 /**

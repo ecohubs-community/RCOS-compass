@@ -1,9 +1,9 @@
 import { error } from '@sveltejs/kit';
 import { and, eq } from 'drizzle-orm';
-import { getDb } from '$lib/server/db';
-import { community } from '$lib/server/db/schema/tenancy';
-import { standardViewFor } from '$lib/server/services/completeness';
-import { timeZoneFor } from '$lib/time/zone';
+import { getDb } from '#lib/server/db/index.ts';
+import { community } from '#lib/server/db/schema/tenancy.ts';
+import { standardViewFor } from '#lib/server/services/completeness.ts';
+import { timeZoneFor } from '#lib/time/zone.ts';
 import type { LayoutServerLoad } from './$types';
 
 /**

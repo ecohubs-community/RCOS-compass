@@ -1,6 +1,6 @@
 <script lang="ts">
-	import { cn } from '$lib/components/ui/cn.js';
-	import * as m from '$lib/paraglide/messages';
+	import { cn } from '#lib/components/ui/cn.js';
+	import * as m from '#lib/paraglide/messages.js';
 
 	/** Stage 1: the Path. `level` counts the beats of this stage; -1 before it, 9 after. */
 	let { level }: { level: number } = $props();

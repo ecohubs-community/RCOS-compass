@@ -1,11 +1,11 @@
 import { redirect } from '@sveltejs/kit';
-import { ctxCan } from '$lib/server/auth/guard';
-import { getDb } from '$lib/server/db';
-import { createLocalDefinition, newDefinitionChoices } from '$lib/server/services/definitions';
-import { definitionsIndex } from '$lib/server/services/definitions-index';
-import { run } from '$lib/server/http/form-action';
-import { links } from '$lib/links';
-import type { DefinitionStatus } from '$lib/shared/definition-status';
+import { ctxCan } from '#lib/server/auth/guard.ts';
+import { getDb } from '#lib/server/db/index.ts';
+import { createLocalDefinition, newDefinitionChoices } from '#lib/server/services/definitions.ts';
+import { definitionsIndex } from '#lib/server/services/definitions-index.ts';
+import { run } from '#lib/server/http/form-action.ts';
+import { links } from '#lib/links.ts';
+import type { DefinitionStatus } from '#lib/shared/definition-status.ts';
 import type { Actions, PageServerLoad } from './$types';
 
 /**

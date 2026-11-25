@@ -1,5 +1,5 @@
 <script lang="ts">
-	import * as m from '$lib/paraglide/messages';
+	import * as m from '#lib/paraglide/messages.js';
 	import PillLink from './PillLink.svelte';
 
 	/** The page's one `h1`, and the two things to do next. */
