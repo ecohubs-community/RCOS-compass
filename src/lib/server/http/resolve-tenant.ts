@@ -5,6 +5,7 @@ import type { Clock } from '../clock.js';
 import type { Db } from '../db/index.js';
 import { community } from '../db/schema/tenancy.js';
 import { negotiateLocale } from '../locale.js';
+import { inspectJoinLink } from '../services/join-link.js';
 import { resolveCommunity, resolveSlugRedirect } from '../services/tenancy.js';
 
 /**
@@ -23,6 +24,7 @@ const TENANT_PATH = /^\/c\/([^/]+)(\/|$)/;
 const PUBLIC_PATH = /^\/p\/([^/]+)(\/|$)/;
 const INVITATION_PATH = /^\/invitations\//;
 const SIGN_IN_PATH = /^\/sign-in(\/|$)/;
+const JOIN_PATH = /^\/join(?:\/([^/]+))?\/?$/;
 
 /**
  * The language a request is answered in, when there is no member to ask.
@@ -68,6 +70,30 @@ export function invitationLocale(event: RequestEvent, db: Db): string | null {
 		.where(and(eq(community.slug, slug), eq(community.status, 'active')))
 		.get();
 	return row?.locale ?? null;
+}
+
+/**
+ * The language of the join pages. `openspec/changes/pilot-blockers` D10.
+ *
+ * A working link names its community on the page anyway, so reading the page in
+ * that community's language tells nobody anything new. A link that does not
+ * work, and the waiting page, have no community to ask: the browser is.
+ */
+export function joinLocale(event: RequestEvent, db: Db): string | null {
+	const match = JOIN_PATH.exec(event.url.pathname);
+	if (!match) return null;
+	if (match[1]) {
+		let token: string | null = null;
+		try {
+			token = decodeURIComponent(match[1]);
+		} catch {
+			// A truncated escape from a pasted link: the page says the link does
+			// not work, in the browser's language, rather than the hook failing.
+		}
+		const target = token ? inspectJoinLink(db, token) : null;
+		if (target?.kind === 'open') return target.communityLocale;
+	}
+	return negotiateLocale(event.request.headers.get('accept-language'));
 }
 
 /**

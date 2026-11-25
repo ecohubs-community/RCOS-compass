@@ -11,7 +11,9 @@ import { stampAbsoluteExpiry } from '$lib/server/auth/session';
 import { systemClock } from '$lib/server/clock';
 import { getDb, type Db } from '$lib/server/db';
 import { user } from '$lib/server/db/schema/auth';
+import { hasPassword, setFirstPassword } from '$lib/server/auth/join-account';
 import { recordAudit } from '$lib/server/services/audit';
+import { noteVerifiedJoinRequests } from '$lib/server/services/join-requests';
 import {
 	INVITATION_TTL_MS,
 	acceptInvitation,
@@ -72,7 +74,10 @@ export const load: PageServerLoad = ({ params, locals }) => {
 	 * keeps its single answer for every failure precisely because *it* takes an
 	 * address from whoever is typing.
 	 */
-	const hasAccount = view.kind === 'open' ? Boolean(accountFor(db, view.email)) : false;
+	const existing = view.kind === 'open' ? accountFor(db, view.email) : undefined;
+	// An account made through a join link may have no password yet, and cannot
+	// sign in: for this page it is no account, and the form below gives it one.
+	const hasAccount = Boolean(existing && hasPassword(db, existing.id));
 
 	return {
 		view,
@@ -145,28 +150,40 @@ export const actions: Actions = {
 			});
 		}
 
-		if (accountFor(db, view.email)) {
+		const existing = accountFor(db, view.email);
+		if (existing && hasPassword(db, existing.id)) {
 			return fail(400, {
 				name: parsed.output.name,
 				errors: formError(m.invitation_error_exists())
 			});
 		}
 
-		const signUp = await getAuth().api.signUpEmail({
-			body: { email: view.email, password: parsed.output.password, name: parsed.output.name },
-			asResponse: true
-		});
-		const created = await readAuth<unknown>(signUp);
-		if (!created.ok) {
-			// The library's reason, for the log. The person is told the plain thing.
-			event.locals.log.warn(
-				{ status: created.status, code: created.code },
-				'invited sign-up refused'
-			);
-			return fail(400, {
-				name: parsed.output.name,
-				errors: formError(m.invitation_error_failed())
+		if (existing) {
+			/**
+			 * An account made through a join link, with no password yet — it may
+			 * not even be verified. It cannot sign in, so "sign in first" would be a
+			 * dead end. The invitation proves the address exactly as it does for a
+			 * new account below, so this form gives it its first password and the
+			 * steps after this treat it like one just made.
+			 */
+			await setFirstPassword(db, existing.id, parsed.output.password);
+		} else {
+			const signUp = await getAuth().api.signUpEmail({
+				body: { email: view.email, password: parsed.output.password, name: parsed.output.name },
+				asResponse: true
 			});
+			const created = await readAuth<unknown>(signUp);
+			if (!created.ok) {
+				// The library's reason, for the log. The person is told the plain thing.
+				event.locals.log.warn(
+					{ status: created.status, code: created.code },
+					'invited sign-up refused'
+				);
+				return fail(400, {
+					name: parsed.output.name,
+					errors: formError(m.invitation_error_failed())
+				});
+			}
 		}
 
 		const account = accountFor(db, view.email);
@@ -213,17 +230,25 @@ export const actions: Actions = {
 		applyAuthCookies(session.response, event.cookies);
 		if (session.data.token) stampAbsoluteExpiry(db, session.data.token, systemClock.now());
 
-		recordAudit(db, systemClock, {
-			action: 'account.created',
-			actorId: account.id,
-			actorEmail: account.email,
-			ip: event.getClientAddress(),
-			userAgent: event.request.headers.get('user-agent'),
-			meta: { via: 'invitation' }
-		});
+		if (!existing) {
+			recordAudit(db, systemClock, {
+				action: 'account.created',
+				actorId: account.id,
+				actorEmail: account.email,
+				ip: event.getClientAddress(),
+				userAgent: event.request.headers.get('user-agent'),
+				meta: { via: 'invitation' }
+			});
+		}
 
-		return afterAccept(
-			acceptInvitation(db, systemClock, { token: event.params.token, userId: account.id })
-		);
+		const accepted = acceptInvitation(db, systemClock, {
+			token: event.params.token,
+			userId: account.id
+		});
+		// Verified here rather than by its mail, so the hook that tells stewards
+		// about this address's join requests did not run. After the acceptance,
+		// which closed any request to this same community: only others hear.
+		if (existing && !existing.emailVerified) noteVerifiedJoinRequests(db, systemClock, account.id);
+		return afterAccept(accepted);
 	}
 };

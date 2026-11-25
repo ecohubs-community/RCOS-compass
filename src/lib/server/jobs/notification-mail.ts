@@ -151,6 +151,13 @@ function immediateMail(
 		 */
 		case 'proposal.move_requested':
 			return { kind };
+		/**
+		 * A steward has someone at the door, and a person let in is waiting to
+		 * hear. Both are told now; neither mail names anyone.
+		 */
+		case 'membership.join_requested':
+		case 'membership.join_approved':
+			return { kind };
 		default:
 			return null;
 	}

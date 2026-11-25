@@ -45,6 +45,16 @@ export const ROUTES: RouteCoverage[] = [
 		scan: 'a11y',
 		coveredBy: 'the invitation page has no violations in any of its states'
 	},
+	{
+		id: '(account)/join/[token]',
+		scan: 'a11y',
+		coveredBy: 'join-link.spec scans the form, the waiting state and a dead link'
+	},
+	{
+		id: '(account)/join',
+		scan: 'a11y',
+		coveredBy: 'join-link.spec lands on it from the verification link and scans it'
+	},
 	{ id: '(app)/c/[slug]', scan: 'a11y', path: (slug) => `/c/${slug}` },
 	{ id: '(app)/c/[slug]/audit', scan: 'a11y', path: (slug) => `/c/${slug}/audit` },
 	{ id: '(app)/c/[slug]/artifacts', scan: 'a11y', path: (slug) => `/c/${slug}/artifacts` },

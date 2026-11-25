@@ -22,7 +22,9 @@ const SAMPLE: { [K in keyof NotificationParams]: NotificationParams[K] } = {
 	'membership.role_changed': { role: 'steward' },
 	'claim.withdrawn': {},
 	'proposal.move_requested': { title: 'Exit and separation', actor: 'membership-1', version: 3 },
-	'proposal.move_answered': { title: 'Exit and separation', version: 3, outcome: 'declined' }
+	'proposal.move_answered': { title: 'Exit and separation', version: 3, outcome: 'declined' },
+	'membership.join_requested': {},
+	'membership.join_approved': {}
 };
 
 const item = (kind: string, params: Record<string, unknown> | null, available = true) => ({

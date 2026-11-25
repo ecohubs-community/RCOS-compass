@@ -1,5 +1,5 @@
 import { and, eq, inArray } from 'drizzle-orm';
-import type { Ctx } from '../auth/guard.js';
+import { ctxCan, type Ctx } from '../auth/guard.js';
 import { requireRead, visibleTo } from '../auth/visible-to.js';
 import type { Db } from '../db/index.js';
 import { decision } from '../db/schema/decisions.js';
@@ -29,7 +29,8 @@ export type NotificationTarget =
 	| { type: 'definition'; id: string }
 	| { type: 'document'; id: string }
 	| { type: 'export' }
-	| { type: 'community' };
+	| { type: 'community' }
+	| { type: 'members' };
 
 const key = (type: string, id: string) => `${type}:${id}`;
 
@@ -113,6 +114,13 @@ export function notificationTargets(
 				break;
 			case 'community':
 				for (const id of ids) if (id === communityId) found.set(key(type, id), { type });
+				break;
+			case 'members':
+				// Who is asking to join is a steward's to see; someone who has since
+				// stopped being one reads the notification as gone.
+				if (ctxCan(ctx, 'member.invite')) {
+					for (const id of ids) if (id === communityId) found.set(key(type, id), { type });
+				}
 				break;
 		}
 	}

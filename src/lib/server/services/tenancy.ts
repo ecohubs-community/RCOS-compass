@@ -3,6 +3,7 @@ import type { Db } from '../db/index.js';
 import {
 	community,
 	communitySlugRedirect,
+	joinRequest,
 	membership,
 	type Community,
 	type Membership
@@ -96,6 +97,28 @@ export function communitiesOf(db: Db, userId: string): OwnCommunity[] {
 }
 
 /**
+ * Where a person goes when they signed in without asking to go anywhere.
+ *
+ * Someone in exactly one community came to work in it, and the front page they
+ * would otherwise land on is a landing page with a "Request pilot access"
+ * button — a wrong turn on every sign-in. With none, or several, there is no one
+ * right answer, and the front page's account menu lists what there is.
+ */
+export function landingFor(db: Db, userId: string): string {
+	const own = communitiesOf(db, userId);
+	if (own.length === 1) return `/c/${own[0]!.slug}`;
+	if (own.length > 1) return '/';
+	// In nothing yet, but asked to join something: the page that says so.
+	const waiting = db
+		.select({ id: joinRequest.id })
+		.from(joinRequest)
+		.innerJoin(community, eq(community.id, joinRequest.communityId))
+		.where(and(eq(joinRequest.userId, userId), eq(community.status, 'active')))
+		.get();
+	return waiting ? '/join' : '/';
+}
+
+/**
  * Slugs a community may not take: they would shadow an application route, and
  * a community that shadows `/admin` is a phishing surface.
  */
@@ -106,6 +129,7 @@ export const RESERVED_SLUGS = new Set([
 	'auth',
 	'c',
 	'invitations',
+	'join',
 	'dev',
 	'favicon',
 	'healthz',

@@ -15,13 +15,15 @@ import * as m from '$lib/paraglide/messages';
  * answered in — the browser's on the sign-in screens, the community's elsewhere.
  */
 
-const email = v.pipe(
+export const emailSchema = v.pipe(
 	v.string(() => m.auth_error_email_missing()),
 	v.trim(),
 	v.toLowerCase(),
 	v.email(() => m.auth_error_email_invalid()),
 	v.maxLength(320, () => m.auth_error_email_long())
 );
+
+const email = emailSchema;
 
 export const signInSchema = v.object({
 	email,

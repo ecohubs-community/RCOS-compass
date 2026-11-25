@@ -1,4 +1,4 @@
-import { eq } from 'drizzle-orm';
+import { eq, sql } from 'drizzle-orm';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import type { Ctx } from '../../src/lib/server/auth/guard.js';
 import { newId } from '../../src/lib/server/db/id.js';
@@ -99,6 +99,13 @@ function threadWithProposal(who: Ctx = ctx, body = 'Members may leave at any tim
 	return opened;
 }
 
+/** Make the attendee insert — which runs after the decision row — abort. */
+function failAttendeeInserts() {
+	db.run(
+		sql`create trigger fail_attendee before insert on decision_attendee begin select raise(abort, 'planted'); end`
+	);
+}
+
 let keyCounter = 0;
 const freezeIt = (who: Ctx, discussionId: string, overrides: Record<string, unknown> = {}) =>
 	freeze(
@@ -144,11 +151,13 @@ describe('a freeze produces everything or nothing', () => {
 	it('leaves nothing behind when it fails part-way', () => {
 		const thread = threadWithProposal();
 
-		// An attendee naming a membership that is not there. The foreign key
-		// refuses it *after* the decision row has been written, which is exactly
-		// the "part-way" this needs to be about.
+		// The attendee insert fails *after* the decision row has been written,
+		// which is exactly the "part-way" this needs to be about. (A bad id used
+		// to do this through the foreign key; the service now refuses one before
+		// the transaction opens, so the failure is planted in the table instead.)
+		failAttendeeInserts();
 		expect(() =>
-			freezeIt(ctx, thread.id, { attendees: [{ membershipId: 'no-such-membership' }] })
+			freezeIt(ctx, thread.id, { attendees: [{ externalName: 'A neighbour' }] })
 		).toThrow();
 
 		expect(db.select().from(decision).all()).toHaveLength(0);
@@ -189,9 +198,11 @@ describe('decision references are gapless and permanent', () => {
 		freezeIt(ctx, threadWithProposal().id);
 
 		const doomed = threadWithProposal();
+		failAttendeeInserts();
 		expect(() =>
-			freezeIt(ctx, doomed.id, { attendees: [{ membershipId: 'no-such-membership' }] })
+			freezeIt(ctx, doomed.id, { attendees: [{ externalName: 'A neighbour' }] })
 		).toThrow();
+		db.run(sql`drop trigger fail_attendee`);
 
 		const next = freezeIt(ctx, threadWithProposal().id);
 		expect(next.seq).toBe(2);
@@ -615,5 +626,43 @@ describe('the freeze carries a review date and who was present', () => {
 		expect(rows.find((row) => row.membershipId === ctx.membership.id)!.consentedToPublish).toBe(
 			false
 		);
+	});
+
+	it('counts a current member who did not answer the version as present', () => {
+		const thread = threadWithProposal();
+		const recorded = freezeIt(ctx, thread.id, {
+			attendees: [{ membershipId: memberCtx.membership.id }]
+		});
+
+		const rows = db
+			.select()
+			.from(decisionAttendee)
+			.where(eq(decisionAttendee.decisionId, recorded.id))
+			.all();
+		expect(rows.map((row) => row.membershipId)).toEqual([memberCtx.membership.id]);
+	});
+
+	it('refuses, before writing anything, someone from another community as present', () => {
+		const elsewhere = seedCommunity('elsewhere');
+		const thread = threadWithProposal();
+
+		const refusal = catchRefusal(() =>
+			freezeIt(ctx, thread.id, { attendees: [{ membershipId: elsewhere.ctx.membership.id }] })
+		);
+
+		expect(refusal?.status).toBe(400);
+		expect(db.select().from(decision).all()).toHaveLength(0);
+	});
+
+	it('refuses a membership that has ended as present', () => {
+		const left = makeMembership(db, ctx.community.id, makeUser(db).id, { ended: true });
+		const thread = threadWithProposal();
+
+		const refusal = catchRefusal(() =>
+			freezeIt(ctx, thread.id, { attendees: [{ membershipId: left.id }] })
+		);
+
+		expect(refusal?.status).toBe(400);
+		expect(db.select().from(decision).all()).toHaveLength(0);
 	});
 });

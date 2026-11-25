@@ -318,7 +318,14 @@ describe('a suspended community', () => {
 			.where(eq(community.id, ana.community.id))
 			.run();
 
-		expect(await sweep()).toEqual({ closing: 0, quiet: 0, reviews: 0, claims: 0 });
+		expect(await sweep()).toEqual({
+			closing: 0,
+			quiet: 0,
+			reviews: 0,
+			claims: 0,
+			staleJoins: 0,
+			abandonedAccounts: 0
+		});
 		expect(jobs('claim-check')).toHaveLength(0);
 		expect(runClaimCheck(db, fixedClock(NOW), { communityId: ana.community.id })).toBe('skipped');
 	});

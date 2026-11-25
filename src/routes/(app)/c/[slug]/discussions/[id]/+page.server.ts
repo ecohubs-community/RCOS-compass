@@ -8,6 +8,7 @@ import { decision } from '$lib/server/db/schema/decisions';
 import type { Discussion } from '$lib/server/db/schema/discussions';
 import { enqueue } from '$lib/server/jobs/queue';
 import { freeze } from '$lib/server/services/decisions';
+import { listMembers } from '$lib/server/services/members';
 import {
 	addMessage,
 	addProposal,
@@ -403,7 +404,15 @@ export const load: PageServerLoad = ({ locals, params, url }) => {
 		wouldBeProvisional: !isArtifactComplete(ctx, DECISION_MATRIX, { db }),
 		/** Minted per render, so one person's double submit is one decision. */
 		idempotencyKey: randomUUID(),
-		freezeOpen: url.searchParams.get('freeze') === '1'
+		freezeOpen: url.searchParams.get('freeze') === '1',
+		/**
+		 * Who may be recorded as present: every current member, not only those
+		 * who answered. Only for someone who can freeze — nobody else sees the
+		 * form, and the list is not needed to read a thread.
+		 */
+		members: ctxCan(ctx, 'decision.freeze')
+			? listMembers(ctx).map(({ membershipId, name }) => ({ membershipId, name }))
+			: []
 	};
 };
 

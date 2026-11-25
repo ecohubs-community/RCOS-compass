@@ -249,11 +249,14 @@ test.describe('accessibility', () => {
 	test('the freeze form has no violations, open', async ({ page }) => {
 		test.slow();
 		await seedWithProposal(page);
-		// Opened by the server, so this holds with no JavaScript too. Built from
-		// the pathname because the page now carries `?v=` for the selected version.
+		// Opened by the server; once the page has hydrated, as the sheet. Built
+		// from the pathname because the page now carries `?v=` for the selected
+		// version. The in-page form a browser without JavaScript gets is the same
+		// snippet; axe cannot run where scripts do not, so `freeze-sheet.spec.ts`
+		// checks that form by submitting it.
 		const here = new URL(page.url());
-		await page.goto(`${here.origin}${here.pathname}?freeze=1`);
-		await expect(page.getByRole('region', { name: /^Freeze v\d+ into a decision$/ })).toBeVisible();
+		await visit(page, `${here.origin}${here.pathname}?freeze=1`);
+		await expect(page.getByRole('dialog', { name: /^Freeze v\d+ into a decision$/ })).toBeVisible();
 
 		const results = await scan(page).analyze();
 		expect(results.violations).toEqual([]);

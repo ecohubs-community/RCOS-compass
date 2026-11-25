@@ -1,3 +1,6 @@
+import { redirect } from '@sveltejs/kit';
+import { resolve } from '$app/paths';
+import { hasPassword } from '$lib/server/auth/join-account';
 import { getDb } from '$lib/server/db';
 import {
 	activeStandardView,
@@ -21,6 +24,15 @@ import type { LayoutServerLoad } from './$types';
 export const load: LayoutServerLoad = ({ locals, depends }) => {
 	const ctx = locals.ctx!;
 	requirePermission(ctx, 'community.read');
+
+	/**
+	 * An account made through a join link has no password until its owner
+	 * chooses one on `/join`. Someone who closed that page, was let in, and kept
+	 * working on the session from their verification mail would be locked out
+	 * the day it ends — there is no other way to sign in. So the choice comes
+	 * first. (`openspec/changes/pilot-blockers`.)
+	 */
+	if (!hasPassword(getDb(), ctx.user.id)) redirect(303, resolve('/(account)/join'));
 
 	// Every panel below shows a number from the same rows, so they refresh
 	// together: a freeze invalidates this key and the whole shell reloads.

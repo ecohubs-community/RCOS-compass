@@ -12,9 +12,11 @@ import { POST } from '../../src/routes/api/auth/[...all]/+server.js';
 import { createTestDb } from '../support/db.js';
 
 /**
- * The instance is invitation-only (`docs/10-legal-and-operations.md`): the
- * invitation page is the one place an account is made, and it makes it through
- * the library's server API. better-auth ships two public doors that would make
+ * The instance is closed (`docs/10-legal-and-operations.md`): an account is made
+ * in two places only — the invitation page, and a community's join link
+ * (`openspec/changes/pilot-blockers`, whose account stays unverified until its
+ * address answers and whose request a steward decides; `join-page.test.ts`).
+ * Both make it through the library's server API. better-auth ships two public doors that would make
  * one without an invitation — email sign-up, and a magic link sent to an
  * address that has no account — and both were reachable over HTTP at
  * `/api/auth/*` although nothing in the interface linked to them.

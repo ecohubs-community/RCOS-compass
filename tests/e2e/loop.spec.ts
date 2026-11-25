@@ -92,14 +92,14 @@ test.describe('the core loop, on a fresh community', () => {
 
 		// --- decide it ---------------------------------------------------------
 		await page.getByRole('button', { name: 'Freeze v1' }).click();
-		const form = page.getByRole('region', { name: 'Freeze v1 into a decision' });
+		const form = page.getByRole('dialog', { name: 'Freeze v1 into a decision' });
 
 		// A fresh community has no Decision Matrix, and is told so *before* it
 		// confirms rather than afterwards.
 		await expect(form.getByText(/recorded as\s+Provisional/i)).toBeVisible();
 
 		await form.getByLabel('Mechanism').fill('consent');
-		await form.getByLabel('Who was present').fill('9');
+		await form.getByLabel('Number present').fill('9');
 		await form.getByLabel('In favour').fill('9');
 		await form.getByLabel('Rationale').fill('Agreed at the Tuesday meeting.');
 		await form.getByRole('button', { name: 'Record decision' }).click();
@@ -175,11 +175,11 @@ test.describe('the core loop, on a fresh community', () => {
 		await expect(round).toContainText('1 of 2');
 
 		await page.getByRole('button', { name: 'Freeze v1' }).click();
-		const form = page.getByRole('region', { name: 'Freeze v1 into a decision' });
+		const form = page.getByRole('dialog', { name: 'Freeze v1 into a decision' });
 
 		// The round informs the record and does not write it: the tally arrives
 		// pre-filled, and a person still has to press the button.
-		await expect(form.getByLabel('Who was present')).toHaveValue('1');
+		await expect(form.getByLabel('Number present')).toHaveValue('1');
 		await expect(form.getByLabel('In favour')).toHaveValue('1');
 
 		await form.getByLabel('Mechanism').fill('consent');

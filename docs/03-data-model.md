@@ -138,6 +138,11 @@ membership         id | community_id | user_id | role steward|member   -- observ
 user               better-auth table | email | email_verified | name | locale | time_zone?
 invitation         id | community_id | email | role steward|member   -- never 'owner'
                    | token_hash | expires_at | accepted_at? | invited_by
+community_join_link id | community_id (unique) | token_hash | token_sealed | created_by
+                   | created_at        -- one per community; the row exists while the link is on
+join_request       id | community_id | user_id | created_at | notified_at?
+                   -- not a membership; deleted when decided. Shown to stewards only once
+                   -- user.email_verified, derived, never stored here
 
 definition         id | community_id | scope standard|local
                    | community_standard_id? | section_key?     -- scope=standard

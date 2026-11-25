@@ -1,6 +1,6 @@
 {
 	"name": "rcos-compass",
-	"version": "0.16.0",
+	"version": "0.17.0",
 	"private": true,
 	"license": "PolyForm-Noncommercial-1.0.0",
 	"type": "module",
@@ -41,8 +41,8 @@
 		"@iconify-json/tabler": "^1.2.38",
 		"@inlang/paraglide-js": "^2.25.0",
 		"@playwright/test": "1.62.1",
-		"@sveltejs/adapter-node": "5.5.7",
-		"@sveltejs/kit": "2.70.3",
+		"@sveltejs/adapter-node": "5.5.8",
+		"@sveltejs/kit": "2.70.4",
 		"@sveltejs/vite-plugin-svelte": "7.3.0",
 		"@tailwindcss/vite": "4.3.3",
 		"@types/better-sqlite3": "9.6.0",

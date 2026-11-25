@@ -1,4 +1,4 @@
-import { and, desc, eq, inArray, isNotNull, sql } from 'drizzle-orm';
+import { and, desc, eq, inArray, isNotNull, isNull, sql } from 'drizzle-orm';
 import { error } from '@sveltejs/kit';
 import { requirePermission, requireWritableCommunity, type Ctx } from '../auth/guard.js';
 import { communityOf, type Reader } from '../auth/audience.js';
@@ -19,6 +19,7 @@ import {
 	type Decision
 } from '../db/schema/decisions.js';
 import { discussion, post } from '../db/schema/discussions.js';
+import { membership } from '../db/schema/tenancy.js';
 import { isCurrentShape } from '../../shared/linter.js';
 import { countUnresolved } from './objections.js';
 import { proposalToFreeze } from './discussions.js';
@@ -175,6 +176,37 @@ export function listDecisions(reader: Reader, options: { db?: Db } = {}): Decisi
  */
 export const DECISION_TYPES = ['constitutional', 'strategic', 'operational'] as const;
 
+/**
+ * Who was present, held to the people who could have been.
+ *
+ * The form offers this community's current members, but a form is only a
+ * suggestion: a posted id from another community, or a membership that has
+ * ended, would otherwise be written into the register as present — counted in
+ * a decision that person had no part in. Refused before anything is written,
+ * because a decision recorded with a wrong room is worse than one not yet
+ * recorded.
+ */
+function refuseForeignAttendees(db: Db, ctx: Ctx, attendees: readonly Attendee[]): void {
+	const named = [
+		...new Set(attendees.map((a) => a.membershipId).filter((id): id is string => !!id))
+	];
+	if (named.length === 0) return;
+	const current = db
+		.select({ id: membership.id })
+		.from(membership)
+		.where(
+			and(
+				eq(membership.communityId, ctx.community.id),
+				inArray(membership.id, named),
+				isNull(membership.endedAt)
+			)
+		)
+		.all();
+	if (current.length !== named.length) {
+		error(400, 'Everyone recorded as present must be a current member of this community.');
+	}
+}
+
 export function freeze(ctx: Ctx, input: FreezeInput, options: { db?: Db } = {}): Decision {
 	requirePermission(ctx, 'decision.freeze');
 	requireWritableCommunity(ctx);
@@ -229,6 +261,8 @@ export function freeze(ctx: Ctx, input: FreezeInput, options: { db?: Db } = {}):
 	const provisional = !isArtifactComplete(ctx, DECISION_MATRIX, { db });
 
 	const unresolvedObjections = countUnresolved(db, proposal.id);
+
+	refuseForeignAttendees(db, ctx, input.attendees ?? []);
 
 	return db.transaction((tx) => {
 		const target = resolveDefinition(tx as unknown as Db, ctx, thread, standard, now);

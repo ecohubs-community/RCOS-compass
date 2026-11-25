@@ -144,8 +144,12 @@ describe('credential attempts have their own, tighter ceiling', () => {
 		expect(isCredentialAttempt('/c/valle-verde/settings/account', 'POST')).toBe(false);
 		expect(isCredentialAttempt('/api/auth/sign-in/email', 'POST')).toBe(true);
 		expect(isCredentialAttempt('/c/valle-verde/definitions', 'POST')).toBe(false);
+		// A join link's form makes an account and sends mail: same ceiling.
+		expect(isCredentialAttempt('/join/abc123', 'POST')).toBe(true);
+		expect(isCredentialAttempt('/join/abc123', 'GET')).toBe(false);
 		// Not a prefix match on a path that merely starts with the same letters.
 		expect(isCredentialAttempt('/sign-in-help', 'POST')).toBe(false);
+		expect(isCredentialAttempt('/joinery', 'POST')).toBe(false);
 	});
 });
 

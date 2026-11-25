@@ -1,6 +1,6 @@
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test } from '@playwright/test';
-import { seed, visit } from './support.js';
+import { seed, signIn, visit } from './support.js';
 
 /**
  * The signed-out surface, against a real production build.
@@ -43,10 +43,34 @@ test.describe('sign-in', () => {
 	});
 });
 
-test.describe('an account without an invitation', () => {
+test.describe('where signing in lands', () => {
+	// Without a destination asked for, a member of one community starts in it
+	// rather than on the landing page and its "Request pilot access" button.
+	test('a member of one community arrives on its dashboard', async ({ page }) => {
+		const fixture = await seed(page);
+		await signIn(page, fixture.email, fixture.password);
+		await expect(page).toHaveURL(new RegExp(`/c/${fixture.slug}$`));
+
+		// And opening /sign-in again, already signed in, goes to the same place.
+		await page.goto('/sign-in');
+		await expect(page).toHaveURL(new RegExp(`/c/${fixture.slug}$`));
+	});
+
+	test('a destination that was asked for still wins', async ({ page }) => {
+		const fixture = await seed(page);
+		await visit(page, `/sign-in?redirectTo=/c/${fixture.slug}/decisions`);
+		await page.getByLabel('Email').fill(fixture.email);
+		await page.getByLabel('Password').fill(fixture.password);
+		await page.getByRole('button', { name: 'Sign in' }).click();
+		await expect(page).toHaveURL(new RegExp(`/c/${fixture.slug}/decisions$`));
+	});
+});
+
+test.describe('an account without an invitation or a join link', () => {
 	test('cannot be made through the library’s public sign-up', async ({ request }) => {
-		// Invitation-only: the invitation page is the one place an account is
-		// made. tests/integration/closed-sign-up.test.ts has the magic-link half.
+		// The invitation page and a community's join link are the only places an
+		// account is made. tests/integration/closed-sign-up.test.ts has the
+		// magic-link half, and the join link's own spec its door.
 		const response = await request.post('/api/auth/sign-up/email', {
 			data: {
 				email: `stranger-${Date.now()}@example.org`,

@@ -14,6 +14,7 @@ import { community, membership, type Community } from '../db/schema/tenancy.js';
 import { notify, type NotifyScope } from '../services/notifications.js';
 import { definitionTitle } from '../services/search.js';
 import { runClaimCheck } from './claim-check.js';
+import { dropStaleJoinRequests, eraseAbandonedJoinAccounts } from '../services/join-requests.js';
 
 /**
  * The notifications nobody's act causes: something is about to close, has gone
@@ -31,10 +32,26 @@ export const CLOSING_WINDOW_MS = 48 * 60 * 60_000;
 /** A thread with nothing new for this long is one its opener may want to close or nudge. */
 export const QUIET_AFTER_MS = 14 * 24 * 60 * 60_000;
 
-export type SweepResult = { closing: number; quiet: number; reviews: number; claims: number };
+export type SweepResult = {
+	closing: number;
+	quiet: number;
+	reviews: number;
+	claims: number;
+	/** Join requests dropped because nobody confirmed their address in a week. */
+	staleJoins: number;
+	/** Accounts those requests left behind, erased. */
+	abandonedAccounts: number;
+};
 
 export async function runNotificationSweep(db: Db, clock: Clock): Promise<SweepResult> {
-	const result: SweepResult = { closing: 0, quiet: 0, reviews: 0, claims: 0 };
+	const result: SweepResult = {
+		closing: 0,
+		quiet: 0,
+		reviews: 0,
+		claims: 0,
+		staleJoins: 0,
+		abandonedAccounts: 0
+	};
 	for (const home of db.select().from(community).where(eq(community.status, 'active')).all()) {
 		// The database calls are synchronous, and this job runs in the web server's
 		// process: a thousand communities in one unbroken loop answered no request
@@ -51,7 +68,10 @@ export async function runNotificationSweep(db: Db, clock: Clock): Promise<SweepR
 		// makes a member's upload wait behind hundreds of them.
 		runClaimCheck(db, clock, { communityId: home.id });
 		result.claims += 1;
+		result.staleJoins += dropStaleJoinRequests(db, home.id, clock.now());
 	}
+	// Not per community: an abandoned account belongs to none.
+	result.abandonedAccounts = eraseAbandonedJoinAccounts(db, clock.now());
 	return result;
 }
 

@@ -20,20 +20,32 @@ import { getConfig } from '../config.js';
  * reported problem rather than a value that fails later as an authentication
  * error nobody can explain.
  */
-const LABEL = 'rcos-compass/mirror-credential/v1';
+export const SEAL_LABELS = {
+	mirrorCredential: 'rcos-compass/mirror-credential/v1',
+	/** A community's join link, kept so a steward can copy it again. */
+	joinLink: 'rcos-compass/join-link/v1'
+} as const;
+export type SealLabel = (typeof SEAL_LABELS)[keyof typeof SEAL_LABELS];
+
 export const CREDENTIAL_GENERATION = 1;
 
-function key(): Buffer {
+function key(label: SealLabel): Buffer {
 	return Buffer.from(
-		hkdfSync('sha256', Buffer.from(getConfig().BETTER_AUTH_SECRET), Buffer.alloc(0), LABEL, 32)
+		hkdfSync('sha256', Buffer.from(getConfig().BETTER_AUTH_SECRET), Buffer.alloc(0), label, 32)
 	);
 }
 
 export type Sealed = { generation: number; ciphertext: string };
 
-export function seal(plaintext: string): Sealed {
+/**
+ * Sealed under one label, and openable only under the same one: a join link's
+ * ciphertext is not a mirror credential, and the two keys never meet. The
+ * default is the mirror's, so everything sealed before labels existed opens as
+ * it always did.
+ */
+export function seal(plaintext: string, label: SealLabel = SEAL_LABELS.mirrorCredential): Sealed {
 	const iv = randomBytes(12);
-	const cipher = createCipheriv('aes-256-gcm', key(), iv);
+	const cipher = createCipheriv('aes-256-gcm', key(label), iv);
 	const body = Buffer.concat([cipher.update(plaintext, 'utf8'), cipher.final()]);
 	return {
 		generation: CREDENTIAL_GENERATION,
@@ -49,7 +61,10 @@ export function seal(plaintext: string): Sealed {
  * screen and stop pushing — not to distinguish causes, which would be an oracle
  * about the key.
  */
-export function unseal(sealed: Sealed): string | null {
+export function unseal(
+	sealed: Sealed,
+	label: SealLabel = SEAL_LABELS.mirrorCredential
+): string | null {
 	if (sealed.generation !== CREDENTIAL_GENERATION) return null;
 
 	const parts = sealed.ciphertext.split('.');
@@ -57,7 +72,7 @@ export function unseal(sealed: Sealed): string | null {
 	const [iv, tag, body] = parts.map((part) => Buffer.from(part, 'base64'));
 
 	try {
-		const decipher = createDecipheriv('aes-256-gcm', key(), iv!);
+		const decipher = createDecipheriv('aes-256-gcm', key(label), iv!);
 		decipher.setAuthTag(tag!);
 		return Buffer.concat([decipher.update(body!), decipher.final()]).toString('utf8');
 	} catch {

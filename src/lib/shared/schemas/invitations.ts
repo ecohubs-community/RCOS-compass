@@ -1,5 +1,6 @@
 import * as v from 'valibot';
 import * as m from '$lib/paraglide/messages';
+import { emailSchema } from './auth';
 
 /**
  * The account an invited person creates on their way in.
@@ -40,3 +41,19 @@ export const acceptInvitationSchema = v.object({
 });
 
 export type AcceptInvitation = v.InferOutput<typeof acceptInvitationSchema>;
+
+/**
+ * Asking to join through a community's link (`openspec/changes/pilot-blockers`).
+ * Here the address *is* a field — there is no invitation to take it from — and
+ * there is no password: the account stays without one until the owner of that
+ * address, signed in by its verification mail, chooses it (`joinPasswordSchema`).
+ */
+export const joinRequestSchema = v.object({
+	name: acceptingNameSchema,
+	email: emailSchema
+});
+
+/** The first password of an account made through a join link. */
+export const joinPasswordSchema = v.object({
+	password: newPasswordSchema
+});

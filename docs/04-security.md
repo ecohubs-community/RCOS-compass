@@ -71,7 +71,7 @@ So:
 | Publish to the world / unpublish | ✓ | — | |
 | Create a transparency exception | ✓ | — | |
 | Read restricted content | per exception | — | |
-| Invite / remove members, set roles | ✓ | — | |
+| Invite / remove members, set roles; share the join link and decide who it lets in | ✓ | — | |
 | Change community settings, AI config, the interim adoption rule | ✓ | — | |
 | Export the full community | ✓ | — | |
 | Transfer ownership, delete the community | — | — | ✓ |
@@ -138,12 +138,27 @@ The single highest-severity risk. Defence in depth:
   different email address fails. The invited role is validated against the two
   real roles — an invitation naming `owner` is rejected, because owner is a flag
   and moving it is a separate, deliberate act.
-- **No account without an invitation.** The invitation page is the only place
-  an account is made, through the library's server API. better-auth's public
-  `/api/auth/sign-up/*` answers 404 at the route (turning sign-up off in the
-  library would also refuse the server call the invitation page makes), and the
+- **No account without an invitation or a join link.** An account is made in
+  two places, both through the library's server API: the invitation page, and a
+  community's join link (`openspec/changes/pilot-blockers`). better-auth's
+  public `/api/auth/sign-up/*` answers 404 at the route (turning sign-up off in
+  the library would also refuse the server calls these pages make), and the
   magic-link plugin runs with `disableSignUp`, so a link sent to an unknown
   address signs nobody in. `tests/integration/closed-sign-up.test.ts`.
+- **Join links.** One per community, off until a steward turns it on; the token
+  is hashed for lookup and sealed (HKDF label `join-link/v1`) so a steward can
+  copy it again. Following it makes a *request*, never a membership, and an
+  account made there has no password and stays unverified until its address
+  answers the ordinary verification mail; the password is chosen afterwards, by
+  the person that mail signed in — so typing someone else's address into the
+  form gives nobody their account. Stewards are told — without a name — only then, and a
+  steward lets the person in or declines; a declined account that never
+  belonged anywhere is erased. The form answers "check your inbox" whatever is
+  true of the address, so it does not reveal who has an account. Its POSTs
+  share the sign-in attempt ceiling, a community holds at most 50 open
+  requests, and replacing or turning off the link cuts off whoever had it and
+  drops requests nobody confirmed. `tests/integration/join-link.test.ts`,
+  `join-page.test.ts`.
 - TOTP two-factor is available to all users and **required for platform admins**
   (§6). Post-MVP: required-2FA policy per community.
 - CSRF: SvelteKit's origin check on form actions stays on; any `+server.ts` that
@@ -416,3 +431,4 @@ Defined in `05-admin-console.md`. The security-relevant parts:
 | A model provider sees prompt content | Mitigated by provider choice, opt-out, and the `null` provider; stated in settings |
 | Layer 4 conflict case data | Not stored — the app defines the process, never runs cases (UI spec §9). This is a security decision as much as a product one |
 | Denial of service | Rate limits and body caps only; no WAF for MVP |
+| A join link shared beyond the people it was meant for | Accepted. Anyone holding it can ask; nobody sees anything until a steward lets them in, the queue is capped, and replacing the link cuts off whoever had the old one. Stewards are told to let in only people they know |

@@ -13,6 +13,20 @@
 		sm: 'h-7 px-2.5 text-meta gap-1.5',
 		md: 'h-8 px-3 text-body gap-2'
 	};
+
+	const BASE =
+		'inline-flex cursor-pointer items-center justify-center rounded-(--radius-control) border font-medium transition-colors';
+
+	/**
+	 * The look of a button, for a link that has to be one.
+	 *
+	 * A control that must work with no JavaScript is a link to the server's
+	 * version of the act (`?freeze=1`) and a button once the page has hydrated.
+	 * Styled from here so the two cannot drift.
+	 */
+	export function buttonClass(variant: ButtonVariant = 'secondary', size: ButtonSize = 'md') {
+		return `${BASE} ${VARIANTS[variant]} ${SIZES[size]}`;
+	}
 </script>
 
 <script lang="ts">
@@ -50,8 +64,8 @@
 
 <button
 	class={cn(
-		'inline-flex cursor-pointer items-center justify-center rounded-(--radius-control) border font-medium',
-		'transition-colors disabled:cursor-not-allowed disabled:opacity-50',
+		BASE,
+		'disabled:cursor-not-allowed disabled:opacity-50',
 		VARIANTS[variant],
 		SIZES[size],
 		className

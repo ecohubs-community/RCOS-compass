@@ -33,10 +33,12 @@ const EXEMPT_PREFIXES = ['/healthz', '/_app/', '/favicon'];
 
 /**
  * Paths where a request can be an attempt at a credential — a password, a
- * six-digit code, a recovery code. Only their POSTs are held to the tighter
+ * six-digit code, a recovery code — or can make an account: a join link's form
+ * creates one and sends mail, and shares this ceiling rather than having its
+ * own (`openspec/changes/pilot-blockers` D4). Only their POSTs are held to the tighter
  * ceiling; rendering the sign-in page is an ordinary request.
  */
-const AUTH_PREFIXES = ['/sign-in', '/sign-up', '/reset-password', '/api/auth'];
+const AUTH_PREFIXES = ['/sign-in', '/sign-up', '/reset-password', '/api/auth', '/join'];
 
 /**
  * The Two-factor panel, wherever it is mounted: under any community's settings,

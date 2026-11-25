@@ -11,6 +11,7 @@ import { resolveActor } from '$lib/server/auth/session';
 import { requirePlatformAdmin } from '$lib/server/auth/admin';
 import {
 	invitationLocale,
+	joinLocale,
 	publicLocale,
 	resolveTenant,
 	signInLocale
@@ -145,6 +146,7 @@ export const handle: Handle = async ({ event, resolve }) => {
 			event.locals.community?.locale ??
 			publicLocale(event, db) ??
 			invitationLocale(event, db) ??
+			joinLocale(event, db) ??
 			signInLocale(event) ??
 			baseLocale
 	);

@@ -1,6 +1,7 @@
 import { betterAuth } from 'better-auth';
 import { drizzleAdapter } from 'better-auth/adapters/drizzle';
 import { magicLink, twoFactor } from 'better-auth/plugins';
+import { systemClock } from '../clock.js';
 import { getConfig } from '../config.js';
 import { getDb, type Db } from '../db/index.js';
 import * as schema from '../db/schema/index.js';
@@ -72,6 +73,31 @@ export function createAuth(db: Db = getDb()) {
 			// mail/messages.ts, which is the only place a body is written.
 			sendVerificationEmail: async ({ user, url }) => {
 				await send(verificationMessage(user.email, url), 'verification');
+			},
+			/**
+			 * An address just proved itself: any request to join it made through a
+			 * community's link is now real, and that community's stewards are told
+			 * (`openspec/changes/pilot-blockers` D4).
+			 *
+			 * The library awaits this with no catch, after marking the address
+			 * verified and before signing the person in and redirecting them. A
+			 * throw here would leave them verified with no session and no page —
+			 * so nothing escapes. A request whose telling failed still shows on the
+			 * Members page, which reads verification, not this hook.
+			 *
+			 * Imported when called, so identity does not load the community
+			 * services at boot.
+			 */
+			afterEmailVerification: async (user) => {
+				try {
+					const { noteVerifiedJoinRequests } = await import('../services/join-requests.js');
+					noteVerifiedJoinRequests(db, systemClock, user.id);
+				} catch (problem) {
+					getLogger().error(
+						{ err: problem instanceof Error ? problem.message : String(problem) },
+						'join requests not noted after verification'
+					);
+				}
 			}
 		},
 

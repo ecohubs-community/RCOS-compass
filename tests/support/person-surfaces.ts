@@ -7,7 +7,13 @@ import type { Db } from '../../src/lib/server/db/index.js';
 import { aiUsage } from '../../src/lib/server/db/schema/ai.js';
 import { changeLog, decision, decisionAttendee } from '../../src/lib/server/db/schema/decisions.js';
 import { publicationHistory } from '../../src/lib/server/services/publishing.js';
-import { auditEvent, invitation, membership } from '../../src/lib/server/db/schema/tenancy.js';
+import {
+	auditEvent,
+	invitation,
+	joinRequest,
+	membership
+} from '../../src/lib/server/db/schema/tenancy.js';
+import { listJoinRequests } from '../../src/lib/server/services/join-requests.js';
 import { listFormerMembers, listMembers } from '../../src/lib/server/services/members.js';
 import { usageByMember } from '../../src/lib/server/services/ai-settings.js';
 import { outwardAttribution } from '../../src/lib/server/services/attribution.js';
@@ -595,6 +601,34 @@ export const PERSON_SURFACES: PersonSurface[] = [
 		expect: /^$/
 	},
 	{
+		name: 'join-requests.listJoinRequests',
+		module: 'join-requests.ts',
+		/**
+		 * The one list that shows a steward a name and an address belonging to
+		 * someone who is not a member. The subject is a member here, so the list
+		 * would leave them out anyway; their membership is ended for the seed, so
+		 * the only thing that can hide them afterwards is erasure deleting the
+		 * request (`erasePerson`, `pilot-blockers` D9).
+		 */
+		seed: (db, ctx, subject) => {
+			db.update(membership)
+				.set({ endedAt: new Date(0) })
+				.where(eq(membership.id, subject.membershipId))
+				.run();
+			db.insert(joinRequest)
+				.values({
+					id: newId(),
+					communityId: ctx.community.id,
+					userId: subject.userId,
+					createdAt: new Date(0),
+					notifiedAt: new Date(0)
+				})
+				.run();
+		},
+		read: (ctx, db) => listJoinRequests(ctx, { db }).map((row) => `${row.name} ${row.email}`),
+		expect: /^$/
+	},
+	{
 		name: 'library.libraryView',
 		module: 'library.ts',
 		/**
@@ -711,6 +745,8 @@ export const PERSON_SURFACES: PersonSurface[] = [
  * whenever it goes red.
  */
 export const NOT_A_PERSON_SURFACE: Record<string, string> = {
+	'join-link.ts':
+		'Reads only whether an address is verified, to drop unproven join requests; it names nobody.',
 	'erasure.ts':
 		'Removes a person rather than rendering one. Its own suite asserts what is left behind.',
 	'admin/status.ts': 'Counts and sizes only; the status page shows no member at all.',

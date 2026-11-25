@@ -103,7 +103,12 @@ const KIND_WORDS: Record<NotificationKind, [Count, Count]> = {
 	],
 	'claim.withdrawn': [m.digest_kind_claim_withdrawn_one, m.digest_kind_claim_withdrawn_many],
 	'proposal.move_requested': [m.digest_kind_move_requested_one, m.digest_kind_move_requested_many],
-	'proposal.move_answered': [m.digest_kind_move_answered_one, m.digest_kind_move_answered_many]
+	'proposal.move_answered': [m.digest_kind_move_answered_one, m.digest_kind_move_answered_many],
+	'membership.join_requested': [
+		m.digest_kind_join_requested_one,
+		m.digest_kind_join_requested_many
+	],
+	'membership.join_approved': [m.digest_kind_join_approved_one, m.digest_kind_join_approved_many]
 };
 
 const counted = ([one, many]: [Count, Count], count: number, locale: Locale) =>

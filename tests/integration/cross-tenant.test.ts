@@ -16,6 +16,9 @@ import '../../src/lib/server/services/evidence.js';
 import '../../src/lib/server/services/mapping.js';
 import '../../src/lib/server/services/document-versions.js';
 import '../../src/lib/server/services/move-requests.js';
+import '../../src/lib/server/services/join-requests.js';
+import { requestToJoin } from '../../src/lib/server/services/join-requests.js';
+import { turnOnJoinLink } from '../../src/lib/server/services/join-link.js';
 import { requestMove } from '../../src/lib/server/services/move-requests.js';
 import { inviteMember } from '../../src/lib/server/services/invitations.js';
 import { createDefinition } from '../../src/lib/server/services/definitions.js';
@@ -26,7 +29,7 @@ import { consentRoundProvider } from '../../src/lib/server/voting/consent-round.
 import { getStandard } from '../../src/lib/server/standard/index.js';
 import { newId } from '../../src/lib/server/db/id.js';
 import { communityArtifact } from '../../src/lib/server/db/schema/definitions.js';
-import { communityStandard } from '../../src/lib/server/db/schema/tenancy.js';
+import { communityStandard, joinRequest } from '../../src/lib/server/db/schema/tenancy.js';
 import { notification } from '../../src/lib/server/db/schema/notifications.js';
 import {
 	document as documentTable,
@@ -77,6 +80,16 @@ beforeEach(() => {
 		now: () => Date.UTC(2026, 8, 2, 12, 0, 0)
 	};
 	const invitationInA = inviteMember(ctxA, { email: 'carol@example.org' }, { db }).invitation;
+
+	// Someone asking to join A through its link, with a proven address — the
+	// subject a steward of A lets in or declines.
+	const joiner = makeUser(db, { email: 'joiner@example.org' });
+	requestToJoin(
+		db,
+		{ now: ctxA.now },
+		{ token: turnOnJoinLink(ctxA, { db }).token, userId: joiner.id }
+	);
+	const joinRequestInA = db.select().from(joinRequest).all()[0]!;
 
 	// A's own content, for the services that address a definition or an artifact.
 	db.insert(communityStandard)
@@ -284,7 +297,8 @@ beforeEach(() => {
 			passage: passageInA,
 			evidence: evidenceInA,
 			documentVersion: `${documentInA}:${versionInA}`,
-			notification: notificationInA?.id ?? ''
+			notification: notificationInA?.id ?? '',
+			joinRequest: joinRequestInA.id
 		}
 	};
 });

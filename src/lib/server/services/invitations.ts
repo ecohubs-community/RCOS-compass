@@ -6,7 +6,15 @@ import type { Clock } from '../clock.js';
 import { getDb, type Db } from '../db/index.js';
 import { newId } from '../db/id.js';
 import { user } from '../db/schema/auth.js';
-import { community, invitation, membership, type Invitation } from '../db/schema/tenancy.js';
+import {
+	community,
+	invitation,
+	joinRequest,
+	membership,
+	type Invitation
+} from '../db/schema/tenancy.js';
+import { checkRateLimit } from '../rate-limit.js';
+import { INVITE_BATCH_MAX, parseAddresses } from '../../shared/addresses.js';
 import { recordAudit } from './audit.js';
 import { registerTenantService } from './registry.js';
 
@@ -49,7 +57,15 @@ export type CreatedInvitation = { invitation: Invitation; token: string };
  */
 export function inviteMember(
 	ctx: Ctx,
-	input: { email: string; role?: 'steward' | 'member' },
+	input: {
+		email: string;
+		role?: 'steward' | 'member';
+		/**
+		 * Only ever carried over from an invitation that already had it
+		 * (`resendInvitation`). No route passes it: moving ownership is its own act.
+		 */
+		grantsOwner?: boolean;
+	},
 	options: { db?: Db } = {}
 ): CreatedInvitation {
 	requirePermission(ctx, 'member.invite');
@@ -96,7 +112,7 @@ export function inviteMember(
 			communityId: ctx.community.id,
 			email,
 			role: input.role ?? ('member' as const),
-			grantsOwner: false,
+			grantsOwner: input.grantsOwner ?? false,
 			tokenHash: hashToken(token),
 			expiresAt: new Date(now + INVITATION_TTL_MS),
 			acceptedAt: null,
@@ -122,6 +138,113 @@ export function inviteMember(
 
 		return { invitation: row, token };
 	});
+}
+
+/** What became of one address in a batch. `token` only for `invited`, for its mail. */
+export type InviteOutcome =
+	| { address: string; outcome: 'invited'; token: string; invitationId: string }
+	| { address: string; outcome: 'already_member' | 'not_an_address' | 'limited' };
+
+/** Per steward, per 24 hours: far above a founding group, far below a mailing list. */
+export const INVITES_PER_STEWARD_PER_DAY = 100;
+const DAY_MS = 24 * 60 * 60_000;
+
+/**
+ * Inviting a whole founding group at once. `openspec/changes/pilot-blockers` D1.
+ *
+ * Each address is its own `inviteMember` call — its own transaction — so a typo
+ * or a current member in the list costs that one line, not the other nineteen.
+ * Nothing is mailed here: the route sends each mail after this returns, as the
+ * admin console does, so a slow mail server never holds a write.
+ *
+ * The daily limit is per steward and counted per address: one member must not
+ * be able to turn the instance into a way of mailing strangers.
+ */
+export function inviteMembers(
+	ctx: Ctx,
+	input: { addresses: string; role: 'steward' | 'member' },
+	options: { db?: Db } = {}
+): InviteOutcome[] {
+	requirePermission(ctx, 'member.invite');
+	const db = options.db ?? getDb();
+
+	const parsed = parseAddresses(input.addresses);
+	if (parsed.length === 0) error(400, 'Paste at least one address.');
+	if (parsed.length > INVITE_BATCH_MAX) {
+		error(400, `At most ${INVITE_BATCH_MAX} addresses at once.`);
+	}
+
+	// Current members are reported before the allowance is touched: re-pasting
+	// a whole list to catch the stragglers must not spend it on people who are in.
+	const members = new Set(
+		db
+			.select({ email: user.email })
+			.from(membership)
+			.innerJoin(user, eq(user.id, membership.userId))
+			.where(and(eq(membership.communityId, ctx.community.id), isNull(membership.endedAt)))
+			.all()
+			.map((row) => row.email.toLowerCase())
+	);
+
+	return parsed.map(({ address, valid }): InviteOutcome => {
+		if (!valid) return { address, outcome: 'not_an_address' };
+		if (members.has(address)) return { address, outcome: 'already_member' };
+		const allowance = checkRateLimit(
+			db,
+			{ now: ctx.now },
+			{ key: `invite:${ctx.user.id}`, limit: INVITES_PER_STEWARD_PER_DAY, windowMs: DAY_MS }
+		);
+		if (!allowance.allowed) return { address, outcome: 'limited' };
+		try {
+			const created = inviteMember(ctx, { email: address, role: input.role }, { db });
+			return {
+				address,
+				outcome: 'invited',
+				token: created.token,
+				invitationId: created.invitation.id
+			};
+		} catch (problem) {
+			if ((problem as { status?: number }).status === 409) {
+				return { address, outcome: 'already_member' };
+			}
+			throw problem;
+		}
+	});
+}
+
+/**
+ * A pending invitation sent again: a new invitation for the same address and
+ * role, which supersedes the old one (`inviteMember`), so the link in the first
+ * mail stops working. Works for an expired invitation too. 404 for one that is
+ * not this community's, or no longer pending.
+ */
+export function resendInvitation(
+	ctx: Ctx,
+	invitationId: string,
+	options: { db?: Db } = {}
+): CreatedInvitation {
+	requirePermission(ctx, 'member.invite');
+	const db = options.db ?? getDb();
+	const found = db
+		.select()
+		.from(invitation)
+		.where(
+			and(
+				eq(invitation.id, invitationId),
+				eq(invitation.communityId, ctx.community.id),
+				isNull(invitation.acceptedAt),
+				isNull(invitation.revokedAt)
+			)
+		)
+		.get();
+	if (!found) error(404, 'Not found');
+	// The owner's invitation stays the owner's: resending must not quietly turn
+	// it into an ordinary one and revoke the original.
+	return inviteMember(
+		ctx,
+		{ email: found.email, role: found.role, grantsOwner: found.grantsOwner },
+		{ db }
+	);
 }
 
 export function listInvitations(ctx: Ctx, options: { db?: Db } = {}): Invitation[] {
@@ -310,6 +433,14 @@ export function acceptInvitation(
 			.where(eq(invitation.id, found.id))
 			.run();
 
+		// A request to join this same community through its link is answered:
+		// they are in. Left behind, it would tell the stewards about a member.
+		tx.delete(joinRequest)
+			.where(
+				and(eq(joinRequest.communityId, found.communityId), eq(joinRequest.userId, input.userId))
+			)
+			.run();
+
 		recordAudit(tx as unknown as Db, clock, {
 			action: 'member.joined',
 			actorId: input.userId,
@@ -327,4 +458,10 @@ registerTenantService({
 	name: 'invitations.revoke',
 	subject: 'invitation',
 	call: revokeInvitation
+});
+
+registerTenantService({
+	name: 'invitations.resend',
+	subject: 'invitation',
+	call: (ctx, id) => resendInvitation(ctx, id)
 });
