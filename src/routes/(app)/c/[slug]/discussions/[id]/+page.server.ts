@@ -1,14 +1,14 @@
 import { fail, redirect } from '@sveltejs/kit';
 import { randomUUID } from 'node:crypto';
 import { eq } from 'drizzle-orm';
-import { ctxCan } from '$lib/server/auth/guard';
-import { systemClock } from '$lib/server/clock';
-import { getDb } from '$lib/server/db';
-import { decision } from '$lib/server/db/schema/decisions';
-import type { Discussion } from '$lib/server/db/schema/discussions';
-import { enqueue } from '$lib/server/jobs/queue';
-import { freeze } from '$lib/server/services/decisions';
-import { listMembers } from '$lib/server/services/members';
+import { ctxCan } from '#lib/server/auth/guard.ts';
+import { systemClock } from '#lib/server/clock.ts';
+import { getDb } from '#lib/server/db/index.ts';
+import { decision } from '#lib/server/db/schema/decisions.ts';
+import type { Discussion } from '#lib/server/db/schema/discussions.ts';
+import { enqueue } from '#lib/server/jobs/queue.ts';
+import { freeze } from '#lib/server/services/decisions.ts';
+import { listMembers } from '#lib/server/services/members.ts';
 import {
 	addMessage,
 	addProposal,
@@ -23,28 +23,28 @@ import {
 	takeOffline,
 	threadGuide,
 	threadRequirement
-} from '$lib/server/services/discussions';
-import { listLabelledObjections, resolveObjection } from '$lib/server/services/objections';
+} from '#lib/server/services/discussions.ts';
+import { listLabelledObjections, resolveObjection } from '#lib/server/services/objections.ts';
 import {
 	answerMove,
 	listMoveRequests,
 	requestMove,
 	withdrawMove
-} from '$lib/server/services/move-requests';
-import { interimRuleOf, passChecklist } from '$lib/shared/pass-checklist';
-import { timeZoneFor } from '$lib/time/zone';
-import { isArtifactComplete, DECISION_MATRIX } from '$lib/server/services/completeness';
-import { membershipLabel } from '$lib/server/services/person';
-import { parseMarkdown } from '$lib/server/markdown';
-import { allFindings, isCurrentShape } from '$lib/shared/linter';
-import { getVotingProvider } from '$lib/server/voting';
-import { aiAvailability } from '$lib/server/ai/run';
-import { draftProposalFromThread, summariseThread } from '$lib/server/ai/tasks/summarise-thread';
-import { listResponses, roundFor } from '$lib/server/voting/consent-round';
+} from '#lib/server/services/move-requests.ts';
+import { interimRuleOf, passChecklist } from '#lib/shared/pass-checklist.ts';
+import { timeZoneFor } from '#lib/time/zone.ts';
+import { isArtifactComplete, DECISION_MATRIX } from '#lib/server/services/completeness.ts';
+import { membershipLabel } from '#lib/server/services/person.ts';
+import { parseMarkdown } from '#lib/server/markdown.ts';
+import { allFindings, isCurrentShape } from '#lib/shared/linter.ts';
+import { getVotingProvider } from '#lib/server/voting/index.ts';
+import { aiAvailability } from '#lib/server/ai/run.ts';
+import { draftProposalFromThread, summariseThread } from '#lib/server/ai/tasks/summarise-thread.ts';
+import { listResponses, roundFor } from '#lib/server/voting/consent-round.ts';
 import type { Actions, PageServerLoad, RequestEvent } from './$types';
-import { run } from '$lib/server/http/form-action';
-import { localDateTime, localMidnight } from '$lib/time/format';
-import { mentionsToNames } from '$lib/shared/mentions';
+import { run } from '#lib/server/http/form-action.ts';
+import { localDateTime, localMidnight } from '#lib/time/format.ts';
+import { mentionsToNames } from '#lib/shared/mentions.ts';
 
 /**
  * One thread, one version on the table, and the freeze. UI spec §5.1, §4.6.

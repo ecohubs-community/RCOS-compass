@@ -1,9 +1,9 @@
 <script lang="ts">
-	import { enhance } from '$app/forms';
-	import type { SubmitFunction } from '@sveltejs/kit';
-	import Button from '$lib/components/ui/Button.svelte';
-	import TextField from '$lib/components/ui/TextField.svelte';
-	import * as m from '$lib/paraglide/messages';
+	import type { SubmitFunction } from '$app/forms';
+	import { enhance } from '#lib/enhance.ts';
+	import Button from '#lib/components/ui/Button.svelte';
+	import TextField from '#lib/components/ui/TextField.svelte';
+	import * as m from '#lib/paraglide/messages.js';
 
 	let { data, form } = $props();
 	let pending = $state(false);
@@ -62,10 +62,11 @@
 			<p class="text-fg-muted text-meta mt-4">
 				{m.invitation_signed_in_as({ email: data.signedInAs ?? '' })}
 			</p>
+
 			<form method="POST" action="?/ask" class="mt-4" use:enhance={submitting}>
-				<Button type="submit" variant="primary" {pending} class="w-full">
-					{pending ? m.join_submitting() : m.join_submit()}
-				</Button>
+				<Button type="submit" variant="primary" {pending} class="w-full"
+					>{pending ? m.join_submitting() : m.join_submit()}</Button
+				>
 			</form>
 		{:else}
 			<form
@@ -103,9 +104,10 @@
 					value={form?.email ?? ''}
 					error={form?.errors?.email ?? ''}
 				/>
-				<Button type="submit" variant="primary" {pending} class="mt-2 w-full">
-					{pending ? m.join_submitting() : m.join_submit()}
-				</Button>
+
+				<Button type="submit" variant="primary" {pending} class="mt-2 w-full"
+					>{pending ? m.join_submitting() : m.join_submit()}</Button
+				>
 			</form>
 			<p class="text-fg-muted text-meta mt-4">
 				{m.join_have_account()}

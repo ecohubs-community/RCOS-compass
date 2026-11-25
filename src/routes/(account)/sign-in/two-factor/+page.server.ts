@@ -1,19 +1,19 @@
 import { fail, redirect } from '@sveltejs/kit';
 import * as v from 'valibot';
-import { applyAuthCookies } from '$lib/server/auth/cookies';
-import { stampAbsoluteExpiry } from '$lib/server/auth/session';
+import { applyAuthCookies } from '#lib/server/auth/cookies.ts';
+import { stampAbsoluteExpiry } from '#lib/server/auth/session.ts';
 import {
 	answerChallengeWithBackupCode,
 	answerChallengeWithCode,
 	TWO_FACTOR_CHALLENGE_COOKIE
-} from '$lib/server/auth/two-factor';
-import { systemClock } from '$lib/server/clock';
-import { getDb } from '$lib/server/db';
-import { askedTarget } from '$lib/server/http/redirect-target';
-import { landingFor } from '$lib/server/services/tenancy';
-import { recordAudit } from '$lib/server/services/audit';
-import { backupCodeSchema, totpCodeSchema } from '$lib/shared/schemas/auth';
-import * as m from '$lib/paraglide/messages';
+} from '#lib/server/auth/two-factor.ts';
+import { systemClock } from '#lib/server/clock.ts';
+import { getDb } from '#lib/server/db/index.ts';
+import { askedTarget } from '#lib/server/http/redirect-target.ts';
+import { landingFor } from '#lib/server/services/tenancy.ts';
+import { recordAudit } from '#lib/server/services/audit.ts';
+import { backupCodeSchema, totpCodeSchema } from '#lib/shared/schemas/auth.ts';
+import * as m from '#lib/paraglide/messages.js';
 import type { Actions, PageServerLoad, RequestEvent } from './$types';
 
 /**

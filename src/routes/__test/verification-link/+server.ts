@@ -1,6 +1,6 @@
 import { error, json } from '@sveltejs/kit';
 import { createEmailVerificationToken } from 'better-auth/api';
-import { getConfig } from '$lib/server/config';
+import { getConfig } from '#lib/server/config.ts';
 import type { RequestHandler } from './$types';
 
 /**

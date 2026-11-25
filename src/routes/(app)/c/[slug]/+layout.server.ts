@@ -1,22 +1,22 @@
 import { redirect } from '@sveltejs/kit';
 import { resolve } from '$app/paths';
-import { hasPassword } from '$lib/server/auth/join-account';
-import { getDb } from '$lib/server/db';
+import { hasPassword } from '#lib/server/auth/join-account.ts';
+import { getDb } from '#lib/server/db/index.ts';
 import {
 	activeStandardView,
 	incompleteMandatoryArtifacts
-} from '$lib/server/services/completeness';
-import { listNotificationItems, unreadCount } from '$lib/server/services/notifications';
-import { READINESS_DEPENDS, readiness } from '$lib/server/services/readiness';
-import { requirePermission } from '$lib/server/auth/guard';
-import { timeZoneFor } from '$lib/time/zone';
+} from '#lib/server/services/completeness.ts';
+import { listNotificationItems, unreadCount } from '#lib/server/services/notifications.ts';
+import { READINESS_DEPENDS, readiness } from '#lib/server/services/readiness.ts';
+import { requirePermission } from '#lib/server/auth/guard.ts';
+import { timeZoneFor } from '#lib/time/zone.ts';
 import type { LayoutServerLoad } from './$types';
 
 /**
  * What the shell needs. docs/04-security.md §2.
  *
  * The community itself is resolved in the pipeline
- * (`$lib/server/http/resolve-tenant`), not here: SvelteKit runs actions before
+ * (`#lib/server/http/resolve-tenant.ts`), not here: SvelteKit runs actions before
  * loads, so a layout that resolved it would leave every form action without one.
  * This load reads what the pipeline established and re-checks the permission,
  * because a guard that exists in one place is a guard someone deletes.
